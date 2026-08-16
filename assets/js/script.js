@@ -197,10 +197,16 @@ function renderUpcomingCourses() {
     const theme = THEME_BY_CATEGORY[course.category] || THEME_BY_CATEGORY.default;
     const lessonCount = Array.isArray(course.lessons) ? course.lessons.length : 0;
     const videoUrl = course.videoUrl || '';
+    const thumbnail = course.thumbnail || '';
+    const safeThumb = thumbnail.replace(/"/g, '&quot;');
     const cardAction = videoUrl ? `data-video-url="${videoUrl}"` : '';
+    const thumbStyle = thumbnail
+      ? `background-image: linear-gradient(135deg, rgba(13,17,23,0.4), rgba(13,17,23,0.7)), url("${safeThumb}"); background-size: cover; background-position: center; background-repeat: no-repeat;`
+      : `background:${theme.gradient}`;
+
     return `
     <article class="upcoming-card" ${cardAction}>
-      <div class="upcoming-thumb" style="background:${theme.gradient}">
+      <div class="upcoming-thumb" style="${thumbStyle}">
         <span class="upcoming-soon-badge">Coming Soon</span>
         <i class="fa-solid ${theme.icon}"></i>
       </div>
