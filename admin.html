@@ -568,22 +568,6 @@
       border-color: currentColor;
     }
 
-    .lesson-play-actions {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-top: 10px;
-      flex-wrap: wrap;
-    }
-
-    .lesson-open-select {
-      min-width: 170px;
-      background: rgba(255,255,255,.045);
-      border: 1px solid rgba(255,255,255,.1);
-      border-radius: 10px;
-      padding: 9px 12px;
-      color: var(--admin-text);
-    }
 
     /* =========================
        LESSON EDITOR
@@ -2089,21 +2073,6 @@
                                 ${escapeHtml(lesson.videoUrl)}
                               </a>
                             </div>
-
-                            <div class="lesson-play-actions">
-                              <select class="lesson-open-select" aria-label="Choose video open mode">
-                                <option value="youtube">Open in new YouTube tab</option>
-                                <option value="self">Open here</option>
-                              </select>
-
-                              <button
-                                type="button"
-                                class="btn btn-primary"
-                                data-action="play-lesson"
-                              >
-                                ▶ Play
-                              </button>
-                            </div>
                           `
                           : ''
                       }
@@ -2112,20 +2081,6 @@
 
 
                     <div class="admin-btn-row">
-
-                      ${
-                        hasVideo
-                          ? `
-                            <button
-                              type="button"
-                              class="btn btn-success"
-                              data-action="preview-lesson"
-                            >
-                              ▶ Preview
-                            </button>
-                          `
-                          : ''
-                      }
 
                       <button
                         type="button"
@@ -2146,39 +2101,6 @@
                     </div>
 
                   `;
-
-
-                  /* PREVIEW */
-
-                  row
-                    .querySelector(
-                      '[data-action="preview-lesson"]'
-                    )
-                    ?.addEventListener(
-                      'click',
-                      () => {
-
-                        if (!lesson.videoUrl)
-                          return;
-
-                        const mode = row.querySelector('.lesson-open-select')?.value || 'youtube';
-                        const embed = getYoutubeEmbedUrl(lesson.videoUrl);
-
-                        if (!embed) {
-                          alert('Invalid YouTube URL.');
-                          return;
-                        }
-
-                        const autoplayUrl = `${embed}${embed.includes('?') ? '&' : '?'}autoplay=1&mute=1&rel=0`;
-
-                        if (mode === 'self') {
-                          window.open(autoplayUrl, '_self', 'noopener,noreferrer');
-                        } else {
-                          window.open(autoplayUrl, '_blank', 'noopener,noreferrer');
-                        }
-
-                      }
-                    );
 
 
                   /* EDIT */
