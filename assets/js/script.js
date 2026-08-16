@@ -198,17 +198,15 @@ function renderUpcomingCourses() {
     const lessonCount = Array.isArray(course.lessons) ? course.lessons.length : 0;
     const videoUrl = course.videoUrl || '';
     const thumbnail = course.thumbnail || '';
-    const safeThumb = thumbnail.replace(/"/g, '&quot;');
     const cardAction = videoUrl ? `data-video-url="${videoUrl}"` : '';
-    const thumbStyle = thumbnail
-      ? `background-image: linear-gradient(135deg, rgba(13,17,23,0.4), rgba(13,17,23,0.7)), url("${safeThumb}"); background-size: cover; background-position: center; background-repeat: no-repeat;`
-      : `background:${theme.gradient}`;
+    const hasThumbnail = !!thumbnail;
+    const safeThumb = hasThumbnail ? thumbnail.replace(/"/g, '&quot;') : '';
 
     return `
     <article class="upcoming-card" ${cardAction}>
-      <div class="upcoming-thumb" style="${thumbStyle}">
+      <div class="upcoming-thumb ${hasThumbnail ? 'has-image' : ''}" style="${hasThumbnail ? '' : `background:${theme.gradient}`}">
         <span class="upcoming-soon-badge">Coming Soon</span>
-        <i class="fa-solid ${theme.icon}"></i>
+        ${hasThumbnail ? `<img class="upcoming-thumb-image" src="${safeThumb}" alt="${course.title}" loading="lazy" />` : `<i class="fa-solid ${theme.icon}"></i>`}
       </div>
       <div class="upcoming-card-body">
         <p class="eyebrow">${course.category || 'Coming soon'}</p>
