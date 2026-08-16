@@ -1,712 +1,2931 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Admin — Siam Portfolio</title>
-    <link rel="stylesheet" href="assets/css/style.css" />
-    <style>
-      body {
-        min-height: 100vh;
-        background: radial-gradient(circle at top, rgba(255, 212, 59, 0.12), transparent 24%),
-          radial-gradient(circle at 80% 20%, rgba(75, 139, 190, 0.14), transparent 22%),
-          linear-gradient(180deg, #05070d 0%, #04050a 100%);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 40px 16px;
-      }
-      .admin-shell {
-        width: min(100%, 980px);
-        background: rgba(9, 14, 26, 0.96);
-        border: 1px solid rgba(255, 255, 255, 0.09);
-        border-radius: 28px;
-        box-shadow: 0 30px 120px rgba(0, 0, 0, 0.35);
-        overflow: hidden;
-      }
-      .admin-hero {
-        padding: 34px 36px 28px;
-        background: linear-gradient(180deg, rgba(255, 212, 59, 0.06), transparent 72%);
-        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-      }
-      .admin-hero h1 {
-        margin: 0;
-        font-size: clamp(2rem, 2.8vw, 2.8rem);
-      }
-      .admin-hero p {
-        margin-top: 12px;
-        color: var(--text-dim);
-        line-height: 1.8;
-        max-width: 760px;
-      }
-      .admin-body {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 2px;
-        background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01));
-      }
-      .admin-panel {
-        padding: 30px 32px;
-        background: rgba(13, 18, 28, 0.96);
-      }
-      .admin-panel h2 {
-        margin-top: 0;
-        font-size: 1.25rem;
-      }
-      .admin-panel p,
-      .admin-panel label {
-        color: var(--text-dim);
-      }
-      .form-grid {
-        display: grid;
-        gap: 16px;
-        margin: 18px 0 0;
-      }
-      .form-grid label {
-        display: grid;
-        gap: 10px;
-        font-size: 0.94rem;
-      }
-      .form-grid input,
-      .form-grid button {
-        width: 100%;
-      }
-      .form-grid input[type="text"],
-      .form-grid input[type="email"],
-      .form-grid input[type="password"],
-      .form-grid input[type="number"],
-      .form-grid input[type="file"],
-      .form-grid select,
-      .form-grid textarea {
-        background: rgba(255, 255, 255, 0.04);
-        border: 1px solid rgba(255, 255, 255, 0.12);
-        color: var(--text);
-        border-radius: 14px;
-        padding: 14px 16px;
-        font: inherit;
-      }
-      .form-grid textarea {
-        min-height: 96px;
-        resize: vertical;
-      }
-      .form-grid input:focus,
-      .form-grid select:focus,
-      .form-grid textarea:focus {
-        outline: none;
-        border-color: var(--cyan);
-        box-shadow: 0 0 0 4px rgba(255, 212, 59, 0.08);
-      }
-      .btn-full {
-        all: unset;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 10px;
-        background: linear-gradient(135deg, var(--cyan), var(--violet));
-        color: #04060b;
-        border-radius: 14px;
-        padding: 14px 18px;
-        cursor: pointer;
-        font-weight: 700;
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-      }
-      .btn-full:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 14px 35px rgba(255, 212, 59, 0.18);
-      }
-      .btn-secondary {
-        all: unset;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 10px;
-        width: 100%;
-        padding: 14px 18px;
-        border-radius: 14px;
-        border: 1px solid rgba(255,255,255,0.14);
-        color: var(--text);
-        cursor: pointer;
-      }
-      .delete-btn {
-        all: unset;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        padding: 10px 14px;
-        border-radius: 12px;
-        border: 1px solid rgba(255, 255, 255, 0.12);
-        color: #ff7a90;
-        cursor: pointer;
-        transition: background 0.2s ease, transform 0.2s ease;
-      }
-      .delete-btn:hover {
-        background: rgba(255, 122, 144, 0.12);
-        transform: translateY(-1px);
-      }
-      .panel-note {
-        margin-top: 8px;
-        color: var(--text-dim);
-        font-size: 0.92rem;
-      }
-      .status {
-        min-height: 24px;
-        color: var(--cyan);
-        font-size: 0.95rem;
-        margin-top: 12px;
-      }
-      .hidden {
-        display: none;
-      }
-      .admin-sidebar {
-        padding: 30px 32px;
-        background: rgba(13, 18, 28, 0.96);
-        border-left: 1px solid rgba(255,255,255,0.08);
-      }
-      .admin-sidebar h3 {
-        margin-top: 0;
-      }
-      .sidebar-card {
-        margin-top: 18px;
-        padding: 16px 18px;
-        border-radius: 18px;
-        background: rgba(255,255,255,0.03);
-        border: 1px solid rgba(255,255,255,0.08);
-      }
-      .sidebar-card strong {
-        color: var(--text);
-      }
-      .sidebar-list {
-        margin: 14px 0 0;
-        display: grid;
-        gap: 10px;
-      }
-      .sidebar-list li {
-        color: var(--text-dim);
-        font-size: 0.95rem;
-      }
-      .logout {
-        margin-top: 18px;
-        display: inline-flex;
-        padding: 12px 18px;
-        border-radius: 14px;
-        border: 1px solid rgba(255,255,255,0.14);
-        color: var(--text);
-        cursor: pointer;
-      }
-      .preview-card {
-        margin-top: 22px;
-        padding: 20px;
-        border-radius: 22px;
-        background: rgba(255,255,255,0.04);
-        border: 1px solid rgba(255,255,255,0.08);
-      }
-      .preview-row {
-        display: grid;
-        gap: 20px;
-      }
-      .preview-video,
-      .preview-thumb {
-        border-radius: 18px;
-        background: rgba(0, 0, 0, 0.18);
-        overflow: hidden;
-        min-height: 200px;
-      }
-      .preview-video video,
-      .preview-thumb img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        display: block;
-      }
-      .upload-list {
-        margin-top: 16px;
-        padding: 16px;
-        border-radius: 18px;
-        background: rgba(255,255,255,0.03);
-        border: 1px solid rgba(255,255,255,0.08);
-      }
-      .upload-item {
-        display: grid;
-        gap: 8px;
-        padding: 12px 0;
-        border-bottom: 1px solid rgba(255,255,255,0.06);
-      }
-      .upload-item:last-child {
-        border-bottom: none;
-      }
-      .upload-item span {
-        color: var(--text-dim);
-        font-size: 0.92rem;
-      }
-      .secondary-text {
-        color: var(--text-dim);
-      }
-      @media (max-width: 860px) {
-        .admin-body {
-          grid-template-columns: 1fr;
-        }
-        .admin-shell {
-          width: 100%;
-        }
-      }
-      /* ---- new admin UI additions ---- */
-      .access-screen {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        gap: 14px;
-        padding: 80px 32px;
-        text-align: center;
-      }
-      .access-screen h2 { margin: 0; }
-      .access-screen p { color: var(--text-dim); max-width: 440px; }
-      .admin-login-shell { grid-column: 1 / -1; max-width: 460px; margin: 0 auto; padding: 36px; }
-      .admin-login-shell .social-btn.google { width: 100%; justify-content: center; margin-bottom: 18px; }
-      .admin-dashboard { grid-column: 1 / -1; padding: 30px 32px; }
-      .admin-topbar { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 24px; }
-      .admin-topbar h2 { margin: 0; }
-      .admin-welcome { color: var(--text-dim); font-size: 0.9rem; }
-      .course-manager-list { display: flex; flex-direction: column; gap: 14px; margin-top: 20px; }
-      .course-manager-item { border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 18px; background: rgba(255,255,255,0.03); }
-      .course-manager-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
-      .course-manager-head h3 { margin: 0 0 4px; }
-      .course-manager-meta { color: var(--text-dim); font-size: 0.82rem; display: flex; gap: 10px; flex-wrap: wrap; }
-      .badge { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
-      .badge.published { background: rgba(34,197,94,0.15); color: #4ade80; }
-      .badge.upcoming { background: rgba(250,204,21,0.15); color: #facc15; }
-      .admin-btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
-      .admin-btn-row button { border: 1px solid rgba(255,255,255,0.14); background: rgba(255,255,255,0.05); color: var(--text); padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 0.8rem; }
-      .admin-btn-row button:hover { background: rgba(255,255,255,0.1); }
-      .admin-btn-row button.danger { color: #f87171; border-color: rgba(248,113,113,0.3); }
-      .module-block { margin-top: 14px; padding: 14px; border-radius: 12px; background: rgba(0,0,0,0.18); border: 1px solid rgba(255,255,255,0.06); }
-      .module-block-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
-      .lesson-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px 0; border-top: 1px solid rgba(255,255,255,0.06); flex-wrap: wrap; }
-      .lesson-row-title { font-size: 0.88rem; }
-      .lesson-row-title span { color: var(--text-dim); font-size: 0.78rem; margin-left: 6px; }
-      .inline-form { display: grid; gap: 10px; margin-top: 10px; }
-      .inline-form input, .inline-form textarea, .inline-form select {
-        width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.14);
-        background: rgba(255,255,255,0.04); color: var(--text); font-family: inherit; font-size: 0.88rem;
-      }
-      .inline-form label { font-size: 0.78rem; color: var(--text-dim); display: block; margin-bottom: 4px; }
-      .yt-preview { margin-top: 8px; border-radius: 10px; overflow: hidden; aspect-ratio: 16/9; background: #000; display: none; }
-      .yt-preview.show { display: block; }
-      .yt-preview iframe { width: 100%; height: 100%; border: 0; }
-      .add-course-form { margin-top: 18px; }
-    </style>
-  </head>
-  <body>
-    <div class="bg-grain" aria-hidden="true"></div>
-    <div class="admin-shell">
-      <div class="admin-hero">
-        <h1>Admin Dashboard</h1>
-        <p>Manage courses, modules, and lessons. Changes save to Firestore and appear for every visitor, on every device, immediately.</p>
-      </div>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
 
-      <div class="admin-body">
-        <!-- Checking auth state -->
-        <div class="access-screen" id="accessChecking">
-          <h2>Checking access…</h2>
-          <p>Verifying your sign-in status.</p>
+  <title>Admin Dashboard — CodeWithSiam</title>
+
+  <link rel="stylesheet" href="assets/css/style.css" />
+
+  <style>
+    :root {
+      --admin-bg: #05070d;
+      --admin-panel: #0d121c;
+      --admin-panel-2: #111824;
+      --admin-line: rgba(255,255,255,.09);
+      --admin-text: #f4f7fb;
+      --admin-muted: #8d98a9;
+      --admin-accent: #ffd43b;
+      --admin-accent-2: #4b8bbe;
+      --admin-danger: #ff7188;
+      --admin-success: #4ade80;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      padding: 32px 16px;
+      color: var(--admin-text);
+      background:
+        radial-gradient(circle at 10% 0%, rgba(255,212,59,.12), transparent 24%),
+        radial-gradient(circle at 90% 10%, rgba(75,139,190,.15), transparent 25%),
+        linear-gradient(180deg,#05070d 0%,#03050a 100%);
+    }
+
+    button,
+    input,
+    textarea,
+    select {
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .admin-shell {
+      width: min(1180px,100%);
+      margin: 0 auto;
+      overflow: hidden;
+      border: 1px solid var(--admin-line);
+      border-radius: 28px;
+      background: rgba(8,13,23,.96);
+      box-shadow: 0 30px 120px rgba(0,0,0,.45);
+    }
+
+    /* =========================
+       HERO
+    ========================= */
+
+    .admin-hero {
+      padding: 38px 40px;
+      border-bottom: 1px solid var(--admin-line);
+      background:
+        linear-gradient(135deg,rgba(255,212,59,.08),transparent 55%),
+        rgba(255,255,255,.01);
+    }
+
+    .hero-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    .brand-mini {
+      color: var(--admin-accent);
+      font-size: .8rem;
+      font-weight: 800;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+
+    .admin-hero h1 {
+      margin: 0;
+      font-size: clamp(2rem,4vw,3rem);
+      line-height: 1.1;
+    }
+
+    .admin-hero p {
+      max-width: 760px;
+      margin: 12px 0 0;
+      color: var(--admin-muted);
+      line-height: 1.7;
+    }
+
+    .admin-welcome {
+      padding: 10px 14px;
+      border: 1px solid var(--admin-line);
+      border-radius: 12px;
+      color: var(--admin-muted);
+      background: rgba(255,255,255,.03);
+      font-size: .85rem;
+    }
+
+    /* =========================
+       LOGIN / ACCESS
+    ========================= */
+
+    .admin-body {
+      padding: 32px;
+    }
+
+    .access-screen {
+      min-height: 300px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      gap: 12px;
+      text-align: center;
+    }
+
+    .access-screen h2 {
+      margin: 0;
+    }
+
+    .access-screen p {
+      max-width: 520px;
+      color: var(--admin-muted);
+      line-height: 1.7;
+    }
+
+    .admin-login-shell {
+      width: min(460px,100%);
+      margin: 20px auto;
+      padding: 30px;
+      border: 1px solid var(--admin-line);
+      border-radius: 22px;
+      background: rgba(255,255,255,.025);
+    }
+
+    .admin-login-shell h2 {
+      margin-top: 0;
+    }
+
+    .panel-note {
+      color: var(--admin-muted);
+      line-height: 1.6;
+      font-size: .9rem;
+    }
+
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 20px 0;
+      color: var(--admin-muted);
+      font-size: .8rem;
+    }
+
+    .divider::before,
+    .divider::after {
+      content: "";
+      flex: 1;
+      height: 1px;
+      background: var(--admin-line);
+    }
+
+    /* =========================
+       FORMS
+    ========================= */
+
+    .form-grid,
+    .inline-form {
+      display: grid;
+      gap: 16px;
+    }
+
+    .form-grid label,
+    .inline-form label {
+      display: grid;
+      gap: 8px;
+      color: var(--admin-muted);
+      font-size: .9rem;
+    }
+
+    input,
+    textarea,
+    select {
+      width: 100%;
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 12px;
+      padding: 13px 14px;
+      color: var(--admin-text);
+      background: rgba(255,255,255,.045);
+      outline: none;
+      transition: .2s ease;
+    }
+
+    input::placeholder,
+    textarea::placeholder {
+      color: #697486;
+    }
+
+    textarea {
+      min-height: 100px;
+      resize: vertical;
+    }
+
+    input:focus,
+    textarea:focus,
+    select:focus {
+      border-color: var(--admin-accent);
+      box-shadow: 0 0 0 3px rgba(255,212,59,.08);
+    }
+
+    /* =========================
+       BUTTONS
+    ========================= */
+
+    .btn {
+      border: 1px solid rgba(255,255,255,.13);
+      border-radius: 11px;
+      padding: 10px 14px;
+      color: var(--admin-text);
+      background: rgba(255,255,255,.05);
+      transition: .2s ease;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+      background: rgba(255,255,255,.09);
+    }
+
+    .btn-primary {
+      border: 0;
+      color: #05070d;
+      font-weight: 800;
+      background: linear-gradient(135deg,var(--admin-accent),#fff09a);
+    }
+
+    .btn-danger {
+      color: var(--admin-danger);
+      border-color: rgba(255,113,136,.25);
+    }
+
+    .btn-success {
+      color: var(--admin-success);
+      border-color: rgba(74,222,128,.25);
+    }
+
+    .btn-full {
+      width: 100%;
+      border: 0;
+      border-radius: 13px;
+      padding: 14px 18px;
+      color: #05070d;
+      background: linear-gradient(
+        135deg,
+        var(--admin-accent),
+        var(--admin-accent-2)
+      );
+      font-weight: 800;
+      transition: .2s ease;
+    }
+
+    .btn-full:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 14px 35px rgba(255,212,59,.16);
+    }
+
+    .admin-btn-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    /* =========================
+       DASHBOARD
+    ========================= */
+
+    .admin-dashboard {
+      width: 100%;
+    }
+
+    .admin-topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 18px;
+      margin-bottom: 26px;
+      flex-wrap: wrap;
+    }
+
+    .admin-topbar h2 {
+      margin: 0;
+      font-size: 1.5rem;
+    }
+
+    .logout {
+      border: 1px solid rgba(255,255,255,.13);
+      border-radius: 12px;
+      padding: 10px 16px;
+      color: var(--admin-text);
+      background: rgba(255,255,255,.04);
+    }
+
+    /* =========================
+       STATS
+    ========================= */
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4,1fr);
+      gap: 14px;
+      margin-bottom: 26px;
+    }
+
+    .stat-card {
+      padding: 20px;
+      border: 1px solid var(--admin-line);
+      border-radius: 18px;
+      background: linear-gradient(
+        145deg,
+        rgba(255,255,255,.045),
+        rgba(255,255,255,.015)
+      );
+    }
+
+    .stat-label {
+      color: var(--admin-muted);
+      font-size: .8rem;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+    }
+
+    .stat-number {
+      margin-top: 8px;
+      font-size: 1.9rem;
+      font-weight: 800;
+    }
+
+    /* =========================
+       CREATE COURSE
+    ========================= */
+
+    .section-card {
+      margin-bottom: 24px;
+      padding: 24px;
+      border: 1px solid var(--admin-line);
+      border-radius: 20px;
+      background: rgba(255,255,255,.025);
+    }
+
+    .section-title {
+      margin: 0;
+      font-size: 1.1rem;
+    }
+
+    .section-subtitle {
+      margin: 6px 0 0;
+      color: var(--admin-muted);
+      font-size: .85rem;
+    }
+
+    .course-form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-top: 20px;
+    }
+
+    .course-form-grid .full {
+      grid-column: 1 / -1;
+    }
+
+    /* =========================
+       COURSE CARD
+    ========================= */
+
+    .course-manager-list {
+      display: grid;
+      gap: 18px;
+    }
+
+    .course-manager-item {
+      overflow: hidden;
+      border: 1px solid var(--admin-line);
+      border-radius: 20px;
+      background: rgba(255,255,255,.025);
+    }
+
+    .course-manager-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 18px;
+      padding: 20px;
+      flex-wrap: wrap;
+    }
+
+    .course-manager-head h3 {
+      margin: 0;
+      font-size: 1.15rem;
+    }
+
+    .course-manager-meta {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 9px;
+      color: var(--admin-muted);
+      font-size: .78rem;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: .7rem;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .badge.published {
+      color: #4ade80;
+      background: rgba(74,222,128,.12);
+    }
+
+    .badge.upcoming {
+      color: #facc15;
+      background: rgba(250,204,21,.12);
+    }
+
+    /* =========================
+       MODULE
+    ========================= */
+
+    .module-manager {
+      padding: 0 20px 20px;
+    }
+
+    .module-block {
+      margin-top: 14px;
+      padding: 16px;
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 16px;
+      background: rgba(0,0,0,.17);
+    }
+
+    .module-block-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .module-number {
+      color: var(--admin-accent);
+      font-size: .72rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+    }
+
+    .module-title {
+      margin-top: 4px;
+      font-weight: 700;
+    }
+
+    /* =========================
+       LESSON
+    ========================= */
+
+    .lesson-list {
+      margin-top: 12px;
+    }
+
+    .lesson-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 13px 0;
+      border-top: 1px solid rgba(255,255,255,.06);
+      flex-wrap: wrap;
+    }
+
+    .lesson-main {
+      min-width: 0;
+      flex: 1;
+    }
+
+    .lesson-row-title {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      font-size: .9rem;
+      font-weight: 600;
+    }
+
+    .lesson-row-title span {
+      color: var(--admin-muted);
+      font-size: .78rem;
+      font-weight: 400;
+    }
+
+    .lesson-video-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 8px;
+      padding: 5px 10px;
+      border-radius: 999px;
+      background: rgba(74, 222, 128, 0.12);
+      border: 1px solid rgba(74, 222, 128, 0.2);
+      color: var(--admin-success);
+      font-size: .72rem;
+      font-weight: 700;
+      letter-spacing: .02em;
+    }
+
+    .lesson-video-status.is-empty {
+      background: rgba(255,255,255,.04);
+      border-color: rgba(255,255,255,.08);
+      color: var(--admin-muted);
+    }
+
+    .lesson-video-status::before {
+      content: "";
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: currentColor;
+      flex-shrink: 0;
+    }
+
+    .lesson-video-link {
+      margin-top: 8px;
+      font-size: .74rem;
+      line-height: 1.5;
+      color: var(--admin-accent-2);
+      word-break: break-all;
+      overflow-wrap: anywhere;
+    }
+
+    .lesson-video-link a {
+      color: var(--admin-accent-2);
+      text-decoration: none;
+      border-bottom: 1px solid transparent;
+      transition: border-color .2s ease;
+    }
+
+    .lesson-video-link a:hover {
+      border-color: currentColor;
+    }
+
+    /* =========================
+       LESSON EDITOR
+    ========================= */
+
+    .lesson-form-slot {
+      margin-top: 12px;
+    }
+
+    .lesson-editor {
+      padding: 18px;
+      border: 1px solid rgba(255,212,59,.16);
+      border-radius: 16px;
+      background: rgba(255,212,59,.025);
+    }
+
+    .lesson-editor-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .lesson-editor-header h4 {
+      margin: 0;
+    }
+
+    .video-box {
+      margin-top: 8px;
+      padding: 14px;
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 14px;
+      background: rgba(0,0,0,.15);
+    }
+
+    .video-label {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 9px;
+    }
+
+    .video-label strong {
+      font-size: .9rem;
+    }
+
+    .video-hint {
+      color: var(--admin-muted);
+      font-size: .75rem;
+    }
+
+    .youtube-input-wrap {
+      position: relative;
+    }
+
+    .youtube-input-wrap input {
+      padding-right: 100px;
+    }
+
+    .youtube-valid {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      display: none;
+      color: var(--admin-success);
+      font-size: .72rem;
+      font-weight: 700;
+    }
+
+    .youtube-valid.show {
+      display: block;
+    }
+
+    .youtube-error {
+      display: none;
+      margin-top: 7px;
+      color: var(--admin-danger);
+      font-size: .75rem;
+    }
+
+    .youtube-error.show {
+      display: block;
+    }
+
+    .yt-preview {
+      display: none;
+      overflow: hidden;
+      width: 100%;
+      margin-top: 14px;
+      border-radius: 14px;
+      background: #000;
+      aspect-ratio: 16/9;
+    }
+
+    .yt-preview.show {
+      display: block;
+    }
+
+    .yt-preview iframe {
+      width: 100%;
+      height: 100%;
+      border: 0;
+    }
+
+    .resource-input {
+      display: grid;
+      gap: 8px;
+    }
+
+    .resource-help {
+      color: var(--admin-muted);
+      font-size: .72rem;
+    }
+
+    .editor-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 16px;
+      flex-wrap: wrap;
+    }
+
+    .editor-actions .btn-primary {
+      flex: 1;
+      min-width: 180px;
+    }
+
+    /* =========================
+       EMPTY / STATUS
+    ========================= */
+
+    .status {
+      min-height: 22px;
+      margin: 10px 0 0;
+      font-size: .85rem;
+    }
+
+    .secondary-text {
+      color: var(--admin-muted);
+    }
+
+    /* =========================
+       RESPONSIVE
+    ========================= */
+
+    @media (max-width: 900px) {
+      .stats-grid {
+        grid-template-columns: repeat(2,1fr);
+      }
+
+      .course-form-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .course-form-grid .full {
+        grid-column: auto;
+      }
+    }
+
+    @media (max-width: 640px) {
+      body {
+        padding: 12px;
+      }
+
+      .admin-body {
+        padding: 18px;
+      }
+
+      .admin-hero {
+        padding: 26px 22px;
+      }
+
+      .stats-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .section-card {
+        padding: 18px;
+      }
+
+      .course-manager-head {
+        padding: 16px;
+      }
+
+      .module-manager {
+        padding: 0 16px 16px;
+      }
+
+      .admin-btn-row {
+        width: 100%;
+      }
+
+      .admin-btn-row .btn {
+        flex: 1;
+      }
+
+      .editor-actions {
+        flex-direction: column;
+      }
+
+      .editor-actions button {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="admin-shell">
+
+    <!-- =========================
+         HERO
+    ========================== -->
+
+    <header class="admin-hero">
+      <div class="hero-top">
+
+        <div>
+          <div class="brand-mini">CodeWithSiam</div>
+
+          <h1>Admin Dashboard</h1>
+
+          <p>
+            Manage your courses, modules and YouTube lessons
+            from one place. Changes are saved to Firestore.
+          </p>
         </div>
 
-        <!-- Not signed in -->
-        <div class="admin-login-shell hidden" id="loginPanel">
-          <h2>Sign In</h2>
-          <p class="panel-note">Admin access is restricted to accounts with the admin role in Firestore. See FIREBASE_SETUP.md to make yourself an admin.</p>
+        <div
+          class="admin-welcome"
+          id="adminWelcome"
+        ></div>
 
-          <button type="button" class="social-btn google" id="adminGoogleBtn">
-            <i class="fa-brands fa-google"></i>
-            Continue with Google
+      </div>
+    </header>
+
+
+    <main class="admin-body">
+
+      <!-- =========================
+           CHECKING
+      ========================== -->
+
+      <div
+        class="access-screen"
+        id="accessChecking"
+      >
+        <h2>Checking access…</h2>
+        <p>
+          Verifying your Firebase sign-in and admin permissions.
+        </p>
+      </div>
+
+
+      <!-- =========================
+           LOGIN
+      ========================== -->
+
+      <div
+        class="admin-login-shell hidden"
+        id="loginPanel"
+      >
+
+        <h2>Admin Sign In</h2>
+
+        <p class="panel-note">
+          Admin access is restricted to accounts with the admin
+          role in Firestore.
+        </p>
+
+        <button
+          type="button"
+          class="btn btn-primary"
+          id="adminGoogleBtn"
+          style="width:100%;"
+        >
+          Continue with Google
+        </button>
+
+        <div class="divider">
+          <span>OR</span>
+        </div>
+
+        <form
+          id="adminEmailForm"
+          class="form-grid"
+        >
+
+          <label>
+            Email
+            <input
+              id="adminEmail"
+              type="email"
+              autocomplete="email"
+              placeholder="admin@example.com"
+              required
+            />
+          </label>
+
+          <label>
+            Password
+            <input
+              id="adminPassword"
+              type="password"
+              autocomplete="current-password"
+              placeholder="••••••••"
+              required
+            />
+          </label>
+
+          <button
+            class="btn-full"
+            type="submit"
+          >
+            Sign In
           </button>
 
-          <div class="divider"><span>OR</span></div>
+        </form>
 
-          <form id="adminEmailForm" class="form-grid">
-            <label>
-              Email
-              <input id="adminEmail" type="email" autocomplete="email" required />
-            </label>
-            <label>
-              Password
-              <input id="adminPassword" type="password" autocomplete="current-password" required />
-            </label>
-            <button class="btn-full" type="submit">Sign In</button>
-          </form>
-          <p class="status" id="loginStatus"></p>
-        </div>
+        <p
+          class="status"
+          id="loginStatus"
+        ></p>
 
-        <!-- Signed in, but not an admin -->
-        <div class="access-screen hidden" id="accessDenied">
-          <h2>Access Denied</h2>
-          <p>This account does not have admin permissions. If this is a mistake, ask an existing admin to grant your account the admin role in Firestore.</p>
-          <a href="index.html" class="btn btn-primary">Back to Portfolio</a>
-        </div>
-
-        <!-- Admin dashboard -->
-        <div class="admin-dashboard hidden" id="dashboardPanel">
-          <div class="admin-topbar">
-            <div>
-              <h2>Course Management</h2>
-              <p class="admin-welcome" id="adminWelcome"></p>
-            </div>
-            <button class="logout" id="logoutBtn" type="button">Logout</button>
-          </div>
-
-          <div class="admin-panel add-course-form" style="padding:0; background:none; border:none;">
-            <h3>Create Course</h3>
-            <div class="form-grid">
-              <label>Course Title <input id="newCourseTitle" type="text" placeholder="e.g. Python for AI Builders" /></label>
-              <label>Description <textarea id="newCourseDescription" placeholder="Short course description"></textarea></label>
-              <label>Category <input id="newCourseCategory" type="text" placeholder="e.g. Python, AI, Data Science" /></label>
-              <label>Instructor <input id="newCourseInstructor" type="text" value="CodeWithSiam" /></label>
-              <label>Thumbnail URL <input id="newCourseThumbnail" type="url" placeholder="https://..." /></label>
-              <label>Status
-                <select id="newCourseStatus">
-                  <option value="published">Published</option>
-                  <option value="upcoming" selected>Upcoming</option>
-                </select>
-              </label>
-              <label>Order <input id="newCourseOrder" type="number" min="0" value="0" /></label>
-              <button class="btn-full" id="createCourseBtn" type="button">Create Course</button>
-            </div>
-            <p class="status" id="createCourseStatus"></p>
-          </div>
-
-          <div class="course-manager-list" id="courseManagerList">
-            <p class="secondary-text">Loading courses…</p>
-          </div>
-        </div>
       </div>
-    </div>
 
-    <script type="module">
-      import {
-        signInWithGoogle,
-        signInWithEmail,
-        logout,
-        observeAuthState,
-        isCurrentUserAdmin,
-        getCurrentUser,
-      } from './assets/js/auth.js';
-      import { isFirebaseConfigured } from './assets/js/firebase-init.js';
-      import {
-        fetchAllCourses,
-        createCourse,
-        updateCourse,
-        deleteCourse,
-        createModule,
-        updateModule,
-        deleteModule,
-        createLesson,
-        updateLesson,
-        deleteLesson,
-        getYoutubeEmbedUrl,
-        isValidYoutubeUrl,
-      } from './assets/js/courses-db.js';
 
-      const accessChecking = document.getElementById('accessChecking');
-      const loginPanel = document.getElementById('loginPanel');
-      const accessDenied = document.getElementById('accessDenied');
-      const dashboardPanel = document.getElementById('dashboardPanel');
-      const loginStatus = document.getElementById('loginStatus');
-      const adminWelcome = document.getElementById('adminWelcome');
-      const courseManagerList = document.getElementById('courseManagerList');
+      <!-- =========================
+           ACCESS DENIED
+      ========================== -->
 
-      function show(el) { el?.classList.remove('hidden'); }
-      function hide(el) { el?.classList.add('hidden'); }
-      function showOnly(el) {
-        [accessChecking, loginPanel, accessDenied, dashboardPanel].forEach(hide);
-        show(el);
-      }
+      <div
+        class="access-screen hidden"
+        id="accessDenied"
+      >
 
-      function setStatus(el, message, ok = true) {
-        if (!el) return;
-        el.textContent = message;
-        el.style.color = ok ? 'var(--cyan)' : '#ff7a90';
-      }
+        <h2>Access Denied</h2>
 
-      /* ---------- auth wiring ---------- */
-      if (!isFirebaseConfigured) {
-        showOnly(loginPanel);
-        setStatus(loginStatus, 'Firebase is not configured yet. See FIREBASE_SETUP.md before signing in.', false);
-      }
+        <p>
+          This account does not have admin permissions.
+        </p>
 
-      document.getElementById('adminGoogleBtn')?.addEventListener('click', async () => {
-        try {
-          await signInWithGoogle();
-        } catch (error) {
-          setStatus(loginStatus, error.message, false);
+        <a
+          href="index.html"
+          class="btn btn-primary"
+        >
+          Back to Portfolio
+        </a>
+
+      </div>
+
+
+      <!-- =========================
+           DASHBOARD
+      ========================== -->
+
+      <section
+        class="admin-dashboard hidden"
+        id="dashboardPanel"
+      >
+
+        <div class="admin-topbar">
+
+          <div>
+            <h2>Course Management</h2>
+
+            <p class="section-subtitle">
+              Create courses and manage every module and lesson.
+            </p>
+          </div>
+
+          <button
+            class="logout"
+            id="logoutBtn"
+            type="button"
+          >
+            Logout
+          </button>
+
+        </div>
+
+
+        <!-- =========================
+             STATS
+        ========================== -->
+
+        <div class="stats-grid">
+
+          <div class="stat-card">
+            <div class="stat-label">
+              Courses
+            </div>
+
+            <div
+              class="stat-number"
+              id="statCourses"
+            >
+              0
+            </div>
+          </div>
+
+
+          <div class="stat-card">
+            <div class="stat-label">
+              Modules
+            </div>
+
+            <div
+              class="stat-number"
+              id="statModules"
+            >
+              0
+            </div>
+          </div>
+
+
+          <div class="stat-card">
+            <div class="stat-label">
+              Lessons
+            </div>
+
+            <div
+              class="stat-number"
+              id="statLessons"
+            >
+              0
+            </div>
+          </div>
+
+
+          <div class="stat-card">
+            <div class="stat-label">
+              Published
+            </div>
+
+            <div
+              class="stat-number"
+              id="statPublished"
+            >
+              0
+            </div>
+          </div>
+
+        </div>
+
+
+        <!-- =========================
+             CREATE COURSE
+        ========================== -->
+
+        <div class="section-card">
+
+          <h3 class="section-title">
+            + Create New Course
+          </h3>
+
+          <p class="section-subtitle">
+            Add a new course to your LMS.
+          </p>
+
+
+          <div class="course-form-grid">
+
+            <label>
+              Course Title
+
+              <input
+                id="newCourseTitle"
+                type="text"
+                placeholder="e.g. Python for AI Builders"
+              />
+            </label>
+
+
+            <label>
+              Category
+
+              <input
+                id="newCourseCategory"
+                type="text"
+                placeholder="e.g. Python, AI, Data Science"
+              />
+            </label>
+
+
+            <label class="full">
+              Description
+
+              <textarea
+                id="newCourseDescription"
+                placeholder="Short course description"
+              ></textarea>
+            </label>
+
+
+            <label>
+              Instructor
+
+              <input
+                id="newCourseInstructor"
+                type="text"
+                value="CodeWithSiam"
+              />
+            </label>
+
+
+            <label>
+              Thumbnail URL
+
+              <input
+                id="newCourseThumbnail"
+                type="url"
+                placeholder="https://..."
+              />
+            </label>
+
+            <label>
+              YouTube Video Link
+
+              <input
+                id="newCourseVideoUrl"
+                type="url"
+                placeholder="https://www.youtube.com/watch?v=..."
+              />
+            </label>
+
+
+            <label>
+              Status
+
+              <select id="newCourseStatus">
+                <option value="published">
+                  Published
+                </option>
+
+                <option
+                  value="upcoming"
+                  selected
+                >
+                  Upcoming
+                </option>
+              </select>
+            </label>
+
+
+            <label>
+              Order
+
+              <input
+                id="newCourseOrder"
+                type="number"
+                min="0"
+                value="0"
+              />
+            </label>
+
+
+            <div class="full">
+
+              <button
+                class="btn-full"
+                id="createCourseBtn"
+                type="button"
+              >
+                Create Course
+              </button>
+
+            </div>
+
+          </div>
+
+
+          <p
+            class="status"
+            id="createCourseStatus"
+          ></p>
+
+        </div>
+
+
+        <!-- =========================
+             COURSE LIST
+        ========================== -->
+
+        <div>
+
+          <h3 class="section-title">
+            Your Courses
+          </h3>
+
+          <p class="section-subtitle">
+            Manage modules, lessons and YouTube videos.
+          </p>
+
+
+          <div
+            class="course-manager-list"
+            id="courseManagerList"
+          >
+            <p class="secondary-text">
+              Loading courses…
+            </p>
+          </div>
+
+        </div>
+
+      </section>
+
+    </main>
+
+  </div>
+
+
+  <!-- =========================
+       JAVASCRIPT
+  ========================== -->
+
+  <script type="module">
+
+    import {
+      signInWithGoogle,
+      signInWithEmail,
+      logout,
+      observeAuthState,
+      isCurrentUserAdmin
+    } from './assets/js/auth.js';
+
+
+    import {
+      isFirebaseConfigured
+    } from './assets/js/firebase-init.js';
+
+
+    import {
+      fetchAllCourses,
+      createCourse,
+      updateCourse,
+      deleteCourse,
+
+      createModule,
+      updateModule,
+      deleteModule,
+
+      createLesson,
+      updateLesson,
+      deleteLesson,
+
+      getYoutubeEmbedUrl,
+      isValidYoutubeUrl
+
+    } from './assets/js/courses-db.js';
+
+
+    /* =========================
+       ELEMENTS
+    ========================== */
+
+    const accessChecking =
+      document.getElementById('accessChecking');
+
+    const loginPanel =
+      document.getElementById('loginPanel');
+
+    const accessDenied =
+      document.getElementById('accessDenied');
+
+    const dashboardPanel =
+      document.getElementById('dashboardPanel');
+
+    const loginStatus =
+      document.getElementById('loginStatus');
+
+    const adminWelcome =
+      document.getElementById('adminWelcome');
+
+    const courseManagerList =
+      document.getElementById('courseManagerList');
+
+
+    /* =========================
+       HELPERS
+    ========================== */
+
+    function show(el) {
+      el?.classList.remove('hidden');
+    }
+
+
+    function hide(el) {
+      el?.classList.add('hidden');
+    }
+
+
+    function showOnly(el) {
+
+      [
+        accessChecking,
+        loginPanel,
+        accessDenied,
+        dashboardPanel
+
+      ].forEach(hide);
+
+      show(el);
+    }
+
+
+    function setStatus(
+      el,
+      message,
+      ok = true
+    ) {
+
+      if (!el) return;
+
+      el.textContent = message;
+
+      el.style.color =
+        ok
+          ? 'var(--admin-success)'
+          : 'var(--admin-danger)';
+    }
+
+
+    function escapeHtml(value) {
+
+      const div =
+        document.createElement('div');
+
+      div.textContent =
+        String(value ?? '');
+
+      return div.innerHTML;
+    }
+
+
+    /* =========================
+       AUTH
+    ========================== */
+
+    if (!isFirebaseConfigured) {
+
+      showOnly(loginPanel);
+
+      setStatus(
+        loginStatus,
+        'Firebase is not configured yet.',
+        false
+      );
+    }
+
+
+    document
+      .getElementById('adminGoogleBtn')
+      ?.addEventListener(
+        'click',
+        async () => {
+
+          try {
+
+            await signInWithGoogle();
+
+          } catch (error) {
+
+            setStatus(
+              loginStatus,
+              error.message,
+              false
+            );
+          }
+
         }
-      });
+      );
 
-      document.getElementById('adminEmailForm')?.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const email = document.getElementById('adminEmail').value.trim();
-        const password = document.getElementById('adminPassword').value;
-        try {
-          await signInWithEmail(email, password);
-        } catch (error) {
-          setStatus(loginStatus, error.message, false);
+
+    document
+      .getElementById('adminEmailForm')
+      ?.addEventListener(
+        'submit',
+        async (e) => {
+
+          e.preventDefault();
+
+          const email =
+            document
+              .getElementById('adminEmail')
+              .value
+              .trim();
+
+          const password =
+            document
+              .getElementById('adminPassword')
+              .value;
+
+
+          try {
+
+            await signInWithEmail(
+              email,
+              password
+            );
+
+          } catch (error) {
+
+            setStatus(
+              loginStatus,
+              error.message,
+              false
+            );
+          }
+
         }
-      });
+      );
 
-      document.getElementById('logoutBtn')?.addEventListener('click', async () => {
-        await logout();
-      });
 
-      observeAuthState(async (user) => {
-        if (!isFirebaseConfigured) return;
+    document
+      .getElementById('logoutBtn')
+      ?.addEventListener(
+        'click',
+        async () => {
+
+          await logout();
+
+        }
+      );
+
+
+    observeAuthState(
+      async (user) => {
+
+        if (!isFirebaseConfigured)
+          return;
+
+
         if (!user) {
+
           showOnly(loginPanel);
+
           return;
         }
+
+
         showOnly(accessChecking);
-        const admin = await isCurrentUserAdmin();
+
+
+        const admin =
+          await isCurrentUserAdmin();
+
+
         if (!admin) {
+
           showOnly(accessDenied);
-          setTimeout(() => { window.location.href = 'index.html'; }, 4000);
+
+          setTimeout(
+            () => {
+              window.location.href =
+                'index.html';
+            },
+            4000
+          );
+
           return;
         }
-        adminWelcome.textContent = `Signed in as ${user.email || user.displayName}`;
+
+
+        adminWelcome.textContent =
+          `Signed in as ${
+            user.email ||
+            user.displayName ||
+            'Admin'
+          }`;
+
+
         showOnly(dashboardPanel);
+
         loadAndRenderCourses();
-      });
 
-      /* ---------- course CRUD ---------- */
-      document.getElementById('createCourseBtn')?.addEventListener('click', async () => {
-        const title = document.getElementById('newCourseTitle').value.trim();
-        const statusEl = document.getElementById('createCourseStatus');
-        if (!title) {
-          setStatus(statusEl, 'Course title is required.', false);
-          return;
-        }
-        try {
-          await createCourse({
-            title,
-            description: document.getElementById('newCourseDescription').value.trim(),
-            category: document.getElementById('newCourseCategory').value.trim(),
-            instructor: document.getElementById('newCourseInstructor').value.trim(),
-            thumbnail: document.getElementById('newCourseThumbnail').value.trim(),
-            status: document.getElementById('newCourseStatus').value,
-            order: document.getElementById('newCourseOrder').value,
-          });
-          setStatus(statusEl, 'Course created.', true);
-          ['newCourseTitle', 'newCourseDescription', 'newCourseCategory', 'newCourseThumbnail'].forEach(id => {
-            document.getElementById(id).value = '';
-          });
-          loadAndRenderCourses();
-        } catch (error) {
-          setStatus(statusEl, error.message, false);
-        }
-      });
-
-      async function loadAndRenderCourses() {
-        courseManagerList.innerHTML = '<p class="secondary-text">Loading courses…</p>';
-        let courses = [];
-        try {
-          courses = await fetchAllCourses();
-        } catch (error) {
-          courseManagerList.innerHTML = `<p class="secondary-text">Could not load courses: ${escapeHtml(error.message)}</p>`;
-          return;
-        }
-        if (!courses.length) {
-          courseManagerList.innerHTML = '<p class="secondary-text">No courses yet. Create your first course above.</p>';
-          return;
-        }
-        courseManagerList.innerHTML = '';
-        courses.forEach(course => courseManagerList.appendChild(renderCourseCard(course)));
       }
+    );
 
-      function escapeHtml(str) {
-        const div = document.createElement('div');
-        div.textContent = String(str ?? '');
-        return div.innerHTML;
-      }
 
-      function renderCourseCard(course) {
-        const card = document.createElement('div');
-        card.className = 'course-manager-item';
+    /* =========================
+       CREATE COURSE
+    ========================== */
 
-        const lessonCount = (course.modules || []).reduce((n, m) => n + (m.lessons?.length || 0), 0);
+    document
+      .getElementById('createCourseBtn')
+      ?.addEventListener(
+        'click',
+        async () => {
 
-        card.innerHTML = `
-          <div class="course-manager-head">
-            <div>
-              <h3>${escapeHtml(course.title)}</h3>
-              <div class="course-manager-meta">
-                <span class="badge ${course.status === 'published' ? 'published' : 'upcoming'}">${escapeHtml(course.status)}</span>
-                <span>${escapeHtml(course.category || 'General')}</span>
-                <span>Order ${escapeHtml(String(course.order ?? 0))}</span>
-                <span>${(course.modules || []).length} modules · ${lessonCount} lessons</span>
-              </div>
-            </div>
-            <div class="admin-btn-row">
-              <button type="button" data-action="toggle-status">${course.status === 'published' ? 'Unpublish' : 'Publish'}</button>
-              <button type="button" data-action="toggle-modules">Manage Modules</button>
-              <button type="button" class="danger" data-action="delete-course">Delete</button>
-            </div>
-          </div>
-          <div class="module-manager hidden"></div>
-        `;
+          const title =
+            document
+              .getElementById('newCourseTitle')
+              .value
+              .trim();
 
-        const moduleManager = card.querySelector('.module-manager');
+          const statusEl =
+            document.getElementById(
+              'createCourseStatus'
+            );
 
-        card.querySelector('[data-action="toggle-status"]').addEventListener('click', async () => {
-          await updateCourse(course.id, { status: course.status === 'published' ? 'upcoming' : 'published' });
-          loadAndRenderCourses();
-        });
 
-        card.querySelector('[data-action="delete-course"]').addEventListener('click', async () => {
-          if (!confirm(`Delete "${course.title}" and all its modules/lessons? This cannot be undone.`)) return;
-          await deleteCourse(course.id);
-          loadAndRenderCourses();
-        });
+          if (!title) {
 
-        card.querySelector('[data-action="toggle-modules"]').addEventListener('click', () => {
-          moduleManager.classList.toggle('hidden');
-          if (!moduleManager.classList.contains('hidden') && !moduleManager.dataset.rendered) {
-            renderModuleManager(moduleManager, course);
-            moduleManager.dataset.rendered = '1';
-          }
-        });
+            setStatus(
+              statusEl,
+              'Course title is required.',
+              false
+            );
 
-        return card;
-      }
-
-      function renderModuleManager(container, course) {
-        container.innerHTML = '';
-
-        (course.modules || []).forEach(module => {
-          const block = document.createElement('div');
-          block.className = 'module-block';
-          block.innerHTML = `
-            <div class="module-block-head">
-              <strong>${escapeHtml(module.title)}</strong>
-              <div class="admin-btn-row">
-                <button type="button" data-action="add-lesson">Add Lesson</button>
-                <button type="button" class="danger" data-action="delete-module">Delete Module</button>
-              </div>
-            </div>
-            <div class="lesson-list"></div>
-            <div class="lesson-form-slot"></div>
-          `;
-          const lessonList = block.querySelector('.lesson-list');
-          (module.lessons || []).forEach(lesson => {
-            const row = document.createElement('div');
-            row.className = 'lesson-row';
-            row.innerHTML = `
-              <span class="lesson-row-title">${escapeHtml(lesson.title)}<span>${escapeHtml(lesson.duration || '')}</span></span>
-              <div class="admin-btn-row">
-                <button type="button" data-action="edit-lesson">Edit</button>
-                <button type="button" class="danger" data-action="delete-lesson">Delete</button>
-              </div>
-            `;
-            row.querySelector('[data-action="delete-lesson"]').addEventListener('click', async () => {
-              if (!confirm(`Delete lesson "${lesson.title}"?`)) return;
-              await deleteLesson(course.id, module.id, lesson.id);
-              loadAndRenderCourses();
-            });
-            row.querySelector('[data-action="edit-lesson"]').addEventListener('click', () => {
-              renderLessonForm(block.querySelector('.lesson-form-slot'), course, module, lesson);
-            });
-            lessonList.appendChild(row);
-          });
-
-          block.querySelector('[data-action="delete-module"]').addEventListener('click', async () => {
-            if (!confirm(`Delete module "${module.title}" and its lessons?`)) return;
-            await deleteModule(course.id, module.id);
-            loadAndRenderCourses();
-          });
-          block.querySelector('[data-action="add-lesson"]').addEventListener('click', () => {
-            renderLessonForm(block.querySelector('.lesson-form-slot'), course, module, null);
-          });
-
-          container.appendChild(block);
-        });
-
-        const addModuleRow = document.createElement('div');
-        addModuleRow.className = 'inline-form';
-        addModuleRow.innerHTML = `
-          <label>New module title <input type="text" id="newModuleTitle-${course.id}" placeholder="e.g. Core Python Foundations" /></label>
-          <button type="button" class="btn-full" data-action="add-module">Add Module</button>
-        `;
-        addModuleRow.querySelector('[data-action="add-module"]').addEventListener('click', async () => {
-          const input = document.getElementById(`newModuleTitle-${course.id}`);
-          const title = input.value.trim();
-          if (!title) return;
-          await createModule(course.id, { title, order: (course.modules || []).length });
-          loadAndRenderCourses();
-        });
-        container.appendChild(addModuleRow);
-      }
-
-      function renderLessonForm(slot, course, module, lesson) {
-        const isEdit = !!lesson;
-        slot.innerHTML = `
-          <div class="inline-form">
-            <label>Lesson title <input type="text" id="lf-title" value="${escapeHtml(lesson?.title || '')}" /></label>
-            <label>Duration (e.g. 12 min) <input type="text" id="lf-duration" value="${escapeHtml(lesson?.duration || '')}" /></label>
-            <label>Description <textarea id="lf-description">${escapeHtml(lesson?.description || '')}</textarea></label>
-            <label>YouTube URL <input type="url" id="lf-video" value="${escapeHtml(lesson?.videoUrl || '')}" placeholder="https://www.youtube.com/watch?v=..." /></label>
-            <div class="yt-preview" id="lf-preview"><iframe src="" allowfullscreen></iframe></div>
-            <label>Resources (comma separated) <input type="text" id="lf-resources" value="${escapeHtml((lesson?.resources || []).join(', '))}" /></label>
-            <div class="admin-btn-row">
-              <button type="button" class="btn-full" data-action="save-lesson">${isEdit ? 'Save Changes' : 'Add Lesson'}</button>
-              <button type="button" data-action="cancel-lesson">Cancel</button>
-            </div>
-            <p class="status" id="lf-status"></p>
-          </div>
-        `;
-
-        const videoInput = slot.querySelector('#lf-video');
-        const preview = slot.querySelector('#lf-preview');
-        const previewIframe = preview.querySelector('iframe');
-        function updatePreview() {
-          const embed = getYoutubeEmbedUrl(videoInput.value.trim());
-          if (embed) {
-            previewIframe.src = embed;
-            preview.classList.add('show');
-          } else {
-            preview.classList.remove('show');
-            previewIframe.src = '';
-          }
-        }
-        videoInput.addEventListener('input', updatePreview);
-        updatePreview();
-
-        slot.querySelector('[data-action="cancel-lesson"]').addEventListener('click', () => {
-          slot.innerHTML = '';
-        });
-
-        slot.querySelector('[data-action="save-lesson"]').addEventListener('click', async () => {
-          const statusEl = slot.querySelector('#lf-status');
-          const videoUrl = videoInput.value.trim();
-          if (videoUrl && !isValidYoutubeUrl(videoUrl)) {
-            setStatus(statusEl, 'That does not look like a valid YouTube URL.', false);
             return;
           }
-          const payload = {
-            title: slot.querySelector('#lf-title').value.trim() || 'Untitled lesson',
-            duration: slot.querySelector('#lf-duration').value.trim() || '0 min',
-            description: slot.querySelector('#lf-description').value.trim(),
-            videoUrl,
-            resources: slot.querySelector('#lf-resources').value.split(',').map(s => s.trim()).filter(Boolean),
-            order: isEdit ? (lesson.order ?? 0) : (module.lessons?.length || 0),
-          };
+
+
           try {
-            if (isEdit) {
-              await updateLesson(course.id, module.id, lesson.id, payload);
-            } else {
-              await createLesson(course.id, module.id, payload);
-            }
+
+            await createCourse({
+
+              title,
+
+              description:
+                document
+                  .getElementById(
+                    'newCourseDescription'
+                  )
+                  .value
+                  .trim(),
+
+              category:
+                document
+                  .getElementById(
+                    'newCourseCategory'
+                  )
+                  .value
+                  .trim(),
+
+              instructor:
+                document
+                  .getElementById(
+                    'newCourseInstructor'
+                  )
+                  .value
+                  .trim(),
+
+              thumbnail:
+                document
+                  .getElementById(
+                    'newCourseThumbnail'
+                  )
+                  .value
+                  .trim(),
+
+              videoUrl:
+                document
+                  .getElementById(
+                    'newCourseVideoUrl'
+                  )
+                  .value
+                  .trim(),
+
+              status:
+                document
+                  .getElementById(
+                    'newCourseStatus'
+                  )
+                  .value,
+
+              order:
+                document
+                  .getElementById(
+                    'newCourseOrder'
+                  )
+                  .value
+
+            });
+
+
+            setStatus(
+              statusEl,
+              '✓ Course created successfully.',
+              true
+            );
+
+
+            [
+              'newCourseTitle',
+              'newCourseDescription',
+              'newCourseCategory',
+              'newCourseThumbnail'
+            ].forEach(
+              id => {
+                document
+                  .getElementById(id)
+                  .value = '';
+              }
+            );
+
+
             loadAndRenderCourses();
+
+
           } catch (error) {
-            setStatus(statusEl, error.message, false);
+
+            setStatus(
+              statusEl,
+              error.message,
+              false
+            );
           }
-        });
+
+        }
+      );
+
+
+    /* =========================
+       LOAD COURSES
+    ========================== */
+
+    async function loadAndRenderCourses() {
+
+      courseManagerList.innerHTML =
+        '<p class="secondary-text">Loading courses…</p>';
+
+
+      let courses = [];
+
+
+      try {
+
+        courses =
+          await fetchAllCourses();
+
+      } catch (error) {
+
+        courseManagerList.innerHTML =
+          `<p class="secondary-text">
+            Could not load courses:
+            ${escapeHtml(error.message)}
+          </p>`;
+
+        return;
       }
-    </script>
-  </body>
+
+
+      updateStats(courses);
+
+
+      if (!courses.length) {
+
+        courseManagerList.innerHTML =
+          `<div class="section-card">
+             <p class="secondary-text">
+               No courses yet. Create your first course above.
+             </p>
+           </div>`;
+
+        return;
+      }
+
+
+      courseManagerList.innerHTML = '';
+
+
+      courses.forEach(
+        course => {
+
+          courseManagerList.appendChild(
+            renderCourseCard(course)
+          );
+
+        }
+      );
+
+    }
+
+
+    /* =========================
+       STATS
+    ========================== */
+
+    function updateStats(courses) {
+
+      let modules = 0;
+      let lessons = 0;
+      let published = 0;
+
+
+      courses.forEach(course => {
+
+        if (course.status === 'published')
+          published++;
+
+
+        modules +=
+          (course.modules || []).length;
+
+
+        (course.modules || [])
+          .forEach(module => {
+
+            lessons +=
+              (module.lessons || []).length;
+
+          });
+
+      });
+
+
+      document.getElementById(
+        'statCourses'
+      ).textContent =
+        courses.length;
+
+
+      document.getElementById(
+        'statModules'
+      ).textContent =
+        modules;
+
+
+      document.getElementById(
+        'statLessons'
+      ).textContent =
+        lessons;
+
+
+      document.getElementById(
+        'statPublished'
+      ).textContent =
+        published;
+    }
+
+
+    /* =========================
+       COURSE CARD
+    ========================== */
+
+    function renderCourseCard(course) {
+
+      const card =
+        document.createElement('div');
+
+
+      card.className =
+        'course-manager-item';
+
+
+      const lessonCount =
+        (course.modules || [])
+          .reduce(
+            (n,m) =>
+              n + (m.lessons?.length || 0),
+            0
+          );
+
+
+      card.innerHTML = `
+
+        <div class="course-manager-head">
+
+          <div>
+
+            <h3>
+              ${escapeHtml(course.title)}
+            </h3>
+
+            <div class="course-manager-meta">
+
+              <span
+                class="badge ${
+                  course.status === 'published'
+                    ? 'published'
+                    : 'upcoming'
+                }"
+              >
+                ${escapeHtml(course.status)}
+              </span>
+
+              <span>
+                ${escapeHtml(
+                  course.category ||
+                  'General'
+                )}
+              </span>
+
+              <span>
+                Order
+                ${escapeHtml(
+                  String(course.order ?? 0)
+                )}
+              </span>
+
+              <span>
+                ${(course.modules || []).length}
+                modules ·
+                ${lessonCount}
+                lessons
+              </span>
+
+            </div>
+
+          </div>
+
+
+          <div class="admin-btn-row">
+
+            <button
+              type="button"
+              class="btn"
+              data-action="toggle-status"
+            >
+              ${
+                course.status === 'published'
+                  ? 'Unpublish'
+                  : 'Publish'
+              }
+            </button>
+
+
+            <button
+              type="button"
+              class="btn btn-primary"
+              data-action="toggle-modules"
+            >
+              Manage Course
+            </button>
+
+
+            <button
+              type="button"
+              class="btn btn-danger"
+              data-action="delete-course"
+            >
+              Delete
+            </button>
+
+          </div>
+
+        </div>
+
+
+        <div
+          class="module-manager hidden"
+        ></div>
+
+      `;
+
+
+      const moduleManager =
+        card.querySelector(
+          '.module-manager'
+        );
+
+
+      /* STATUS */
+
+      card
+        .querySelector(
+          '[data-action="toggle-status"]'
+        )
+        .addEventListener(
+          'click',
+          async () => {
+
+            await updateCourse(
+              course.id,
+              {
+                status:
+                  course.status === 'published'
+                    ? 'upcoming'
+                    : 'published'
+              }
+            );
+
+            loadAndRenderCourses();
+
+          }
+        );
+
+
+      /* DELETE COURSE */
+
+      card
+        .querySelector(
+          '[data-action="delete-course"]'
+        )
+        .addEventListener(
+          'click',
+          async () => {
+
+            if (
+              !confirm(
+                `Delete "${course.title}" and all its modules/lessons? This cannot be undone.`
+              )
+            ) return;
+
+
+            try {
+
+              await deleteCourse(
+                course.id
+              );
+
+              loadAndRenderCourses();
+
+            } catch (error) {
+
+              alert(
+                error.message
+              );
+            }
+
+          }
+        );
+
+
+      /* MANAGE */
+
+      card
+        .querySelector(
+          '[data-action="toggle-modules"]'
+        )
+        .addEventListener(
+          'click',
+          () => {
+
+            moduleManager
+              .classList
+              .toggle('hidden');
+
+
+            if (
+              !moduleManager
+                .classList
+                .contains('hidden')
+            ) {
+
+              renderModuleManager(
+                moduleManager,
+                course
+              );
+
+            }
+
+          }
+        );
+
+
+      return card;
+    }
+
+
+    /* =========================
+       MODULE MANAGER
+    ========================== */
+
+    function renderModuleManager(
+      container,
+      course
+    ) {
+
+      container.innerHTML = '';
+
+
+      (course.modules || [])
+        .forEach(
+          (module,index) => {
+
+            const block =
+              document.createElement(
+                'div'
+              );
+
+
+            block.className =
+              'module-block';
+
+
+            block.innerHTML = `
+
+              <div class="module-block-head">
+
+                <div>
+
+                  <div class="module-number">
+                    Module ${index + 1}
+                  </div>
+
+                  <div class="module-title">
+                    ${escapeHtml(
+                      module.title
+                    )}
+                  </div>
+
+                </div>
+
+
+                <div class="admin-btn-row">
+
+                  <button
+                    type="button"
+                    class="btn"
+                    data-action="edit-module"
+                  >
+                    Edit
+                  </button>
+
+                  <button
+                    type="button"
+                    class="btn btn-primary"
+                    data-action="add-lesson"
+                  >
+                    + Add Lesson
+                  </button>
+
+                  <button
+                    type="button"
+                    class="btn btn-danger"
+                    data-action="delete-module"
+                  >
+                    Delete
+                  </button>
+
+                </div>
+
+              </div>
+
+
+              <div class="lesson-list"></div>
+
+              <div class="lesson-form-slot"></div>
+
+            `;
+
+
+            const lessonList =
+              block.querySelector(
+                '.lesson-list'
+              );
+
+
+            /* LESSONS */
+
+            (module.lessons || [])
+              .forEach(
+                (lesson,lessonIndex) => {
+
+                  const row =
+                    document.createElement(
+                      'div'
+                    );
+
+
+                  row.className =
+                    'lesson-row';
+
+
+                  const hasVideo =
+                    !!lesson.videoUrl;
+
+
+                  row.innerHTML = `
+
+                    <div class="lesson-main">
+
+                      <div class="lesson-row-title">
+
+                        <span>
+                          ${lessonIndex + 1}.
+                        </span>
+
+                        ${escapeHtml(
+                          lesson.title
+                        )}
+
+                        <span>
+                          ${escapeHtml(
+                            lesson.duration || ''
+                          )}
+                        </span>
+
+                      </div>
+
+
+                      <div
+                        class="lesson-video-status ${
+                          hasVideo ? '' : 'is-empty'
+                        }"
+                      >
+                        ${
+                          hasVideo
+                            ? 'YouTube video added'
+                            : 'No video added'
+                        }
+                      </div>
+
+                      ${
+                        hasVideo
+                          ? `
+                            <div class="lesson-video-link">
+                              <a href="${escapeHtml(lesson.videoUrl)}" target="_blank" rel="noopener noreferrer">
+                                ${escapeHtml(lesson.videoUrl)}
+                              </a>
+                            </div>
+                          `
+                          : ''
+                      }
+
+                    </div>
+
+
+                    <div class="admin-btn-row">
+
+                      ${
+                        hasVideo
+                          ? `
+                            <button
+                              type="button"
+                              class="btn btn-success"
+                              data-action="preview-lesson"
+                            >
+                              ▶ Preview
+                            </button>
+                          `
+                          : ''
+                      }
+
+                      <button
+                        type="button"
+                        class="btn"
+                        data-action="edit-lesson"
+                      >
+                        Edit
+                      </button>
+
+                      <button
+                        type="button"
+                        class="btn btn-danger"
+                        data-action="delete-lesson"
+                      >
+                        Delete
+                      </button>
+
+                    </div>
+
+                  `;
+
+
+                  /* PREVIEW */
+
+                  row
+                    .querySelector(
+                      '[data-action="preview-lesson"]'
+                    )
+                    ?.addEventListener(
+                      'click',
+                      () => {
+
+                        if (!lesson.videoUrl)
+                          return;
+
+
+                        const embed =
+                          getYoutubeEmbedUrl(
+                            lesson.videoUrl
+                          );
+
+
+                        if (!embed) {
+
+                          alert(
+                            'Invalid YouTube URL.'
+                          );
+
+                          return;
+                        }
+
+
+                        window.open(
+                          embed,
+                          '_blank',
+                          'noopener,noreferrer'
+                        );
+
+                      }
+                    );
+
+
+                  /* EDIT */
+
+                  row
+                    .querySelector(
+                      '[data-action="edit-lesson"]'
+                    )
+                    .addEventListener(
+                      'click',
+                      () => {
+
+                        renderLessonForm(
+                          block.querySelector(
+                            '.lesson-form-slot'
+                          ),
+                          course,
+                          module,
+                          lesson
+                        );
+
+                      }
+                    );
+
+
+                  /* DELETE */
+
+                  row
+                    .querySelector(
+                      '[data-action="delete-lesson"]'
+                    )
+                    .addEventListener(
+                      'click',
+                      async () => {
+
+                        if (
+                          !confirm(
+                            `Delete lesson "${lesson.title}"?`
+                          )
+                        ) return;
+
+
+                        try {
+
+                          await deleteLesson(
+                            course.id,
+                            module.id,
+                            lesson.id
+                          );
+
+                          loadAndRenderCourses();
+
+                        } catch (error) {
+
+                          alert(
+                            error.message
+                          );
+
+                        }
+
+                      }
+                    );
+
+
+                  lessonList.appendChild(
+                    row
+                  );
+
+                }
+              );
+
+
+            /* ADD LESSON */
+
+            block
+              .querySelector(
+                '[data-action="add-lesson"]'
+              )
+              .addEventListener(
+                'click',
+                () => {
+
+                  renderLessonForm(
+                    block.querySelector(
+                      '.lesson-form-slot'
+                    ),
+                    course,
+                    module,
+                    null
+                  );
+
+                }
+              );
+
+
+            /* EDIT MODULE */
+
+            block
+              .querySelector(
+                '[data-action="edit-module"]'
+              )
+              .addEventListener(
+                'click',
+                async () => {
+
+                  const newTitle =
+                    prompt(
+                      'Module title:',
+                      module.title
+                    );
+
+
+                  if (
+                    !newTitle ||
+                    !newTitle.trim()
+                  ) return;
+
+
+                  try {
+
+                    await updateModule(
+                      course.id,
+                      module.id,
+                      {
+                        title:
+                          newTitle.trim()
+                      }
+                    );
+
+                    loadAndRenderCourses();
+
+                  } catch (error) {
+
+                    alert(
+                      error.message
+                    );
+
+                  }
+
+                }
+              );
+
+
+            /* DELETE MODULE */
+
+            block
+              .querySelector(
+                '[data-action="delete-module"]'
+              )
+              .addEventListener(
+                'click',
+                async () => {
+
+                  if (
+                    !confirm(
+                      `Delete module "${module.title}" and all its lessons?`
+                    )
+                  ) return;
+
+
+                  try {
+
+                    await deleteModule(
+                      course.id,
+                      module.id
+                    );
+
+                    loadAndRenderCourses();
+
+                  } catch (error) {
+
+                    alert(
+                      error.message
+                    );
+
+                  }
+
+                }
+              );
+
+
+            container.appendChild(
+              block
+            );
+
+          }
+        );
+
+
+      /* ADD MODULE */
+
+      const addModule =
+        document.createElement(
+          'div'
+        );
+
+
+      addModule.className =
+        'section-card';
+
+
+      addModule.style.marginTop =
+        '14px';
+
+
+      addModule.innerHTML = `
+
+        <div class="inline-form">
+
+          <label>
+            New Module Title
+
+            <input
+              type="text"
+              id="newModuleTitle-${course.id}"
+              placeholder="e.g. Core Python Foundations"
+            />
+          </label>
+
+
+          <button
+            type="button"
+            class="btn-full"
+            data-action="add-module"
+          >
+            + Add Module
+          </button>
+
+        </div>
+
+      `;
+
+
+      addModule
+        .querySelector(
+          '[data-action="add-module"]'
+        )
+        .addEventListener(
+          'click',
+          async () => {
+
+            const input =
+              document.getElementById(
+                `newModuleTitle-${course.id}`
+              );
+
+
+            const title =
+              input.value.trim();
+
+
+            if (!title) {
+
+              alert(
+                'Module title is required.'
+              );
+
+              return;
+            }
+
+
+            try {
+
+              await createModule(
+                course.id,
+                {
+                  title,
+                  order:
+                    (course.modules || [])
+                      .length
+                }
+              );
+
+
+              loadAndRenderCourses();
+
+            } catch (error) {
+
+              alert(
+                error.message
+              );
+
+            }
+
+          }
+        );
+
+
+      container.appendChild(
+        addModule
+      );
+
+    }
+
+
+    /* =========================
+       LESSON FORM
+    ========================== */
+
+    function renderLessonForm(
+      slot,
+      course,
+      module,
+      lesson
+    ) {
+
+      const isEdit =
+        !!lesson;
+
+slot.innerHTML = `
+
+  <div class="lesson-editor">
+
+    <div class="lesson-editor-header">
+
+      <h4>
+        ${
+          isEdit
+            ? '✏ Edit Lesson'
+            : '🎬 Add New Lesson'
+        }
+      </h4>
+
+      <span class="video-hint">
+        YouTube only
+      </span>
+
+    </div>
+
+
+    <div class="inline-form">
+
+      <label>
+        Lesson Title
+
+        <input
+          type="text"
+          id="lf-title"
+          value="${escapeHtml(
+            lesson?.title || ''
+          )}"
+          placeholder="e.g. Python Variables"
+        />
+      </label>
+
+      <div class="video-box">
+
+        <div class="video-label">
+
+          <strong>
+            ▶ YouTube Video Link
+          </strong>
+
+          <span class="video-hint">
+            Required
+          </span>
+
+        </div>
+
+        <div class="youtube-input-wrap">
+
+          <input
+            id="lf-video"
+            type="url"
+            value="${escapeHtml(
+              lesson?.videoUrl || ''
+            )}"
+            placeholder="https://www.youtube.com/watch?v=..."
+          />
+
+          <span
+            class="youtube-valid"
+            id="lf-video-valid"
+          >
+            ✓ Valid
+          </span>
+
+        </div>
+
+        <div
+          class="youtube-error"
+          id="lf-video-error"
+        >
+          Please enter a valid YouTube URL.
+        </div>
+
+        <div
+          class="yt-preview"
+          id="lf-preview"
+        >
+
+          <iframe
+            src=""
+            title="YouTube preview"
+            allow="
+              accelerometer;
+              autoplay;
+              clipboard-write;
+              encrypted-media;
+              gyroscope;
+              picture-in-picture;
+              web-share
+            "
+            allowfullscreen
+          ></iframe>
+
+        </div>
+
+      </div>
+
+
+      <!-- ACTIONS -->
+
+      <div class="editor-actions">
+
+        <button
+          type="button"
+          class="btn btn-primary"
+          data-action="save-lesson"
+        >
+          ${
+            isEdit
+              ? '✓ Save Changes'
+              : '+ Add Lesson'
+          }
+        </button>
+
+
+        <button
+          type="button"
+          class="btn"
+          data-action="cancel-lesson"
+        >
+          Cancel
+        </button>
+
+      </div>
+
+
+      <p
+        class="status"
+        id="lf-status"
+      ></p>
+
+    </div>
+
+  </div>
+
+`;
+
+      const videoInput =
+        slot.querySelector(
+          '#lf-video'
+        );
+
+
+      const preview =
+        slot.querySelector(
+          '#lf-preview'
+        );
+
+
+      const previewIframe =
+        preview.querySelector(
+          'iframe'
+        );
+
+
+      const validLabel =
+        slot.querySelector(
+          '#lf-video-valid'
+        );
+
+
+      const errorLabel =
+        slot.querySelector(
+          '#lf-video-error'
+        );
+
+
+      /* =========================
+         VIDEO PREVIEW
+      ========================== */
+
+      function updatePreview() {
+
+        const value =
+          videoInput.value.trim();
+
+
+        if (!value) {
+
+          preview.classList.remove(
+            'show'
+          );
+
+          previewIframe.src = '';
+
+          validLabel.classList.remove(
+            'show'
+          );
+
+          errorLabel.classList.remove(
+            'show'
+          );
+
+          return;
+        }
+
+
+        const valid =
+          isValidYoutubeUrl(value);
+
+
+        if (!valid) {
+
+          preview.classList.remove(
+            'show'
+          );
+
+          previewIframe.src = '';
+
+          validLabel.classList.remove(
+            'show'
+          );
+
+          errorLabel.classList.add(
+            'show'
+          );
+
+          return;
+        }
+
+
+        const embed =
+          getYoutubeEmbedUrl(value);
+
+
+        if (!embed) {
+
+          preview.classList.remove(
+            'show'
+          );
+
+          previewIframe.src = '';
+
+          validLabel.classList.remove(
+            'show'
+          );
+
+          errorLabel.classList.add(
+            'show'
+          );
+
+          return;
+        }
+
+
+        validLabel.classList.add(
+          'show'
+        );
+
+        errorLabel.classList.remove(
+          'show'
+        );
+
+
+        previewIframe.src =
+          embed;
+
+
+        preview.classList.add(
+          'show'
+        );
+
+      }
+
+
+      videoInput.addEventListener(
+        'input',
+        updatePreview
+      );
+
+
+      updatePreview();
+
+
+      /* =========================
+         CANCEL
+      ========================== */
+
+      slot
+        .querySelector(
+          '[data-action="cancel-lesson"]'
+        )
+        .addEventListener(
+          'click',
+          () => {
+
+            slot.innerHTML = '';
+
+          }
+        );
+
+
+      /* =========================
+         SAVE LESSON
+      ========================== */
+
+      slot
+        .querySelector(
+          '[data-action="save-lesson"]'
+        )
+        .addEventListener(
+          'click',
+          async () => {
+
+            const statusEl =
+              slot.querySelector(
+                '#lf-status'
+              );
+
+
+            const videoUrl =
+              videoInput.value.trim();
+
+
+            /* VIDEO REQUIRED */
+
+            if (!videoUrl) {
+
+              setStatus(
+                statusEl,
+                'YouTube video URL is required.',
+                false
+              );
+
+              videoInput.focus();
+
+              return;
+            }
+
+
+            /* VIDEO VALIDATION */
+
+            if (
+              !isValidYoutubeUrl(
+                videoUrl
+              )
+            ) {
+
+              setStatus(
+                statusEl,
+                'Please enter a valid YouTube URL.',
+                false
+              );
+
+              videoInput.focus();
+
+              return;
+            }
+
+
+            const title =
+              slot
+                .querySelector(
+                  '#lf-title'
+                )
+                .value
+                .trim();
+
+
+            if (!title) {
+
+              setStatus(
+                statusEl,
+                'Lesson title is required.',
+                false
+              );
+
+              return;
+            }
+
+
+            const payload = {
+
+              title,
+
+              duration: '0 min',
+
+              description: '',
+
+              videoUrl,
+
+              resources: [],
+
+              order:
+                isEdit
+                  ? (lesson.order ?? 0)
+                  : (
+                      module.lessons?.length ||
+                      0
+                    )
+
+            };
+
+
+            try {
+
+              setStatus(
+                statusEl,
+                isEdit
+                  ? 'Saving lesson…'
+                  : 'Adding lesson…',
+                true
+              );
+
+
+              if (isEdit) {
+
+                await updateLesson(
+                  course.id,
+                  module.id,
+                  lesson.id,
+                  payload
+                );
+
+              } else {
+
+                await createLesson(
+                  course.id,
+                  module.id,
+                  payload
+                );
+
+              }
+
+
+              setStatus(
+                statusEl,
+                '✓ Lesson saved successfully.',
+                true
+              );
+
+
+              setTimeout(
+                () => {
+                  loadAndRenderCourses();
+                },
+                500
+              );
+
+
+            } catch (error) {
+
+              setStatus(
+                statusEl,
+                error.message,
+                false
+              );
+
+            }
+
+          }
+        );
+
+    }
+
+  </script>
+
+</body>
 </html>

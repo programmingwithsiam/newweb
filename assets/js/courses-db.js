@@ -97,6 +97,7 @@ export async function createCourse(courseData) {
     description: courseData.description || '',
     category: courseData.category || 'General',
     thumbnail: courseData.thumbnail || '',
+    videoUrl: courseData.videoUrl || '',
     instructor: courseData.instructor || 'CodeWithSiam',
     status: courseData.status || 'upcoming',
     order: Number(courseData.order) || 0,
