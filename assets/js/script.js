@@ -58,6 +58,13 @@ function getYoutubeEmbedUrl(url) {
   return m ? `https://www.youtube.com/embed/${m[1]}?rel=0` : null;
 }
 
+function getYoutubeThumbnailUrl(url) {
+  if (!url) return '';
+  const m = String(url).match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([\w-]{11})/);
+  if (!m) return '';
+  return `https://img.youtube.com/vi/${m[1]}/maxresdefault.jpg`;
+}
+
 function saveCourseProgress(progress) {
   localStorage.setItem(COURSE_PROGRESS_KEY, JSON.stringify(progress));
   currentCourseProgress = progress;
@@ -197,7 +204,7 @@ function renderUpcomingCourses() {
     const theme = THEME_BY_CATEGORY[course.category] || THEME_BY_CATEGORY.default;
     const lessonCount = Array.isArray(course.lessons) ? course.lessons.length : 0;
     const videoUrl = course.videoUrl || '';
-    const thumbnail = course.thumbnail || '';
+    const thumbnail = course.thumbnail || getYoutubeThumbnailUrl(videoUrl);
     const cardAction = videoUrl ? `data-video-url="${videoUrl}"` : '';
     const hasThumbnail = !!thumbnail;
     const safeThumb = hasThumbnail ? thumbnail.replace(/"/g, '&quot;') : '';
