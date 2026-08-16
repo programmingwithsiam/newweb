@@ -196,8 +196,10 @@ function renderUpcomingCourses() {
   list.innerHTML = upcoming.map(course => {
     const theme = THEME_BY_CATEGORY[course.category] || THEME_BY_CATEGORY.default;
     const lessonCount = Array.isArray(course.lessons) ? course.lessons.length : 0;
+    const videoUrl = course.videoUrl || '';
+    const cardAction = videoUrl ? `data-video-url="${videoUrl}"` : '';
     return `
-    <article class="upcoming-card">
+    <article class="upcoming-card" ${cardAction}>
       <div class="upcoming-thumb" style="background:${theme.gradient}">
         <span class="upcoming-soon-badge">Coming Soon</span>
         <i class="fa-solid ${theme.icon}"></i>
@@ -211,6 +213,15 @@ function renderUpcomingCourses() {
     </article>
   `;
   }).join('');
+
+  list.querySelectorAll('.upcoming-card[data-video-url]').forEach(card => {
+    card.style.cursor = 'pointer';
+    card.addEventListener('click', () => {
+      const target = card.getAttribute('data-video-url');
+      if (!target) return;
+      window.open(target, '_blank', 'noopener,noreferrer');
+    });
+  });
 }
 
 function renderModuleList(course) {
