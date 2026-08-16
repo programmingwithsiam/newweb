@@ -212,7 +212,7 @@ function renderUpcomingCourses() {
     return `
     <article class="upcoming-card" ${cardAction}>
       <div class="upcoming-thumb ${hasThumbnail ? 'has-image' : ''}" style="${hasThumbnail ? '' : `background:${theme.gradient}`}">
-        <span class="upcoming-soon-badge">Coming Soon</span>
+        <span class="upcoming-soon-badge">Free</span>
         ${hasThumbnail ? `<img class="upcoming-thumb-image" src="${safeThumb}" alt="${course.title}" loading="lazy" />` : `<i class="fa-solid ${theme.icon}"></i>`}
       </div>
       <div class="upcoming-card-body">

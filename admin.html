@@ -1088,6 +1088,16 @@
             </label>
 
             <label>
+              Upload Thumbnail Image
+
+              <input
+                id="newCourseThumbnailFile"
+                type="file"
+                accept="image/*"
+              />
+            </label>
+
+            <label>
               YouTube Video Link
 
               <input
@@ -1453,6 +1463,28 @@
        CREATE COURSE
     ========================== */
 
+    const thumbnailUrlInput = document.getElementById('newCourseThumbnail');
+    const thumbnailFileInput = document.getElementById('newCourseThumbnailFile');
+
+    if (thumbnailFileInput && thumbnailUrlInput) {
+      thumbnailFileInput.addEventListener('change', (event) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        if (!file.type.startsWith('image/')) {
+          alert('Please choose an image file for the thumbnail.');
+          thumbnailFileInput.value = '';
+          return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = () => {
+          thumbnailUrlInput.value = String(reader.result || '');
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
     document
       .getElementById('createCourseBtn')
       ?.addEventListener(
@@ -1557,12 +1589,12 @@
               'newCourseTitle',
               'newCourseDescription',
               'newCourseCategory',
-              'newCourseThumbnail'
+              'newCourseThumbnail',
+              'newCourseThumbnailFile'
             ].forEach(
               id => {
-                document
-                  .getElementById(id)
-                  .value = '';
+                const field = document.getElementById(id);
+                if (field) field.value = '';
               }
             );
 
