@@ -99,7 +99,7 @@ export async function createCourse(courseData) {
     thumbnail: courseData.thumbnail || '',
     videoUrl: courseData.videoUrl || '',
     instructor: courseData.instructor || 'CodeWithSiam',
-    status: courseData.status || 'upcoming',
+    status: courseData.status || 'published',
     order: Number(courseData.order) || 0,
     createdAt: serverTimestamp(),
   });
