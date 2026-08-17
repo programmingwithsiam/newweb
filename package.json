@@ -5,4 +5,9 @@
   "engines": {
     "node": ">=18"
   }
+  ,"scripts": {
+    "dev:app": "npm --prefix app run dev",
+    "build:app": "npm --prefix app run build",
+    "preview:app": "npm --prefix app run preview"
+  }
 }

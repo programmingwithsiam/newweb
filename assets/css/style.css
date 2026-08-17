@@ -690,6 +690,72 @@ body::after {
   width: 84px;
   height: 84px;
 }
+
+/* ============================================================== */
+/* Profile badge / webcam styling (unique badge for hero/webcam)   */
+/* ============================================================== */
+.ide-webcam{
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+  border-radius: 999px;
+  padding: 4px;
+  background: linear-gradient(135deg, rgba(255,212,59,1), rgba(6,182,212,1));
+  box-shadow: 0 10px 30px rgba(6,182,212,0.09);
+}
+.ide-webcam .profile-img{
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: block;
+  object-fit: cover;
+  border: 3px solid rgba(0,0,0,0.35);
+  background: #0b0f14;
+}
+
+/* subtle animated ring */
+.ide-webcam::after{
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border-radius: 999px;
+  pointer-events: none;
+  background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.06), transparent 25%);
+  mix-blend-mode: screen;
+}
+
+/* profile-badge (used instead of photo) */
+.profile-badge{
+  width: 56px;
+  height: 56px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #05070d;
+  font-weight: 900;
+  font-size: 16px;
+  background: linear-gradient(135deg, #fff09a, #06b6d4);
+  border: 3px solid rgba(0,0,0,0.28);
+  position: relative;
+}
+.profile-badge .initials{
+  z-index: 2;
+}
+.profile-badge .spark{
+  position: absolute;
+  right: -6px;
+  top: -6px;
+  background: rgba(255,255,255,0.12);
+  color: #05070d;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 8px;
+  z-index: 3;
+  font-weight: 800;
+}
+
+
 .profile-img {
   width: 84px;
   height: 84px;
@@ -1125,6 +1191,40 @@ body::after {
   .boxes {
     grid-template-columns: repeat(2, 1fr);
   }
+  .projects-grid { grid-template-columns: repeat(2, 1fr); gap: 18px; }
+}
+
+@media (max-width: 520px){
+  .projects-grid { grid-template-columns: 1fr; }
+  .project-header { height: 160px }
+}
+
+/* Mobile adjustments: improve layout, reduce hero padding and scale UI */
+@media (max-width: 520px) {
+  .hero {
+    padding: 48px 5% 30px;
+    min-height: auto;
+  }
+  .hero-inner {
+    gap: 20px;
+  }
+  .hero-sub { font-size: 0.95rem; max-width: 60ch; }
+  .ide-window { transform: none; width: 100%; box-shadow: 0 12px 30px rgba(0,0,0,0.45); }
+  .ide-body { padding: 12px 14px; font-size: 0.9rem; }
+  .ide-webcam { right: 12px; bottom: 12px; }
+  .ide-webcam .profile-badge, .ide-webcam .profile-img { width: 44px; height: 44px; }
+
+  /* chat: make more compact and avoid covering full width */
+  .chatbox {
+    right: 10px;
+    left: 10px;
+    width: auto;
+    height: 56vh;
+    max-height: calc(100vh - 80px);
+    bottom: 12px;
+    border-radius: 14px;
+  }
+  .chat-toggle-btn { right: 12px; bottom: 12px; width: 48px; height: 48px; }
 }
 
 /* =========================================================
@@ -1150,6 +1250,23 @@ body::after {
   align-items: center;
   justify-content: center;
   position: relative;
+}
+.project-header img, .project-header .thumb-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
+}
+.project-header::after{
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(0,0,0,0.0), rgba(0,0,0,0.25));
+  pointer-events: none;
 }
 .project-emoji {
   font-size: 2.6rem;
@@ -1921,6 +2038,8 @@ body, #siteRoot, .section {
   justify-content: center;
   overflow: hidden;
   background: linear-gradient(135deg,#43cea2,#185a9d);
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
 }
 .upcoming-thumb.has-image {
   background: #111827;
@@ -1938,6 +2057,8 @@ body, #siteRoot, .section {
   height: 100%;
   object-fit: cover;
   display: block;
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
 }
 .upcoming-soon-badge {
   position: absolute;

@@ -43,6 +43,7 @@ export const isFirebaseConfigured =
 let app = null;
 let auth = null;
 let db = null;
+let storage = null;
 
 if (isFirebaseConfigured) {
   try {
@@ -55,10 +56,14 @@ if (isFirebaseConfigured) {
     const { getFirestore } = await import(
       'https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js'
     );
+    const { getStorage } = await import(
+  'https://www.gstatic.com/firebasejs/10.13.0/firebase-storage.js'
+);
 
     app = initializeApp(firebaseConfig);
     auth = getAuth(app);
     db = getFirestore(app);
+    storage = getStorage(app);
     // Expose the provider class via auth for convenience elsewhere.
     auth.GoogleAuthProvider = GoogleAuthProvider;
   } catch (err) {
@@ -73,4 +78,4 @@ if (isFirebaseConfigured) {
   );
 }
 
-export { app, auth, db };
+export { app, auth, db, storage };

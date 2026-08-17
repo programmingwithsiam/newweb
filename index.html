@@ -32,7 +32,26 @@
       href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap"
       rel="stylesheet"
     />
+    <!-- Tailwind via CDN (no preflight) so utilities are available without resetting existing styles -->
+    <script>
+      window.tailwind = window.tailwind || {};
+      window.tailwind.config = {
+        darkMode: 'class',
+        corePlugins: { preflight: false },
+        theme: {
+          extend: {
+            colors: {
+              cyan: '#06b6d4',
+              accent: '#ffd43b'
+            }
+          }
+        }
+      }
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+
     <link rel="stylesheet" href="assets/css/style.css" />
+    <link rel="stylesheet" href="assets/css/scroll-and-ui.css" />
     <link rel="icon" type="image/png" href="assets/images/tab.png" />
     <link
       rel="stylesheet"
@@ -175,13 +194,16 @@
                   <span class="ln">3</span>        <span class="tok-self">self</span>.role <span class="tok-punc">=</span> <span class="tok-str">"AI Engineer,And Data Scientist"</span>
                   <span class="ln">4</span>        <span class="tok-self">self</span>.stack <span class="tok-punc">=</span> <span class="tok-punc">[</span><span class="tok-str">"Python"</span><span class="tok-punc">,</span> <span class="tok-str">"TensorFlow"</span><span class="tok-punc">,</span>
                   <span class="ln"></span>                      <span class="tok-str">"PyTorch"</span><span class="tok-punc">,</span> <span class="tok-str">"OpenCV"</span><span class="tok-punc">]</span>
-                  <span class="ln">5</span>        <span class="tok-self">self</span>.based_in <span class="tok-punc">=</span> <span class="tok-str">"Bancharampur,Brahmanbaira"<Bangladesh"</span>
+                  <span class="ln">5</span>        <span class="tok-self">self</span>.based_in <span class="tok-punc">=</span> <span class="tok-str">"Bancharampur, Brahmanbaira, Bangladesh"</span>
 
                   <span class="ln">6</span>    <span class="tok-kw">def</span> <span class="tok-fn">teach</span><span class="tok-punc">(</span><span class="tok-self">self</span><span class="tok-punc">):</span>
                   <span class="ln">7</span>        <span class="tok-kw">return</span> <span class="tok-str">"free ML tutorials on YouTube"</span></pre>
               </div>
               <div class="ide-webcam">
-                <img src="assets/images/profile-siam.jpeg" alt="Md Siam Ahmmed" class="profile-img" />
+                <div class="profile-badge" aria-hidden="true">
+                  <span class="initials">SA</span>
+                  <span class="spark">AI</span>
+                </div>
                 <span class="ide-live-badge">&#9679; Available</span>
               </div>
             </div>
