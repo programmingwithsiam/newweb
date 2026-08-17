@@ -755,6 +755,24 @@ body::after {
   font-weight: 800;
 }
 
+/* small motto text near webcam; edit directly in index.html #heroMotto */
+.hero-motto{
+  position: absolute;
+  right: 76px;
+  bottom: 10px;
+  background: rgba(0,0,0,0.5);
+  color: #fff;
+  padding: 8px 12px;
+  border-radius: 12px;
+  font-size: 0.78rem;
+  backdrop-filter: blur(6px);
+  box-shadow: 0 8px 20px rgba(2,6,23,0.45);
+}
+
+@media (max-width: 520px) {
+  .hero-motto { right: 64px; bottom: 8px; font-size: 0.72rem; padding: 6px 10px; }
+}
+
 
 .profile-img {
   width: 84px;
