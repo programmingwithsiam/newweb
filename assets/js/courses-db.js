@@ -17,7 +17,7 @@
        completedLessons[], lastLessonId, lastUpdated, completion
    ========================================================= */
 
-import { db, isFirebaseConfigured } from './firebase-init.js';
+import { db, isFirebaseConfigured, auth } from './firebase-init.js';
 
 let fs = null;
 async function loadFirestore() {
@@ -55,6 +55,11 @@ export async function fetchAllCourses() {
 
   for (const courseDoc of coursesSnap.docs) {
     const course = { id: courseDoc.id, ...courseDoc.data() };
+    // Do not expose course-level videoUrl to unauthenticated visitors.
+    const currentUser = auth?.currentUser || null;
+    if (!currentUser) {
+      delete course.videoUrl;
+    }
 
     const modulesSnap = await getDocs(
       query(collection(db, 'courses', courseDoc.id, 'modules'), orderBy('order', 'asc'))
@@ -62,20 +67,24 @@ export async function fetchAllCourses() {
     const modules = [];
     let allLessons = [];
 
-    for (const moduleDoc of modulesSnap.docs) {
+      for (const moduleDoc of modulesSnap.docs) {
       const moduleData = { id: moduleDoc.id, ...moduleDoc.data() };
-      const lessonsSnap = await getDocs(
-        query(
-          collection(db, 'courses', courseDoc.id, 'modules', moduleDoc.id, 'lessons'),
-          orderBy('order', 'asc')
-        )
-      );
-      const lessons = lessonsSnap.docs.map((d) => ({
-        id: d.id,
-        moduleId: moduleDoc.id,
-        ...d.data(),
-      }));
-      moduleData.lessons = lessons.map((l) => ({ id: l.id, title: l.title, duration: l.duration || '0 min' }));
+      // Lessons contain protected video URLs. Only fetch lesson documents
+      // when a user is signed in. For anonymous visitors, return an empty
+      // lessons array so UI shows sign-in gating without exposing URLs.
+      let lessons = [];
+      if (currentUser) {
+        const lessonsSnap = await getDocs(
+          query(
+            collection(db, 'courses', courseDoc.id, 'modules', moduleDoc.id, 'lessons'),
+            orderBy('order', 'asc')
+          )
+        );
+        lessons = lessonsSnap.docs.map((d) => ({ id: d.id, moduleId: moduleDoc.id, ...d.data() }));
+        moduleData.lessons = lessons.map((l) => ({ id: l.id, title: l.title, duration: l.duration || '0 min' }));
+      } else {
+        moduleData.lessons = [];
+      }
       modules.push(moduleData);
       allLessons = allLessons.concat(lessons);
     }

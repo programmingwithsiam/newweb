@@ -44,7 +44,9 @@ service cloud.firestore {
         allow write: if isAdmin();
 
         match /lessons/{lessonId} {
-          allow read: if true;
+          // Video lesson documents contain protected video URLs.
+          // Require users to be signed in to read lesson documents.
+          allow read: if isSignedIn();
           allow write: if isAdmin();
         }
       }

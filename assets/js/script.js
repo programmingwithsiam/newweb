@@ -360,6 +360,20 @@ function renderCourseDetail(course) {
     });
   }
 
+  // Watch on YouTube link (opens the lesson video in YouTube)
+    const watchLink = document.getElementById('watchOnYoutube');
+    if (watchLink) {
+      // Do not expose external video URL to unauthenticated visitors.
+      const externalUrl = currentSignedInUid ? (lesson.videoUrl || course.videoUrl || '') : '';
+      if (externalUrl) {
+        watchLink.href = externalUrl;
+        watchLink.classList.remove('hidden');
+      } else {
+        watchLink.href = '#';
+        watchLink.classList.add('hidden');
+      }
+    }
+
   if (video) {
     const src = lesson.videoUrl || course.videoUrl || '';
     const ytFrame = document.getElementById('courseYoutubeFrame');
@@ -367,17 +381,39 @@ function renderCourseDetail(course) {
     const ytEmbed = getYoutubeEmbedUrl(src);
 
     if (ytEmbed) {
-      // YouTube link: show the iframe, hide the native player + custom controls
-      video.removeAttribute('src');
-      video.load();
-      video.classList.add('hidden');
-      videoControls?.classList.add('hidden');
-      if (ytFrame) {
-        ytFrame.src = ytEmbed;
-        ytFrame.classList.remove('hidden');
+      // YouTube link: only embed for signed-in users. For visitors show
+      // a sign-in prompt without setting the iframe src so the URL is
+      // not exposed in the DOM.
+      if (!currentSignedInUid) {
+        if (ytFrame) { ytFrame.classList.add('hidden'); ytFrame.src = ''; }
+        video.classList.add('hidden');
+        videoControls?.classList.add('hidden');
+        skeleton?.classList.add('hidden');
+        if (placeholder) {
+          placeholder.classList.remove('hidden');
+          placeholder.innerHTML = `
+            <div style="padding:18px; text-align:center">
+              <i class="fa-solid fa-lock" style="font-size:28px; display:block; margin-bottom:12px"></i>
+              <p style="margin:0 0 12px">Please sign in with Google to watch this course.</p>
+              <button class="btn btn-primary" id="videoSignInBtn">Sign in with Google</button>
+            </div>
+          `;
+          const signBtn = document.getElementById('videoSignInBtn');
+          if (signBtn) signBtn.addEventListener('click', () => window.openAuthModal?.());
+        }
+      } else {
+        // Signed-in: safely embed the YouTube iframe.
+        video.removeAttribute('src');
+        video.load();
+        video.classList.add('hidden');
+        videoControls?.classList.add('hidden');
+        if (ytFrame) {
+          ytFrame.src = ytEmbed;
+          ytFrame.classList.remove('hidden');
+        }
+        skeleton?.classList.add('hidden');
+        placeholder?.classList.add('hidden');
       }
-      skeleton?.classList.add('hidden');
-      placeholder?.classList.add('hidden');
     } else if (src) {
       video.classList.remove('hidden');
       videoControls?.classList.remove('hidden');

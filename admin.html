@@ -2199,6 +2199,48 @@
                   `;
 
 
+                  // expose lesson id for drag/drop
+                  row.dataset.lessonId = lesson.id;
+                  row.draggable = true;
+
+                  /* DRAG & DROP FOR LESSONS */
+                  row.addEventListener('dragstart', (e) => {
+                    e.dataTransfer.effectAllowed = 'move';
+                    row.classList.add('dragging');
+                  });
+
+                  row.addEventListener('dragend', async () => {
+                    row.classList.remove('dragging');
+                    // persist lesson order within the module
+                    try {
+                      const rows = Array.from(lessonList.querySelectorAll('.lesson-row'));
+                      await Promise.all(rows.map((r, idx) => updateLesson(course.id, module.id, r.dataset.lessonId, { order: idx })));
+                    } catch (err) {
+                      console.error('Failed to save lesson order', err);
+                    }
+                  });
+
+                  lessonList.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    const dragging = lessonList.querySelector('.dragging');
+                    if (!dragging) return;
+                    const after = getDragAfterElementLesson(lessonList, e.clientY);
+                    if (!after) lessonList.appendChild(dragging);
+                    else lessonList.insertBefore(dragging, after);
+                  });
+
+                  function getDragAfterElementLesson(containerEl, y) {
+                    const draggableElements = [...containerEl.querySelectorAll('.lesson-row:not(.dragging)')];
+                    return draggableElements.reduce((closest, child) => {
+                      const box = child.getBoundingClientRect();
+                      const offset = y - box.top - box.height / 2;
+                      if (offset < 0 && offset > closest.offset) {
+                        return { offset, element: child };
+                      }
+                      return closest;
+                    }, { offset: Number.NEGATIVE_INFINITY }).element;
+                  }
+
                   /* EDIT */
 
                   row
@@ -2378,9 +2420,51 @@
               );
 
 
-            container.appendChild(
-              block
-            );
+            // Expose module id for drag/drop and future ops
+            block.dataset.moduleId = module.id;
+
+            /* =========================
+               ENABLE DRAG & DROP FOR MODULES
+            ========================= */
+            block.draggable = true;
+
+            block.addEventListener('dragstart', (e) => {
+              e.dataTransfer.effectAllowed = 'move';
+              block.classList.add('dragging');
+            });
+
+            block.addEventListener('dragend', async () => {
+              block.classList.remove('dragging');
+              // After reorder, persist module order
+              try {
+                const blocks = Array.from(container.querySelectorAll('.module-block'));
+                await Promise.all(blocks.map((b, idx) => updateModule(course.id, b.dataset.moduleId, { order: idx })));
+              } catch (err) {
+                console.error('Failed to save module order', err);
+              }
+            });
+
+            container.addEventListener('dragover', (e) => {
+              e.preventDefault();
+              const dragging = container.querySelector('.dragging');
+              if (!dragging) return;
+              const after = getDragAfterElementModule(container, e.clientY);
+              if (!after) container.appendChild(dragging);
+              else container.insertBefore(dragging, after);
+            });
+            function getDragAfterElementModule(containerEl, y) {
+              const draggableElements = [...containerEl.querySelectorAll('.module-block:not(.dragging)')];
+              return draggableElements.reduce((closest, child) => {
+                const box = child.getBoundingClientRect();
+                const offset = y - box.top - box.height / 2;
+                if (offset < 0 && offset > closest.offset) {
+                  return { offset, element: child };
+                }
+                return closest;
+              }, { offset: Number.NEGATIVE_INFINITY }).element;
+            }
+
+            container.appendChild(block);
 
           }
         );
