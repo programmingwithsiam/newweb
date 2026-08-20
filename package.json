@@ -4,8 +4,9 @@
   "private": true,
   "engines": {
     "node": ">=18"
-  }
-  ,"scripts": {
+  },
+  "scripts": {
+    "dev": "npx --yes serve .",
     "dev:app": "npm --prefix app run dev",
     "build:app": "npm --prefix app run build",
     "preview:app": "npm --prefix app run preview"
