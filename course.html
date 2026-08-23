@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Course | CodeWithSiam</title>
+  <meta name="description" content="Learn with CodeWithSiam video lessons.">
+  <link rel="icon" type="image/png" href="assets/images/tab.png">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="stylesheet" href="assets/css/course-learning.css">
+  <style>
+    .lesson-video-wrap video { width: 100%; height: 100%; object-fit: contain; background: #000; }
+    .lesson-video-wrap.is-custom-player { position: relative; background: #000; }
+    .custom-video-controls { position: absolute; right: 0; bottom: 0; left: 0; display: grid; gap: 8px; padding: 12px; color: #fff; background: linear-gradient(transparent, rgba(0,0,0,.88)); opacity: 0; transition: opacity .2s ease; }
+    .lesson-video-wrap.is-custom-player:hover .custom-video-controls, .lesson-video-wrap.is-custom-player:focus-within .custom-video-controls { opacity: 1; }
+    .custom-video-progress { width: 100%; accent-color: #9347ff; cursor: pointer; }
+    .custom-video-toolbar { display: flex; align-items: center; gap: 10px; }
+    .custom-video-toolbar button { border: 0; padding: 4px 7px; color: #fff; background: transparent; cursor: pointer; }
+    .custom-video-toolbar button:hover { color: #ffd43b; }
+    .custom-video-time { margin-right: auto; color: #d7dce7; font-size: .78rem; }
+    .lesson-youtube-link { display: inline-block; margin-top: 10px; color: var(--learning-accent-2); font-size: .8rem; }
+    .lesson-youtube-link.hidden { display: none; }
+  </style>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+</head>
+<body class="course-learning-page">
+  <header class="learning-topbar">
+    <a class="learning-brand" href="index.html"><span class="brand-mark">&lt;/&gt;</span> CodeWithSiam</a>
+    <a class="learning-back" href="index.html"><i class="fa-solid fa-arrow-left"></i> Back to courses</a>
+  </header>
+
+  <main id="learningApp" class="learning-app">
+    <section id="learningLoading" class="learning-state">Loading course...</section>
+    <section id="learningLogin" class="learning-state hidden">
+      <i class="fa-solid fa-lock"></i>
+      <h1>Sign in to start learning</h1>
+      <p>Sign in with Google to access the lesson playlist and videos.</p>
+      <button id="learningGoogleBtn" class="learning-button primary" type="button"><i class="fa-brands fa-google"></i> Continue with Google</button>
+      <p id="learningAuthStatus" class="learning-status" aria-live="polite"></p>
+    </section>
+
+    <section id="courseOverview" class="course-overview-screen hidden">
+      <div class="overview-heading">
+        <div>
+          <p class="learning-eyebrow">COURSE OVERVIEW</p>
+          <h1 id="courseTitle">Course</h1>
+          <p id="courseDescription"></p>
+        </div>
+        <a class="learning-back" href="index.html"><i class="fa-solid fa-grid-2"></i> All courses</a>
+      </div>
+      <div class="overview-summary">
+        <img id="courseThumbnail" src="" alt="Course thumbnail">
+        <div class="overview-details">
+          <p class="learning-eyebrow">CODEWITHSIAM COURSE</p>
+          <h2 id="overviewLessonTitle">Start your first lesson</h2>
+          <p id="courseInstructor"></p>
+          <div class="overview-meta"><span id="courseLessonCount">0 lessons</span><span id="courseDuration">0 min</span></div>
+          <div class="progress-line"><span id="overviewProgressBar"></span></div>
+          <strong id="overviewProgressText">0% COMPLETE</strong>
+          <button id="overviewStartBtn" class="learning-button primary" type="button"><i class="fa-solid fa-play"></i> Start Lesson</button>
+        </div>
+      </div>
+      <div class="overview-content-grid">
+        <section class="playlist-panel">
+          <div class="panel-heading"><div><p class="learning-eyebrow">COURSE CONTENT</p><h2>Playlist</h2></div><span id="playlistCount">0 lessons</span></div>
+          <div id="overviewPlaylist" class="overview-playlist"></div>
+        </section>
+      </div>
+    </section>
+
+    <section id="lessonPlayer" class="lesson-screen hidden">
+      <div class="lesson-main">
+        <div class="lesson-video-wrap"><iframe id="lessonVideo" title="Course lesson video" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe><video id="lessonMp4" controls playsinline preload="metadata"></video></div>
+        <div class="lesson-heading"><div><p class="learning-eyebrow">NOW PLAYING</p><h1 id="lessonTitle">Lesson</h1><p id="lessonDescription"></p><a id="lessonYoutubeLink" class="lesson-youtube-link hidden" href="" target="_blank" rel="noopener noreferrer">Watch on YouTube</a></div><span id="lessonDuration" class="lesson-duration"></span></div>
+        <div class="lesson-actions"><button id="previousLesson" class="learning-button" type="button"><i class="fa-solid fa-arrow-left"></i> Previous Lesson</button><button id="completeLesson" class="learning-button primary" type="button">Complete and Continue <i class="fa-solid fa-arrow-right"></i></button><button id="nextLesson" class="learning-button" type="button">Next Lesson <i class="fa-solid fa-arrow-right"></i></button></div>
+      </div>
+      <aside class="lesson-sidebar">
+        <div class="sidebar-course-head"><p class="learning-eyebrow">COURSE PLAYLIST</p><h2 id="sidebarCourseTitle">Course</h2><div class="sidebar-progress-label"><strong id="sidebarProgressText">0% COMPLETE</strong><span id="sidebarProgressCount">0 / 0 lessons</span></div><div class="progress-line"><span id="sidebarProgressBar"></span></div></div>
+        <div id="lessonPlaylist" class="lesson-playlist"></div>
+      </aside>
+    </section>
+  </main>
+  <script type="module" src="assets/js/course-learning.js"></script>
+</body>
+</html>

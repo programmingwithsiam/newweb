@@ -38,10 +38,12 @@ let selectedCourseId = null;
 let selectedLessonId = null;
 let currentCourseProgress = {};
 let currentSearchValue = '';
+let courseCatalogFilter = 'all';
 let activeCourse = null;
 let activeLessonNotes = '';
 let collapsedModules = new Set();
 let currentSignedInUid = null; // set by auth-app.js via window.handleAuthStateChange()
+let lessonPlayerVisible = false;
 
 function getCourseProgress() {
   try {
@@ -54,15 +56,135 @@ function getCourseProgress() {
 
 function getYoutubeEmbedUrl(url) {
   if (!url) return null;
-  const m = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([\w-]{11})/);
-  return m ? `https://www.youtube.com/embed/${m[1]}?rel=0` : null;
+  const value = String(url).trim();
+  let id = /^[\w-]{11}$/.test(value) ? value : null;
+  try {
+    if (!id) {
+      const parsed = new URL(value);
+      const candidate = parsed.hostname === 'youtu.be'
+        ? parsed.pathname.slice(1)
+        : parsed.searchParams.get('v') || parsed.pathname.split('/').filter(Boolean).pop();
+      id = candidate && /^[\w-]{11}$/.test(candidate) ? candidate : null;
+    }
+  } catch {
+    return null;
+  }
+  return id ? `https://www.youtube.com/embed/${id}?rel=0` : null;
 }
 
 function getYoutubeThumbnailUrl(url) {
-  if (!url) return '';
-  const m = String(url).match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([\w-]{11})/);
-  if (!m) return '';
-  return `https://img.youtube.com/vi/${m[1]}/maxresdefault.jpg`;
+  const embed = getYoutubeEmbedUrl(url);
+  const id = embed?.match(/embed\/([\w-]{11})/)?.[1];
+  return id ? `https://img.youtube.com/vi/${id}/maxresdefault.jpg` : '';
+}
+
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, char => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[char]));
+}
+
+function getCoursePercent(course) {
+  const total = course?.lessons?.length || 0;
+  const completed = getCompletedLessons(course).size;
+  return total ? Math.round((completed / total) * 100) : 0;
+}
+
+function getCourseRoute(courseId, lessonId = '') {
+  return lessonId
+    ? `/courses/${encodeURIComponent(courseId)}/lesson/${encodeURIComponent(lessonId)}`
+    : `/courses/${encodeURIComponent(courseId)}`;
+}
+
+function pushCourseRoute(courseId, lessonId = '') {
+  window.history.pushState({}, '', getCourseRoute(courseId, lessonId));
+}
+
+function getCourseStateLabel(course) {
+  const percent = getCoursePercent(course);
+  if (percent >= 100) return 'Review';
+  if (getCourseProgress()?.[course.id]?.lastLessonId) return 'Continue';
+  return 'Start';
+}
+
+function renderPublishedCourseCatalog() {
+  const catalog = document.getElementById('publishedCourseCatalog');
+  if (!catalog) return;
+  const courses = cachedCourses.filter(course => {
+    if (course.status !== 'published') return false;
+    if (courseCatalogFilter === 'paid') return Number(course.price) > 0;
+    if (courseCatalogFilter === 'free') return Number(course.price) <= 0;
+    return true;
+  });
+  catalog.innerHTML = courses.map(course => {
+    const progress = getCoursePercent(course);
+    const thumbnail = course.thumbnail || getYoutubeThumbnailUrl(course.videoUrl);
+    const lessonCount = course.lessons.length || (course.modules || []).reduce((count, module) => count + (module.lessons?.length || 0), 0);
+    const fallbackTitle = escapeHtml(String(course.title || 'Course').slice(0, 24));
+    return `<a class="course-card" data-course-id="${escapeHtml(course.id)}" href="course.html?course=${encodeURIComponent(course.id)}" aria-label="Open ${escapeHtml(course.title)} course">
+      <span class="course-card-thumb ${thumbnail ? 'has-image' : ''}">${thumbnail ? `<img src="${escapeHtml(thumbnail)}" alt="${escapeHtml(course.title)} thumbnail" loading="lazy" decoding="async">` : `<span class="course-card-thumb-fallback"><i class="fa-solid fa-graduation-cap"></i><strong>${fallbackTitle}</strong></span>`}<span class="course-card-play" aria-hidden="true"><i class="fa-solid fa-play"></i></span><span class="course-card-thumb-label">COURSE PREVIEW</span><span class="course-card-thumb-price">${Number(course.price) > 0 ? `৳${Number(course.price).toLocaleString('en-BD')}` : 'FREE'}</span></span>
+      <span class="course-card-body"><strong>${escapeHtml(course.title)}</strong><span class="course-card-description">${escapeHtml(course.description)}</span><span class="course-card-progress"><span class="course-card-progress-track"><span style="width:${progress}%"></span></span><span class="course-card-percent">${progress}%<small>COMPLETE</small></span></span><small class="course-card-lessons">${lessonCount} lessons</small><strong class="course-card-price">${Number(course.price) > 0 ? `৳${Number(course.price).toLocaleString('en-BD')}` : 'Free'}</strong><span class="course-card-cta">${getCourseStateLabel(course)} <i class="fa-solid fa-arrow-right"></i></span></span>
+    </a>`;
+  }).join('');
+  catalog.querySelectorAll('.course-card-thumb img').forEach(image => {
+    image.addEventListener('error', () => {
+      const thumbnailContainer = image.parentElement;
+      image.remove();
+      thumbnailContainer?.classList.remove('has-image');
+      const title = thumbnailContainer?.closest('.course-card')?.querySelector('.course-card-body strong')?.textContent || 'Course';
+      thumbnailContainer?.insertAdjacentHTML('afterbegin', `<span class="course-card-thumb-fallback"><i class="fa-solid fa-graduation-cap"></i><strong>${escapeHtml(title.slice(0, 24))}</strong></span>`);
+    }, { once: true });
+  });
+}
+
+document.querySelectorAll('[data-course-filter]').forEach(tab => {
+  tab.addEventListener('click', () => {
+    courseCatalogFilter = tab.dataset.courseFilter || 'all';
+    document.querySelectorAll('[data-course-filter]').forEach(item => item.classList.toggle('active', item === tab));
+    renderPublishedCourseCatalog();
+  });
+});
+
+function renderPublicCoursePreview(course) {
+  if (!course) return;
+  activeCourse = course;
+  const platform = document.getElementById('coursePlatform');
+  const gate = document.getElementById('courseSignInGate');
+  const player = document.querySelector('.course-lesson-player');
+  const thumbnail = course.thumbnail || getYoutubeThumbnailUrl(course.videoUrl);
+  const totalDuration = course.lessons.reduce((sum, lesson) => sum + parseInt(String(lesson.duration).match(/\d+/)?.[0] || '0', 10), 0);
+
+  document.getElementById('courseOverviewThumbnail')?.classList.toggle('hidden', !thumbnail);
+  const overviewThumbnail = document.getElementById('courseOverviewThumbnail');
+  if (overviewThumbnail) {
+    overviewThumbnail.src = thumbnail || '';
+    overviewThumbnail.alt = `${course.title} thumbnail`;
+    overviewThumbnail.onerror = () => {
+      overviewThumbnail.removeAttribute('src');
+      overviewThumbnail.classList.add('hidden');
+    };
+  }
+  document.getElementById('courseOverviewTitle').textContent = course.title;
+  document.getElementById('courseOverviewDescription').textContent = course.description;
+  document.getElementById('courseOverviewInstructor').textContent = course.instructor || 'CodeWithSiam';
+  document.getElementById('courseOverviewPrice').textContent = Number(course.price) > 0 ? `৳${Number(course.price).toLocaleString('en-BD')}` : 'Free';
+  const bkash = course.payment?.bkash || '01644171751';
+  const rocket = course.payment?.rocket || '01644171751';
+  const bank = course.payment?.bank || 'Contact for bank details';
+  document.getElementById('courseOverviewBkash').textContent = bkash;
+  document.getElementById('courseOverviewRocket').textContent = rocket;
+  document.getElementById('courseOverviewBank').textContent = bank;
+  document.getElementById('courseOverviewBkashLink').href = `tel:${bkash.replace(/\D/g, '')}`;
+  document.getElementById('courseOverviewRocketLink').href = `tel:${rocket.replace(/\D/g, '')}`;
+  document.getElementById('courseOverviewLessons').textContent = 'Sign in to load lessons';
+  document.getElementById('courseOverviewDuration').textContent = `${totalDuration} min`;
+  document.getElementById('courseOverviewProgressText').textContent = 'Sign in to track progress';
+  document.getElementById('courseOverviewProgressBar').style.width = '0%';
+  document.getElementById('moduleList').innerHTML = '<p class="course-description">Sign in with Google to access the course playlist.</p>';
+  platform?.classList.remove('hidden');
+  gate?.classList.remove('hidden');
+  player?.classList.add('hidden');
+  platform?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function saveCourseProgress(progress) {
@@ -161,10 +283,10 @@ function updateProgressBar(course) {
   const completed = getCompletedLessons(course).size;
   const total = course.lessons.length;
   const percent = total ? Math.round((completed / total) * 100) : 0;
-  const bar = document.getElementById('courseProgressBar');
-  const text = document.getElementById('courseProgressText');
+  const bar = document.getElementById('courseOverviewProgressBar');
+  const text = document.getElementById('courseOverviewProgressText');
   if (bar) bar.style.width = `${percent}%`;
-  if (text) text.textContent = `${percent}% complete`;
+  if (text) text.textContent = `${percent}% Complete · ${completed} / ${total}`;
   if (progress?.[course.id]) {
     progress[course.id].completion = percent;
     saveCourseProgress(progress);
@@ -183,7 +305,7 @@ function updateHeroMetrics() {
 function renderUpcomingCourses() {
   const section = document.getElementById('upcomingCoursesSection');
   const list = document.getElementById('upcomingCourseList');
-  const upcoming = cachedCourses.filter(course => course.status === 'upcoming');
+  const upcoming = cachedCourses.filter(course => course.status === 'upcoming' && course.showOnIndex === true);
   if (!section || !list) return;
   if (!upcoming.length) {
     section.classList.add('hidden');
@@ -212,7 +334,7 @@ function renderUpcomingCourses() {
     return `
     <article class="upcoming-card" ${cardAction}>
       <div class="upcoming-thumb ${hasThumbnail ? 'has-image' : ''}" style="${hasThumbnail ? '' : `background:${theme.gradient}`}">
-        <span class="upcoming-soon-badge">Free</span>
+        <span class="upcoming-soon-badge">${Number(course.price) > 0 ? `৳${Number(course.price).toLocaleString('en-BD')}` : 'Free'}</span>
         ${hasThumbnail ? `<img class="upcoming-thumb-image" src="${safeThumb}" alt="${course.title}" loading="lazy" />` : `<i class="fa-solid ${theme.icon}"></i>`}
       </div>
       <div class="upcoming-card-body">
@@ -260,7 +382,7 @@ function renderModuleList(course) {
                 ${completed.has(lesson.id) ? '<span class="lesson-check">✓</span>' : '<span class="lesson-check"></span>'}
                 <span class="lesson-title">${lesson.title}</span>
               </span>
-              <span class="lesson-duration">${lesson.duration || '0 min'}</span>
+              <span class="lesson-action"><span>${lesson.duration || '0 min'}</span> ${completed.has(lesson.id) ? 'Review' : 'Play'} <i class="fa-solid fa-arrow-right"></i></span>
             </button>
           `).join('')}
         </div>
@@ -294,10 +416,16 @@ function loadLessonNotes(course, lesson) {
 function renderCourseDetail(course) {
   activeCourse = course;
   const lesson = getCurrentLesson(course);
-  if (!lesson) {
-    document.getElementById('courseProgressText').textContent = 'No lessons';
-    return;
+if (!lesson) {
+  const courseProgressText = document.getElementById('courseOverviewProgressText');
+  document.querySelector('.course-lesson-player')?.classList.add('hidden');
+
+  if (courseProgressText) {
+    courseProgressText.textContent = 'No lessons';
   }
+
+  return;
+}
 
   const video = document.getElementById('courseVideo');
   const placeholder = document.getElementById('videoPlaceholder');
@@ -312,6 +440,36 @@ function renderCourseDetail(course) {
   const totalLessonsBadge = document.getElementById('totalLessonsBadge');
   const totalDurationBadge = document.getElementById('totalDurationBadge');
   const sidebarCourseTitle = document.getElementById('sidebarCourseTitle');
+  const overviewThumbnail = document.getElementById('courseOverviewThumbnail');
+  const overviewTitle = document.getElementById('courseOverviewTitle');
+  const overviewDescription = document.getElementById('courseOverviewDescription');
+  const overviewInstructor = document.getElementById('courseOverviewInstructor');
+  const overviewLessons = document.getElementById('courseOverviewLessons');
+  const overviewDuration = document.getElementById('courseOverviewDuration');
+  const overviewNextLesson = document.getElementById('courseOverviewNextLesson');
+  const overviewStartBtn = document.getElementById('courseOverviewStartBtn');
+  const lessonPlayer = document.querySelector('.course-lesson-player');
+  if (lessonPlayer) lessonPlayer.classList.toggle('hidden', !lessonPlayerVisible);
+
+  const courseThumbnail = course.thumbnail || getYoutubeThumbnailUrl(course.videoUrl);
+  if (overviewThumbnail) {
+    overviewThumbnail.src = courseThumbnail || '';
+    overviewThumbnail.alt = `${course.title} thumbnail`;
+    overviewThumbnail.classList.toggle('hidden', !courseThumbnail);
+  }
+  if (overviewTitle) overviewTitle.textContent = course.title;
+  if (overviewDescription) overviewDescription.textContent = course.description;
+  if (overviewInstructor) overviewInstructor.textContent = course.instructor || 'CodeWithSiam';
+  if (overviewLessons) overviewLessons.textContent = `${course.lessons.length} Lessons`;
+  if (overviewDuration) overviewDuration.textContent = `${course.lessons.reduce((sum, item) => sum + parseInt(String(item.duration).match(/\d+/)?.[0] || '0', 10), 0)} min`;
+  if (overviewNextLesson) overviewNextLesson.textContent = lesson.title;
+  if (overviewStartBtn) overviewStartBtn.innerHTML = `<i class="fa-solid fa-play"></i> ${getCompletedLessons(course).has(lesson.id) ? 'Review Lesson' : 'Start Lesson'}`;
+
+  const currentIndex = course.lessons.findIndex(item => item.id === lesson.id);
+  const prevBtn = document.getElementById('prevLessonBtn');
+  const nextBtn = document.getElementById('nextLessonBtn');
+  if (prevBtn) prevBtn.disabled = currentIndex <= 0;
+  if (nextBtn) nextBtn.disabled = currentIndex < 0 || currentIndex >= course.lessons.length - 1;
 
   if (sidebarCourseTitle) sidebarCourseTitle.textContent = course.title;
   if (totalLessonsBadge) totalLessonsBadge.textContent = `${course.lessons.length} lessons`;
@@ -323,6 +481,8 @@ function renderCourseDetail(course) {
   if (currentLessonDuration) currentLessonDuration.textContent = lesson.duration || '0 min';
   if (currentLessonStatus) currentLessonStatus.textContent = getCompletedLessons(course).has(lesson.id) ? 'Completed' : 'Queued';
   if (currentLessonDescription) currentLessonDescription.textContent = lesson.notes || course.description;
+  const lessonPlayerTitle = document.getElementById('lessonPlayerTitle');
+  if (lessonPlayerTitle) lessonPlayerTitle.textContent = lesson.title;
   if (lessonNotesInput) {
     lessonNotesInput.value = loadLessonNotes(course, lesson);
     lessonNotesInput.placeholder = lesson.notes ? `Notes for ${lesson.title}` : 'Capture key ideas, reminders, and setup steps...';
@@ -381,53 +541,50 @@ function renderCourseDetail(course) {
     const ytEmbed = getYoutubeEmbedUrl(src);
 
     if (ytEmbed) {
-      // YouTube link: only embed for signed-in users. For visitors show
-      // a sign-in prompt without setting the iframe src so the URL is
-      // not exposed in the DOM.
-      if (!currentSignedInUid) {
-        if (ytFrame) { ytFrame.classList.add('hidden'); ytFrame.src = ''; }
-        video.classList.add('hidden');
-        videoControls?.classList.add('hidden');
-        skeleton?.classList.add('hidden');
-        if (placeholder) {
-          placeholder.classList.remove('hidden');
-          placeholder.innerHTML = `
-            <div style="padding:18px; text-align:center">
-              <i class="fa-solid fa-lock" style="font-size:28px; display:block; margin-bottom:12px"></i>
-              <p style="margin:0 0 12px">Please sign in with Google to watch this course.</p>
-              <button class="btn btn-primary" id="videoSignInBtn">Sign in with Google</button>
-            </div>
-          `;
-          const signBtn = document.getElementById('videoSignInBtn');
-          if (signBtn) signBtn.addEventListener('click', () => window.openAuthModal?.());
-        }
-      } else {
-        // Signed-in: safely embed the YouTube iframe.
-        video.removeAttribute('src');
-        video.load();
-        video.classList.add('hidden');
-        videoControls?.classList.add('hidden');
-        if (ytFrame) {
-          ytFrame.src = ytEmbed;
-          ytFrame.classList.remove('hidden');
-        }
-        skeleton?.classList.add('hidden');
-        placeholder?.classList.add('hidden');
+      video.removeAttribute('src');
+      video.load();
+      video.classList.add('hidden');
+      videoControls?.classList.add('hidden');
+
+      if (ytFrame) {
+        const separator = ytEmbed.includes('?') ? '&' : '?';
+        ytFrame.src =
+          `${ytEmbed}${separator}rel=0&modestbranding=1&playsinline=1&controls=1`;
+        ytFrame.classList.remove('hidden');
       }
+
+      skeleton?.classList.add('hidden');
+      placeholder?.classList.add('hidden');
+
     } else if (src) {
       video.classList.remove('hidden');
       videoControls?.classList.remove('hidden');
-      if (ytFrame) { ytFrame.classList.add('hidden'); ytFrame.src = ''; }
+
+      if (ytFrame) {
+        ytFrame.classList.add('hidden');
+        ytFrame.src = '';
+      }
+
       video.src = src;
+      video.muted = false;
+      video.volume = 1;
       video.load();
+
       skeleton?.classList.remove('hidden');
       placeholder?.classList.add('hidden');
+
     } else {
       video.classList.remove('hidden');
       videoControls?.classList.remove('hidden');
-      if (ytFrame) { ytFrame.classList.add('hidden'); ytFrame.src = ''; }
+
+      if (ytFrame) {
+        ytFrame.classList.add('hidden');
+        ytFrame.src = '';
+      }
+
       video.removeAttribute('src');
       video.load();
+
       skeleton?.classList.add('hidden');
       placeholder?.classList.remove('hidden');
     }
@@ -488,11 +645,7 @@ function toggleLessonComplete(course, lesson) {
   const progress = getCourseProgress();
   const courseProgress = progress[course.id] || {};
   const completed = new Set(courseProgress.completedLessons || []);
-  if (completed.has(lesson.id)) {
-    completed.delete(lesson.id);
-  } else {
-    completed.add(lesson.id);
-  }
+  completed.add(lesson.id);
   progress[course.id] = {
     ...courseProgress,
     completedLessons: Array.from(completed),
@@ -502,7 +655,15 @@ function toggleLessonComplete(course, lesson) {
   saveCourseProgress(progress);
   updateProgressBar(course);
   renderModuleList(course);
-  document.getElementById('currentLessonStatus').textContent = completed.has(lesson.id) ? 'Completed' : 'Queued';
+  document.getElementById('currentLessonStatus').textContent = 'Completed';
+  const currentIndex = course.lessons.findIndex(item => item.id === lesson.id);
+  if (currentIndex < course.lessons.length - 1) {
+    selectedLessonId = course.lessons[currentIndex + 1].id;
+    pushCourseRoute(course.id, selectedLessonId);
+    renderCourseDetail(course);
+  } else {
+    document.getElementById('currentLessonStatus').textContent = 'Course Completed';
+  }
 }
 
 function switchLesson(course, direction) {
@@ -511,6 +672,7 @@ function switchLesson(course, direction) {
   const currentIndex = lessons.findIndex(lesson => lesson.id === selectedLessonId);
   const nextIndex = direction === 'next' ? Math.min(lessons.length - 1, currentIndex + 1) : Math.max(0, currentIndex - 1);
   selectedLessonId = lessons[nextIndex].id;
+  pushCourseRoute(course.id, selectedLessonId);
   renderCourseDetail(course);
 }
 
@@ -520,6 +682,7 @@ function handleVideoEnded(course) {
   const currentIndex = lessons.findIndex(lesson => lesson.id === selectedLessonId);
   if (currentIndex < lessons.length - 1) {
     selectedLessonId = lessons[currentIndex + 1].id;
+    pushCourseRoute(course.id, selectedLessonId);
     renderCourseDetail(course);
     const video = document.getElementById('courseVideo');
     if (video) video.play().catch(() => {});
@@ -527,6 +690,7 @@ function handleVideoEnded(course) {
 }
 
 function attachCourseEvents(course) {
+  const getActiveCourse = () => activeCourse || course;
   const searchInput = document.getElementById('lessonSearch');
   const prevBtn = document.getElementById('prevLessonBtn');
   const nextBtn = document.getElementById('nextLessonBtn');
@@ -542,15 +706,26 @@ function attachCourseEvents(course) {
   const muteBtn = document.getElementById('videoMuteBtn');
   const fullscreenBtn = document.getElementById('videoFullscreenBtn');
   const notesInput = document.getElementById('lessonNotesInput');
+  const overviewStartBtn = document.getElementById('courseOverviewStartBtn');
 
   searchInput?.addEventListener('input', event => {
     currentSearchValue = event.target.value;
-    renderModuleList(course);
+    renderModuleList(getActiveCourse());
   });
 
-  prevBtn?.addEventListener('click', () => switchLesson(course, 'prev'));
-  nextBtn?.addEventListener('click', () => switchLesson(course, 'next'));
-  completeBtn?.addEventListener('click', () => toggleLessonComplete(course, getCurrentLesson(course)));
+  prevBtn?.addEventListener('click', () => switchLesson(getActiveCourse(), 'prev'));
+  nextBtn?.addEventListener('click', () => switchLesson(getActiveCourse(), 'next'));
+  completeBtn?.addEventListener('click', () => toggleLessonComplete(getActiveCourse(), getCurrentLesson(getActiveCourse())));
+  overviewStartBtn?.addEventListener('click', () => {
+    if (!currentSignedInUid) {
+      window.openAuthModal?.('Sign in with Google to watch this lesson.');
+      return;
+    }
+    lessonPlayerVisible = true;
+    pushCourseRoute(getActiveCourse().id, getCurrentLesson(getActiveCourse()).id);
+    renderCourseDetail(getActiveCourse());
+    document.querySelector('.course-lesson-player')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
   restartBtn?.addEventListener('click', () => {
     if (video) {
       video.currentTime = 0;
@@ -572,7 +747,7 @@ function attachCourseEvents(course) {
     }
   });
   notesInput?.addEventListener('input', event => {
-    const lesson = getCurrentLesson(course);
+    const lesson = getCurrentLesson(getActiveCourse());
     saveLessonNotes(course, lesson, event.target.value);
   });
 
@@ -599,14 +774,14 @@ function attachCourseEvents(course) {
   video?.addEventListener('loadedmetadata', updateVideoUI);
   video?.addEventListener('timeupdate', () => {
     updateVideoUI();
-    const lesson = getCurrentLesson(course);
+    const lesson = getCurrentLesson(getActiveCourse());
     if (lesson && video.currentTime > 1) {
       // throttle saves to reduce DOM/storage churn
       const progressKey = `__lastSave_${course.id}_${lesson.id}`;
       const last = Number(sessionStorage.getItem(progressKey) || '0');
       const now = Date.now();
       if (!last || (now - last) > 2000) {
-        saveLessonProgress(course, lesson, video.currentTime);
+        saveLessonProgress(getActiveCourse(), lesson, video.currentTime);
         sessionStorage.setItem(progressKey, String(now));
       }
     }
@@ -648,7 +823,12 @@ function attachCourseEvents(course) {
   });
   muteBtn?.addEventListener('click', () => {
     if (!video) return;
-    video.muted = !video.muted;
+    if (video.muted || video.volume === 0) {
+      video.muted = false;
+      video.volume = 1;
+    } else {
+      video.muted = true;
+    }
   });
   fullscreenBtn?.addEventListener('click', async () => {
     if (!video) return;
@@ -709,12 +889,12 @@ function attachCourseEvents(course) {
       case 'n':
       case 'N':
         event.preventDefault();
-        switchLesson(course, 'next');
+        switchLesson(getActiveCourse(), 'next');
         break;
       case 'b':
       case 'B':
         event.preventDefault();
-        switchLesson(course, 'prev');
+        switchLesson(getActiveCourse(), 'prev');
         break;
       default:
         break;
@@ -730,16 +910,37 @@ function attachCourseEvents(course) {
       } else {
         collapsedModules.add(moduleId);
       }
-      renderModuleList(course);
+      renderModuleList(getActiveCourse());
       return;
     }
 
     const button = event.target.closest('.lesson-button');
     if (!button) return;
     selectedLessonId = button.dataset.lessonId;
-    renderCourseDetail(course);
+    lessonPlayerVisible = true;
+    pushCourseRoute(getActiveCourse().id, selectedLessonId);
+    renderCourseDetail(getActiveCourse());
+    document.querySelector('.course-lesson-player')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
 }
+
+function syncCourseRoute() {
+  const parts = window.location.pathname.split('/').filter(Boolean);
+  if (parts[0] !== 'courses' || !cachedCourses.length) return;
+  selectedCourseId = decodeURIComponent(parts[1] || '');
+  selectedLessonId = parts[2] === 'lesson' ? decodeURIComponent(parts[3] || '') : null;
+  const course = getCurrentCourse();
+  if (!course) return;
+  if (currentSignedInUid) {
+    lessonPlayerVisible = Boolean(selectedLessonId);
+    document.getElementById('coursePlatform')?.classList.remove('hidden');
+    renderCourseDetail(course);
+  } else {
+    renderPublicCoursePreview(course);
+  }
+}
+
+window.addEventListener('popstate', syncCourseRoute);
 
 async function initCoursePlatform() {
   const platform = document.getElementById('coursePlatform');
@@ -753,7 +954,7 @@ async function initCoursePlatform() {
   loading?.classList.remove('hidden');
   platform.classList.add('hidden');
   empty?.classList.add('hidden');
-  gate?.classList.toggle('hidden', !!currentSignedInUid);
+  gate?.classList.add('hidden');
 
   try {
     await loadCourses();
@@ -767,7 +968,12 @@ async function initCoursePlatform() {
   }
 
   updateHeroMetrics();
+  renderPublishedCourseCatalog();
   renderUpcomingCourses();
+
+  if (window.location.pathname.split('/').filter(Boolean)[0] === 'courses') {
+    syncCourseRoute();
+  }
 
   const course = getCurrentCourse();
   if (!course) {
@@ -779,9 +985,21 @@ async function initCoursePlatform() {
     return;
   }
 
+  if (!currentSignedInUid) {
+    loading?.classList.add('hidden');
+    platform?.classList.add('hidden');
+    return;
+  }
+
   if (!coursePlatformInitialized) {
     attachCourseEvents(course);
     coursePlatformInitialized = true;
+  }
+
+  if (!activeCourse) {
+    loading?.classList.add('hidden');
+    platform.classList.add('hidden');
+    return;
   }
 
   const progress = getCourseProgress();
@@ -820,15 +1038,31 @@ window.handleAuthStateChange = async function handleAuthStateChange(user) {
 
   if (currentSignedInUid) {
     try {
+      await loadCourses();
       const { fetchUserProgress } = await import('./courses-db.js');
       const cloudProgress = await fetchUserProgress(currentSignedInUid);
       // Cloud is the source of truth once signed in; merge over local cache.
       const merged = { ...getCourseProgress(), ...cloudProgress };
       localStorage.setItem(COURSE_PROGRESS_KEY, JSON.stringify(merged));
       currentCourseProgress = merged;
+      renderPublishedCourseCatalog();
+      syncCourseRoute();
+      const course = getCurrentCourse();
+          if (course && activeCourse) {
+            document.getElementById('coursePlatform')?.classList.remove('hidden');
+            document.getElementById('courseSignInGate')?.classList.add('hidden');
+            renderCourseDetail(course);
+          }
     } catch (error) {
       console.error('Failed to sync progress from cloud:', error);
     }
+  }
+
+  if (!currentSignedInUid) {
+    document.getElementById('coursePlatform')?.classList.add('hidden');
+    document.getElementById('courseSignInGate')?.classList.toggle('hidden', !activeCourse);
+    document.getElementById('courseYoutubeFrame')?.setAttribute('src', '');
+    document.getElementById('courseVideo')?.removeAttribute('src');
   }
 
   // Re-render whatever is currently visible so progress bars / lesson
@@ -1025,6 +1259,7 @@ let recognizing = false;
 let speechRecognizer = null;
 let chatBotInitialized = false;
 let chatToggleInitialized = false;
+let chatRequestInFlight = false;
 
 function initChatbot(){
   if (chatBotInitialized) return;
@@ -1076,10 +1311,15 @@ function initChatToggle(){
 const fallbackReplies = [
   { keys: ['project','built','made'], reply: "I've built 10 Python/AI projects — an Image Classifier (92% CNN), Sentiment Analyzer (BERT), Data Dashboard, House Price Predictor, Text Generator (LSTM), Digit Recognizer (99.1%), AI Chatbot, Fake News Detector, Stock Price Predictor, and a Face Recognition Attendance system! Check the Projects section above 👆" },
   { keys: ['python skill','best skill','skill'], reply: "Python is my strongest language, and I work regularly with NumPy/Pandas, scikit-learn, and TensorFlow/Keras. Check the Skills section for the full breakdown 📊" },
+  { keys: ['python','learn python','programming'], reply: "Python is my main language. I use it for automation, data analysis, machine learning, APIs, and practical projects with NumPy, Pandas, scikit-learn, and TensorFlow." },
   { keys: ['cnn','convolutional'], reply: "My CNN model is an image classifier trained on CIFAR-10, hitting 92% accuracy, with real-time webcam inference via OpenCV 🖼️" },
-  { keys: ['course','free python'], reply: "Yes! I'm launching a completely free Python course — Beginner to Master — on YouTube. Subscribe to get notified! 🐍" },
+  { keys: ['course','free python','tutorial','learn'], reply: "Yes! CodeWithSiam has a free Python course from beginner to advanced topics, with practical video lessons and projects. Open the Free Course section to start learning." },
+  { keys: ['data science','pandas','numpy','machine learning','ai','artificial intelligence'], reply: "Siam works with Python, NumPy, Pandas, scikit-learn, TensorFlow/Keras, and practical machine-learning workflows such as data preparation, training, evaluation, and deployment." },
   { keys: ['contact','email','reach','hire'], reply: "You can reach me via WhatsApp (fastest!), email, or any of my social links in the Contact section below 👇" },
+  { keys: ['github','youtube','facebook','social'], reply: "You can find CodeWithSiam on GitHub, YouTube, Facebook, Instagram, and WhatsApp through the Contact section of this website." },
   { keys: ['college','school','study','education'], reply: "I'm currently a Class 11 Science student at Narsingdi Government College, Bangladesh — studying alongside my AI/ML work! 🎓" },
+  { keys: ['where','bangladesh','location','from'], reply: "Siam is from Bangladesh and studies at Narsingdi Government College while building Python, data science, and AI projects." },
+  { keys: ['who are you','your name','about you'], reply: "I am the CodeWithSiam AI assistant. I can answer questions about Siam, his projects, Python, AI/ML, data science, and his courses." },
   { keys: ['hi','hello','hey'], reply: "Hey there! 👋 Ask me about my Python projects, ML skills, or the free Python course!" },
 ];
 function fallbackResponse(msg){
@@ -1140,25 +1380,39 @@ async function getBotReply(userMsg){
 
 async function sendMessage(){
   const input = document.getElementById('input');
-  const msg = input.value.trim();
-  if(!msg) return;
+  const sendBtn = document.getElementById('sendBtn');
+  const msg = input?.value.trim();
+  if(!msg || chatRequestInFlight) return;
+  chatRequestInFlight = true;
+  if (sendBtn) sendBtn.disabled = true;
   appendMessage(msg, true);
   input.value = '';
 
-  const typingEl = appendTypingIndicator();
-  const reply = await getBotReply(msg);
-  typingEl?.remove();
-  appendMessage(reply, false);
-  speak(reply);
+  try {
+    const typingEl = appendTypingIndicator();
+    const reply = await getBotReply(msg);
+    typingEl?.remove();
+    appendMessage(reply, false);
+    speak(reply);
+  } finally {
+    chatRequestInFlight = false;
+    if (sendBtn) sendBtn.disabled = false;
+  }
 }
 
 async function quickAsk(text){
+  if (chatRequestInFlight) return;
+  chatRequestInFlight = true;
   appendMessage(text, true);
   const typingEl = appendTypingIndicator();
-  const reply = await getBotReply(text);
-  typingEl?.remove();
-  appendMessage(reply, false);
-  speak(reply);
+  try {
+    const reply = await getBotReply(text);
+    typingEl?.remove();
+    appendMessage(reply, false);
+    speak(reply);
+  } finally {
+    chatRequestInFlight = false;
+  }
 }
 
 /* =========================================================

@@ -411,6 +411,22 @@
       gap: 18px;
     }
 
+    .course-tools {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 18px 0;
+    }
+
+    .course-tools input {
+      max-width: 420px;
+    }
+
+    .course-result-count {
+      color: var(--admin-muted);
+      font-size: .8rem;
+    }
+
     .course-manager-item {
       overflow: hidden;
       border: 1px solid var(--admin-line);
@@ -475,11 +491,19 @@
     }
 
     .module-block {
+      position: relative;
       margin-top: 14px;
-      padding: 16px;
-      border: 1px solid rgba(255,255,255,.08);
+      padding: 18px;
+      border: 1px solid rgba(255,212,59,.14);
       border-radius: 16px;
-      background: rgba(0,0,0,.17);
+      background: linear-gradient(145deg,rgba(255,212,59,.055),rgba(0,0,0,.2));
+      transition: border-color .2s ease, transform .2s ease, box-shadow .2s ease;
+    }
+
+    .module-block:hover {
+      border-color: rgba(255,212,59,.35);
+      transform: translateY(-2px);
+      box-shadow: 0 14px 28px rgba(0,0,0,.22);
     }
 
     .module-block-head {
@@ -491,16 +515,40 @@
     }
 
     .module-number {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
       color: var(--admin-accent);
-      font-size: .72rem;
+      font-size: .68rem;
       font-weight: 800;
       text-transform: uppercase;
       letter-spacing: .08em;
     }
 
+    .module-number::before {
+      content: "";
+      width: 26px;
+      height: 26px;
+      border: 1px solid rgba(255,212,59,.45);
+      border-radius: 8px;
+      background: rgba(255,212,59,.12);
+      box-shadow: inset 0 0 0 4px rgba(255,212,59,.04);
+    }
+
     .module-title {
       margin-top: 4px;
+      font-size: 1.05rem;
       font-weight: 700;
+    }
+
+    .module-empty {
+      margin-top: 12px;
+      padding: 14px;
+      border: 1px dashed rgba(255,255,255,.14);
+      border-radius: 10px;
+      color: var(--admin-muted);
+      font-size: .82rem;
+      text-align: center;
     }
 
     /* =========================
@@ -624,6 +672,61 @@
       border: 1px solid rgba(255,255,255,.08);
       border-radius: 14px;
       background: rgba(0,0,0,.15);
+    }
+
+    .mp4-upload-box {
+      display: grid;
+      gap: 8px;
+      margin-top: 12px;
+      padding: 22px;
+      text-align: center;
+      border: 1px dashed rgba(255,212,59,.35);
+      border-radius: 12px;
+      background: rgba(255,212,59,.04);
+      transition: border-color .2s ease, background .2s ease;
+    }
+
+    .mp4-upload-box.is-dragover {
+      border-color: var(--admin-accent);
+      background: rgba(255,212,59,.12);
+    }
+
+    .mp4-upload-box input[type="file"] {
+      max-width: 100%;
+      margin: 0 auto;
+    }
+
+    .thumbnail-preview {
+      display: none;
+      width: min(100%, 420px);
+      aspect-ratio: 16 / 9;
+      margin-top: 10px;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,.14);
+      border-radius: 8px;
+      background: #10151f;
+    }
+
+    .thumbnail-preview.show { display: block; }
+    .thumbnail-preview img { display: block; width: 100%; height: 100%; object-fit: cover; }
+
+    .mp4-upload-box small {
+      color: var(--admin-muted);
+    }
+
+    .mp4-upload-progress {
+      height: 7px;
+      overflow: hidden;
+      border-radius: 99px;
+      background: rgba(255,255,255,.1);
+    }
+
+    .mp4-upload-progress span {
+      display: block;
+      width: 0;
+      height: 100%;
+      background: var(--admin-accent);
+      transition: width .2s ease;
     }
 
     .video-label {
@@ -859,8 +962,7 @@
         <h2>Admin Sign In</h2>
 
         <p class="panel-note">
-          Admin access is restricted to accounts with the admin
-          role in Firestore.
+          Admin access is restricted to the verified administrator email configured for this site.
         </p>
 
         <button
@@ -964,6 +1066,8 @@
             </p>
           </div>
 
+          <button class="btn" id="refreshCoursesBtn" type="button">Refresh Data</button>
+
           <button
             class="logout"
             id="logoutBtn"
@@ -1036,6 +1140,26 @@
             </div>
           </div>
 
+        </div>
+
+
+        <div class="section-card">
+          <h3 class="section-title">User Access Control</h3>
+          <p class="section-subtitle">Grant paid-course access for free, or block/unblock an account. Use the student email exactly as registered.</p>
+          <div class="course-form-grid">
+            <label>Email
+              <input id="accessUserEmail" type="email" placeholder="student@example.com">
+            </label>
+            <label>Course ID
+              <input id="accessCourseId" type="text" placeholder="Paste course ID">
+            </label>
+            <div class="full admin-btn-row">
+              <button type="button" class="btn btn-primary" id="grantCourseAccessBtn">Grant / Add Access</button>
+              <button type="button" class="btn" id="revokeCourseAccessBtn">Revoke Access</button>
+              <button type="button" class="btn btn-danger" id="toggleUserBlockBtn">Block / Unblock User</button>
+            </div>
+          </div>
+          <p class="status" id="userAccessStatus" aria-live="polite"></p>
         </div>
 
 
@@ -1119,6 +1243,13 @@
               />
             </label>
 
+            <div class="full">
+              <small class="panel-note">Preview (best result: 16:9 image, like a YouTube course thumbnail)</small>
+              <div class="thumbnail-preview" id="newCourseThumbnailPreview" aria-live="polite">
+                <img id="newCourseThumbnailPreviewImage" src="" alt="Thumbnail preview">
+              </div>
+            </div>
+
             <label>
               YouTube Video Link
 
@@ -1127,6 +1258,26 @@
                 type="url"
                 placeholder="https://www.youtube.com/watch?v=..."
               />
+            </label>
+
+            <label>
+              Course Price (BDT)
+              <input id="newCoursePrice" type="number" min="0" placeholder="e.g. 1500">
+            </label>
+
+            <label>
+              bKash Number
+              <input id="newCourseBkash" type="text" placeholder="01XXXXXXXXX">
+            </label>
+
+            <label>
+              Rocket Number
+              <input id="newCourseRocket" type="text" placeholder="01XXXXXXXXX">
+            </label>
+
+            <label>
+              Bank Payment Details
+              <input id="newCourseBank" type="text" placeholder="Bank name, account or branch">
             </label>
 
 
@@ -1142,6 +1293,15 @@
                   Upcoming
                 </option>
               </select>
+            </label>
+
+
+            <label class="checkbox-label">
+              <input
+                id="newCourseShowOnIndex"
+                type="checkbox"
+              />
+              Show upcoming course on index
             </label>
 
 
@@ -1191,8 +1351,13 @@
           </h3>
 
           <p class="section-subtitle">
-            Manage modules, lessons and YouTube videos.
+            Manage modules, lessons and videos. Use <strong>+ Add Video</strong> for a quick upload, or <strong>Manage Course</strong> to organize content.
           </p>
+
+          <div class="course-tools">
+            <input id="courseSearch" type="search" placeholder="Search courses by title or category..." aria-label="Search courses">
+            <span id="courseResultCount" class="course-result-count"></span>
+          </div>
 
 
           <div
@@ -1248,7 +1413,15 @@
       deleteLesson,
 
       getYoutubeEmbedUrl,
-      isValidYoutubeUrl
+      isValidYoutubeUrl,
+      extractYoutubeId,
+      isMp4VideoUrl,
+      isValidLessonVideoUrl,
+      uploadLessonVideo,
+      deleteLessonVideo,
+      findUserByEmail,
+      updateUserAccess,
+      MAX_VIDEO_BYTES
 
     } from './assets/js/courses-db.js';
 
@@ -1277,6 +1450,14 @@
 
     const courseManagerList =
       document.getElementById('courseManagerList');
+
+    const courseSearch =
+      document.getElementById('courseSearch');
+
+    const courseResultCount =
+      document.getElementById('courseResultCount');
+
+    let loadedCourses = [];
 
 
     /* =========================
@@ -1427,6 +1608,54 @@
       );
 
 
+    const accessEmailInput = document.getElementById('accessUserEmail');
+    const accessCourseInput = document.getElementById('accessCourseId');
+    const accessStatus = document.getElementById('userAccessStatus');
+
+    async function getAccessUser() {
+      const email = accessEmailInput.value.trim();
+      if (!email) throw new Error('Student email is required.');
+      const found = await findUserByEmail(email);
+      if (!found) throw new Error('No signed-in student profile found for this email.');
+      return found;
+    }
+
+    document.getElementById('grantCourseAccessBtn')?.addEventListener('click', async () => {
+      try {
+        const user = await getAccessUser();
+        const courseId = accessCourseInput.value.trim();
+        if (!courseId) throw new Error('Course ID is required.');
+        const access = Array.from(new Set([...(user.courseAccess || []), courseId]));
+        await updateUserAccess(user.id, { courseAccess: access, blocked: false });
+        setStatus(accessStatus, `Access granted to ${user.email}.`, true);
+      } catch (error) {
+        setStatus(accessStatus, error.message, false);
+      }
+    });
+
+    document.getElementById('revokeCourseAccessBtn')?.addEventListener('click', async () => {
+      try {
+        const user = await getAccessUser();
+        const courseId = accessCourseInput.value.trim();
+        if (!courseId) throw new Error('Course ID is required.');
+        await updateUserAccess(user.id, { courseAccess: (user.courseAccess || []).filter(id => id !== courseId) });
+        setStatus(accessStatus, `Access revoked from ${user.email}.`, true);
+      } catch (error) {
+        setStatus(accessStatus, error.message, false);
+      }
+    });
+
+    document.getElementById('toggleUserBlockBtn')?.addEventListener('click', async () => {
+      try {
+        const user = await getAccessUser();
+        await updateUserAccess(user.id, { blocked: user.blocked !== true });
+        setStatus(accessStatus, `${user.email} is now ${user.blocked === true ? 'unblocked' : 'blocked'}.`, true);
+      } catch (error) {
+        setStatus(accessStatus, error.message, false);
+      }
+    });
+
+
     observeAuthState(
       async (user) => {
 
@@ -1487,6 +1716,16 @@
 
     const thumbnailUrlInput = document.getElementById('newCourseThumbnail');
     const thumbnailFileInput = document.getElementById('newCourseThumbnailFile');
+    const thumbnailPreview = document.getElementById('newCourseThumbnailPreview');
+    const thumbnailPreviewImage = document.getElementById('newCourseThumbnailPreviewImage');
+
+    function updateThumbnailPreview(value) {
+      const url = String(value || '').trim();
+      if (!thumbnailPreview || !thumbnailPreviewImage) return;
+      thumbnailPreviewImage.src = url;
+      thumbnailPreview.classList.toggle('show', Boolean(url));
+      thumbnailPreviewImage.onerror = () => thumbnailPreview.classList.remove('show');
+    }
 
     async function compressThumbnailFile(file) {
       const maxBytes = 900 * 1024;
@@ -1543,12 +1782,14 @@
         try {
           const compressed = await compressThumbnailFile(file);
           thumbnailUrlInput.value = compressed;
+          updateThumbnailPreview(compressed);
         } catch (error) {
           alert(error.message || 'The thumbnail image could not be processed.');
           thumbnailFileInput.value = '';
         }
       });
     }
+    thumbnailUrlInput?.addEventListener('input', () => updateThumbnailPreview(thumbnailUrlInput.value));
 
     document
       .getElementById('createCourseBtn')
@@ -1626,12 +1867,24 @@
                   .value
                   .trim(),
 
+              price: document.getElementById('newCoursePrice').value,
+              payment: {
+                bkash: document.getElementById('newCourseBkash').value.trim(),
+                rocket: document.getElementById('newCourseRocket').value.trim(),
+                bank: document.getElementById('newCourseBank').value.trim()
+              },
+
               status:
                 document
                   .getElementById(
                     'newCourseStatus'
                   )
                   .value,
+
+              showOnIndex:
+                document
+                  .getElementById('newCourseShowOnIndex')
+                  .checked,
 
               order:
                 document
@@ -1655,11 +1908,19 @@
               'newCourseDescription',
               'newCourseCategory',
               'newCourseThumbnail',
-              'newCourseThumbnailFile'
+              'newCourseThumbnailFile',
+              'newCourseVideoUrl',
+              'newCoursePrice',
+              'newCourseBkash',
+              'newCourseRocket',
+              'newCourseBank',
+              'newCourseShowOnIndex'
             ].forEach(
               id => {
                 const field = document.getElementById(id);
-                if (field) field.value = '';
+                if (!field) return;
+                if (field.type === 'checkbox') field.checked = false;
+                else field.value = '';
               }
             );
 
@@ -1710,6 +1971,7 @@
       }
 
 
+      loadedCourses = courses;
       updateStats(courses);
 
 
@@ -1726,20 +1988,39 @@
       }
 
 
-      courseManagerList.innerHTML = '';
-
-
-      courses.forEach(
-        course => {
-
-          courseManagerList.appendChild(
-            renderCourseCard(course)
-          );
-
-        }
-      );
+      renderCourseResults();
 
     }
+
+    function renderCourseResults() {
+      const query = courseSearch.value.trim().toLowerCase();
+      const visibleCourses = loadedCourses.filter(course =>
+        `${course.title || ''} ${course.category || ''}`.toLowerCase().includes(query)
+      );
+
+      courseManagerList.innerHTML = '';
+      courseResultCount.textContent = `${visibleCourses.length} of ${loadedCourses.length} courses`;
+
+      if (!visibleCourses.length) {
+        courseManagerList.innerHTML = '<div class="section-card"><p class="secondary-text">No matching courses found.</p></div>';
+        return;
+      }
+
+      visibleCourses.forEach(course => courseManagerList.appendChild(renderCourseCard(course)));
+    }
+
+    courseSearch.addEventListener('input', renderCourseResults);
+    document.getElementById('refreshCoursesBtn')?.addEventListener('click', async (event) => {
+      const button = event.currentTarget;
+      button.disabled = true;
+      button.textContent = 'Refreshing…';
+      try {
+        await loadAndRenderCourses();
+      } finally {
+        button.disabled = false;
+        button.textContent = 'Refresh Data';
+      }
+    });
 
 
     /* =========================
@@ -1865,6 +2146,10 @@
                 lessons
               </span>
 
+              <span title="Use this ID in User Access Control">
+                ID: ${escapeHtml(course.id)}
+              </span>
+
             </div>
 
           </div>
@@ -1884,6 +2169,24 @@
               }
             </button>
 
+            ${course.status === 'upcoming' ? `
+              <button
+                type="button"
+                class="btn"
+                data-action="toggle-index-visibility"
+              >
+                ${course.showOnIndex === true ? 'Hide from index' : 'Show on index'}
+              </button>
+            ` : ''}
+
+
+            <button
+              type="button"
+              class="btn btn-primary"
+              data-action="add-video"
+            >
+              + Add Video
+            </button>
 
             <button
               type="button"
@@ -1919,6 +2222,38 @@
           '.module-manager'
         );
 
+      card
+        .querySelector('[data-action="add-video"]')
+        .addEventListener('click', async () => {
+          try {
+            let targetModule = (course.modules || [])[0];
+
+            if (!targetModule) {
+              const created = await createModule(course.id, {
+                title: 'Course Content',
+                order: 0
+              });
+              targetModule = { id: created.id, title: 'Course Content', lessons: [] };
+              course.modules = [targetModule];
+            }
+
+            moduleManager.classList.remove('hidden');
+            renderModuleManager(moduleManager, course);
+            const moduleBlock = [...moduleManager.querySelectorAll('.module-block')]
+              .find(block => block.querySelector('.lesson-form-slot'));
+            if (moduleBlock) {
+              renderLessonForm(
+                moduleBlock.querySelector('.lesson-form-slot'),
+                course,
+                targetModule,
+                null
+              );
+            }
+          } catch (error) {
+            alert(error.message || 'Could not open the video editor.');
+          }
+        });
+
 
       /* STATUS */
 
@@ -1944,6 +2279,13 @@
 
           }
         );
+
+      card
+        .querySelector('[data-action="toggle-index-visibility"]')
+        ?.addEventListener('click', async () => {
+          await updateCourse(course.id, { showOnIndex: course.showOnIndex !== true });
+          loadAndRenderCourses();
+        });
 
 
       /* DELETE COURSE */
@@ -2029,6 +2371,12 @@
 
       container.innerHTML = '';
 
+      if (!(course.modules || []).length) {
+        const empty = document.createElement('div');
+        empty.className = 'module-empty';
+        empty.textContent = 'No modules yet. Create your first module below to organize lessons.';
+        container.appendChild(empty);
+      }
 
       (course.modules || [])
         .forEach(
@@ -2060,6 +2408,10 @@
                     )}
                   </div>
 
+                  <div class="course-manager-meta">
+                    ${(module.lessons || []).length} ${(module.lessons || []).length === 1 ? 'lesson' : 'lessons'} · Drag to reorder
+                  </div>
+
                 </div>
 
 
@@ -2078,7 +2430,7 @@
                     class="btn btn-primary"
                     data-action="add-lesson"
                   >
-                    + Add Lesson
+                    + Add Video Lesson
                   </button>
 
                   <button
@@ -2157,7 +2509,7 @@
                       >
                         ${
                           hasVideo
-                            ? 'YouTube video added'
+                            ? 'Video added'
                             : 'No video added'
                         }
                       </div>
@@ -2491,6 +2843,8 @@
 
         <div class="inline-form">
 
+          <p class="section-subtitle">Create a module to group related lessons, then use <strong>+ Add Video Lesson</strong> inside it.</p>
+
           <label>
             New Module Title
 
@@ -2541,7 +2895,6 @@
 
               return;
             }
-
 
             try {
 
@@ -2606,7 +2959,7 @@ slot.innerHTML = `
       </h4>
 
       <span class="video-hint">
-        YouTube only
+        Add a YouTube video or upload an MP4
       </span>
 
     </div>
@@ -2627,16 +2980,32 @@ slot.innerHTML = `
         />
       </label>
 
+      <label>
+        Lesson Description
+        <textarea id="lf-description" rows="3" placeholder="What will students learn?">${escapeHtml(lesson?.description || '')}</textarea>
+      </label>
+
+      <div class="form-grid two-col">
+        <label>
+          Duration
+          <input id="lf-duration" type="text" value="${escapeHtml(lesson?.duration || '')}" placeholder="e.g. 10 mins">
+        </label>
+        <label>
+          Order / Sequence
+          <input id="lf-order" type="number" min="0" value="${lesson?.order ?? module.lessons?.length ?? 0}">
+        </label>
+      </div>
+
       <div class="video-box">
 
         <div class="video-label">
 
           <strong>
-            ▶ YouTube Video Link
+            ▶ YouTube Video Link (optional if uploading MP4)
           </strong>
 
           <span class="video-hint">
-            Required
+            Paste a YouTube link or use the MP4 uploader below
           </span>
 
         </div>
@@ -2661,11 +3030,28 @@ slot.innerHTML = `
 
         </div>
 
+        <div class="mp4-upload-box">
+          <strong>Drag &amp; Drop your MP4 video here</strong>
+          <span>or</span>
+          <label class="btn" for="lf-video-file">Choose Video</label>
+          <input id="lf-video-file" type="file" accept="video/mp4,video/*,.mp4">
+          <small id="lf-video-file-info">Maximum ${MAX_VIDEO_BYTES / (1024 * 1024)} MB</small>
+          <button type="button" class="btn btn-primary" id="lf-video-upload-btn">Upload Video</button>
+          ${isEdit && lesson?.videoUrl ? '<button type="button" class="btn btn-danger" id="lf-video-delete-btn">Delete Current Video</button>' : ''}
+          <div class="mp4-upload-progress hidden" id="lf-video-progress-wrap"><span id="lf-video-progress"></span></div>
+          <p class="status" id="lf-video-upload-status" aria-live="polite"></p>
+        </div>
+
+        <label class="checkbox-label">
+          <input id="lf-show-youtube-link" type="checkbox" ${lesson?.showYoutubeLink === true ? 'checked' : ''}>
+          Show YouTube link to learners
+        </label>
+
         <div
           class="youtube-error"
           id="lf-video-error"
         >
-          Please enter a valid YouTube URL.
+          Enter a valid YouTube URL, or use the MP4 upload box below.
         </div>
 
         <div
@@ -2705,7 +3091,7 @@ slot.innerHTML = `
           ${
             isEdit
               ? '✓ Save Changes'
-              : '+ Add Lesson'
+              : '+ Add Video Lesson'
           }
         </button>
 
@@ -2761,6 +3147,89 @@ slot.innerHTML = `
           '#lf-video-error'
         );
 
+      const videoFileInput = slot.querySelector('#lf-video-file');
+      const videoFileInfo = slot.querySelector('#lf-video-file-info');
+      const videoProgressWrap = slot.querySelector('#lf-video-progress-wrap');
+      const videoProgress = slot.querySelector('#lf-video-progress');
+      const videoUploadStatus = slot.querySelector('#lf-video-upload-status');
+      const videoUploadButton = slot.querySelector('#lf-video-upload-btn');
+      const videoDeleteButton = slot.querySelector('#lf-video-delete-btn');
+      const uploadZone = slot.querySelector('.mp4-upload-box');
+      let selectedVideoFile = null;
+      let uploadedLessonId = lesson?.id || null;
+
+      function selectVideoFile(file) {
+        selectedVideoFile = file || null;
+        if (!selectedVideoFile) return;
+        if (selectedVideoFile.type !== 'video/mp4' || !selectedVideoFile.name.toLowerCase().endsWith('.mp4') || selectedVideoFile.size > MAX_VIDEO_BYTES) {
+          videoUploadStatus.textContent = selectedVideoFile.size > MAX_VIDEO_BYTES ? `File is larger than ${MAX_VIDEO_BYTES / (1024 * 1024)} MB.` : 'Only MP4 video files are supported.';
+          selectedVideoFile = null;
+          videoFileInput.value = '';
+          return;
+        }
+        videoFileInfo.textContent = `${selectedVideoFile.name} · ${(selectedVideoFile.size / 1024 / 1024).toFixed(1)} MB`;
+        videoUploadStatus.textContent = isEdit ? 'Ready to upload.' : 'Save the lesson to create its upload path.';
+      }
+
+      videoFileInput?.addEventListener('change', () => selectVideoFile(videoFileInput.files?.[0]));
+      ['dragenter', 'dragover'].forEach(type => uploadZone?.addEventListener(type, event => {
+        event.preventDefault();
+        uploadZone.classList.add('is-dragover');
+      }));
+      ['dragleave', 'drop'].forEach(type => uploadZone?.addEventListener(type, event => {
+        event.preventDefault();
+        uploadZone.classList.remove('is-dragover');
+      }));
+      uploadZone?.addEventListener('drop', event => selectVideoFile(event.dataTransfer.files?.[0]));
+      videoUploadButton?.addEventListener('click', async () => {
+        if (!selectedVideoFile) {
+          videoUploadStatus.textContent = 'Choose or drop an MP4 file first.';
+          return;
+        }
+        videoUploadButton.disabled = true;
+        try {
+          let targetLessonId = uploadedLessonId;
+          if (!targetLessonId) {
+            const title = slot.querySelector('#lf-title').value.trim();
+            if (!title) throw new Error('Enter a lesson title before uploading a video.');
+            const created = await createLesson(course.id, module.id, { title, videoUrl: '' });
+            targetLessonId = created.id;
+            uploadedLessonId = targetLessonId;
+          }
+          const url = await uploadLessonVideo(course.id, module.id, targetLessonId, selectedVideoFile, value => {
+            videoProgressWrap.classList.remove('hidden');
+            videoProgress.style.width = `${value}%`;
+            videoUploadStatus.textContent = `Uploading... ${value}%`;
+          });
+          await updateLesson(course.id, module.id, targetLessonId, { videoUrl: url, youtubeVideoId: null, youtubeUrl: '', videoType: 'file' });
+          videoUploadStatus.textContent = '✓ Video uploaded successfully';
+          videoInput.value = url;
+          selectedVideoFile = null;
+          videoFileInput.value = '';
+        } catch (error) {
+          videoUploadStatus.textContent = error.message || 'Video upload failed.';
+        } finally {
+          videoUploadButton.disabled = false;
+        }
+      });
+      videoDeleteButton?.addEventListener('click', async () => {
+        if (!lesson?.id || !confirm('Delete this video from the lesson?')) return;
+        videoDeleteButton.disabled = true;
+        try {
+          await deleteLessonVideo(lesson.videoUrl).catch(() => {});
+          await updateLesson(course.id, module.id, lesson.id, {
+            videoUrl: '',
+            youtubeVideoId: null,
+            youtubeUrl: '',
+            videoType: ''
+          });
+          loadAndRenderCourses();
+        } catch (error) {
+          videoUploadStatus.textContent = error.message || 'Video could not be deleted.';
+          videoDeleteButton.disabled = false;
+        }
+      });
+
 
       /* =========================
          VIDEO PREVIEW
@@ -2791,6 +3260,14 @@ slot.innerHTML = `
           return;
         }
 
+
+        if (isMp4VideoUrl(value)) {
+          preview.classList.remove('show');
+          previewIframe.src = '';
+          validLabel.classList.add('show');
+          errorLabel.classList.remove('show');
+          return;
+        }
 
         const valid =
           isValidYoutubeUrl(value);
@@ -2911,7 +3388,7 @@ slot.innerHTML = `
 
             /* VIDEO REQUIRED */
 
-            if (!videoUrl) {
+            if (!videoUrl && !selectedVideoFile) {
 
               setStatus(
                 statusEl,
@@ -2927,15 +3404,11 @@ slot.innerHTML = `
 
             /* VIDEO VALIDATION */
 
-            if (
-              !isValidYoutubeUrl(
-                videoUrl
-              )
-            ) {
+            if (videoUrl && !isValidLessonVideoUrl(videoUrl)) {
 
               setStatus(
                 statusEl,
-                'Please enter a valid YouTube URL.',
+                'Enter a valid YouTube URL or upload an MP4 file.',
                 false
               );
 
@@ -2965,26 +3438,32 @@ slot.innerHTML = `
               return;
             }
 
+            const description = slot.querySelector('#lf-description').value.trim();
+            const duration = slot.querySelector('#lf-duration').value.trim() || '0 min';
+            const order = Number(slot.querySelector('#lf-order').value) || 0;
+
 
             const payload = {
 
               title,
 
-              duration: '0 min',
+              duration,
 
-              description: '',
+              description,
 
-              videoUrl,
+              videoUrl: selectedVideoFile ? '' : videoUrl,
+
+              youtubeVideoId: extractYoutubeId(videoUrl),
+
+              youtubeUrl: selectedVideoFile ? '' : videoUrl,
+
+              videoType: selectedVideoFile ? 'file' : 'youtube',
+
+              showYoutubeLink: slot.querySelector('#lf-show-youtube-link').checked,
 
               resources: [],
 
-              order:
-                isEdit
-                  ? (lesson.order ?? 0)
-                  : (
-                      module.lessons?.length ||
-                      0
-                    )
+              order
 
             };
 
@@ -3000,22 +3479,43 @@ slot.innerHTML = `
               );
 
 
-              if (isEdit) {
+              if (isEdit || uploadedLessonId) {
+                const targetLessonId = uploadedLessonId || lesson.id;
+
+                if (selectedVideoFile) {
+                  payload.videoUrl = await uploadLessonVideo(course.id, module.id, lesson.id, selectedVideoFile, value => {
+                    videoProgressWrap.classList.remove('hidden');
+                    videoProgress.style.width = `${value}%`;
+                    videoUploadStatus.textContent = `Uploading replacement... ${value}%`;
+                  });
+                  payload.youtubeVideoId = null;
+                  payload.youtubeUrl = '';
+                  payload.videoType = 'file';
+                }
 
                 await updateLesson(
                   course.id,
                   module.id,
-                  lesson.id,
+                  targetLessonId,
                   payload
                 );
 
               } else {
 
-                await createLesson(
+                const created = await createLesson(
                   course.id,
                   module.id,
                   payload
                 );
+                if (selectedVideoFile) payload.videoUrl = await uploadLessonVideo(course.id, module.id, created.id, selectedVideoFile, value => {
+                  videoProgressWrap.classList.remove('hidden');
+                  videoProgress.style.width = `${value}%`;
+                  videoUploadStatus.textContent = `Uploading video... ${value}%`;
+                });
+                if (selectedVideoFile) payload.youtubeVideoId = null;
+                if (selectedVideoFile) payload.youtubeUrl = '';
+                if (selectedVideoFile) payload.videoType = 'file';
+                if (selectedVideoFile) await updateLesson(course.id, module.id, created.id, payload);
 
               }
 

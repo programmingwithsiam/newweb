@@ -49,18 +49,17 @@ Still in **Authentication → Settings → Authorized domains**:
 3. Click **Publish**.
 
 These rules already enforce:
-- Anyone can read the course catalog (public portfolio).
-- Only accounts with `role: "admin"` in their `users/{uid}` document can create/edit/delete courses, modules, or lessons.
-- A user can never set their own role to `"admin"` — only an existing admin (via the console, see Step 7) can do that.
+- Anyone can read the public course catalog metadata.
+- Only the verified administrator email configured in `firestore.rules` can create/edit/delete courses, modules, or lessons.
+- Signed-in users can read free-course lessons; paid lessons require the course ID in their `users/{uid}.courseAccess` array.
+- Users marked `blocked: true` cannot read lessons.
 - Learning progress under `progress/{uid}/...` is private — only that user can read/write it.
 
-## 7. Create your account, then make yourself admin
+## 7. Sign in as the administrator
 
-1. Deploy the site (or run it locally) and click **Sign In** → **Continue with Google** (or create an email/password account). This creates your Firebase Auth user AND a matching `users/{uid}` document with `role: "student"`.
-2. In the Firebase console, go to **Firestore Database → Data**.
-3. Open the `users` collection, find the document with your UID (match it via **Authentication → Users** tab, which shows the UID next to your email).
-4. Click into that document, edit the `role` field, change it from `"student"` to `"admin"`, save.
-5. Refresh the site and sign in again (or just refresh) — the "Admin" nav link and "Manage Courses" button should now appear, and `admin.html` should show the dashboard instead of "Access Denied".
+1. Use Google Sign-In with the verified administrator email configured in `assets/js/auth.js` and `firestore.rules`.
+2. Refresh the site after sign-in. The Admin link and `admin.html` dashboard will appear only for that email.
+3. Do not rely on changing a user's `role` field; server-side rules use the configured verified email.
 
 ## 8. Configure Vercel environment variables
 

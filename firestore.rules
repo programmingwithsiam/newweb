@@ -10,10 +10,9 @@ rules_version = '2';
 //  - courses/{courseId}                          -> public read, admin write
 //  - courses/{courseId}/modules/{moduleId}        -> public read, admin write
 //  - .../modules/{moduleId}/lessons/{lessonId}    -> public read, admin write
-//  - users/{uid}                                  -> owner + admin read,
-//                                                     owner can create/update
-//                                                     their own profile but
-//                                                     NEVER their own role
+//  - users/{uid}                                  -> owner read/write,
+//                                                     only the configured admin
+//                                                     email receives admin access
 //  - progress/{uid}/courses/{courseId}            -> owner-only read/write
 // =============================================================
 
@@ -30,8 +29,18 @@ service cloud.firestore {
 
     function isAdmin() {
       return isSignedIn() &&
+        request.auth.token.email_verified == true &&
+        request.auth.token.email == 'mdsiamahmmedloselovestroy@gmail.com';
+    }
+
+    function canAccessCourse(courseId) {
+      return isAdmin() || (isSignedIn() &&
         exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.blocked != true &&
+        ((!('price' in get(/databases/$(database)/documents/courses/$(courseId)).data) ||
+          get(/databases/$(database)/documents/courses/$(courseId)).data.price <= 0) ||
+          (('courseAccess' in get(/databases/$(database)/documents/users/$(request.auth.uid)).data) &&
+            get(/databases/$(database)/documents/users/$(request.auth.uid)).data.courseAccess.has(courseId))));
     }
 
     // ---------------- Courses (public catalog) ----------------
@@ -46,7 +55,7 @@ service cloud.firestore {
         match /lessons/{lessonId} {
           // Video lesson documents contain protected video URLs.
           // Require users to be signed in to read lesson documents.
-          allow read: if isSignedIn();
+          allow read: if canAccessCourse(courseId);
           allow write: if isAdmin();
         }
       }
@@ -56,17 +65,17 @@ service cloud.firestore {
     match /users/{uid} {
       allow read: if isOwner(uid) || isAdmin();
 
-      // A user may create their own profile document (e.g. on first
-      // sign-in) but can never set their own role to admin.
+      // A user may create their own profile document on first sign-in.
       allow create: if isOwner(uid) &&
+        request.resource.data.keys().hasOnly(['name', 'email', 'photoURL', 'role', 'createdAt']) &&
         (!('role' in request.resource.data) || request.resource.data.role == 'student');
 
-      // A user may update their own profile fields, but the "role"
-      // field can never be changed by the user themselves — only an
-      // admin (editing through the Firebase console or a trusted
-      // server context) can promote/demote roles.
+      // A user may update their own profile fields, but cannot grant
+      // themselves administrator access through this document.
       allow update: if isAdmin() ||
-        (isOwner(uid) && request.resource.data.role == resource.data.role);
+        (isOwner(uid) &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'email', 'photoURL']) &&
+          request.resource.data.role == resource.data.role);
 
       allow delete: if isAdmin();
     }

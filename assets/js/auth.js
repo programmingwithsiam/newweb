@@ -8,6 +8,8 @@
 
 import { auth, db, isFirebaseConfigured } from './firebase-init.js';
 
+export const ADMIN_EMAIL = 'mdsiamahmmedloselovestroy@gmail.com';
+
 let authModule = null;
 let firestoreModule = null;
 
@@ -149,21 +151,13 @@ export function observeAuthState(callback) {
 }
 
 /**
- * Checks whether the current user has role "admin" in Firestore.
- * This is a UX convenience only — actual enforcement happens in
- * firestore.rules, which the client cannot bypass.
+ * Checks whether the current user is the single allowed administrator.
+ * Firestore rules enforce the same email restriction server-side.
  */
 export async function isCurrentUserAdmin() {
   if (!isFirebaseConfigured || !auth?.currentUser) return false;
-  try {
-    const { doc, getDoc } = await loadFirestoreModule();
-    const ref = doc(db, 'users', auth.currentUser.uid);
-    const snap = await getDoc(ref);
-    return snap.exists() && snap.data().role === 'admin';
-  } catch (error) {
-    console.error('isCurrentUserAdmin check failed:', error);
-    return false;
-  }
+  const currentUser = auth.currentUser;
+  return currentUser.emailVerified === true && currentUser.email?.toLowerCase() === ADMIN_EMAIL;
 }
 
 export function getCurrentUser() {

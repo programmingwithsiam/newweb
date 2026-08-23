@@ -42,8 +42,8 @@ FIREBASE_SETUP.md         Step-by-step Firebase project setup
    Environment Variables.
 4. Add your Vercel domain to Firebase → Authentication → Settings →
    Authorized domains.
-5. Sign in once on the live site, then promote yourself to admin in the
-   Firestore console (see FIREBASE_SETUP.md step 7).
+5. Sign in once on the live site using the verified administrator email
+   configured in `assets/js/auth.js` and `firestore.rules`.
 6. Sign in to `/admin.html` and create your first course.
 
 ## Cost

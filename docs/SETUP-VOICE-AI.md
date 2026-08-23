@@ -1,4 +1,4 @@
-# AI Chatbot Setup — Voice + Real Claude API (Vercel)
+# AI Chatbot Setup — Voice + Real Gemini API (Vercel)
 
 Your chatbox supports:
 - 🎤 **Voice input** — tap the mic, speak, it auto-sends
@@ -27,8 +27,8 @@ Browser (script.js) → /api/chat → Claude API
 
 ## Deployment steps
 
-1. **Get a Claude API key**
-   Go to https://console.anthropic.com → API Keys → Create Key. Copy it.
+1. **Get a Gemini API key**
+  Go to https://aistudio.google.com/apikey → Create API key. Copy it.
 
 2. **Push this whole folder to your Vercel project**
    - If your site is connected to a GitHub repo: replace your old files
@@ -40,7 +40,7 @@ Browser (script.js) → /api/chat → Claude API
 3. **Add your API key as an environment variable**
    In the Vercel dashboard:
    `Your Project → Settings → Environment Variables`
-   - Key: `ANTHROPIC_API_KEY`
+  - Key: `GEMINI_API_KEY`
    - Value: *(paste your real key)*
    - Environment: select Production (and Preview if you want it there too)
    Then **redeploy** — Vercel needs a fresh deploy to pick up new env vars
@@ -60,8 +60,8 @@ Browser (script.js) → /api/chat → Claude API
   is more limited.
 - If you ever want nicer-sounding AI voices later, that requires a paid
   text-to-speech API (e.g. ElevenLabs) — let me know if you want that upgrade.
-- Each visitor's conversation uses your Claude API credits, so keep an eye
-  on usage in the Anthropic console, especially once the site gets traffic.
+- Each visitor's conversation uses your Gemini API quota, so keep an eye
+  on usage in Google AI Studio, especially once the site gets traffic.
 - Local testing: running `index.html` by just opening the file (or via
   Vercel CLI's `vercel dev`) will let you test the UI; the real `/api/chat`
   call only works once deployed (or under `vercel dev`, which emulates

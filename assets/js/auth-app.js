@@ -214,6 +214,11 @@ function renderLoggedIn(user, isAdmin) {
     userChipAvatar.alt = name;
     userChipAvatar.classList.remove('hidden');
     userChipInitial.classList.add('hidden');
+    userChipAvatar.onerror = () => {
+      userChipAvatar.classList.add('hidden');
+      userChipInitial.classList.remove('hidden');
+      userChipInitial.textContent = name.charAt(0).toUpperCase();
+    };
   } else {
     userChipAvatar.classList.add('hidden');
     userChipInitial.classList.remove('hidden');

@@ -3,6 +3,16 @@
 .env.local
 .env.*
 !.env.example
+.envrc
+
+# Credentials and private keys
+*.pem
+*.key
+*.p12
+service-account*.json
+*-firebase-adminsdk-*.json
+firebase-service-account*.json
+credentials*.json
 
 # OS/editor files
 .DS_Store
@@ -17,6 +27,7 @@ npm-debug.log*
 .next/
 out/
 dist/
+.firebase/
 
 # Misc
 *.tmp
