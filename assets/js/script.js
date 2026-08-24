@@ -145,8 +145,8 @@ function renderPublishedCourseCatalog() {
     const progress = getCoursePercent(course);
     const thumbnail = course.thumbnail || getYoutubeThumbnailUrl(course.videoUrl);
     const fallbackTitle = escapeHtml(String(course.title || 'Course').slice(0, 24));
-        return `<a class="lms-course-card" data-course-id="${escapeHtml(course.id)}" href="course-details.html?course=${encodeURIComponent(course.id)}" aria-label="View ${escapeHtml(course.title)} course details">
-          <span class="lms-course-thumbnail ${thumbnail ? 'has-image' : ''}">${thumbnail ? `<img src="${escapeHtml(thumbnail)}" alt="${escapeHtml(course.title)} thumbnail" loading="lazy" decoding="async">` : `<span class="lms-course-fallback"><i class="fa-solid fa-graduation-cap"></i><strong>${fallbackTitle}</strong></span>`}<span class="lms-course-play" aria-hidden="true"><i class="fa-solid fa-play"></i></span></span>
+        return `<a class="lms-course-card" data-course-id="${escapeHtml(course.id)}" href="course.html?course=${encodeURIComponent(course.id)}" aria-label="View ${escapeHtml(course.title)} course details">
+          <span class="lms-course-thumbnail ${thumbnail ? 'has-image' : ''}">${thumbnail ? `<img src="${escapeHtml(thumbnail)}" alt="${escapeHtml(course.title)} thumbnail" loading="lazy" decoding="async">` : `<span class="lms-course-fallback"><i class="fa-solid fa-graduation-cap"></i><strong>${fallbackTitle}</strong></span>`}</span>
       <span class="lms-course-body"><strong class="lms-course-title">${escapeHtml(course.title)}</strong><span class="lms-course-progress"><span class="lms-course-progress-track"><span style="width:${progress}%"></span></span><span class="lms-course-percent">${progress}%<small>COMPLETE</small></span></span><span class="lms-course-view">View Course <i class="fa-solid fa-arrow-right"></i></span></span>
     </a>`;
   }).join('');
@@ -547,7 +547,7 @@ if (!lesson) {
     const watchLink = document.getElementById('watchOnYoutube');
     if (watchLink) {
       // Do not expose external video URL to unauthenticated visitors.
-      const externalUrl = currentSignedInUid ? (lesson.videoUrl || course.videoUrl || '') : '';
+      const externalUrl = currentSignedInUid && !course.accessDenied ? (lesson.videoUrl || course.videoUrl || '') : '';
       if (externalUrl) {
         watchLink.href = externalUrl;
         watchLink.classList.remove('hidden');
@@ -558,12 +558,26 @@ if (!lesson) {
     }
 
   if (video) {
+    const hasApprovedAccess = Boolean(currentSignedInUid && !course.accessDenied);
     const src = lesson.videoUrl || course.videoUrl || '';
     const ytFrame = document.getElementById('courseYoutubeFrame');
     const videoControls = document.getElementById('videoControls');
-    const ytEmbed = getYoutubeEmbedUrl(src);
+    const ytEmbed = hasApprovedAccess ? getYoutubeEmbedUrl(src) : null;
 
-    if (ytEmbed) {
+    if (!hasApprovedAccess) {
+      ytFrame?.setAttribute('src', '');
+      video.removeAttribute('src');
+      video.load();
+      video.classList.add('hidden');
+      videoControls?.classList.add('hidden');
+      skeleton?.classList.add('hidden');
+      placeholder?.classList.remove('hidden');
+      if (placeholder) placeholder.textContent = currentSignedInUid
+        ? 'Your account is signed in, but you do not have access to this course yet.'
+        : 'Please sign in with Google to watch this lesson.';
+    }
+
+    if (hasApprovedAccess && ytEmbed) {
       video.removeAttribute('src');
       video.load();
       video.classList.add('hidden');
@@ -579,7 +593,7 @@ if (!lesson) {
       skeleton?.classList.add('hidden');
       placeholder?.classList.add('hidden');
 
-    } else if (src) {
+    } else if (hasApprovedAccess && src) {
       video.classList.remove('hidden');
       videoControls?.classList.remove('hidden');
 
@@ -596,7 +610,7 @@ if (!lesson) {
       skeleton?.classList.remove('hidden');
       placeholder?.classList.add('hidden');
 
-    } else {
+    } else if (hasApprovedAccess) {
       video.classList.remove('hidden');
       videoControls?.classList.remove('hidden');
 
@@ -723,8 +737,6 @@ function attachCourseEvents(course) {
   const pipBtn = document.getElementById('pipBtn');
   const video = document.getElementById('courseVideo');
   const playPauseBtn = document.getElementById('videoPlayPauseBtn');
-  const progressTrack = document.getElementById('videoProgressTrack');
-  const progressFill = document.getElementById('videoProgressFill');
   const timeLabel = document.getElementById('videoTimeLabel');
   const muteBtn = document.getElementById('videoMuteBtn');
   const fullscreenBtn = document.getElementById('videoFullscreenBtn');
@@ -742,6 +754,11 @@ function attachCourseEvents(course) {
   overviewStartBtn?.addEventListener('click', () => {
     if (!currentSignedInUid) {
       window.openAuthModal?.('Sign in with Google to watch this lesson.');
+      return;
+    }
+    if (getActiveCourse()?.accessDenied) {
+      document.getElementById('videoPlaceholder')?.classList.remove('hidden');
+      document.getElementById('videoPlaceholder')?.replaceChildren(document.createTextNode('Your account is signed in, but you do not have access to this course yet.'));
       return;
     }
     lessonPlayerVisible = true;
@@ -777,7 +794,6 @@ function attachCourseEvents(course) {
   function updateVideoUI() {
     if (!video) return;
     const ratio = video.duration ? video.currentTime / video.duration : 0;
-    if (progressFill) progressFill.style.width = `${Math.min(100, ratio * 100)}%`;
     if (timeLabel) timeLabel.textContent = `${formatTime(video.currentTime)} / ${formatTime(video.duration)}`;
     if (playPauseBtn) {
       const icon = playPauseBtn.querySelector('i');
@@ -827,21 +843,12 @@ function attachCourseEvents(course) {
       video.pause();
     }
   });
-  progressTrack?.addEventListener('click', event => {
-    if (!video || !Number.isFinite(video.duration)) return;
-    const rect = progressTrack.getBoundingClientRect();
-    const ratio = (event.clientX - rect.left) / rect.width;
-    video.currentTime = Math.max(0, Math.min(video.duration, ratio * video.duration));
-  });
-  progressTrack?.addEventListener('keydown', event => {
+  video?.addEventListener('dblclick', async () => {
     if (!video) return;
-    if (event.key === 'ArrowRight') {
-      event.preventDefault();
-      video.currentTime = Math.min(video.duration || 0, video.currentTime + 5);
-    }
-    if (event.key === 'ArrowLeft') {
-      event.preventDefault();
-      video.currentTime = Math.max(0, video.currentTime - 5);
+    if (document.fullscreenElement) {
+      await document.exitFullscreen().catch(() => {});
+    } else {
+      await video.requestFullscreen().catch(() => {});
     }
   });
   muteBtn?.addEventListener('click', () => {

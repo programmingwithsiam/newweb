@@ -51,17 +51,24 @@ Still in **Authentication → Settings → Authorized domains**:
 These rules already enforce:
 - Anyone can read the public course catalog metadata.
 - Only the verified administrator email configured in `firestore.rules` can create/edit/delete courses, modules, or lessons.
-- Signed-in users can read free-course lessons; paid lessons require the course ID in their `users/{uid}.courseAccess` array.
+- Only the admin or a Google account with `authorized_users/{email}.access == 'granted'` can read lessons.
 - Users marked `blocked: true` cannot read lessons.
 - Learning progress under `progress/{uid}/...` is private — only that user can read/write it.
 
-## 7. Sign in as the administrator
+## 7. Enable Firebase Storage for MP4 uploads
+
+1. In the Firebase console, open **Build -> Storage** and click **Get started**.
+2. Choose the same region used for Firestore and finish setup.
+3. Open the Storage **Rules** tab and publish the contents of `storage.rules` from this project.
+4. The admin upload accepts MP4 files up to 100 MB. YouTube URLs are also supported and avoid Storage usage.
+
+## 8. Sign in as the administrator
 
 1. Use Google Sign-In with the verified administrator email configured in `assets/js/auth.js` and `firestore.rules`.
 2. Refresh the site after sign-in. The Admin link and `admin.html` dashboard will appear only for that email.
 3. Do not rely on changing a user's `role` field; server-side rules use the configured verified email.
 
-## 8. Configure Vercel environment variables
+## 9. Configure Vercel environment variables
 
 In your Vercel project → **Settings → Environment Variables**, add:
 
@@ -73,7 +80,7 @@ Firebase config does **not** need to go here — it's already pasted directly in
 
 Redeploy after adding/changing environment variables — Vercel only picks them up on a new deployment.
 
-## 9. Test everything
+## 10. Test everything
 
 Use this checklist after deploying:
 

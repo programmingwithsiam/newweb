@@ -1539,11 +1539,6 @@ body::after {
   outline: 2px solid rgba(255, 212, 59,0.18);
   outline-offset: 2px;
 }
-.video-progress-track:focus {
-  outline: 2px solid rgba(75, 139, 190,0.14);
-  outline-offset: 3px;
-}
-
 /* subtle page fade transitions */
 body, #siteRoot, .section {
   transition: opacity 280ms var(--ease), transform 320ms var(--ease);
@@ -1685,6 +1680,7 @@ body, #siteRoot, .section {
 .course-card-price { color: var(--accent) !important; font-size: 1rem !important; }
 .projects-grid .project-card:nth-child(n + 6) { display: none; }
 .course-payment-panel { display: flex; justify-content: space-between; gap: 18px; align-items: center; margin-top: 20px; padding: 15px; border: 1px solid rgba(255,212,59,.18); border-radius: 12px; background: rgba(255,212,59,.045); }
+.course-payment-panel { display: none !important; }
 .course-payment-panel > div { display: grid; gap: 4px; }
 .course-payment-panel strong { color: var(--accent); font: 1.35rem var(--font-display); }
 .course-payment-panel span { color: var(--text-dim); font-size: .78rem; }
@@ -1872,6 +1868,7 @@ body, #siteRoot, .section {
 .lms-course-fallback i { color: #b36bff; font-size: 2.2rem; }
 .lms-course-fallback strong { max-width: 90%; font: .85rem var(--font-display); }
 .lms-course-play {
+  display: none;
   position: absolute;
   z-index: 1;
   display: grid;
@@ -2326,22 +2323,6 @@ body, #siteRoot, .section {
 .video-control-btn:hover {
   background: rgba(255, 212, 59, 0.16);
   color: var(--cyan);
-}
-.video-progress-wrap {
-  flex: 1;
-}
-.video-progress-track {
-  height: 8px;
-  border-radius: 999px;
-  background: rgba(255,255,255,0.16);
-  overflow: hidden;
-  cursor: pointer;
-}
-.video-progress-fill {
-  height: 100%;
-  width: 0;
-  border-radius: inherit;
-  background: linear-gradient(90deg, var(--cyan), var(--violet));
 }
 .video-time {
   font-size: 0.8rem;

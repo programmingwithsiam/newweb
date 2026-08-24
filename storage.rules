@@ -8,13 +8,14 @@ service firebase.storage {
         request.auth.token.email == 'mdsiamahmmedloselovestroy@gmail.com';
     }
 
+    function isGoogleUser() {
+      return request.auth != null && request.auth.token.firebase.sign_in_provider == 'google.com';
+    }
+
     function canAccessCourse(courseId) {
-      return isAdmin() || (request.auth != null &&
-        firestore.exists(/databases/(default)/documents/users/$(request.auth.uid)) &&
-        firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.blocked != true &&
-        (firestore.get(/databases/(default)/documents/courses/$(courseId)).data.price <= 0 ||
-          (('courseAccess' in firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data) &&
-            firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.courseAccess.has(courseId))));
+      return isAdmin() || (isGoogleUser() &&
+        firestore.exists(/databases/(default)/documents/authorized_users/$(request.auth.token.email)) &&
+        firestore.get(/databases/(default)/documents/authorized_users/$(request.auth.token.email)).data.access == 'granted');
     }
 
     match /lessons_videos/{courseId}/{lessonId}/{fileName} {

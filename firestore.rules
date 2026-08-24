@@ -23,6 +23,10 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function isGoogleUser() {
+      return isSignedIn() && request.auth.token.firebase.sign_in_provider == 'google.com';
+    }
+
     function isOwner(uid) {
       return isSignedIn() && request.auth.uid == uid;
     }
@@ -34,12 +38,9 @@ service cloud.firestore {
     }
 
     function canAccessCourse(courseId) {
-      return isAdmin() || (isSignedIn() &&
-        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.blocked != true &&
-        (get(/databases/$(database)/documents/courses/$(courseId)).data.price <= 0 ||
-          (('courseAccess' in get(/databases/$(database)/documents/users/$(request.auth.uid)).data) &&
-            get(/databases/$(database)/documents/users/$(request.auth.uid)).data.courseAccess.has(courseId))));
+      return isAdmin() || (isGoogleUser() &&
+        exists(/databases/$(database)/documents/authorized_users/$(request.auth.token.email)) &&
+        get(/databases/$(database)/documents/authorized_users/$(request.auth.token.email)).data.access == 'granted');
     }
 
     // ---------------- Courses (public catalog) ----------------
@@ -77,6 +78,12 @@ service cloud.firestore {
           request.resource.data.role == resource.data.role);
 
       allow delete: if isAdmin();
+    }
+
+    match /authorized_users/{email} {
+      allow read: if isAdmin() ||
+        (isGoogleUser() && email == request.auth.token.email);
+      allow write: if isAdmin();
     }
 
     // ---------------- Payment submissions ----------------

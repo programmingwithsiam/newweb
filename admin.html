@@ -46,83 +46,6 @@
       font: inherit;
     }
 
-    button {
-      cursor: pointer;
-    }
-
-    .hidden {
-      display: none !important;
-    }
-
-    .admin-shell {
-      width: min(1180px,100%);
-      margin: 0 auto;
-      overflow: hidden;
-      border: 1px solid var(--admin-line);
-      border-radius: 28px;
-      background: rgba(8,13,23,.96);
-      box-shadow: 0 30px 120px rgba(0,0,0,.45);
-    }
-
-    /* =========================
-       HERO
-    ========================= */
-
-    .admin-hero {
-      padding: 38px 40px;
-      border-bottom: 1px solid var(--admin-line);
-      background:
-        linear-gradient(135deg,rgba(255,212,59,.08),transparent 55%),
-        rgba(255,255,255,.01);
-    }
-
-    .hero-top {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 20px;
-      flex-wrap: wrap;
-    }
-
-    .brand-mini {
-      color: var(--admin-accent);
-      font-size: .8rem;
-      font-weight: 800;
-      letter-spacing: .14em;
-      text-transform: uppercase;
-      margin-bottom: 10px;
-    }
-
-    .admin-hero h1 {
-      margin: 0;
-      font-size: clamp(2rem,4vw,3rem);
-      line-height: 1.1;
-    }
-
-    .admin-hero p {
-      max-width: 760px;
-      margin: 12px 0 0;
-      color: var(--admin-muted);
-      line-height: 1.7;
-    }
-
-    .admin-welcome {
-      padding: 10px 14px;
-      border: 1px solid var(--admin-line);
-      border-radius: 12px;
-      color: var(--admin-muted);
-      background: rgba(255,255,255,.03);
-      font-size: .85rem;
-    }
-
-    /* =========================
-       LOGIN / ACCESS
-    ========================= */
-
-    .admin-body {
-      padding: 32px;
-    }
-
     .access-screen {
       min-height: 300px;
       display: flex;
@@ -783,63 +706,6 @@
       background: rgba(0,0,0,.15);
     }
 
-    .mp4-upload-box {
-      display: grid;
-      gap: 8px;
-      margin-top: 12px;
-      padding: 22px;
-      text-align: center;
-      border: 1px dashed rgba(255,212,59,.35);
-      border-radius: 12px;
-      background: rgba(255,212,59,.04);
-      transition: border-color .2s ease, background .2s ease;
-    }
-
-    .mp4-upload-box.is-dragover {
-      border-color: var(--admin-accent);
-      background: rgba(255,212,59,.12);
-    }
-
-    .course-video-upload-box {
-      display: grid;
-      gap: 8px;
-      margin-top: 8px;
-      padding: 18px;
-      text-align: center;
-      border: 1px dashed rgba(255,212,59,.35);
-      border-radius: 12px;
-      background: rgba(255,212,59,.04);
-      transition: border-color .2s ease, background .2s ease;
-    }
-
-    .course-video-upload-box.is-dragover {
-      border-color: var(--admin-accent);
-      background: rgba(255,212,59,.12);
-    }
-
-    .course-video-upload-box.is-selected {
-      border-color: var(--admin-success);
-      background: rgba(74,222,128,.08);
-    }
-
-    .course-video-preview {
-      display: none;
-      width: min(100%, 560px);
-      max-height: 300px;
-      margin: 8px auto 0;
-      border-radius: 10px;
-      background: #05070d;
-    }
-
-    .course-video-preview.show {
-      display: block;
-    }
-
-    .mp4-upload-box input[type="file"] {
-      max-width: 100%;
-      margin: 0 auto;
-    }
-
     .thumbnail-preview {
       display: none;
       width: min(100%, 420px);
@@ -900,25 +766,6 @@
 
     @media (max-width: 640px) {
       .course-thumbnail-editor { grid-template-columns: 1fr; }
-    }
-
-    .mp4-upload-box small {
-      color: var(--admin-muted);
-    }
-
-    .mp4-upload-progress {
-      height: 7px;
-      overflow: hidden;
-      border-radius: 99px;
-      background: rgba(255,255,255,.1);
-    }
-
-    .mp4-upload-progress span {
-      display: block;
-      width: 0;
-      height: 100%;
-      background: var(--admin-accent);
-      transition: width .2s ease;
     }
 
     .video-label {
@@ -1183,6 +1030,34 @@
     .admin-dashboard > *:not(.dashboard-nav) { grid-column: 2; min-width: 0; }
     .admin-topbar h2 { font-size: 1.35rem; }
 
+    .admin-topbar {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 16px;
+      padding-bottom: 18px;
+      border-bottom: 1px solid var(--admin-line);
+    }
+
+    .admin-topbar .section-subtitle { margin-bottom: 0; }
+
+    .dashboard-nav {
+      border-color: rgba(255,255,255,.12);
+      background: linear-gradient(180deg, rgba(19,29,45,.98), rgba(10,15,24,.98));
+      box-shadow: 0 12px 34px rgba(0,0,0,.2);
+    }
+
+    .dashboard-brand strong { letter-spacing: .02em; }
+
+    .dashboard-nav-item:hover,
+    .dashboard-nav-item.active {
+      color: #07101f;
+      background: var(--admin-accent);
+    }
+
+    .dashboard-nav-item:hover i,
+    .dashboard-nav-item.active i { color: #07101f; }
+
     .stats-grid { gap: 12px; margin-bottom: 24px; }
     .stat-card,
     .section-card,
@@ -1200,6 +1075,45 @@
     .section-card { padding: 22px; }
     .section-title { font-size: 1rem; }
     .section-subtitle { font-size: .82rem; }
+
+    .access-control-card {
+      position: relative;
+      overflow: hidden;
+      border-color: rgba(255,212,59,.26);
+      background: linear-gradient(135deg, rgba(255,212,59,.08), rgba(17,23,34,.98) 42%);
+    }
+
+    .access-control-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 4px;
+      height: 100%;
+      background: var(--admin-accent);
+    }
+
+    .access-heading { align-items: center; }
+    .access-account-preview { border-color: rgba(255,212,59,.2); background: rgba(4,8,14,.42); }
+    .access-course-picker { display: none; }
+    .access-requests { display: grid; gap: 8px; margin-top: 18px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,.08); color: var(--admin-muted); font-size: .78rem; }
+    .access-request-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; border: 1px solid rgba(255,255,255,.08); border-radius: 8px; background: rgba(4,8,14,.32); }
+    .access-request-row span { display: grid; gap: 3px; min-width: 0; }
+    .access-request-row b { overflow-wrap: anywhere; color: var(--admin-text); font-size: .78rem; }
+    .access-request-row small { color: var(--admin-muted); }
+    .access-request-row .btn { flex: 0 0 auto; min-height: 32px; padding: 0 10px; font-size: .72rem; }
+    .access-requests-empty { color: var(--admin-muted); }
+
+    .course-manager-item,
+    .section-card,
+    .stat-card { transition: border-color .2s ease, transform .2s ease, box-shadow .2s ease; }
+
+    .btn-primary, .btn-full { box-shadow: 0 8px 22px rgba(255,212,59,.12); }
+
+    @media (max-width: 760px) {
+      .admin-topbar { align-items: stretch; flex-direction: column; }
+      .admin-topbar .btn, .admin-topbar .logout { width: 100%; }
+    }
 
     input, textarea, select {
       min-height: 44px;
@@ -1247,6 +1161,9 @@
     .course-manager-meta { color: var(--admin-muted); }
     .module-block { border-color: var(--admin-line); border-radius: 8px; background: #0d131d; }
     .lesson-row { border-color: #222d3d; }
+    .course-order-control { display: inline-flex; align-items: center; gap: 7px; color: var(--admin-muted); font-size: .75rem; }
+    .course-order-control input { width: 58px; min-height: 30px; padding: 4px 7px; font-size: .78rem; }
+    #lf-duration[readonly] { color: var(--admin-accent); background: rgba(255,212,59,.06); cursor: not-allowed; }
 
     .empty-state {
       display: grid;
@@ -1498,7 +1415,6 @@
             <a class="dashboard-nav-item active" href="#dashboardSection"><i class="fa-solid fa-chart-line"></i> Dashboard</a>
             <a class="dashboard-nav-item" href="#coursesSection"><i class="fa-solid fa-layer-group"></i> Courses</a>
             <a class="dashboard-nav-item" href="#studentsSection"><i class="fa-solid fa-users"></i> Students</a>
-            <a class="dashboard-nav-item" href="#paymentsSection"><i class="fa-solid fa-wallet"></i> Payments</a>
             <a class="dashboard-nav-item" href="#activitySection"><i class="fa-solid fa-clock-rotate-left"></i> Activity Log</a>
             <a class="dashboard-nav-item" href="#settingsSection"><i class="fa-solid fa-sliders"></i> Settings</a>
           </div>
@@ -1597,12 +1513,12 @@
             <h3 class="section-title"><i class="fa-brands fa-google"></i> User Access Control</h3>
             <span class="access-badge"><i class="fa-solid fa-shield-halved"></i> Admin only</span>
           </div>
-          <p class="section-subtitle">Grant paid-course access for free, or block/unblock an account. Use the student email exactly as registered.</p>
+          <p class="section-subtitle">Enter a Google Gmail address to allow or remove access to all course videos.</p>
           <div class="access-account-preview" id="accessAccountPreview" aria-live="polite">
             <span class="access-account-icon"><i class="fa-brands fa-google"></i></span>
             <div class="access-account-copy">
               <strong id="accessAccountEmail">No student selected</strong>
-              <span id="accessAccountMeta">Enter a registered Gmail to view account status.</span>
+              <span id="accessAccountMeta">Enter a Google Gmail to view authorization status.</span>
             </div>
             <span class="access-account-state" id="accessAccountState">Waiting</span>
           </div>
@@ -1611,9 +1527,9 @@
               <input id="accessUserEmail" type="email" autocomplete="email" placeholder="student@gmail.com">
             </label>
             <div>
-              <label for="accessCourseChoices">Courses to manage</label>
+              <label for="accessCourseChoices">Access scope</label>
               <div class="access-course-picker" id="accessCourseChoices" aria-label="Choose courses for access">
-                <span class="access-course-empty">Loading courses...</span>
+                <span class="access-course-empty">All course videos</span>
               </div>
             </div>
             <div class="full admin-btn-row access-actions">
@@ -1714,61 +1630,7 @@
               </div>
             </div>
 
-            <div class="full">
-              <div class="course-video-upload-box" id="newCourseVideoDropZone">
-                <strong>Drag &amp; Drop your MP4 video here</strong>
-                <span>or</span>
-                <label class="btn" for="newCourseVideoFile">Choose MP4 Video</label>
-                <input id="newCourseVideoFile" type="file" accept="video/mp4,.mp4" hidden>
-                <small id="newCourseVideoFileInfo">Maximum ${MAX_VIDEO_BYTES / (1024 * 1024)} MB</small>
-                <video id="newCourseVideoPreview" class="course-video-preview" controls preload="metadata"></video>
-                <p class="status" id="newCourseVideoUploadStatus" aria-live="polite"></p>
-              </div>
-            </div>
-
-            <label>
-              Course Price (BDT)
-              <input id="newCoursePrice" type="number" min="0" placeholder="e.g. 1500">
-            </label>
-
-            <label>
-              Discount Price (BDT)
-              <input id="newCourseDiscountPrice" type="number" min="0" placeholder="Optional">
-            </label>
-
-            <label>
-              bKash Number
-              <input id="newCourseBkash" type="text" placeholder="01XXXXXXXXX">
-            </label>
-
-            <label>
-              Rocket Number
-              <input id="newCourseRocket" type="text" placeholder="01XXXXXXXXX">
-            </label>
-
-            <label>
-              Bank Payment Details
-              <input id="newCourseBank" type="text" placeholder="Bank name, account or branch">
-            </label>
-
-            <label>
-              bKash QR Image
-              <input id="newCourseBkashQr" type="file" accept="image/jpeg,image/png,image/webp">
-            </label>
-
-            <label>
-              Rocket QR Image
-              <input id="newCourseRocketQr" type="file" accept="image/jpeg,image/png,image/webp">
-            </label>
-
-            <label>
-              Bank QR Image
-              <input id="newCourseBankQr" type="file" accept="image/jpeg,image/png,image/webp">
-            </label>
-
-            <div class="full">
-              <small class="panel-note">Upload the official QR images from your payment providers. They will appear on the course payment screen.</small>
-            </div>
+            <div class="full free-course-note">All courses are free. Video access is controlled by authorized Gmail accounts.</div>
 
 
             <label>
@@ -1849,7 +1711,7 @@
           </div>
 
           <p class="section-subtitle">
-            Manage modules, lessons and videos. Use <strong>+ Add Video</strong> for a quick upload, or <strong>Manage Course</strong> to organize content.
+            Manage your course videos. Use <strong>+ Add New Video</strong> to add a YouTube video, or <strong>Organize Course</strong> to arrange them.
           </p>
 
           <div class="course-tools">
@@ -1869,20 +1731,6 @@
 
         </div>
 
-        <section class="section-card admin-empty-view" id="paymentsSection" hidden>
-          <h3 class="section-title">Payments</h3>
-          <p class="section-subtitle">Review and manage course payments.</p>
-          <div class="payment-toolbar">
-            <select id="paymentStatusFilter" aria-label="Filter payments">
-              <option value="all">All payments</option>
-              <option value="pending">Pending</option>
-              <option value="approved">Approved</option>
-              <option value="rejected">Rejected</option>
-            </select>
-            <button type="button" class="btn" id="refreshPaymentsBtn">Refresh Payments</button>
-          </div>
-          <div id="adminPaymentsList" class="admin-payments-list"><div class="empty-state"><i class="fa-solid fa-wallet"></i><strong>No payment records yet</strong><span>Submitted payments will appear here for review.</span></div></div>
-        </section>
 
         <section class="section-card admin-empty-view" id="activitySection" hidden>
           <h3 class="section-title">Activity Log</h3>
@@ -1949,24 +1797,17 @@
       createLesson,
       updateLesson,
       deleteLesson,
+      syncLessonCatalog,
 
       getYoutubeEmbedUrl,
       isValidYoutubeUrl,
       extractYoutubeId,
-      isMp4VideoUrl,
-      isValidLessonVideoUrl,
-      uploadLessonVideo,
-      uploadCourseVideo,
-      deleteLessonVideo,
       findUserByEmail,
       updateUserAccess,
-      fetchAllPayments,
-      updatePayment,
-      deletePayment,
+      grantEmailAccess,
+      revokeEmailAccess,
       fetchLiveSettings,
       updateLiveSettings,
-      MAX_VIDEO_BYTES
-
     } from './assets/js/courses-db.js';
 
 
@@ -2002,7 +1843,6 @@
       document.getElementById('courseResultCount');
 
     let loadedCourses = [];
-    let loadedPayments = [];
 
 
     /* =========================
@@ -2235,7 +2075,9 @@
         try {
           renderAccessAccountPreview(await getAccessUser());
         } catch (error) {
-          renderAccessAccountPreview(null, error.message);
+          renderAccessAccountPreview(null, 'Gmail is ready. You can grant access now.');
+          const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+          accessActionButtons.forEach((button, index) => { if (button) button.disabled = index === 2 || !isEmail; });
         }
       }, 450);
     });
@@ -2261,13 +2103,11 @@
 
     document.getElementById('grantCourseAccessBtn')?.addEventListener('click', async () => {
       try {
-        const user = await getAccessUser();
-        const courseIds = getSelectedCourseIds();
-        if (!courseIds.length) throw new Error('Select at least one course.');
-        const access = Array.from(new Set([...(user.courseAccess || []), ...courseIds]));
-        await updateUserAccess(user.id, { courseAccess: access, blocked: false });
-        renderAccessAccountPreview({ ...user, courseAccess: access, blocked: false });
-        setStatus(accessStatus, `Access granted to ${user.email}.`, true);
+        const email = accessEmailInput.value.trim().toLowerCase();
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error('Enter a valid Gmail address.');
+        await grantEmailAccess(email);
+        renderAccessAccountPreview({ email, courseAccess: ['All courses'], blocked: false });
+        setStatus(accessStatus, `Access granted to ${email}.`, true);
       } catch (error) {
         setStatus(accessStatus, error.message, false);
       }
@@ -2275,14 +2115,11 @@
 
     document.getElementById('revokeCourseAccessBtn')?.addEventListener('click', async () => {
       try {
-        const user = await getAccessUser();
-        const courseIds = getSelectedCourseIds();
-        if (!courseIds.length) throw new Error('Select at least one course.');
-        const selected = new Set(courseIds);
-        const access = (user.courseAccess || []).filter(id => !selected.has(id));
-        await updateUserAccess(user.id, { courseAccess: access });
-        renderAccessAccountPreview({ ...user, courseAccess: access });
-        setStatus(accessStatus, `Access revoked from ${user.email}.`, true);
+        const email = accessEmailInput.value.trim().toLowerCase();
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error('Enter a valid Gmail address.');
+        await revokeEmailAccess(email);
+        renderAccessAccountPreview({ email, courseAccess: [], blocked: false });
+        setStatus(accessStatus, `Access revoked from ${email}.`, true);
       } catch (error) {
         setStatus(accessStatus, error.message, false);
       }
@@ -2299,7 +2136,6 @@
         setStatus(accessStatus, error.message, false);
       }
     });
-
 
     observeAuthState(
       async (user) => {
@@ -2351,7 +2187,6 @@
         showOnly(dashboardPanel);
 
         loadAndRenderCourses();
-          loadAndRenderPayments();
 
       }
     );
@@ -2365,20 +2200,6 @@
     const thumbnailFileInput = document.getElementById('newCourseThumbnailFile');
     const thumbnailPreview = document.getElementById('newCourseThumbnailPreview');
     const thumbnailPreviewImage = document.getElementById('newCourseThumbnailPreviewImage');
-    const courseVideoFileInput = document.getElementById('newCourseVideoFile');
-    const courseVideoDropZone = document.getElementById('newCourseVideoDropZone');
-    const courseVideoFileInfo = document.getElementById('newCourseVideoFileInfo');
-    const courseVideoUploadStatus = document.getElementById('newCourseVideoUploadStatus');
-    const courseVideoPreview = document.getElementById('newCourseVideoPreview');
-    let courseVideoPreviewUrl = '';
-    let selectedCourseVideoFile = null;
-    const paymentQrInputs = [
-      ['newCourseBkashQr', 'bkashQr'],
-      ['newCourseRocketQr', 'rocketQr'],
-      ['newCourseBankQr', 'bankQr']
-    ];
-    const paymentQrData = { bkashQr: '', rocketQr: '', bankQr: '' };
-
     function updateThumbnailPreview(value) {
       const url = String(value || '').trim();
       if (!thumbnailPreview || !thumbnailPreviewImage) return;
@@ -2449,55 +2270,7 @@
         }
       });
     }
-    paymentQrInputs.forEach(([inputId, dataKey]) => {
-      document.getElementById(inputId)?.addEventListener('change', async event => {
-        const file = event.target.files?.[0];
-        if (!file) return;
-        if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
-          alert('Please choose a JPG, PNG, or WEBP QR image.');
-          event.target.value = '';
-          return;
-        }
-        try {
-          paymentQrData[dataKey] = await compressThumbnailFile(file);
-        } catch (error) {
-          alert(error.message || 'The QR image could not be processed.');
-          event.target.value = '';
-        }
-      });
-    });
     thumbnailUrlInput?.addEventListener('input', () => updateThumbnailPreview(thumbnailUrlInput.value));
-
-    function selectCourseVideoFile(file) {
-      selectedCourseVideoFile = file || null;
-      if (!selectedCourseVideoFile) return;
-      if (selectedCourseVideoFile.type !== 'video/mp4' || !selectedCourseVideoFile.name.toLowerCase().endsWith('.mp4') || selectedCourseVideoFile.size > MAX_VIDEO_BYTES) {
-        courseVideoUploadStatus.textContent = selectedCourseVideoFile.size > MAX_VIDEO_BYTES
-          ? `File is larger than ${MAX_VIDEO_BYTES / (1024 * 1024)} MB.`
-          : 'Only MP4 video files are supported.';
-        selectedCourseVideoFile = null;
-        courseVideoFileInput.value = '';
-        return;
-      }
-      courseVideoFileInfo.textContent = `${selectedCourseVideoFile.name} · ${(selectedCourseVideoFile.size / 1024 / 1024).toFixed(1)} MB`;
-      courseVideoDropZone.classList.add('is-selected');
-      if (courseVideoPreviewUrl) URL.revokeObjectURL(courseVideoPreviewUrl);
-      courseVideoPreviewUrl = URL.createObjectURL(selectedCourseVideoFile);
-      courseVideoPreview.src = courseVideoPreviewUrl;
-      courseVideoPreview.classList.add('show');
-      courseVideoUploadStatus.textContent = 'Ready to upload when the course is created.';
-    }
-
-    courseVideoFileInput?.addEventListener('change', () => selectCourseVideoFile(courseVideoFileInput.files?.[0]));
-    ['dragenter', 'dragover'].forEach(type => courseVideoDropZone?.addEventListener(type, event => {
-      event.preventDefault();
-      courseVideoDropZone.classList.add('is-dragover');
-    }));
-    ['dragleave', 'drop'].forEach(type => courseVideoDropZone?.addEventListener(type, event => {
-      event.preventDefault();
-      courseVideoDropZone.classList.remove('is-dragover');
-    }));
-    courseVideoDropZone?.addEventListener('drop', event => selectCourseVideoFile(event.dataTransfer.files?.[0]));
 
     document
       .getElementById('createCourseBtn')
@@ -2572,18 +2345,9 @@
                   .value
                   .trim(),
 
-              videoUrl:
-                '',
+              videoUrl: '',
 
-              price: document.getElementById('newCoursePrice').value,
-              discountPrice: document.getElementById('newCourseDiscountPrice').value,
-              payment: {
-                bkash: document.getElementById('newCourseBkash').value.trim(),
-                rocket: document.getElementById('newCourseRocket').value.trim(),
-                bank: document.getElementById('newCourseBank').value.trim(),
-                ...paymentQrData
-              },
-
+              price: 0,
               status:
                 document
                   .getElementById(
@@ -2607,26 +2371,9 @@
 
             setStatus(
               statusEl,
-              selectedCourseVideoFile
-                ? '✓ Course added. Video upload started.'
-                : '✓ Course added successfully.',
+              '✓ Course added successfully.',
               true
             );
-
-            const videoFile = selectedCourseVideoFile;
-            if (videoFile) {
-              courseVideoUploadStatus.textContent = 'Uploading video...';
-              uploadCourseVideo(createdCourse.id, videoFile, value => {
-                courseVideoUploadStatus.textContent = `Uploading video... ${value}%`;
-              }).then(videoUrl => updateCourse(createdCourse.id, { videoUrl }))
-                .then(() => {
-                  courseVideoUploadStatus.textContent = '✓ Video uploaded successfully.';
-                  loadAndRenderCourses();
-                })
-                .catch(error => {
-                  courseVideoUploadStatus.textContent = error.message || 'Video upload failed.';
-                });
-            }
 
 
             [
@@ -2635,11 +2382,6 @@
               'newCourseCategory',
               'newCourseThumbnail',
               'newCourseThumbnailFile',
-              'newCourseVideoFile',
-              'newCoursePrice',
-              'newCourseBkash',
-              'newCourseRocket',
-              'newCourseBank',
               'newCourseShowOnIndex'
             ].forEach(
               id => {
@@ -2649,20 +2391,6 @@
                 else field.value = '';
               }
             );
-            selectedCourseVideoFile = null;
-            courseVideoDropZone?.classList.remove('is-selected');
-            if (courseVideoPreviewUrl) URL.revokeObjectURL(courseVideoPreviewUrl);
-            courseVideoPreviewUrl = '';
-            courseVideoPreview.removeAttribute('src');
-            courseVideoPreview.load();
-            courseVideoPreview.classList.remove('show');
-            if (courseVideoFileInfo) courseVideoFileInfo.textContent = `Maximum ${MAX_VIDEO_BYTES / (1024 * 1024)} MB`;
-            if (courseVideoUploadStatus) courseVideoUploadStatus.textContent = '';
-            paymentQrInputs.forEach(([inputId, dataKey]) => {
-              paymentQrData[dataKey] = '';
-              const field = document.getElementById(inputId);
-              if (field) field.value = '';
-            });
 
 
             loadAndRenderCourses();
@@ -2716,6 +2444,7 @@
 
 
       loadedCourses = courses;
+      await Promise.all(courses.flatMap(course => (course.modules || []).map(module => syncLessonCatalog(course.id, module.id).catch(error => console.warn('Lesson catalog sync skipped:', error.code || error.message)))));
       const accessCoursePicker = document.getElementById('accessCourseChoices');
       if (accessCoursePicker) {
         accessCoursePicker.innerHTML = `
@@ -2779,61 +2508,6 @@
       button.textContent = `Delete Selected (${count})`;
     }
 
-    function renderPayments() {
-      const list = document.getElementById('adminPaymentsList');
-      const filter = document.getElementById('paymentStatusFilter')?.value || 'all';
-      if (!list) return;
-      const payments = loadedPayments.filter(payment => filter === 'all' || payment.status === filter);
-      if (!payments.length) {
-        list.innerHTML = '<div class="empty-state"><i class="fa-solid fa-wallet"></i><strong>No matching payments</strong><span>Payment submissions will appear here for review.</span></div>';
-        return;
-      }
-      list.innerHTML = payments.map(payment => {
-        const date = payment.submittedAt?.toDate ? payment.submittedAt.toDate().toLocaleDateString('en-GB') : 'Pending date';
-        const status = payment.status || 'pending';
-        return `<article class="payment-record"><div><strong>${escapeHtml(payment.studentName || payment.studentEmail || 'Student')}</strong><span>${escapeHtml(payment.studentEmail || '')}</span></div><div><strong>${escapeHtml(payment.courseTitle || 'Course')}</strong><span>${escapeHtml(payment.method || 'Payment')} · ৳${Number(payment.amount || 0).toLocaleString('en-BD')}</span></div><div><strong>${escapeHtml(payment.transactionId || 'No transaction ID')}</strong><span>${date}</span></div>${payment.screenshotUrl ? `<a class="payment-proof" href="${escapeHtml(payment.screenshotUrl)}" target="_blank" rel="noopener noreferrer"><img src="${escapeHtml(payment.screenshotUrl)}" alt="Payment screenshot"> View proof</a>` : '<span class="payment-proof-empty">No screenshot</span>'}<span class="payment-status-badge ${status}">${status}</span><div class="admin-btn-row">${status === 'pending' ? `<button type="button" class="btn btn-primary" data-payment-action="approve" data-payment-id="${escapeHtml(payment.id)}">Approve</button><button type="button" class="btn btn-danger" data-payment-action="reject" data-payment-id="${escapeHtml(payment.id)}">Reject</button>` : ''}<button type="button" class="btn btn-danger" data-payment-action="delete" data-payment-id="${escapeHtml(payment.id)}">Delete</button></div></article>`;
-      }).join('');
-    }
-
-    async function loadAndRenderPayments() {
-      try {
-        loadedPayments = await fetchAllPayments();
-        renderPayments();
-      } catch (error) {
-        const list = document.getElementById('adminPaymentsList');
-        if (list) list.innerHTML = `<div class="empty-state"><strong>Payments could not be loaded</strong><span>${escapeHtml(error.message)}</span></div>`;
-      }
-    }
-
-    document.getElementById('paymentStatusFilter')?.addEventListener('change', renderPayments);
-    document.getElementById('refreshPaymentsBtn')?.addEventListener('click', loadAndRenderPayments);
-    document.getElementById('adminPaymentsList')?.addEventListener('click', async event => {
-      const button = event.target.closest('[data-payment-action]');
-      if (!button) return;
-      const payment = loadedPayments.find(item => item.id === button.dataset.paymentId);
-      const action = button.dataset.paymentAction;
-      const confirmation = action === 'approve' ? 'Approve this payment and grant course access?' : action === 'reject' ? 'Reject this payment?' : 'Delete this payment permanently?';
-      if (!payment || !confirm(confirmation)) return;
-      button.disabled = true;
-      try {
-        if (action === 'approve') {
-          const user = await findUserByEmail(payment.studentEmail);
-          if (!user) throw new Error('Student account was not found.');
-          const access = Array.from(new Set([...(user.courseAccess || []), payment.courseId]));
-          await updateUserAccess(user.id, { courseAccess: access, blocked: false });
-          await updatePayment(payment.id, { status: 'approved' });
-        } else if (action === 'reject') {
-          await updatePayment(payment.id, { status: 'rejected' });
-        } else {
-          await deletePayment(payment.id);
-        }
-        await loadAndRenderPayments();
-      } catch (error) {
-        alert(error.message || 'Payment could not be updated.');
-        button.disabled = false;
-      }
-    });
-
     const liveUrlInput = document.getElementById('liveStreamUrl');
     const liveChannelInput = document.getElementById('liveChannelId');
     const liveEnabledInput = document.getElementById('liveStreamEnabled');
@@ -2885,7 +2559,6 @@
         subtitle: 'Manage student access and account status.',
         sections: ['studentsSection']
       },
-      payments: { title: 'Payments', subtitle: 'Review and manage course payments.', sections: ['paymentsSection'] },
       activity: { title: 'Activity Log', subtitle: 'Track important changes made in your LMS.', sections: ['activitySection'] },
       settings: { title: 'Settings', subtitle: 'Manage the settings that shape your LMS.', sections: ['settingsSection'] }
     };
@@ -2902,7 +2575,6 @@
         const target = item.getAttribute('href')?.slice(1);
         item.classList.toggle('active', target === `${activePage}Section` || (activePage === 'students' && target === 'studentsSection'));
       });
-      if (activePage === 'payments') loadAndRenderPayments();
       if (activePage === 'settings') loadLiveSettings();
     }
 
@@ -3111,6 +2783,11 @@
                 lessons
               </span>
 
+              <label class="course-order-control">
+                Serial
+                <input type="number" min="0" value="${Number(course.order) || 0}" data-course-order aria-label="Serial order for ${escapeHtml(course.title)}">
+              </label>
+
               <span>
                 ${Number(course.discountPrice) > 0 && Number(course.discountPrice) < Number(course.price)
                   ? `<s>৳${Number(course.price).toLocaleString('en-BD')}</s> ৳${Number(course.discountPrice).toLocaleString('en-BD')}`
@@ -3152,7 +2829,7 @@
               class="btn btn-primary"
               data-action="add-video"
             >
-              + Add Video
+              + Add New Video
             </button>
 
             <button
@@ -3217,6 +2894,17 @@
         );
 
       const thumbnailFileInput = card.querySelector('[data-thumbnail-file]');
+      card.querySelector('[data-course-order]')?.addEventListener('change', async event => {
+        const order = Math.max(0, Number(event.target.value) || 0);
+        event.target.value = order;
+        try {
+          await updateCourse(course.id, { order });
+          loadAndRenderCourses();
+        } catch (error) {
+          event.target.value = Number(course.order) || 0;
+          alert(error.message || 'Course order could not be updated.');
+        }
+      });
       thumbnailFileInput?.addEventListener('change', async event => {
         const file = event.target.files?.[0];
         if (!file) return;
@@ -3454,7 +3142,7 @@
                     class="btn btn-primary"
                     data-action="add-lesson"
                   >
-                    + Add Video Lesson
+                    + Add New Video
                   </button>
 
                   <button
@@ -3867,7 +3555,7 @@
 
         <div class="inline-form">
 
-          <p class="section-subtitle">Create a module to group related lessons, then use <strong>+ Add Video Lesson</strong> inside it.</p>
+          <p class="section-subtitle">Create a group for related videos, then use <strong>+ Add New Video</strong> inside it.</p>
 
           <label>
             New Module Title
@@ -3983,7 +3671,7 @@ slot.innerHTML = `
       </h4>
 
       <span class="video-hint">
-        Add a YouTube video or upload an MP4
+        Add a YouTube video
       </span>
 
     </div>
@@ -3992,7 +3680,7 @@ slot.innerHTML = `
     <div class="inline-form">
 
       <label>
-        Lesson Title
+        Video Name / Topic
 
         <input
           type="text"
@@ -4005,17 +3693,17 @@ slot.innerHTML = `
       </label>
 
       <label>
-        Lesson Description
-        <textarea id="lf-description" rows="3" placeholder="What will students learn?">${escapeHtml(lesson?.description || '')}</textarea>
+        What will this video teach?
+        <textarea id="lf-description" rows="3" placeholder="Write a short explanation of this video">${escapeHtml(lesson?.description || '')}</textarea>
       </label>
 
       <div class="form-grid two-col">
         <label>
-          Duration
-          <input id="lf-duration" type="text" value="${escapeHtml(lesson?.duration || '')}" placeholder="e.g. 10 mins">
+          Video Length (automatic)
+          <input id="lf-duration" type="text" value="${escapeHtml(lesson?.duration || '')}" placeholder="Auto from YouTube" readonly>
         </label>
         <label>
-          Order / Sequence
+          Video Number
           <input id="lf-order" type="number" min="0" value="${lesson?.order ?? module.lessons?.length ?? 0}">
         </label>
       </div>
@@ -4025,11 +3713,11 @@ slot.innerHTML = `
         <div class="video-label">
 
           <strong>
-            ▶ YouTube Video Link (optional if uploading MP4)
+            ▶ YouTube Link
           </strong>
 
           <span class="video-hint">
-            Paste a YouTube link or use the MP4 uploader below
+            Paste the YouTube link here
           </span>
 
         </div>
@@ -4052,18 +3740,6 @@ slot.innerHTML = `
             ✓ Valid
           </span>
 
-        </div>
-
-        <div class="mp4-upload-box">
-          <strong>Drag &amp; Drop your MP4 video here</strong>
-          <span>or</span>
-          <label class="btn" for="lf-video-file">Choose Video</label>
-          <input id="lf-video-file" type="file" accept="video/mp4,video/*,.mp4">
-          <small id="lf-video-file-info">Maximum ${MAX_VIDEO_BYTES / (1024 * 1024)} MB</small>
-          <button type="button" class="btn btn-primary" id="lf-video-upload-btn">Upload Video</button>
-          ${isEdit && lesson?.videoUrl ? '<button type="button" class="btn btn-danger" id="lf-video-delete-btn">Delete Current Video</button>' : ''}
-          <div class="mp4-upload-progress hidden" id="lf-video-progress-wrap"><span id="lf-video-progress"></span></div>
-          <p class="status" id="lf-video-upload-status" aria-live="polite"></p>
         </div>
 
         <label>
@@ -4095,7 +3771,7 @@ slot.innerHTML = `
           class="youtube-error"
           id="lf-video-error"
         >
-          Enter a valid YouTube URL, or use the MP4 upload box below.
+          Enter a valid YouTube URL.
         </div>
 
         <div
@@ -4135,7 +3811,7 @@ slot.innerHTML = `
           ${
             isEdit
               ? '✓ Save Changes'
-              : '+ Add Video Lesson'
+              : '+ Add New Video'
           }
         </button>
 
@@ -4191,89 +3867,55 @@ slot.innerHTML = `
           '#lf-video-error'
         );
 
-      const videoFileInput = slot.querySelector('#lf-video-file');
-      const videoFileInfo = slot.querySelector('#lf-video-file-info');
-      const videoProgressWrap = slot.querySelector('#lf-video-progress-wrap');
-      const videoProgress = slot.querySelector('#lf-video-progress');
-      const videoUploadStatus = slot.querySelector('#lf-video-upload-status');
-      const videoUploadButton = slot.querySelector('#lf-video-upload-btn');
-      const videoDeleteButton = slot.querySelector('#lf-video-delete-btn');
-      const uploadZone = slot.querySelector('.mp4-upload-box');
-      let selectedVideoFile = null;
-      let uploadedLessonId = lesson?.id || null;
+      const durationInput = slot.querySelector('#lf-duration');
+      let youtubeApiPromise;
+      let durationRequest = 0;
 
-      function selectVideoFile(file) {
-        selectedVideoFile = file || null;
-        if (!selectedVideoFile) return;
-        if (selectedVideoFile.type !== 'video/mp4' || !selectedVideoFile.name.toLowerCase().endsWith('.mp4') || selectedVideoFile.size > MAX_VIDEO_BYTES) {
-          videoUploadStatus.textContent = selectedVideoFile.size > MAX_VIDEO_BYTES ? `File is larger than ${MAX_VIDEO_BYTES / (1024 * 1024)} MB.` : 'Only MP4 video files are supported.';
-          selectedVideoFile = null;
-          videoFileInput.value = '';
-          return;
-        }
-        videoFileInfo.textContent = `${selectedVideoFile.name} · ${(selectedVideoFile.size / 1024 / 1024).toFixed(1)} MB`;
-        videoUploadStatus.textContent = isEdit ? 'Ready to upload.' : 'Save the lesson to create its upload path.';
+      function loadYoutubeApi() {
+        if (window.YT?.Player) return Promise.resolve(window.YT);
+        if (youtubeApiPromise) return youtubeApiPromise;
+        youtubeApiPromise = new Promise(resolve => {
+          const previousReady = window.onYouTubeIframeAPIReady;
+          window.onYouTubeIframeAPIReady = () => {
+            previousReady?.();
+            resolve(window.YT);
+          };
+          const script = document.createElement('script');
+          script.src = 'https://www.youtube.com/iframe_api';
+          script.async = true;
+          document.head.appendChild(script);
+        });
+        return youtubeApiPromise;
       }
 
-      videoFileInput?.addEventListener('change', () => selectVideoFile(videoFileInput.files?.[0]));
-      ['dragenter', 'dragover'].forEach(type => uploadZone?.addEventListener(type, event => {
-        event.preventDefault();
-        uploadZone.classList.add('is-dragover');
-      }));
-      ['dragleave', 'drop'].forEach(type => uploadZone?.addEventListener(type, event => {
-        event.preventDefault();
-        uploadZone.classList.remove('is-dragover');
-      }));
-      uploadZone?.addEventListener('drop', event => selectVideoFile(event.dataTransfer.files?.[0]));
-      videoUploadButton?.addEventListener('click', async () => {
-        if (!selectedVideoFile) {
-          videoUploadStatus.textContent = 'Choose or drop an MP4 file first.';
-          return;
-        }
-        videoUploadButton.disabled = true;
+      async function updateAutomaticDuration(url) {
+        const request = ++durationRequest;
+        const videoId = extractYoutubeId(url);
+        if (!videoId || !durationInput) return;
+        durationInput.value = 'Reading duration...';
         try {
-          let targetLessonId = uploadedLessonId;
-          if (!targetLessonId) {
-            const title = slot.querySelector('#lf-title').value.trim();
-            if (!title) throw new Error('Enter a lesson title before uploading a video.');
-            const created = await createLesson(course.id, module.id, { title, videoUrl: '' });
-            targetLessonId = created.id;
-            uploadedLessonId = targetLessonId;
-          }
-          const url = await uploadLessonVideo(course.id, module.id, targetLessonId, selectedVideoFile, value => {
-            videoProgressWrap.classList.remove('hidden');
-            videoProgress.style.width = `${value}%`;
-            videoUploadStatus.textContent = `Uploading... ${value}%`;
+          const YT = await loadYoutubeApi();
+          if (request !== durationRequest) return;
+          const host = document.createElement('div');
+          host.hidden = true;
+          slot.appendChild(host);
+          new YT.Player(host, {
+            videoId,
+            events: {
+              onReady: event => {
+                const seconds = Math.round(event.target.getDuration());
+                if (request === durationRequest && seconds > 0) {
+                  durationInput.value = `${Math.ceil(seconds / 60)} min`;
+                }
+                event.target.destroy();
+                host.remove();
+              }
+            }
           });
-          await updateLesson(course.id, module.id, targetLessonId, { videoUrl: url, youtubeVideoId: null, youtubeUrl: '', videoType: 'file' });
-          videoUploadStatus.textContent = '✓ Video uploaded successfully';
-          videoInput.value = url;
-          selectedVideoFile = null;
-          videoFileInput.value = '';
-        } catch (error) {
-          videoUploadStatus.textContent = error.message || 'Video upload failed.';
-        } finally {
-          videoUploadButton.disabled = false;
+        } catch {
+          if (request === durationRequest) durationInput.value = '';
         }
-      });
-      videoDeleteButton?.addEventListener('click', async () => {
-        if (!lesson?.id || !confirm('Delete this video from the lesson?')) return;
-        videoDeleteButton.disabled = true;
-        try {
-          await deleteLessonVideo(lesson.videoUrl).catch(() => {});
-          await updateLesson(course.id, module.id, lesson.id, {
-            videoUrl: '',
-            youtubeVideoId: null,
-            youtubeUrl: '',
-            videoType: ''
-          });
-          loadAndRenderCourses();
-        } catch (error) {
-          videoUploadStatus.textContent = error.message || 'Video could not be deleted.';
-          videoDeleteButton.disabled = false;
-        }
-      });
-
+      }
 
       /* =========================
          VIDEO PREVIEW
@@ -4304,14 +3946,6 @@ slot.innerHTML = `
           return;
         }
 
-
-        if (isMp4VideoUrl(value)) {
-          preview.classList.remove('show');
-          previewIframe.src = '';
-          validLabel.classList.add('show');
-          errorLabel.classList.remove('show');
-          return;
-        }
 
         const valid =
           isValidYoutubeUrl(value);
@@ -4378,6 +4012,8 @@ slot.innerHTML = `
           'show'
         );
 
+        updateAutomaticDuration(value);
+
       }
 
 
@@ -4428,11 +4064,12 @@ slot.innerHTML = `
 
             const videoUrl =
               videoInput.value.trim();
+            const videoId = extractYoutubeId(videoUrl);
 
 
             /* VIDEO REQUIRED */
 
-            if (!videoUrl && !selectedVideoFile) {
+            if (!videoUrl) {
 
               setStatus(
                 statusEl,
@@ -4448,11 +4085,11 @@ slot.innerHTML = `
 
             /* VIDEO VALIDATION */
 
-            if (videoUrl && !isValidLessonVideoUrl(videoUrl)) {
+            if (!videoId || !isValidYoutubeUrl(videoUrl)) {
 
               setStatus(
                 statusEl,
-                'Enter a valid YouTube URL or upload an MP4 file.',
+                'Enter a valid YouTube URL.',
                 false
               );
 
@@ -4496,13 +4133,13 @@ slot.innerHTML = `
 
               description,
 
-              videoUrl: selectedVideoFile ? '' : videoUrl,
+              videoUrl: `https://www.youtube.com/watch?v=${videoId}`,
 
-              youtubeVideoId: extractYoutubeId(videoUrl),
+              youtubeVideoId: videoId,
 
-              youtubeUrl: selectedVideoFile ? '' : videoUrl,
+              youtubeUrl: `https://www.youtube.com/watch?v=${videoId}`,
 
-              videoType: selectedVideoFile ? 'file' : 'youtube',
+              videoType: videoUrl ? 'youtube' : '',
 
               subtitleLanguage,
 
@@ -4530,24 +4167,11 @@ slot.innerHTML = `
               );
 
 
-              if (isEdit || uploadedLessonId) {
-                const targetLessonId = uploadedLessonId || lesson.id;
-
-                if (selectedVideoFile) {
-                  payload.videoUrl = await uploadLessonVideo(course.id, module.id, lesson.id, selectedVideoFile, value => {
-                    videoProgressWrap.classList.remove('hidden');
-                    videoProgress.style.width = `${value}%`;
-                    videoUploadStatus.textContent = `Uploading replacement... ${value}%`;
-                  });
-                  payload.youtubeVideoId = null;
-                  payload.youtubeUrl = '';
-                  payload.videoType = 'file';
-                }
-
+              if (isEdit) {
                 await updateLesson(
                   course.id,
                   module.id,
-                  targetLessonId,
+                  lesson.id,
                   payload
                 );
 
@@ -4558,16 +4182,6 @@ slot.innerHTML = `
                   module.id,
                   payload
                 );
-                if (selectedVideoFile) payload.videoUrl = await uploadLessonVideo(course.id, module.id, created.id, selectedVideoFile, value => {
-                  videoProgressWrap.classList.remove('hidden');
-                  videoProgress.style.width = `${value}%`;
-                  videoUploadStatus.textContent = `Uploading video... ${value}%`;
-                });
-                if (selectedVideoFile) payload.youtubeVideoId = null;
-                if (selectedVideoFile) payload.youtubeUrl = '';
-                if (selectedVideoFile) payload.videoType = 'file';
-                if (selectedVideoFile) await updateLesson(course.id, module.id, created.id, payload);
-
               }
 
 

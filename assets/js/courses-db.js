@@ -49,8 +49,20 @@ export function isValidLessonVideoUrl(url) {
   return isValidYoutubeUrl(url) || isMp4VideoUrl(url);
 }
 
+function friendlyStorageError(error) {
+  const code = error?.code || '';
+  if (code.includes('storage/unauthorized')) return new Error('Video upload denied. Sign in with the configured admin Google account.');
+  if (code.includes('storage/unauthenticated')) return new Error('Please sign in with the admin Google account before uploading.');
+  if (code.includes('storage/unknown') || code.includes('storage/retry-limit-exceeded')) return new Error('Video upload failed. Check that Firebase Storage is enabled and try again.');
+  if (code.includes('storage/bucket-not-found')) return new Error('Firebase Storage bucket was not found. Enable Storage in the Firebase Console.');
+  if (code.includes('storage/quota-exceeded')) return new Error('Firebase Storage quota is full. Delete old videos or upgrade the Firebase plan.');
+  return error instanceof Error ? error : new Error('Video upload failed. Check Firebase Storage setup and try again.');
+}
+
 export function uploadLessonVideo(courseId, moduleId, lessonId, file, onProgress) {
-  if (!storage || !auth?.currentUser || !file) return Promise.reject(new Error('Video upload is unavailable.'));
+  if (!storage) return Promise.reject(new Error('Firebase Storage is not enabled or configured. Enable Storage in the Firebase Console.'));
+  if (!auth?.currentUser) return Promise.reject(new Error('Please sign in with the admin Google account before uploading.'));
+  if (!file) return Promise.reject(new Error('Choose an MP4 video first.'));
   if (!file.name.toLowerCase().endsWith('.mp4') || file.type !== 'video/mp4') {
     return Promise.reject(new Error('Only MP4 video files are supported.'));
   }
@@ -75,17 +87,19 @@ export function uploadLessonVideo(courseId, moduleId, lessonId, file, onProgress
         onProgress?.(Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100));
       }, error => {
         clearTimeout(startTimer);
-        reject(error);
+        reject(friendlyStorageError(error));
       }, () => {
         clearTimeout(startTimer);
-        getDownloadURL(task.snapshot.ref).then(resolve).catch(reject);
+        getDownloadURL(task.snapshot.ref).then(resolve).catch(error => reject(friendlyStorageError(error)));
       });
     });
   });
 }
 
 export function uploadCourseVideo(courseId, file, onProgress) {
-  if (!storage || !auth?.currentUser || !file) return Promise.reject(new Error('Video upload is unavailable.'));
+  if (!storage) return Promise.reject(new Error('Firebase Storage is not enabled or configured. Enable Storage in the Firebase Console.'));
+  if (!auth?.currentUser) return Promise.reject(new Error('Please sign in with the admin Google account before uploading.'));
+  if (!file) return Promise.reject(new Error('Choose an MP4 video first.'));
   if (!file.name.toLowerCase().endsWith('.mp4') || file.type !== 'video/mp4') {
     return Promise.reject(new Error('Only MP4 video files are supported.'));
   }
@@ -110,10 +124,10 @@ export function uploadCourseVideo(courseId, file, onProgress) {
         onProgress?.(Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100));
       }, error => {
         clearTimeout(startTimer);
-        reject(error);
+        reject(friendlyStorageError(error));
       }, () => {
         clearTimeout(startTimer);
-        getDownloadURL(task.snapshot.ref).then(resolve).catch(reject);
+        getDownloadURL(task.snapshot.ref).then(resolve).catch(error => reject(friendlyStorageError(error)));
       });
     });
   });
@@ -181,21 +195,28 @@ export async function fetchAllCourses() {
   }
 
   const courses = await Promise.all(sortByOrder(coursesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }))).map(async (course) => {
+    course.price = 0;
+    course.discountPrice = 0;
+    delete course.payment;
     // Do not expose course-level videoUrl to unauthenticated visitors.
     if (!currentUser) {
       delete course.videoUrl;
     }
     const isAdminUser = currentUser?.email?.toLowerCase() === 'mdsiamahmmedloselovestroy@gmail.com' && currentUser.emailVerified === true;
-    const isPaid = Number(course.price) > 0;
-    const hasAccess = !!currentUser && !userProfile?.blocked && (isAdminUser || !isPaid || (userProfile?.courseAccess || []).includes(course.id));
+    const isGoogleUser = currentUser?.providerData?.some(provider => provider.providerId === 'google.com');
+    let emailAccess = false;
+    if (isGoogleUser && currentUser.email) {
+      try {
+        const { doc, getDoc } = await loadFirestore();
+        const accessSnap = await getDoc(doc(db, 'authorized_users', currentUser.email.toLowerCase()));
+        emailAccess = accessSnap.exists() && accessSnap.data().access === 'granted';
+      } catch (error) {
+        console.warn('Email authorization unavailable:', error.code || error.message);
+      }
+    }
+    const hasAccess = !!currentUser && isGoogleUser && (isAdminUser || emailAccess);
     course.accessDenied = !!currentUser && !hasAccess;
     if (!hasAccess) delete course.videoUrl;
-
-    if (!hasAccess) {
-      course.modules = [];
-      course.lessons = [];
-      return course;
-    }
 
     const modulesSnap = await getDocs(collection(db, 'courses', course.id, 'modules'));
     const modules = [];
@@ -219,7 +240,10 @@ export async function fetchAllCourses() {
           console.warn(`Lessons unavailable for course ${course.id}:`, error.code || error.message);
         }
       } else {
-        moduleData.lessons = [];
+        moduleData.lessons = Array.isArray(moduleDoc.lessonCatalog)
+          ? sortByOrder(moduleDoc.lessonCatalog.map(lesson => ({ ...lesson })))
+          : [];
+        allLessons = allLessons.concat(moduleData.lessons);
       }
       modules.push(moduleData);
       allLessons = allLessons.concat(lessons);
@@ -243,9 +267,8 @@ export async function createCourse(courseData) {
     category: courseData.category || 'General',
     thumbnail: courseData.thumbnail || '',
     videoUrl: courseData.videoUrl || '',
-    price: Number(courseData.price) || 0,
-    discountPrice: Number(courseData.discountPrice) || 0,
-    payment: courseData.payment || { bkash: '', rocket: '', bank: '' },
+    price: 0,
+    discountPrice: 0,
     instructor: courseData.instructor || 'CodeWithSiam',
     status: courseData.status || 'published',
     showOnIndex: courseData.showOnIndex === true,
@@ -270,6 +293,28 @@ export async function findUserByEmail(email) {
 export async function updateUserAccess(uid, data) {
   const { doc, updateDoc } = await loadFirestore();
   return updateDoc(doc(db, 'users', uid), data);
+}
+
+export async function grantEmailAccess(email) {
+  const normalizedEmail = String(email || '').trim().toLowerCase();
+  if (!normalizedEmail) throw new Error('Gmail address is required.');
+  const { doc, setDoc, serverTimestamp } = await loadFirestore();
+  return setDoc(doc(db, 'authorized_users', normalizedEmail), {
+    email: normalizedEmail,
+    access: 'granted',
+    updatedAt: serverTimestamp(),
+  }, { merge: true });
+}
+
+export async function revokeEmailAccess(email) {
+  const normalizedEmail = String(email || '').trim().toLowerCase();
+  if (!normalizedEmail) throw new Error('Gmail address is required.');
+  const { doc, setDoc, serverTimestamp } = await loadFirestore();
+  return setDoc(doc(db, 'authorized_users', normalizedEmail), {
+    email: normalizedEmail,
+    access: 'revoked',
+    updatedAt: serverTimestamp(),
+  }, { merge: true });
 }
 
 export async function createPaymentSubmission(paymentData) {
@@ -359,11 +404,11 @@ export async function deleteModule(courseId, moduleId) {
 }
 
 export async function createLesson(courseId, moduleId, lessonData) {
-  if (lessonData.videoUrl && !isValidLessonVideoUrl(lessonData.videoUrl)) {
+  if (!lessonData.videoUrl || !isValidYoutubeUrl(lessonData.videoUrl)) {
     throw new Error('That does not look like a valid YouTube URL.');
   }
   const { collection, addDoc } = await loadFirestore();
-  return addDoc(collection(db, 'courses', courseId, 'modules', moduleId, 'lessons'), {
+  const lesson = {
     title: lessonData.title || 'New lesson',
     description: lessonData.description || '',
     duration: lessonData.duration || '0 min',
@@ -376,25 +421,46 @@ export async function createLesson(courseId, moduleId, lessonData) {
     published: lessonData.published !== false,
     resources: Array.isArray(lessonData.resources) ? lessonData.resources : [],
     order: Number(lessonData.order) || 0,
-  });
+  };
+  const created = await addDoc(collection(db, 'courses', courseId, 'modules', moduleId, 'lessons'), lesson);
+  await syncLessonCatalog(courseId, moduleId);
+  return created;
 }
 
 export async function updateLesson(courseId, moduleId, lessonId, lessonData) {
-  if (lessonData.videoUrl && !isValidLessonVideoUrl(lessonData.videoUrl)) {
+  if ('videoUrl' in lessonData && (!lessonData.videoUrl || !isValidYoutubeUrl(lessonData.videoUrl))) {
     throw new Error('That does not look like a valid YouTube URL.');
   }
   const { doc, updateDoc } = await loadFirestore();
-  return updateDoc(doc(db, 'courses', courseId, 'modules', moduleId, 'lessons', lessonId), {
+  const result = await updateDoc(doc(db, 'courses', courseId, 'modules', moduleId, 'lessons', lessonId), {
     ...lessonData,
-    youtubeVideoId: extractYoutubeId(lessonData.videoUrl || ''),
-    youtubeUrl: extractYoutubeId(lessonData.videoUrl || '') ? lessonData.videoUrl : '',
-    videoType: extractYoutubeId(lessonData.videoUrl || '') ? 'youtube' : lessonData.videoUrl ? 'file' : ''
+    ...(lessonData.videoUrl ? {
+      youtubeVideoId: extractYoutubeId(lessonData.videoUrl),
+      youtubeUrl: lessonData.videoUrl,
+      videoType: 'youtube'
+    } : {})
   });
+  await syncLessonCatalog(courseId, moduleId);
+  return result;
+}
+
+export async function syncLessonCatalog(courseId, moduleId) {
+  const { collection, doc, getDocs, getDoc, setDoc } = await loadFirestore();
+  const lessonsSnap = await getDocs(collection(db, 'courses', courseId, 'modules', moduleId, 'lessons'));
+  const catalog = sortByOrder(lessonsSnap.docs.map(item => {
+    const lesson = item.data();
+    return { id: item.id, title: lesson.title || 'Video', duration: lesson.duration || '0 min', order: Number(lesson.order) || 0 };
+  }));
+  const moduleRef = doc(db, 'courses', courseId, 'modules', moduleId);
+  const moduleSnap = await getDoc(moduleRef);
+  if (moduleSnap.exists()) await setDoc(moduleRef, { lessonCatalog: catalog }, { merge: true });
 }
 
 export async function deleteLesson(courseId, moduleId, lessonId) {
   const { doc, deleteDoc } = await loadFirestore();
-  return deleteDoc(doc(db, 'courses', courseId, 'modules', moduleId, 'lessons', lessonId));
+  const result = await deleteDoc(doc(db, 'courses', courseId, 'modules', moduleId, 'lessons', lessonId));
+  await syncLessonCatalog(courseId, moduleId);
+  return result;
 }
 
 /* ---------- PROGRESS (per authenticated user, cross-device) ---------- */

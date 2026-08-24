@@ -9,8 +9,14 @@
   <link rel="stylesheet" href="assets/css/style.css?v=20260824-payment-options-2">
   <link rel="stylesheet" href="assets/css/course-learning.css">
   <style>
+    .access-payment-panel, .payment-submit-panel, .learning-payment-panel, .course-payment-panel { display: none !important; }
     .learning-state { width: min(100% - 32px, 560px); min-height: 280px; margin: 8vh auto; padding: 42px 32px; display: grid; place-items: center; align-content: center; gap: 12px; border: 1px solid rgba(255,255,255,.1); border-radius: 16px; background: rgba(14,18,29,.82); box-shadow: 0 24px 70px rgba(0,0,0,.22); text-align: center; }
     .learning-state > i { display: grid; width: 48px; height: 48px; place-items: center; border-radius: 14px; color: #a8c1ff; background: rgba(122,162,255,.14); font-size: 1.2rem; }
+    #learningLogin { position: relative; overflow: hidden; border-color: rgba(142,175,255,.24); background: linear-gradient(145deg, rgba(17,24,38,.96), rgba(10,14,23,.98)); }
+    #learningLogin::before { content: ''; position: absolute; inset: 0 0 auto; height: 3px; background: linear-gradient(90deg, #8eafff, #9347ff); }
+    .access-state-icon { display: grid; width: 58px; height: 58px; place-items: center; border: 1px solid rgba(142,175,255,.35); border-radius: 16px; color: #c6d5ff; background: rgba(122,162,255,.12); font-size: 1.35rem; }
+    #learningGateTitle { letter-spacing: -.02em; }
+    #learningGoogleBtn, #refreshAccessBtn { display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-width: 220px; }
     .loading-spinner { width: 34px; height: 34px; border: 3px solid rgba(255,255,255,.14); border-top-color: #8eafff; border-radius: 50%; animation: course-spin .75s linear infinite; }
     @keyframes course-spin { to { transform: rotate(360deg); } }
     .learning-state h1 { margin: 0; font-size: clamp(1.45rem, 4vw, 2rem); }
@@ -113,9 +119,10 @@
     .module-block { border-color: #273142; border-radius: 8px; background: #0d131d; }
     .lesson-row { min-height: 58px; border-color: #222d3d; transition: background .18s ease, border-color .18s ease; }
     .lesson-row:hover, .lesson-row.current { border-color: #4b6595; background: #172237; }
-    .lesson-screen { gap: 24px; }
-    .lesson-main { min-width: 0; }
-    .lesson-video-wrap { overflow: hidden; border: 1px solid #273142; border-radius: 12px; background: #05070d; box-shadow: 0 18px 50px rgba(0,0,0,.25); }
+    .lesson-screen { gap: 24px; grid-template-columns: 310px minmax(0, 1fr); align-items: start; }
+    .lesson-main { min-width: 0; grid-column: 2; grid-row: 1; }
+    .lesson-sidebar { grid-column: 1; grid-row: 1; }
+    .lesson-video-wrap { overflow: hidden; border: 1px solid #3a4c70; border-radius: 14px; background: #05070d; box-shadow: 0 22px 60px rgba(0,0,0,.32); }
     .lesson-heading { padding: 24px 0; }
     .lesson-heading h1 { margin: 0 0 8px; font-size: clamp(1.5rem, 3vw, 2.2rem); letter-spacing: -.02em; }
     .lesson-actions { display: flex; flex-wrap: wrap; gap: 10px; }
@@ -149,7 +156,7 @@
   <main id="learningApp" class="learning-app">
     <section id="learningLoading" class="learning-state"><span class="loading-spinner" aria-hidden="true"></span><h1>Loading course</h1><p>Preparing your learning space...</p></section>
     <section id="learningLogin" class="learning-state hidden">
-      <div class="checkout-progress" aria-label="Enrollment steps"><span class="active" data-step="1" title="Sign in">1</span><span data-step="2" title="Choose payment">2</span><span data-step="3" title="Submit transaction">3</span><span data-step="4" title="Access approval">4</span></div>
+      <div class="access-state-icon" aria-hidden="true"><i class="fa-brands fa-google"></i></div>
       <div id="accessIntro" class="access-intro">
         <i class="fa-solid fa-graduation-cap"></i>
         <span class="learning-eyebrow">ENROLL IN COURSE</span>
@@ -157,8 +164,8 @@
         <strong id="accessIntroPrice">৳0</strong>
         <button id="accessContinueBtn" class="learning-button primary" type="button">Continue</button>
       </div>
-      <h1>Sign in to start learning</h1>
-      <p>Sign in with Google to access the lesson playlist and videos.</p>
+      <h1 id="learningGateTitle">Sign in to start learning</h1>
+      <p id="learningGateText">Sign in with Google to access the lesson playlist and videos.</p>
       <div class="course-payment-panel learning-payment-panel access-payment-panel">
         <div>
           <p class="learning-eyebrow">ENROLLMENT</p>
@@ -199,6 +206,7 @@
         <a id="viewCourseBtn" class="learning-button primary hidden" href="">View Course</a>
       </div>
         <button id="learningGoogleBtn" class="learning-button primary hidden" type="button"><i class="fa-brands fa-google"></i> Continue with Google</button>
+        <button id="refreshAccessBtn" class="learning-button hidden" type="button"><i class="fa-solid fa-rotate"></i> Refresh Access</button>
       <p id="learningAuthStatus" class="learning-status" aria-live="polite"></p>
     </section>
 
@@ -233,7 +241,8 @@
             </div>
             <div class="payment-qr-panel" id="coursePaymentQrPanel" aria-label="Scan payment QR codes"></div>
           </div>
-          <button id="overviewStartBtn" class="learning-button primary" type="button"><i class="fa-solid fa-play"></i> Start Lesson</button>
+          <button id="overviewEnrollBtn" class="learning-button primary" type="button"><i class="fa-solid fa-key"></i> Enroll</button>
+          <button id="overviewStartBtn" class="learning-button primary" type="button"><i class="fa-solid fa-play"></i> Enroll Now</button>
           <p id="courseEnrollmentStatus" class="enrollment-success">✓ You're enrolled</p>
         </div>
       </div>
@@ -247,7 +256,7 @@
 
     <section id="lessonPlayer" class="lesson-screen hidden">
       <div class="lesson-main">
-        <div class="lesson-video-wrap"><iframe id="lessonVideo" title="Course lesson video" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe><video id="lessonMp4" controls playsinline preload="metadata"></video></div>
+        <div class="lesson-video-wrap"><iframe id="lessonVideo" title="Course lesson video" tabindex="0" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe><video id="lessonMp4" controls playsinline preload="metadata"></video></div>
         <div class="lesson-heading"><div><p class="learning-eyebrow">NOW PLAYING</p><h1 id="lessonTitle">Lesson</h1><p id="lessonDescription"></p><a id="lessonYoutubeLink" class="lesson-youtube-link hidden" href="" target="_blank" rel="noopener noreferrer">Watch on YouTube</a></div><span id="lessonDuration" class="lesson-duration"></span></div>
         <div class="lesson-actions"><button id="previousLesson" class="learning-button" type="button"><i class="fa-solid fa-arrow-left"></i> Previous Lesson</button><button id="completeLesson" class="learning-button primary" type="button">Complete and Continue <i class="fa-solid fa-arrow-right"></i></button><button id="nextLesson" class="learning-button" type="button">Next Lesson <i class="fa-solid fa-arrow-right"></i></button></div>
       </div>
