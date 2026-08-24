@@ -27,6 +27,70 @@ function orderedLessons(data) {
 }
 function currentLesson() { return lessons.find(lesson => lesson.id === selectedLessonId) || lessons[0] || null; }
 function youtubeId(lesson) { return lesson?.youtubeVideoId || extractYoutubeId(lesson?.youtubeUrl || lesson?.videoUrl || ''); }
+function renderPaymentQrPanel(panelId, payment = {}) {
+  const panel = $(panelId);
+  if (!panel) return;
+  panel.replaceChildren();
+  const methods = [
+    ['bKash', payment.bkashQr],
+    ['Rocket', payment.rocketQr],
+    ['Bank', payment.bankQr]
+  ];
+  methods.forEach(([name, source]) => {
+    const card = document.createElement('div');
+    card.className = `payment-qr-card${source ? '' : ' is-empty'}`;
+    const title = document.createElement('strong');
+    title.textContent = name;
+    card.appendChild(title);
+    if (source) {
+      const image = document.createElement('img');
+      image.src = source;
+      image.alt = `${name} payment QR code`;
+      image.loading = 'lazy';
+      image.addEventListener('error', () => {
+        card.classList.add('is-empty');
+        image.remove();
+        const note = document.createElement('span');
+        note.textContent = 'QR unavailable';
+        card.appendChild(note);
+      }, { once: true });
+      card.appendChild(image);
+      const note = document.createElement('span');
+      note.textContent = 'Scan to pay';
+      card.appendChild(note);
+    } else {
+      const note = document.createElement('span');
+      note.textContent = 'QR not added';
+      card.appendChild(note);
+    }
+    panel.appendChild(card);
+  });
+}
+function renderAccessPayment() {
+  if (!course) return;
+  const bkash = course.payment?.bkash || '01644171751';
+  const rocket = course.payment?.rocket || '01644171751';
+  const bank = course.payment?.bank || 'Contact for bank details';
+  $('accessPaymentPrice').textContent = Number(course.price) > 0 ? `৳${Number(course.price).toLocaleString('en-BD')}` : 'Free enrollment';
+  $('accessPaymentBkash').textContent = bkash;
+  $('accessPaymentRocket').textContent = rocket;
+  $('accessPaymentBank').textContent = bank;
+  $('accessPaymentBkashLink').href = `tel:${bkash.replace(/\D/g, '')}`;
+  $('accessPaymentRocketLink').href = `tel:${rocket.replace(/\D/g, '')}`;
+  renderPaymentQrPanel('accessPaymentQrPanel', course.payment);
+}
+function showAccessGate({ signedIn = false } = {}) {
+  $('learningLoading').classList.add('hidden');
+  $('courseOverview').classList.add('hidden');
+  $('lessonPlayer').classList.add('hidden');
+  $('learningLogin').querySelector('h1').textContent = signedIn ? 'Course access required' : 'Sign in to start learning';
+  $('learningLogin').querySelector('p').textContent = signedIn
+    ? 'This course is paid or your account is blocked. Complete payment and contact the admin to activate access.'
+    : 'Sign in with Google to access the lesson playlist and videos.';
+  $('learningGoogleBtn').classList.toggle('hidden', signedIn);
+  renderAccessPayment();
+  $('learningLogin').classList.remove('hidden');
+}
 function setupCustomVideoPlayer() {
   const wrap = $('lessonMp4').closest('.lesson-video-wrap');
   const video = $('lessonMp4');
@@ -79,6 +143,16 @@ function renderOverview() {
   $('courseInstructor').textContent = `Instructor: ${course.instructor || 'CodeWithSiam'}`;
   $('courseLessonCount').textContent = `${lessons.length} lessons`;
   $('courseDuration').textContent = `${lessons.reduce((sum, item) => sum + parseInt(String(item.duration).match(/\d+/)?.[0] || '0', 10), 0)} min`;
+  const bkash = course.payment?.bkash || '01644171751';
+  const rocket = course.payment?.rocket || '01644171751';
+  const bank = course.payment?.bank || 'Contact for bank details';
+  $('coursePaymentPrice').textContent = Number(course.price) > 0 ? `৳${Number(course.price).toLocaleString('en-BD')}` : 'Free';
+  $('coursePaymentBkash').textContent = bkash;
+  $('coursePaymentRocket').textContent = rocket;
+  $('coursePaymentBank').textContent = bank;
+  $('coursePaymentBkashLink').href = `tel:${bkash.replace(/\D/g, '')}`;
+  $('coursePaymentRocketLink').href = `tel:${rocket.replace(/\D/g, '')}`;
+  renderPaymentQrPanel('coursePaymentQrPanel', course.payment);
   $('courseThumbnail').src = course.thumbnail || '';
   $('courseThumbnail').alt = `${course.title} thumbnail`;
   $('overviewLessonTitle').textContent = lesson?.title || 'No lessons published yet';
@@ -138,26 +212,17 @@ async function complete() {
   if (next) go(next.id); else render();
 }
 async function load() {
-  if (!user) {
-    course = null;
-    lessons = [];
-    $('lessonLoading')?.classList.add('hidden');
-    $('learningLoading').classList.add('hidden');
-    $('lessonPlayer').classList.add('hidden');
-    $('courseOverview').classList.add('hidden');
-    $('learningLogin').classList.remove('hidden');
-    return;
-  }
-  $('learningLogin').classList.add('hidden');
   const all = await fetchAllCourses();
   course = all.find(item => item.id === courseId);
   if (!course) { $('learningLoading').textContent = 'Course not found.'; return; }
+  if (!user) {
+    lessons = [];
+    showAccessGate();
+    return;
+  }
+  $('learningLogin').classList.add('hidden');
   if (course.accessDenied) {
-    $('learningLoading').classList.add('hidden');
-    $('learningLogin').querySelector('h1').textContent = 'Course access required';
-    $('learningLogin').querySelector('p').textContent = 'This course is paid or your account is blocked. Contact the admin after payment to activate access.';
-    $('learningGoogleBtn').classList.add('hidden');
-    $('learningLogin').classList.remove('hidden');
+    showAccessGate({ signedIn: true });
     return;
   }
   progress = getLocalProgress();

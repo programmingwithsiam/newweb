@@ -111,28 +111,27 @@ function renderPublishedCourseCatalog() {
   const catalog = document.getElementById('publishedCourseCatalog');
   if (!catalog) return;
   const courses = cachedCourses.filter(course => {
-    if (course.status !== 'published') return false;
+      if (course.status !== 'published') return false;
     if (courseCatalogFilter === 'paid') return Number(course.price) > 0;
     if (courseCatalogFilter === 'free') return Number(course.price) <= 0;
     return true;
   });
-  catalog.innerHTML = courses.map(course => {
+    catalog.innerHTML = courses.map(course => {
     const progress = getCoursePercent(course);
     const thumbnail = course.thumbnail || getYoutubeThumbnailUrl(course.videoUrl);
-    const lessonCount = course.lessons.length || (course.modules || []).reduce((count, module) => count + (module.lessons?.length || 0), 0);
     const fallbackTitle = escapeHtml(String(course.title || 'Course').slice(0, 24));
-    return `<a class="course-card" data-course-id="${escapeHtml(course.id)}" href="course.html?course=${encodeURIComponent(course.id)}" aria-label="Open ${escapeHtml(course.title)} course">
-      <span class="course-card-thumb ${thumbnail ? 'has-image' : ''}">${thumbnail ? `<img src="${escapeHtml(thumbnail)}" alt="${escapeHtml(course.title)} thumbnail" loading="lazy" decoding="async">` : `<span class="course-card-thumb-fallback"><i class="fa-solid fa-graduation-cap"></i><strong>${fallbackTitle}</strong></span>`}<span class="course-card-play" aria-hidden="true"><i class="fa-solid fa-play"></i></span><span class="course-card-thumb-label">COURSE PREVIEW</span><span class="course-card-thumb-price">${Number(course.price) > 0 ? `৳${Number(course.price).toLocaleString('en-BD')}` : 'FREE'}</span></span>
-      <span class="course-card-body"><strong>${escapeHtml(course.title)}</strong><span class="course-card-description">${escapeHtml(course.description)}</span><span class="course-card-progress"><span class="course-card-progress-track"><span style="width:${progress}%"></span></span><span class="course-card-percent">${progress}%<small>COMPLETE</small></span></span><small class="course-card-lessons">${lessonCount} lessons</small><strong class="course-card-price">${Number(course.price) > 0 ? `৳${Number(course.price).toLocaleString('en-BD')}` : 'Free'}</strong><span class="course-card-cta">${getCourseStateLabel(course)} <i class="fa-solid fa-arrow-right"></i></span></span>
+        return `<a class="lms-course-card" data-course-id="${escapeHtml(course.id)}" href="course.html?course=${encodeURIComponent(course.id)}" aria-label="Open ${escapeHtml(course.title)} course">
+          <span class="lms-course-thumbnail ${thumbnail ? 'has-image' : ''}">${thumbnail ? `<img src="${escapeHtml(thumbnail)}" alt="${escapeHtml(course.title)} thumbnail" loading="lazy" decoding="async">` : `<span class="lms-course-fallback"><i class="fa-solid fa-graduation-cap"></i><strong>${fallbackTitle}</strong></span>`}<span class="lms-course-play" aria-hidden="true"><i class="fa-solid fa-play"></i></span></span>
+      <span class="lms-course-body"><strong class="lms-course-title">${escapeHtml(course.title)}</strong><span class="lms-course-progress"><span class="lms-course-progress-track"><span style="width:${progress}%"></span></span><span class="lms-course-percent">${progress}%<small>COMPLETE</small></span></span><span class="lms-course-view">View Course <i class="fa-solid fa-arrow-right"></i></span></span>
     </a>`;
   }).join('');
-  catalog.querySelectorAll('.course-card-thumb img').forEach(image => {
+  catalog.querySelectorAll('.lms-course-thumbnail img').forEach(image => {
     image.addEventListener('error', () => {
       const thumbnailContainer = image.parentElement;
       image.remove();
       thumbnailContainer?.classList.remove('has-image');
-      const title = thumbnailContainer?.closest('.course-card')?.querySelector('.course-card-body strong')?.textContent || 'Course';
-      thumbnailContainer?.insertAdjacentHTML('afterbegin', `<span class="course-card-thumb-fallback"><i class="fa-solid fa-graduation-cap"></i><strong>${escapeHtml(title.slice(0, 24))}</strong></span>`);
+        const title = thumbnailContainer?.closest('.lms-course-card')?.querySelector('.lms-course-title')?.textContent || 'Course';
+      thumbnailContainer?.insertAdjacentHTML('afterbegin', `<span class="lms-course-fallback"><i class="fa-solid fa-graduation-cap"></i><strong>${escapeHtml(title.slice(0, 24))}</strong></span>`);
     }, { once: true });
   });
 }
@@ -217,7 +216,6 @@ function normalizeCourse(course) {
 
   return {
     ...course,
-    id: course.id || `course-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     lessons,
     modules,
     description: course.description || 'A premium course designed to help you build real-world skills.',
@@ -333,7 +331,7 @@ function renderUpcomingCourses() {
 
     return `
     <article class="upcoming-card" ${cardAction}>
-      <div class="upcoming-thumb ${hasThumbnail ? 'has-image' : ''}" style="${hasThumbnail ? '' : `background:${theme.gradient}`}">
+          <div class="course-thumbnail upcoming-thumb ${hasThumbnail ? 'has-image' : ''}" style="${hasThumbnail ? '' : `background:${theme.gradient}`}">
         <span class="upcoming-soon-badge">${Number(course.price) > 0 ? `৳${Number(course.price).toLocaleString('en-BD')}` : 'Free'}</span>
         ${hasThumbnail ? `<img class="upcoming-thumb-image" src="${safeThumb}" alt="${course.title}" loading="lazy" />` : `<i class="fa-solid ${theme.icon}"></i>`}
       </div>

@@ -380,6 +380,99 @@
       box-shadow: 0 18px 40px rgba(0,0,0,0.35);
     }
 
+    .access-control-card {
+      background:
+        linear-gradient(135deg,rgba(255,212,59,.06),transparent 48%),
+        rgba(255,255,255,.025);
+    }
+
+    .access-heading {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .access-heading .section-title { display: flex; align-items: center; gap: 9px; }
+    .access-heading .section-title i { color: var(--admin-accent); font-size: .95rem; }
+
+    .access-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border: 1px solid rgba(255,212,59,.2);
+      border-radius: 999px;
+      color: var(--admin-accent);
+      background: rgba(255,212,59,.07);
+      font-size: .7rem;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .access-account-preview {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-height: 64px;
+      margin: 18px 0;
+      padding: 12px 14px;
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 14px;
+      background: rgba(0,0,0,.14);
+    }
+
+    .access-account-icon {
+      display: grid;
+      flex: 0 0 38px;
+      width: 38px;
+      height: 38px;
+      place-items: center;
+      border-radius: 50%;
+      color: #4285f4;
+      background: rgba(66,133,244,.12);
+      font-size: 1.1rem;
+    }
+
+    .access-account-copy { display: grid; min-width: 0; gap: 3px; }
+    .access-account-copy strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .access-account-copy span { color: var(--admin-muted); font-size: .76rem; }
+    .access-account-state { margin-left: auto; color: var(--admin-muted); font-size: .72rem; text-align: right; }
+    .access-account-state.is-active { color: var(--admin-success); }
+    .access-account-state.is-blocked { color: var(--admin-danger); }
+
+    .access-actions { align-items: center; }
+    .access-actions .btn { min-height: 42px; }
+    .access-clear-btn { margin-left: auto; color: var(--admin-muted); }
+
+    .access-course-picker {
+      display: grid;
+      gap: 8px;
+      max-height: 190px;
+      overflow-y: auto;
+      padding: 8px;
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: 12px;
+      background: rgba(0,0,0,.14);
+    }
+
+    .access-course-option {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      min-height: 34px;
+      padding: 7px 9px;
+      border-radius: 8px;
+      color: var(--admin-text);
+      cursor: pointer;
+      font-size: .82rem;
+    }
+
+    .access-course-option:hover { background: rgba(255,255,255,.06); }
+    .access-course-option input { accent-color: var(--admin-accent); }
+    .access-course-option.is-all { color: var(--admin-accent); font-weight: 800; border-bottom: 1px solid rgba(255,255,255,.08); }
+    .access-course-empty { padding: 10px; color: var(--admin-muted); font-size: .78rem; }
+
     .section-title {
       margin: 0;
       font-size: 1.1rem;
@@ -703,12 +796,60 @@
       margin-top: 10px;
       overflow: hidden;
       border: 1px solid rgba(255,255,255,.14);
-      border-radius: 8px;
+      border-radius: 10px 10px 0 0;
       background: #10151f;
     }
 
     .thumbnail-preview.show { display: block; }
     .thumbnail-preview img { display: block; width: 100%; height: 100%; object-fit: cover; }
+
+    .course-thumbnail-editor {
+      display: grid;
+      grid-template-columns: minmax(180px, 280px) 1fr;
+      gap: 16px;
+      align-items: center;
+      margin-top: 16px;
+      padding: 14px;
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: 10px;
+      background: rgba(255,255,255,.025);
+    }
+
+    .course-thumbnail-editor-preview {
+      position: relative;
+      display: grid;
+      place-items: center;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      overflow: hidden;
+      border-radius: 8px 8px 0 0;
+      background: linear-gradient(135deg, #123c55, #17202d 52%, #9b6b16);
+      color: var(--admin-muted);
+      text-align: center;
+    }
+
+    .course-thumbnail-editor-preview img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center;
+    }
+
+    .course-thumbnail-editor-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .course-thumbnail-editor-actions input[type="file"] {
+      max-width: 100%;
+    }
+
+    @media (max-width: 640px) {
+      .course-thumbnail-editor { grid-template-columns: 1fr; }
+    }
 
     .mp4-upload-box small {
       color: var(--admin-muted);
@@ -874,6 +1015,12 @@
       .section-card {
         padding: 18px;
       }
+
+      .access-heading { flex-direction: column; }
+      .access-account-preview { align-items: flex-start; }
+      .access-account-state { margin-left: auto; }
+      .access-actions .btn { flex: 1 1 160px; }
+      .access-clear-btn { margin-left: 0; }
 
       .course-manager-head {
         padding: 16px;
@@ -1143,20 +1290,35 @@
         </div>
 
 
-        <div class="section-card">
-          <h3 class="section-title">User Access Control</h3>
+        <div class="section-card access-control-card">
+          <div class="access-heading">
+            <h3 class="section-title"><i class="fa-brands fa-google"></i> User Access Control</h3>
+            <span class="access-badge"><i class="fa-solid fa-shield-halved"></i> Admin only</span>
+          </div>
           <p class="section-subtitle">Grant paid-course access for free, or block/unblock an account. Use the student email exactly as registered.</p>
+          <div class="access-account-preview" id="accessAccountPreview" aria-live="polite">
+            <span class="access-account-icon"><i class="fa-brands fa-google"></i></span>
+            <div class="access-account-copy">
+              <strong id="accessAccountEmail">No student selected</strong>
+              <span id="accessAccountMeta">Enter a registered Gmail to view account status.</span>
+            </div>
+            <span class="access-account-state" id="accessAccountState">Waiting</span>
+          </div>
           <div class="course-form-grid">
-            <label>Email
-              <input id="accessUserEmail" type="email" placeholder="student@example.com">
+            <label>Student Gmail
+              <input id="accessUserEmail" type="email" autocomplete="email" placeholder="student@gmail.com">
             </label>
-            <label>Course ID
-              <input id="accessCourseId" type="text" placeholder="Paste course ID">
-            </label>
-            <div class="full admin-btn-row">
-              <button type="button" class="btn btn-primary" id="grantCourseAccessBtn">Grant / Add Access</button>
-              <button type="button" class="btn" id="revokeCourseAccessBtn">Revoke Access</button>
-              <button type="button" class="btn btn-danger" id="toggleUserBlockBtn">Block / Unblock User</button>
+            <div>
+              <label for="accessCourseChoices">Courses to manage</label>
+              <div class="access-course-picker" id="accessCourseChoices" aria-label="Choose courses for access">
+                <span class="access-course-empty">Loading courses...</span>
+              </div>
+            </div>
+            <div class="full admin-btn-row access-actions">
+              <button type="button" class="btn btn-primary" id="grantCourseAccessBtn" disabled><i class="fa-solid fa-key"></i> Grant Access</button>
+              <button type="button" class="btn" id="revokeCourseAccessBtn" disabled><i class="fa-solid fa-key-slash"></i> Revoke Access</button>
+              <button type="button" class="btn btn-danger" id="toggleUserBlockBtn" disabled><i class="fa-solid fa-user-lock"></i> Block User</button>
+              <button type="button" class="btn access-clear-btn" id="clearAccessFormBtn"><i class="fa-solid fa-rotate-left"></i> Clear</button>
             </div>
           </div>
           <p class="status" id="userAccessStatus" aria-live="polite"></p>
@@ -1279,6 +1441,25 @@
               Bank Payment Details
               <input id="newCourseBank" type="text" placeholder="Bank name, account or branch">
             </label>
+
+            <label>
+              bKash QR Image
+              <input id="newCourseBkashQr" type="file" accept="image/jpeg,image/png,image/webp">
+            </label>
+
+            <label>
+              Rocket QR Image
+              <input id="newCourseRocketQr" type="file" accept="image/jpeg,image/png,image/webp">
+            </label>
+
+            <label>
+              Bank QR Image
+              <input id="newCourseBankQr" type="file" accept="image/jpeg,image/png,image/webp">
+            </label>
+
+            <div class="full">
+              <small class="panel-note">Upload the official QR images from your payment providers. They will appear on the course payment screen.</small>
+            </div>
 
 
             <label>
@@ -1609,8 +1790,54 @@
 
 
     const accessEmailInput = document.getElementById('accessUserEmail');
-    const accessCourseInput = document.getElementById('accessCourseId');
+    const accessCourseChoices = document.getElementById('accessCourseChoices');
     const accessStatus = document.getElementById('userAccessStatus');
+    const accessAccountEmail = document.getElementById('accessAccountEmail');
+    const accessAccountMeta = document.getElementById('accessAccountMeta');
+    const accessAccountState = document.getElementById('accessAccountState');
+    const accessActionButtons = [
+      document.getElementById('grantCourseAccessBtn'),
+      document.getElementById('revokeCourseAccessBtn'),
+      document.getElementById('toggleUserBlockBtn')
+    ];
+
+    function getSelectedCourseIds() {
+      return [...(accessCourseChoices?.querySelectorAll('input[data-access-course]:checked') || [])]
+        .map(input => input.value)
+        .filter(Boolean);
+    }
+
+    function setSelectedCourseIds(courseIds) {
+      const selected = new Set(courseIds);
+      accessCourseChoices?.querySelectorAll('input[data-access-course]').forEach(input => {
+        input.checked = selected.has(input.value);
+      });
+      const allInput = accessCourseChoices?.querySelector('[data-access-all]');
+      if (allInput) allInput.checked = courseIds.length > 0 && courseIds.length === accessCourseChoices.querySelectorAll('input[data-access-course]').length;
+    }
+
+    function renderAccessAccountPreview(user, message = '') {
+      if (!accessAccountEmail || !accessAccountMeta || !accessAccountState) return;
+      if (!user) {
+        accessAccountEmail.textContent = 'No student selected';
+        accessAccountMeta.textContent = message || 'Enter a registered Gmail to view account status.';
+        accessAccountState.textContent = 'Waiting';
+        accessAccountState.className = 'access-account-state';
+        accessActionButtons.forEach(button => { if (button) button.disabled = true; });
+        return;
+      }
+
+      const accessCount = Array.isArray(user.courseAccess) ? user.courseAccess.length : 0;
+      accessAccountEmail.textContent = user.email || 'Registered student';
+      accessAccountMeta.textContent = `${accessCount} course${accessCount === 1 ? '' : 's'} granted`;
+      accessAccountState.textContent = user.blocked === true ? 'Blocked' : 'Active';
+      accessAccountState.className = `access-account-state ${user.blocked === true ? 'is-blocked' : 'is-active'}`;
+      accessActionButtons.forEach(button => { if (button) button.disabled = false; });
+      const blockButton = document.getElementById('toggleUserBlockBtn');
+      if (blockButton) blockButton.innerHTML = user.blocked === true
+        ? '<i class="fa-solid fa-user-check"></i> Unblock User'
+        : '<i class="fa-solid fa-user-lock"></i> Block User';
+    }
 
     async function getAccessUser() {
       const email = accessEmailInput.value.trim();
@@ -1620,13 +1847,48 @@
       return found;
     }
 
+    let accessPreviewTimer;
+    accessEmailInput?.addEventListener('input', () => {
+      clearTimeout(accessPreviewTimer);
+      renderAccessAccountPreview(null, 'Checking registered account...');
+      accessPreviewTimer = setTimeout(async () => {
+        const email = accessEmailInput.value.trim();
+        if (!email) return;
+        try {
+          renderAccessAccountPreview(await getAccessUser());
+        } catch (error) {
+          renderAccessAccountPreview(null, error.message);
+        }
+      }, 450);
+    });
+
+    document.getElementById('clearAccessFormBtn')?.addEventListener('click', () => {
+      accessEmailInput.value = '';
+      setSelectedCourseIds([]);
+      renderAccessAccountPreview();
+      setStatus(accessStatus, '', true);
+    });
+
+    accessCourseChoices?.addEventListener('change', event => {
+      const input = event.target;
+      if (!(input instanceof HTMLInputElement)) return;
+      const courseInputs = [...accessCourseChoices.querySelectorAll('input[data-access-course]')];
+      if (input.matches('[data-access-all]')) {
+        courseInputs.forEach(courseInput => { courseInput.checked = input.checked; });
+        return;
+      }
+      const allInput = accessCourseChoices.querySelector('[data-access-all]');
+      if (allInput) allInput.checked = courseInputs.length > 0 && courseInputs.every(courseInput => courseInput.checked);
+    });
+
     document.getElementById('grantCourseAccessBtn')?.addEventListener('click', async () => {
       try {
         const user = await getAccessUser();
-        const courseId = accessCourseInput.value.trim();
-        if (!courseId) throw new Error('Course ID is required.');
-        const access = Array.from(new Set([...(user.courseAccess || []), courseId]));
+        const courseIds = getSelectedCourseIds();
+        if (!courseIds.length) throw new Error('Select at least one course.');
+        const access = Array.from(new Set([...(user.courseAccess || []), ...courseIds]));
         await updateUserAccess(user.id, { courseAccess: access, blocked: false });
+        renderAccessAccountPreview({ ...user, courseAccess: access, blocked: false });
         setStatus(accessStatus, `Access granted to ${user.email}.`, true);
       } catch (error) {
         setStatus(accessStatus, error.message, false);
@@ -1636,9 +1898,12 @@
     document.getElementById('revokeCourseAccessBtn')?.addEventListener('click', async () => {
       try {
         const user = await getAccessUser();
-        const courseId = accessCourseInput.value.trim();
-        if (!courseId) throw new Error('Course ID is required.');
-        await updateUserAccess(user.id, { courseAccess: (user.courseAccess || []).filter(id => id !== courseId) });
+        const courseIds = getSelectedCourseIds();
+        if (!courseIds.length) throw new Error('Select at least one course.');
+        const selected = new Set(courseIds);
+        const access = (user.courseAccess || []).filter(id => !selected.has(id));
+        await updateUserAccess(user.id, { courseAccess: access });
+        renderAccessAccountPreview({ ...user, courseAccess: access });
         setStatus(accessStatus, `Access revoked from ${user.email}.`, true);
       } catch (error) {
         setStatus(accessStatus, error.message, false);
@@ -1648,8 +1913,10 @@
     document.getElementById('toggleUserBlockBtn')?.addEventListener('click', async () => {
       try {
         const user = await getAccessUser();
-        await updateUserAccess(user.id, { blocked: user.blocked !== true });
-        setStatus(accessStatus, `${user.email} is now ${user.blocked === true ? 'unblocked' : 'blocked'}.`, true);
+        const blocked = user.blocked !== true;
+        await updateUserAccess(user.id, { blocked });
+        renderAccessAccountPreview({ ...user, blocked });
+        setStatus(accessStatus, `${user.email} is now ${blocked ? 'blocked' : 'unblocked'}.`, true);
       } catch (error) {
         setStatus(accessStatus, error.message, false);
       }
@@ -1718,6 +1985,12 @@
     const thumbnailFileInput = document.getElementById('newCourseThumbnailFile');
     const thumbnailPreview = document.getElementById('newCourseThumbnailPreview');
     const thumbnailPreviewImage = document.getElementById('newCourseThumbnailPreviewImage');
+    const paymentQrInputs = [
+      ['newCourseBkashQr', 'bkashQr'],
+      ['newCourseRocketQr', 'rocketQr'],
+      ['newCourseBankQr', 'bankQr']
+    ];
+    const paymentQrData = { bkashQr: '', rocketQr: '', bankQr: '' };
 
     function updateThumbnailPreview(value) {
       const url = String(value || '').trim();
@@ -1789,6 +2062,23 @@
         }
       });
     }
+    paymentQrInputs.forEach(([inputId, dataKey]) => {
+      document.getElementById(inputId)?.addEventListener('change', async event => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+        if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+          alert('Please choose a JPG, PNG, or WEBP QR image.');
+          event.target.value = '';
+          return;
+        }
+        try {
+          paymentQrData[dataKey] = await compressThumbnailFile(file);
+        } catch (error) {
+          alert(error.message || 'The QR image could not be processed.');
+          event.target.value = '';
+        }
+      });
+    });
     thumbnailUrlInput?.addEventListener('input', () => updateThumbnailPreview(thumbnailUrlInput.value));
 
     document
@@ -1871,7 +2161,8 @@
               payment: {
                 bkash: document.getElementById('newCourseBkash').value.trim(),
                 rocket: document.getElementById('newCourseRocket').value.trim(),
-                bank: document.getElementById('newCourseBank').value.trim()
+                bank: document.getElementById('newCourseBank').value.trim(),
+                ...paymentQrData
               },
 
               status:
@@ -1923,6 +2214,11 @@
                 else field.value = '';
               }
             );
+            paymentQrInputs.forEach(([inputId, dataKey]) => {
+              paymentQrData[dataKey] = '';
+              const field = document.getElementById(inputId);
+              if (field) field.value = '';
+            });
 
 
             loadAndRenderCourses();
@@ -1972,6 +2268,23 @@
 
 
       loadedCourses = courses;
+      const accessCoursePicker = document.getElementById('accessCourseChoices');
+      if (accessCoursePicker) {
+        accessCoursePicker.innerHTML = `
+          <label class="access-course-option is-all">
+            <input type="checkbox" data-access-all>
+            <span>All Courses (${courses.length})</span>
+          </label>
+          ${courses.length
+            ? courses.map(course => `
+              <label class="access-course-option">
+                <input type="checkbox" value="${escapeHtml(course.id)}" data-access-course>
+                <span>${escapeHtml(course.title)}</span>
+              </label>
+            `).join('')
+            : '<span class="access-course-empty">No courses available yet.</span>'}
+        `;
+      }
       updateStats(courses);
 
 
@@ -2210,6 +2523,24 @@
         </div>
 
 
+        <div class="course-thumbnail-editor">
+          <div class="course-thumbnail-editor-preview">
+            ${course.thumbnail
+              ? `<img src="${escapeHtml(course.thumbnail)}" alt="${escapeHtml(course.title)} thumbnail">`
+              : '<span>No thumbnail</span>'}
+          </div>
+          <div class="course-thumbnail-editor-actions">
+            <label class="btn btn-primary">
+              Upload New Thumbnail
+              <input type="file" accept="image/jpeg,image/png,image/webp" data-thumbnail-file hidden>
+            </label>
+            <button type="button" class="btn btn-danger" data-action="delete-thumbnail" ${course.thumbnail ? '' : 'disabled'}>
+              Delete Thumbnail
+            </button>
+          </div>
+        </div>
+
+
         <div
           class="module-manager hidden"
         ></div>
@@ -2221,6 +2552,36 @@
         card.querySelector(
           '.module-manager'
         );
+
+      const thumbnailFileInput = card.querySelector('[data-thumbnail-file]');
+      thumbnailFileInput?.addEventListener('change', async event => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+        if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+          alert('Please choose a JPG, PNG, or WEBP image.');
+          event.target.value = '';
+          return;
+        }
+
+        try {
+          const compressed = await compressThumbnailFile(file);
+          await updateCourse(course.id, { thumbnail: compressed });
+          loadAndRenderCourses();
+        } catch (error) {
+          alert(error.message || 'The thumbnail could not be uploaded.');
+          event.target.value = '';
+        }
+      });
+
+      card.querySelector('[data-action="delete-thumbnail"]')?.addEventListener('click', async () => {
+        if (!course.thumbnail || !confirm(`Delete the thumbnail for "${course.title}"?`)) return;
+        try {
+          await updateCourse(course.id, { thumbnail: '' });
+          loadAndRenderCourses();
+        } catch (error) {
+          alert(error.message || 'The thumbnail could not be deleted.');
+        }
+      });
 
       card
         .querySelector('[data-action="add-video"]')

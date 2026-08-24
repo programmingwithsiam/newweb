@@ -106,7 +106,7 @@ export async function createAccount(name, email, password) {
     if (name) {
       await updateProfile(result.user, { displayName: name });
     }
-    await ensureUserProfile({ ...result.user, displayName: name || result.user.displayName });
+    await ensureUserProfile(result.user);
     return result.user;
   } catch (error) {
     throw new Error(friendlyAuthError(error));

@@ -157,9 +157,10 @@ export async function fetchAllCourses() {
           lessons = sortByOrder(lessonsSnap.docs.map((d) => ({ id: d.id, moduleId: moduleDoc.id, ...d.data() })));
           moduleData.lessons = lessons.map((l) => ({ id: l.id, title: l.title, duration: l.duration || '0 min' }));
         } catch (error) {
-          console.warn(`Lessons unavailable for course ${course.id}:`, error.code || error.message);
           moduleData.lessons = [];
           course.accessDenied = true;
+          if (error?.code === 'permission-denied') break;
+          console.warn(`Lessons unavailable for course ${course.id}:`, error.code || error.message);
         }
       } else {
         moduleData.lessons = [];
