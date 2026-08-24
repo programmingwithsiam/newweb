@@ -218,6 +218,7 @@
           <a href="#chatbot">AI Chat</a>
           <a href="#contact">Contact</a>
           <a href="admin.html" id="adminNavLink" class="hidden">Admin</a>
+          <button type="button" class="live-notification hidden" id="liveNotificationBtn" aria-label="Open live stream" aria-expanded="false"><i class="fa-solid fa-bell"></i><span class="live-notification-dot"></span></button>
           <div class="nav-auth" id="navAuthLoggedOut">
             <button type="button" class="btn btn-outline small" id="headerSignInBtn">Sign In</button>
           </div>
@@ -238,6 +239,12 @@
           &#9776;
         </button>
       </header>
+      <aside class="live-notification-panel hidden" id="liveNotificationPanel" aria-live="polite">
+        <div class="live-notification-head"><strong><span class="live-dot"></span> Live now</strong><button type="button" id="closeLiveNotification" aria-label="Close live stream">&times;</button></div>
+        <p id="liveNotificationTitle">CodeWithSiam is live on YouTube.</p>
+        <iframe id="liveNotificationFrame" title="CodeWithSiam live stream" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>
+        <a id="liveNotificationOpen" href="https://www.youtube.com" target="_blank" rel="noopener noreferrer">Open on YouTube</a>
+      </aside>
 
       <!-- HERO -->
       <section class="hero" id="home">

@@ -9,6 +9,39 @@
   <link rel="stylesheet" href="assets/css/style.css?v=20260824-payment-options-2">
   <link rel="stylesheet" href="assets/css/course-learning.css">
   <style>
+    .learning-state { width: min(100% - 32px, 560px); min-height: 280px; margin: 8vh auto; padding: 42px 32px; display: grid; place-items: center; align-content: center; gap: 12px; border: 1px solid rgba(255,255,255,.1); border-radius: 16px; background: rgba(14,18,29,.82); box-shadow: 0 24px 70px rgba(0,0,0,.22); text-align: center; }
+    .learning-state > i { display: grid; width: 48px; height: 48px; place-items: center; border-radius: 14px; color: #a8c1ff; background: rgba(122,162,255,.14); font-size: 1.2rem; }
+    .loading-spinner { width: 34px; height: 34px; border: 3px solid rgba(255,255,255,.14); border-top-color: #8eafff; border-radius: 50%; animation: course-spin .75s linear infinite; }
+    @keyframes course-spin { to { transform: rotate(360deg); } }
+    .learning-state h1 { margin: 0; font-size: clamp(1.45rem, 4vw, 2rem); }
+    .learning-state p { max-width: 420px; margin: 0; color: var(--learning-muted); line-height: 1.6; }
+    .course-error-card { display: grid; place-items: center; gap: 12px; }
+    .course-error-card .learning-button { margin-top: 6px; text-decoration: none; }
+    .payment-submit-panel { width: min(100%, 460px); margin: 22px auto 0; padding: 20px; border: 1px solid rgba(255,255,255,.1); border-radius: 12px; background: rgba(255,255,255,.035); text-align: left; }
+    .payment-submit-panel h2 { margin: 0 0 6px; font-size: 1.1rem; }
+    .payment-submit-panel p { color: var(--learning-muted); font-size: .8rem; line-height: 1.5; }
+    .payment-submit-panel label { display: grid; gap: 7px; margin-top: 12px; color: var(--learning-muted); font-size: .8rem; }
+    .payment-submit-panel input, .payment-submit-panel select { width: 100%; min-height: 42px; padding: 9px 11px; border: 1px solid rgba(255,255,255,.14); border-radius: 8px; color: var(--learning-text); background: rgba(0,0,0,.2); }
+    .payment-submit-panel .learning-button { width: 100%; margin-top: 14px; }
+    .payment-choice-title { margin-top: 10px; font-size: .85rem; }
+    .payment-course-title { color: var(--learning-text) !important; font-size: 1rem !important; font-weight: 700; }
+    .enrollment-success { margin: 10px 0 0; color: #67d99d !important; font-size: .82rem; font-weight: 700; }
+    .payment-method-picker { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .payment-method-choice { min-height: 42px; border: 1px solid rgba(255,255,255,.14); border-radius: 8px; color: var(--learning-text); background: rgba(255,255,255,.035); cursor: pointer; transition: .18s ease; }
+    .payment-method-choice:hover, .payment-method-choice.active { border-color: #8eafff; color: #c6d5ff; background: rgba(122,162,255,.15); }
+    .payment-method-details { display: grid; gap: 7px; padding: 12px; border: 1px solid rgba(255,255,255,.1); border-radius: 8px; background: rgba(0,0,0,.14); }
+    .payment-method-details p { margin: 0; }
+    .payment-method-details b { color: var(--learning-text); }
+    .copy-payment-number { justify-self: start; padding: 6px 9px; border: 1px solid rgba(255,255,255,.16); border-radius: 6px; color: var(--learning-text); background: rgba(255,255,255,.06); cursor: pointer; }
+    .payment-qr-panel:empty { display: none; }
+    .payment-qr-panel img { display: block; width: 120px; aspect-ratio: 1; object-fit: contain; border-radius: 6px; background: #fff; }
+    .checkout-progress { display: flex; justify-content: center; gap: 22px; margin-bottom: 20px; color: var(--learning-muted); }
+    .checkout-progress span { display: grid; width: 26px; height: 26px; place-items: center; border: 1px solid rgba(255,255,255,.16); border-radius: 50%; font-size: .72rem; }
+    .checkout-progress span.active { border-color: #8eafff; color: #c6d5ff; background: rgba(122,162,255,.16); }
+    .access-intro { display: grid; justify-items: center; gap: 10px; }
+    .access-intro > i { color: #a8c1ff; font-size: 1.4rem; }
+    .access-intro h1 { margin: 0; }
+    .access-intro strong { color: #a8c1ff; font-size: 1.8rem; }
     .lesson-video-wrap video { width: 100%; height: 100%; object-fit: contain; background: #000; }
     .lesson-video-wrap.is-custom-player { position: relative; background: #000; }
     .custom-video-controls { position: absolute; right: 0; bottom: 0; left: 0; display: grid; gap: 8px; padding: 12px; color: #fff; background: linear-gradient(transparent, rgba(0,0,0,.88)); opacity: 0; transition: opacity .2s ease; }
@@ -37,7 +70,7 @@
     .course-payment-methods a { border: 1px solid rgba(255,255,255,.08); border-radius: 6px; padding: 9px 10px !important; background: rgba(255,255,255,.025); }
     .payment-brand { display: grid; flex: 0 0 34px; width: 34px; height: 34px; place-items: center; overflow: hidden; border-radius: 8px; background: #fff; }
     .payment-brand img { display: block; width: 26px; height: 26px; object-fit: contain; }
-    .payment-brand-fallback { display: none; font-size: .72rem; font-weight: 900; }
+    .payment-brand-fallback { display: block; font-size: .72rem; font-weight: 900; }
     .payment-brand.bkash .payment-brand-fallback { color: #e2136e; }
     .payment-brand.rocket .payment-brand-fallback { color: #6d3fd4; }
     .payment-action { margin-left: auto; padding: 3px 7px; border: 1px solid rgba(255,255,255,.12); border-radius: 999px; color: var(--learning-muted); font-size: .62rem; white-space: nowrap; }
@@ -51,6 +84,59 @@
     .payment-qr-card strong { color: var(--learning-text); font-size: .72rem; }
     .payment-qr-card.is-empty { align-content: center; min-height: 130px; }
     @media (max-width: 520px) { .payment-qr-panel { grid-template-columns: 1fr; } .payment-qr-card { grid-template-columns: 72px 1fr; align-items: center; justify-items: start; text-align: left; } .payment-qr-card img { width: 72px; } .payment-qr-card.is-empty { min-height: 72px; } }
+
+    /* Learner page polish */
+    .course-learning-page { background: #080b12; font-family: Inter, ui-sans-serif, system-ui, -apple-system, sans-serif; }
+    .learning-topbar { position: sticky; top: 0; z-index: 20; height: 68px; padding: 0 max(20px, 5vw); border-color: #273142; background: rgba(10, 14, 22, .94); backdrop-filter: blur(14px); }
+    .learning-brand { letter-spacing: -.01em; }
+    .learning-back { padding: 8px 10px; border-radius: 7px; transition: .18s ease; }
+    .learning-back:hover { color: #c6d5ff; background: rgba(122,162,255,.1); }
+    .learning-app { width: min(1180px, calc(100% - 40px)); padding: 54px 0 90px; }
+    .learning-state { min-height: 54vh; }
+    .course-overview-screen, .lesson-screen { animation: course-enter .2s ease-out; }
+    @keyframes course-enter { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+    .overview-heading { margin-bottom: 32px; }
+    .overview-heading h1 { font-size: clamp(2rem, 4vw, 3.1rem); letter-spacing: -.03em; }
+    .overview-heading p:not(.learning-eyebrow) { max-width: 700px; font-size: .95rem; }
+    .overview-summary { gap: 24px; padding: 0; background: transparent; border: 0; }
+    .overview-summary > img, .overview-summary > .overview-thumbnail { min-height: 260px; border: 1px solid #273142; border-radius: 12px; background: #111722; box-shadow: 0 18px 50px rgba(0,0,0,.22); object-fit: cover; }
+    .overview-details { padding: 26px; border: 1px solid #273142; border-radius: 12px; background: #111722; box-shadow: 0 18px 50px rgba(0,0,0,.18); }
+    .overview-details h2 { margin-top: 4px; font-size: 1.25rem; }
+    .overview-meta { color: #aab5c7; }
+    .progress-line { height: 7px; border-radius: 99px; background: #242d3c; }
+    .progress-line span { border-radius: inherit; background: #7aa2ff; }
+    .overview-content-grid { display: block; margin-top: 34px; }
+    .playlist-panel, .lesson-sidebar { border: 1px solid #273142; border-radius: 12px; background: #111722; box-shadow: 0 18px 50px rgba(0,0,0,.16); }
+    .playlist-panel { padding: 22px; }
+    .panel-heading { padding-bottom: 16px; border-bottom: 1px solid #273142; }
+    .panel-heading h2 { margin: 0; font-size: 1.15rem; }
+    .module-block { border-color: #273142; border-radius: 8px; background: #0d131d; }
+    .lesson-row { min-height: 58px; border-color: #222d3d; transition: background .18s ease, border-color .18s ease; }
+    .lesson-row:hover, .lesson-row.current { border-color: #4b6595; background: #172237; }
+    .lesson-screen { gap: 24px; }
+    .lesson-main { min-width: 0; }
+    .lesson-video-wrap { overflow: hidden; border: 1px solid #273142; border-radius: 12px; background: #05070d; box-shadow: 0 18px 50px rgba(0,0,0,.25); }
+    .lesson-heading { padding: 24px 0; }
+    .lesson-heading h1 { margin: 0 0 8px; font-size: clamp(1.5rem, 3vw, 2.2rem); letter-spacing: -.02em; }
+    .lesson-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+    .lesson-actions .learning-button { min-width: 140px; }
+    .learning-button { min-height: 42px; border-radius: 8px; border-color: #334158; transition: .18s ease; }
+    .learning-button:hover:not(:disabled) { transform: translateY(-1px); border-color: #6d8fd7; }
+    .learning-button.primary { color: #07101f; background: #8eafff; border-color: #8eafff; }
+    .learning-button.primary:hover:not(:disabled) { background: #b0c5ff; }
+    @media (max-width: 760px) {
+      .learning-app { width: min(100% - 28px, 600px); padding-top: 34px; }
+      .learning-topbar { height: 60px; }
+      .overview-heading { flex-direction: column; gap: 14px; }
+      .overview-summary { grid-template-columns: 1fr; }
+      .overview-summary > img, .overview-summary > .overview-thumbnail { min-height: 190px; }
+      .overview-details { padding: 20px; }
+      .lesson-actions .learning-button { flex: 1 1 100%; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .course-overview-screen, .lesson-screen { animation: none; }
+      .learning-button, .lesson-row { transition: none; }
+    }
   </style>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
 </head>
@@ -61,25 +147,58 @@
   </header>
 
   <main id="learningApp" class="learning-app">
-    <section id="learningLoading" class="learning-state">Loading course...</section>
+    <section id="learningLoading" class="learning-state"><span class="loading-spinner" aria-hidden="true"></span><h1>Loading course</h1><p>Preparing your learning space...</p></section>
     <section id="learningLogin" class="learning-state hidden">
-      <i class="fa-solid fa-lock"></i>
+      <div class="checkout-progress" aria-label="Enrollment steps"><span class="active" data-step="1" title="Sign in">1</span><span data-step="2" title="Choose payment">2</span><span data-step="3" title="Submit transaction">3</span><span data-step="4" title="Access approval">4</span></div>
+      <div id="accessIntro" class="access-intro">
+        <i class="fa-solid fa-graduation-cap"></i>
+        <span class="learning-eyebrow">ENROLL IN COURSE</span>
+        <h1 id="accessIntroTitle">Course</h1>
+        <strong id="accessIntroPrice">৳0</strong>
+        <button id="accessContinueBtn" class="learning-button primary" type="button">Continue</button>
+      </div>
       <h1>Sign in to start learning</h1>
       <p>Sign in with Google to access the lesson playlist and videos.</p>
       <div class="course-payment-panel learning-payment-panel access-payment-panel">
         <div>
-          <p class="learning-eyebrow">PAYMENT OPTIONS</p>
+          <p class="learning-eyebrow">ENROLLMENT</p>
+          <span id="accessCourseTitle" class="payment-course-title">Course enrollment</span>
           <strong id="accessPaymentPrice">Course enrollment</strong>
-          <span id="accessPaymentNote">Complete payment, then access is activated after verification.</span>
+          <span id="accessPaymentNote">Choose a payment method to continue.</span>
         </div>
-        <div class="course-payment-methods">
-          <a id="accessPaymentBkashLink" href="tel:01644171751"><span class="payment-brand bkash"><img src="https://cdn.simpleicons.org/bkash/E2136E" alt="Official bKash logo" onerror="this.hidden=true;this.nextElementSibling.style.display='block'"><span class="payment-brand-fallback">bK</span></span> bKash <b id="accessPaymentBkash">01644171751</b><span class="payment-action">Pay / Call</span></a>
-          <a id="accessPaymentRocketLink" href="tel:01644171751"><span class="payment-brand rocket"><img src="https://cdn.simpleicons.org/rocket/8B5CF6" alt="Official Rocket logo" onerror="this.hidden=true;this.nextElementSibling.style.display='block'"><span class="payment-brand-fallback">R</span></span> Rocket <b id="accessPaymentRocket">01644171751</b><span class="payment-action">Pay / Call</span></a>
-          <a id="accessPaymentBankLink" href="#accessPaymentBank"><span class="payment-brand"><i class="fa-solid fa-building-columns"></i></span> Bank <b id="accessPaymentBank">Contact for bank details</b><span class="payment-action">Details</span></a>
+        <strong class="payment-choice-title">1. Send the exact amount</strong>
+        <div class="payment-method-picker">
+          <button type="button" class="payment-method-choice active" data-payment-method="bkash">bKash</button>
+          <button type="button" class="payment-method-choice" data-payment-method="rocket">Rocket</button>
+          <button type="button" class="payment-method-choice" data-payment-method="bank">Bank</button>
         </div>
-        <div class="payment-qr-panel" id="accessPaymentQrPanel" aria-label="Scan payment QR codes"></div>
+        <div class="payment-method-details" id="paymentDetails-bkash"><strong>bKash Payment</strong><span>Send payment to: <b id="accessPaymentBkash">01644171751</b></span><button type="button" class="copy-payment-number" data-copy-target="accessPaymentBkash">Copy Number</button><p>1. Open bKash<br>2. Send the exact amount<br>3. Copy your Transaction ID</p></div>
+        <div class="payment-method-details hidden" id="paymentDetails-rocket"><strong>Rocket Payment</strong><span>Send payment to: <b id="accessPaymentRocket">01644171751</b></span><button type="button" class="copy-payment-number" data-copy-target="accessPaymentRocket">Copy Number</button><p>1. Open Rocket<br>2. Send the exact amount<br>3. Copy your Transaction ID</p></div>
+        <div class="payment-method-details hidden" id="paymentDetails-bank"><strong>Bank Transfer</strong><span id="accessPaymentBank">Contact for bank details</span><button type="button" class="copy-payment-number" data-copy-target="accessPaymentBank">Copy Details</button></div>
+        <div class="payment-qr-panel" id="accessPaymentQrPanel" aria-label="Selected payment QR code"></div>
       </div>
-      <button id="learningGoogleBtn" class="learning-button primary" type="button"><i class="fa-brands fa-google"></i> Continue with Google</button>
+      <div class="payment-submit-panel" id="payment-submit-panel">
+        <h2>2. Confirm your payment</h2>
+        <p>Enter your transaction ID after sending the payment. Screenshot is optional.</p>
+        <label>Paid with
+          <select id="paymentMethod">
+            <option value="bkash">bKash</option>
+            <option value="rocket">Rocket</option>
+            <option value="bank">Bank Transfer</option>
+          </select>
+        </label>
+        <label>Transaction ID <span aria-hidden="true">*</span>
+          <input id="paymentTransactionId" type="text" placeholder="Enter your transaction ID" required>
+        </label>
+        <label>Payment Screenshot <span>(optional)</span>
+          <input id="paymentScreenshot" type="file" accept="image/jpeg,image/png,image/webp">
+        </label>
+        <small id="paymentScreenshotInfo">Optional, maximum 500 KB after compression.</small>
+        <button id="submitPaymentBtn" class="learning-button primary" type="button">Submit Payment</button>
+        <p id="paymentSubmitStatus" class="learning-status" aria-live="polite"></p>
+        <a id="viewCourseBtn" class="learning-button primary hidden" href="">View Course</a>
+      </div>
+        <button id="learningGoogleBtn" class="learning-button primary hidden" type="button"><i class="fa-brands fa-google"></i> Continue with Google</button>
       <p id="learningAuthStatus" class="learning-status" aria-live="polite"></p>
     </section>
 
@@ -101,20 +220,21 @@
           <div class="overview-meta"><span id="courseLessonCount">0 lessons</span><span id="courseDuration">0 min</span></div>
           <div class="progress-line"><span id="overviewProgressBar"></span></div>
           <strong id="overviewProgressText">0% COMPLETE</strong>
-          <div class="course-payment-panel learning-payment-panel">
+          <div id="coursePaymentPanel" class="course-payment-panel learning-payment-panel">
             <div>
               <p class="learning-eyebrow">ENROLLMENT</p>
               <strong id="coursePaymentPrice">Free</strong>
               <span>Manual payment verification</span>
             </div>
             <div class="course-payment-methods">
-              <a id="coursePaymentBkashLink" href="tel:01644171751"><span class="payment-brand bkash"><img src="https://cdn.simpleicons.org/bkash/E2136E" alt="Official bKash logo" onerror="this.hidden=true;this.nextElementSibling.style.display='block'"><span class="payment-brand-fallback">bK</span></span> bKash <b id="coursePaymentBkash">01644171751</b><span class="payment-action">Pay / Call</span></a>
-              <a id="coursePaymentRocketLink" href="tel:01644171751"><span class="payment-brand rocket"><img src="https://cdn.simpleicons.org/rocket/8B5CF6" alt="Official Rocket logo" onerror="this.hidden=true;this.nextElementSibling.style.display='block'"><span class="payment-brand-fallback">R</span></span> Rocket <b id="coursePaymentRocket">01644171751</b><span class="payment-action">Pay / Call</span></a>
+              <a id="coursePaymentBkashLink" href="tel:01644171751"><span class="payment-brand bkash"><span class="payment-brand-fallback">bK</span></span> bKash <b id="coursePaymentBkash">01644171751</b><span class="payment-action">Pay / Call</span></a>
+              <a id="coursePaymentRocketLink" href="tel:01644171751"><span class="payment-brand rocket"><span class="payment-brand-fallback">R</span></span> Rocket <b id="coursePaymentRocket">01644171751</b><span class="payment-action">Pay / Call</span></a>
               <a id="coursePaymentBankLink" href="#coursePaymentBank"><span class="payment-brand"><i class="fa-solid fa-building-columns"></i></span> Bank <b id="coursePaymentBank">Contact for bank details</b><span class="payment-action">Details</span></a>
             </div>
             <div class="payment-qr-panel" id="coursePaymentQrPanel" aria-label="Scan payment QR codes"></div>
           </div>
           <button id="overviewStartBtn" class="learning-button primary" type="button"><i class="fa-solid fa-play"></i> Start Lesson</button>
+          <p id="courseEnrollmentStatus" class="enrollment-success">✓ You're enrolled</p>
         </div>
       </div>
       <div class="overview-content-grid">
@@ -137,6 +257,6 @@
       </aside>
     </section>
   </main>
-  <script type="module" src="assets/js/course-learning.js?v=20260824-course-lms"></script>
+  <script type="module" src="assets/js/course-learning.js?v=20260824-course-lms-v3"></script>
 </body>
 </html>

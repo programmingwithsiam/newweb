@@ -62,9 +62,59 @@ export function uploadLessonVideo(courseId, moduleId, lessonId, file, onProgress
     const fileRef = ref(storage, `lessons_videos/${courseId}/${lessonId}/${Date.now()}-${safeName}`);
     const task = uploadBytesResumable(fileRef, file, { contentType: 'video/mp4' });
     return new Promise((resolve, reject) => {
+      let bytesTransferred = 0;
+      const startTimer = setTimeout(() => {
+        if (bytesTransferred === 0) {
+          task.cancel();
+          reject(new Error('Video upload could not start. Check your connection and Firebase Storage setup.'));
+        }
+      }, 15000);
       task.on('state_changed', snapshot => {
+        bytesTransferred = snapshot.bytesTransferred;
+        if (snapshot.state === 'paused') task.resume();
         onProgress?.(Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100));
-      }, reject, () => getDownloadURL(task.snapshot.ref).then(resolve).catch(reject));
+      }, error => {
+        clearTimeout(startTimer);
+        reject(error);
+      }, () => {
+        clearTimeout(startTimer);
+        getDownloadURL(task.snapshot.ref).then(resolve).catch(reject);
+      });
+    });
+  });
+}
+
+export function uploadCourseVideo(courseId, file, onProgress) {
+  if (!storage || !auth?.currentUser || !file) return Promise.reject(new Error('Video upload is unavailable.'));
+  if (!file.name.toLowerCase().endsWith('.mp4') || file.type !== 'video/mp4') {
+    return Promise.reject(new Error('Only MP4 video files are supported.'));
+  }
+  if (file.size > MAX_VIDEO_BYTES) {
+    return Promise.reject(new Error(`Video must be smaller than ${MAX_VIDEO_BYTES / (1024 * 1024)} MB.`));
+  }
+  return loadStorage().then(({ ref, uploadBytesResumable, getDownloadURL }) => {
+    const safeName = file.name.toLowerCase().replace(/[^a-z0-9._-]+/g, '-');
+    const fileRef = ref(storage, `courses_videos/${courseId}/${Date.now()}-${safeName}`);
+    const task = uploadBytesResumable(fileRef, file, { contentType: 'video/mp4' });
+    return new Promise((resolve, reject) => {
+      let bytesTransferred = 0;
+      const startTimer = setTimeout(() => {
+        if (bytesTransferred === 0) {
+          task.cancel();
+          reject(new Error('Video upload could not start. Check your connection and Firebase Storage setup.'));
+        }
+      }, 15000);
+      task.on('state_changed', snapshot => {
+        bytesTransferred = snapshot.bytesTransferred;
+        if (snapshot.state === 'paused') task.resume();
+        onProgress?.(Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100));
+      }, error => {
+        clearTimeout(startTimer);
+        reject(error);
+      }, () => {
+        clearTimeout(startTimer);
+        getDownloadURL(task.snapshot.ref).then(resolve).catch(reject);
+      });
     });
   });
 }
@@ -137,9 +187,15 @@ export async function fetchAllCourses() {
     }
     const isAdminUser = currentUser?.email?.toLowerCase() === 'mdsiamahmmedloselovestroy@gmail.com' && currentUser.emailVerified === true;
     const isPaid = Number(course.price) > 0;
-    const hasAccess = !!currentUser && !userProfile?.blocked && (!isPaid || isAdminUser || (userProfile?.courseAccess || []).includes(course.id));
+    const hasAccess = !!currentUser && !userProfile?.blocked && (isAdminUser || !isPaid || (userProfile?.courseAccess || []).includes(course.id));
     course.accessDenied = !!currentUser && !hasAccess;
     if (!hasAccess) delete course.videoUrl;
+
+    if (!hasAccess) {
+      course.modules = [];
+      course.lessons = [];
+      return course;
+    }
 
     const modulesSnap = await getDocs(collection(db, 'courses', course.id, 'modules'));
     const modules = [];
@@ -188,6 +244,7 @@ export async function createCourse(courseData) {
     thumbnail: courseData.thumbnail || '',
     videoUrl: courseData.videoUrl || '',
     price: Number(courseData.price) || 0,
+    discountPrice: Number(courseData.discountPrice) || 0,
     payment: courseData.payment || { bkash: '', rocket: '', bank: '' },
     instructor: courseData.instructor || 'CodeWithSiam',
     status: courseData.status || 'published',
@@ -213,6 +270,54 @@ export async function findUserByEmail(email) {
 export async function updateUserAccess(uid, data) {
   const { doc, updateDoc } = await loadFirestore();
   return updateDoc(doc(db, 'users', uid), data);
+}
+
+export async function createPaymentSubmission(paymentData) {
+  if (!auth?.currentUser || auth.currentUser.uid !== paymentData.userId) {
+    throw new Error('You must be signed in to submit a payment.');
+  }
+  const { collection, addDoc, serverTimestamp } = await loadFirestore();
+  return addDoc(collection(db, 'payments'), {
+    userId: auth.currentUser.uid,
+    studentName: paymentData.studentName || auth.currentUser.displayName || '',
+    studentEmail: auth.currentUser.email || '',
+    courseId: paymentData.courseId || '',
+    courseTitle: paymentData.courseTitle || '',
+    amount: Number(paymentData.amount) || 0,
+    method: paymentData.method || '',
+    transactionId: String(paymentData.transactionId || '').trim(),
+    paymentDate: paymentData.paymentDate || '',
+    screenshotUrl: paymentData.screenshotUrl || '',
+    status: 'pending',
+    submittedAt: serverTimestamp(),
+  });
+}
+
+export async function fetchAllPayments() {
+  const { collection, getDocs, query, orderBy } = await loadFirestore();
+  const snap = await getDocs(query(collection(db, 'payments'), orderBy('submittedAt', 'desc')));
+  return snap.docs.map(item => ({ id: item.id, ...item.data() }));
+}
+
+export async function updatePayment(paymentId, data) {
+  const { doc, updateDoc, serverTimestamp } = await loadFirestore();
+  return updateDoc(doc(db, 'payments', paymentId), { ...data, reviewedAt: serverTimestamp() });
+}
+
+export async function deletePayment(paymentId) {
+  const { doc, deleteDoc } = await loadFirestore();
+  return deleteDoc(doc(db, 'payments', paymentId));
+}
+
+export async function fetchLiveSettings() {
+  const { doc, getDoc } = await loadFirestore();
+  const snap = await getDoc(doc(db, 'settings', 'liveStream'));
+  return snap.exists() ? snap.data() : {};
+}
+
+export async function updateLiveSettings(data) {
+  const { doc, setDoc, serverTimestamp } = await loadFirestore();
+  return setDoc(doc(db, 'settings', 'liveStream'), { ...data, updatedAt: serverTimestamp() }, { merge: true });
 }
 
 export async function deleteCourse(courseId) {
@@ -266,6 +371,9 @@ export async function createLesson(courseId, moduleId, lessonData) {
     youtubeVideoId: extractYoutubeId(lessonData.videoUrl || ''),
     youtubeUrl: extractYoutubeId(lessonData.videoUrl || '') ? lessonData.videoUrl : '',
     videoType: extractYoutubeId(lessonData.videoUrl || '') ? 'youtube' : lessonData.videoUrl ? 'file' : '',
+    subtitleLanguage: lessonData.subtitleLanguage || '',
+    freePreview: lessonData.freePreview === true,
+    published: lessonData.published !== false,
     resources: Array.isArray(lessonData.resources) ? lessonData.resources : [],
     order: Number(lessonData.order) || 0,
   });

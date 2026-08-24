@@ -12,14 +12,20 @@ service firebase.storage {
       return isAdmin() || (request.auth != null &&
         firestore.exists(/databases/(default)/documents/users/$(request.auth.uid)) &&
         firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.blocked != true &&
-        ((!firestore.exists(/databases/(default)/documents/courses/$(courseId)) ||
-          !('price' in firestore.get(/databases/(default)/documents/courses/$(courseId)).data) ||
-          firestore.get(/databases/(default)/documents/courses/$(courseId)).data.price <= 0) ||
+        (firestore.get(/databases/(default)/documents/courses/$(courseId)).data.price <= 0 ||
           (('courseAccess' in firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data) &&
             firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.courseAccess.has(courseId))));
     }
 
     match /lessons_videos/{courseId}/{lessonId}/{fileName} {
+      allow read: if canAccessCourse(courseId);
+      allow write: if isAdmin() &&
+        request.resource.contentType == 'video/mp4' &&
+        request.resource.size <= 104857600;
+      allow delete: if isAdmin();
+    }
+
+    match /courses_videos/{courseId}/{fileName} {
       allow read: if canAccessCourse(courseId);
       allow write: if isAdmin() &&
         request.resource.contentType == 'video/mp4' &&

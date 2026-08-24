@@ -29,6 +29,31 @@ function initSiteEffects(){
   initChatbot();
   initChatToggle();
   initCourseDeck();
+  initLiveNotification();
+}
+
+function initLiveNotification() {
+  const button = document.getElementById('liveNotificationBtn');
+  const panel = document.getElementById('liveNotificationPanel');
+  const frame = document.getElementById('liveNotificationFrame');
+  const openLink = document.getElementById('liveNotificationOpen');
+  if (!button || !panel || !frame || !openLink) return;
+  import('./courses-db.js').then(async ({ fetchLiveSettings, extractYoutubeId }) => {
+    const settings = await fetchLiveSettings().catch(() => ({}));
+    const videoId = extractYoutubeId(settings.url || '');
+    if (settings.enabled !== true || !videoId) return;
+    button.classList.remove('hidden');
+    frame.src = `https://www.youtube.com/embed/${videoId}?rel=0&playsinline=1`;
+    openLink.href = settings.url;
+    button.addEventListener('click', () => {
+      const open = panel.classList.toggle('hidden') === false;
+      button.setAttribute('aria-expanded', String(open));
+    });
+    document.getElementById('closeLiveNotification')?.addEventListener('click', () => {
+      panel.classList.add('hidden');
+      button.setAttribute('aria-expanded', 'false');
+    });
+  }).catch(() => {});
 }
 
 const COURSE_PROGRESS_KEY = 'siam_portfolio_course_progress'; // local cache only; source of truth is Firestore progress/{uid}
@@ -120,7 +145,7 @@ function renderPublishedCourseCatalog() {
     const progress = getCoursePercent(course);
     const thumbnail = course.thumbnail || getYoutubeThumbnailUrl(course.videoUrl);
     const fallbackTitle = escapeHtml(String(course.title || 'Course').slice(0, 24));
-        return `<a class="lms-course-card" data-course-id="${escapeHtml(course.id)}" href="course.html?course=${encodeURIComponent(course.id)}" aria-label="Open ${escapeHtml(course.title)} course">
+        return `<a class="lms-course-card" data-course-id="${escapeHtml(course.id)}" href="course-details.html?course=${encodeURIComponent(course.id)}" aria-label="View ${escapeHtml(course.title)} course details">
           <span class="lms-course-thumbnail ${thumbnail ? 'has-image' : ''}">${thumbnail ? `<img src="${escapeHtml(thumbnail)}" alt="${escapeHtml(course.title)} thumbnail" loading="lazy" decoding="async">` : `<span class="lms-course-fallback"><i class="fa-solid fa-graduation-cap"></i><strong>${fallbackTitle}</strong></span>`}<span class="lms-course-play" aria-hidden="true"><i class="fa-solid fa-play"></i></span></span>
       <span class="lms-course-body"><strong class="lms-course-title">${escapeHtml(course.title)}</strong><span class="lms-course-progress"><span class="lms-course-progress-track"><span style="width:${progress}%"></span></span><span class="lms-course-percent">${progress}%<small>COMPLETE</small></span></span><span class="lms-course-view">View Course <i class="fa-solid fa-arrow-right"></i></span></span>
     </a>`;
