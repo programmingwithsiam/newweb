@@ -1,4 +1,4 @@
-import { fetchAllCourses, saveUserCourseProgress, extractYoutubeId, isMp4VideoUrl } from './courses-db.js';
+import { fetchAllCourses, saveUserCourseProgress, createPaymentSubmission, extractYoutubeId, isMp4VideoUrl } from './courses-db.js';
 import { observeAuthState, signInWithGoogle } from './auth.js';
 
 const progressKey = 'siam_portfolio_course_progress';
@@ -154,7 +154,9 @@ function renderOverview() {
   const bkash = course.payment?.bkash || '01644171751';
   const rocket = course.payment?.rocket || '01644171751';
   const bank = course.payment?.bank || 'Contact for bank details';
-  $('coursePaymentPrice').textContent = Number(course.price) > 0 ? `৳${Number(course.price).toLocaleString('en-BD')}` : 'Free';
+  const originalPrice = Number(course.price) || 0;
+  const discountPrice = Number(course.discountPrice) > 0 && Number(course.discountPrice) < originalPrice ? Number(course.discountPrice) : originalPrice;
+  $('coursePaymentPrice').textContent = discountPrice > 0 ? `৳${discountPrice.toLocaleString('en-BD')}` : 'Free';
   $('coursePaymentPanel')?.classList.add('hidden');
   $('coursePaymentBkash').textContent = bkash;
   $('coursePaymentRocket').textContent = rocket;
@@ -172,9 +174,51 @@ function renderOverview() {
   $('overviewEnrollBtn').disabled = !lesson;
   $('overviewEnrollBtn').onclick = () => showAccessGate({ signedIn: Boolean(user) });
   $('courseEnrollmentStatus').classList.toggle('hidden', !hasAccess);
+  renderCheckout(discountPrice, originalPrice, hasAccess);
   $('playlistCount').textContent = `${lessons.length} lessons`;
   playlist($('overviewPlaylist'));
   setProgress();
+}
+function renderCheckout(finalPrice, originalPrice, hasAccess) {
+  const checkout = $('courseCheckout');
+  if (!checkout) return;
+  checkout.classList.toggle('hidden', hasAccess || finalPrice <= 0);
+  $('checkoutFinalPrice').textContent = finalPrice > 0 ? `৳${finalPrice.toLocaleString('en-BD')}` : 'Free';
+  $('checkoutOriginalPrice').textContent = `৳${originalPrice.toLocaleString('en-BD')}`;
+  $('checkoutOriginalPrice').classList.toggle('hidden', originalPrice <= finalPrice);
+  const duration = course.duration || `${lessons.reduce((sum, item) => sum + parseInt(String(item.duration).match(/\d+/)?.[0] || '0', 10), 0)} min`;
+  const benefits = [`${lessons.length} lectures`, duration];
+  if (course.accessDuration) benefits.push(`Access on mobile and desktop (${course.accessDuration})`);
+  if (course.certificateAvailable === true) benefits.push('Certificate of completion');
+  $('checkoutBenefits').innerHTML = benefits.map(item => `<span class="checkout-benefit">✓ ${item}</span>`).join('');
+  const method = $('checkoutPaymentMethod').value;
+  const number = course.payment?.[method] || 'Contact admin for payment instructions';
+  $('checkoutPaymentInstruction').textContent = `${method === 'bkash' ? 'bKash' : 'Nagad'}: ${number}`;
+  $('checkoutPayBtn').textContent = `Pay ৳${finalPrice.toLocaleString('en-BD')}`;
+}
+function validBangladeshPhone(value) { return /^(01[3-9]\d{8})$/.test(String(value || '').replace(/\D/g, '')); }
+function bindCheckout() {
+  const phone = $('checkoutPhone');
+  const transaction = $('checkoutTransactionId');
+  const pay = $('checkoutPayBtn');
+  if (!phone || !transaction || !pay || pay.dataset.bound) return;
+  pay.dataset.bound = 'true';
+  const update = () => { const valid = validBangladeshPhone(phone.value); $('checkoutPhoneError').textContent = phone.value && !valid ? 'Please enter a valid 11-digit Bangladesh phone number' : ''; pay.disabled = !valid || !transaction.value.trim() || Boolean(pay.dataset.processing); };
+  phone.addEventListener('input', update);
+  transaction.addEventListener('input', update);
+  $('checkoutPaymentMethod').addEventListener('change', () => renderCheckout(Number(course.discountPrice) || Number(course.price) || 0, Number(course.price) || 0, false));
+  pay.addEventListener('click', async () => {
+    update();
+    if (pay.disabled) return;
+    if (!user) { $('checkoutStatus').textContent = 'Login to continue.'; showAccessGate(); return; }
+    pay.dataset.processing = 'true'; pay.disabled = true; pay.textContent = 'Processing...';
+    try {
+      await createPaymentSubmission({ userId: user.uid, courseId: course.id, courseTitle: course.title, amount: Number(course.discountPrice) > 0 && Number(course.discountPrice) < Number(course.price) ? Number(course.discountPrice) : Number(course.price), method: $('checkoutPaymentMethod').value, transactionId: transaction.value.trim(), phone: `+880${phone.value.replace(/^0/, '')}` });
+      $('checkoutStatus').textContent = 'Payment submitted — waiting for verification.';
+      pay.textContent = 'Payment submitted';
+    } catch (error) { $('checkoutStatus').textContent = error.message || 'Payment could not be submitted.'; pay.dataset.processing = ''; pay.textContent = `Pay ৳${(Number(course.discountPrice) > 0 && Number(course.discountPrice) < Number(course.price) ? Number(course.discountPrice) : Number(course.price)).toLocaleString('en-BD')}`; update(); }
+  });
+  $('checkoutShareBtn')?.addEventListener('click', async () => { const url = location.href; if (navigator.share) await navigator.share({ title: course.title, url }).catch(() => {}); else { await navigator.clipboard?.writeText(url); $('checkoutStatus').textContent = 'Link copied!'; } });
 }
 function renderPlayer() {
   const lesson = currentLesson();
@@ -254,6 +298,7 @@ async function load() {
     $('learningLoading').innerHTML = '<div class="course-error-card"><i class="fa-solid fa-compass"></i><h1>Course not found</h1><p>Choose a course from the CodeWithSiam course library to continue.</p><a class="learning-button primary" href="index.html">Browse Courses</a></div>';
     return;
   }
+  bindCheckout();
   if (!user) {
     lessons = orderedLessons(course);
     $('learningLoading').classList.add('hidden');

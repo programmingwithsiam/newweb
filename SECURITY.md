@@ -3,7 +3,7 @@
 ## Secrets
 
 - Never commit `.env`, service-account JSON, private keys, or API tokens.
-- Put `GEMINI_API_KEY` and `ALLOWED_ORIGIN` in Vercel Project Settings > Environment Variables.
+- Put other server-side secrets in Vercel Project Settings > Environment Variables.
 - `.env.example` contains placeholders only and is safe to commit.
 - Firebase web configuration is intentionally public. Firestore and Storage rules are the real access control.
 

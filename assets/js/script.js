@@ -26,8 +26,6 @@ function initSiteEffects(){
   initSkillBars();
   initTiltCards();
   initMobileMenu();
-  initChatbot();
-  initChatToggle();
   initCourseDeck();
   initLiveNotification();
 }
@@ -132,6 +130,25 @@ function getCourseStateLabel(course) {
   return 'Start';
 }
 
+function getCourseCardMeta(course) {
+  const lessons = Array.isArray(course?.lessons) ? course.lessons : [];
+  const totalMinutes = lessons.reduce((sum, lesson) => {
+    const parsed = Number(String(lesson?.duration || '').match(/\d+/)?.[0] || '0');
+    return sum + parsed;
+  }, 0);
+  const level = String(course?.level || course?.category || 'Beginner').trim() || 'Beginner';
+  const durationText = totalMinutes > 0 ? `${totalMinutes} min` : (course?.duration || 'Self-paced');
+  const freePreview = lessons.some(lesson => lesson?.freePreview === true);
+  const description = String(course?.description || 'Learn by building practical projects with clear guidance and hands-on exercises.').trim();
+
+  return {
+    level,
+    durationText,
+    freePreview,
+    description
+  };
+}
+
 function renderPublishedCourseCatalog() {
   const catalog = document.getElementById('publishedCourseCatalog');
   if (!catalog) return;
@@ -145,9 +162,25 @@ function renderPublishedCourseCatalog() {
     const progress = getCoursePercent(course);
     const thumbnail = course.thumbnail || getYoutubeThumbnailUrl(course.videoUrl);
     const fallbackTitle = escapeHtml(String(course.title || 'Course').slice(0, 24));
-        return `<a class="lms-course-card" data-course-id="${escapeHtml(course.id)}" href="course.html?course=${encodeURIComponent(course.id)}" aria-label="View ${escapeHtml(course.title)} course details">
-          <span class="lms-course-thumbnail ${thumbnail ? 'has-image' : ''}">${thumbnail ? `<img src="${escapeHtml(thumbnail)}" alt="${escapeHtml(course.title)} thumbnail" loading="lazy" decoding="async">` : `<span class="lms-course-fallback"><i class="fa-solid fa-graduation-cap"></i><strong>${fallbackTitle}</strong></span>`}</span>
-      <span class="lms-course-body"><strong class="lms-course-title">${escapeHtml(course.title)}</strong><span class="lms-course-progress"><span class="lms-course-progress-track"><span style="width:${progress}%"></span></span><span class="lms-course-percent">${progress}%<small>COMPLETE</small></span></span><span class="lms-course-view">View Course <i class="fa-solid fa-arrow-right"></i></span></span>
+    const { level, durationText, freePreview, description } = getCourseCardMeta(course);
+    const priceBadge = Number(course.price) > 0 ? `৳${Number(course.price).toLocaleString('en-BD')}` : 'Free';
+    const freePreviewBadge = freePreview ? '<span class="lms-course-tag soft">Free Preview</span>' : '';
+    const descriptionText = escapeHtml(description.length > 115 ? `${description.slice(0, 112)}...` : description);
+    const levelText = escapeHtml(level);
+    const durationLabel = escapeHtml(durationText);
+    return `<a class="lms-course-card" data-course-id="${escapeHtml(course.id)}" href="course.html?course=${encodeURIComponent(course.id)}" aria-label="View ${escapeHtml(course.title)} course details">
+          <span class="lms-course-thumbnail ${thumbnail ? 'has-image' : ''}">${thumbnail ? `<img src="${escapeHtml(thumbnail)}" alt="${escapeHtml(course.title)} thumbnail" loading="lazy" decoding="async">` : `<span class="lms-course-fallback"><i class="fa-solid fa-graduation-cap"></i><strong>${fallbackTitle}</strong></span>`}<span class="lms-course-label">${escapeHtml(course.category || 'Course')}</span><span class="lms-course-price-badge">${priceBadge}</span></span>
+      <span class="lms-course-body">
+        <strong class="lms-course-title">${escapeHtml(course.title)}</strong>
+        <span class="lms-course-meta-row">
+          <span class="lms-course-tag">${levelText}</span>
+          <span class="lms-course-tag muted">${durationLabel}</span>
+          ${freePreviewBadge}
+        </span>
+        <span class="lms-course-summary">${descriptionText}</span>
+        <span class="lms-course-progress"><span class="lms-course-progress-track"><span style="width:${progress}%"></span></span><span class="lms-course-percent">${progress}%<small>COMPLETE</small></span></span>
+        <span class="lms-course-view">View Course <i class="fa-solid fa-arrow-right"></i></span>
+      </span>
     </a>`;
   }).join('');
   catalog.querySelectorAll('.lms-course-thumbnail img').forEach(image => {
@@ -1109,6 +1142,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // (and therefore progress syncing / the admin link) is driven separately
   // by auth-app.js via window.handleAuthStateChange().
   initSiteEffects();
+  activateSection('home');
 });
 
 /* ---------- Ambient background dust (quiet, no connecting lines) ---------- */
@@ -1148,6 +1182,52 @@ function initParticles(){
 }
 
 /* ---------- Header scroll state + smooth nav ---------- */
+function activateSection(sectionId){
+  const allowed = new Set(['home','about','skills','ml','projects','course','contact']);
+  const target = allowed.has(sectionId) ? sectionId : 'home';
+  const focusTargets = document.querySelectorAll('.hero, .section');
+
+  focusTargets.forEach((node) => {
+    const nodeId = node.id || '';
+    const matches = nodeId === target || (target === 'home' && nodeId === 'contact');
+    node.classList.toggle('is-visible', matches);
+    node.classList.toggle('is-hidden', !matches);
+
+  });
+
+  document.querySelectorAll('#nav a[href^="#"]').forEach((link) => {
+    const href = link.getAttribute('href');
+    link.classList.toggle('is-current', href === `#${target}`);
+  });
+
+  const finalPath = target === 'home' ? '/' : `#${target}`;
+  if (window.location.pathname !== '/' || window.location.hash !== finalPath.replace('/', '')) {
+    window.history.pushState({}, '', finalPath);
+  }
+
+  const targetNode = document.getElementById(target);
+  if (targetNode) {
+    requestAnimationFrame(() => {
+      targetNode.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }
+}
+
+function bindSingleSectionNavigation(){
+  document.querySelectorAll('a[href^="#"]').forEach((link) => {
+    const sectionId = link.getAttribute('href')?.replace('#', '');
+    if (!sectionId || !document.getElementById(sectionId)) return;
+
+    link.addEventListener('click', (event) => {
+      const target = link.getAttribute('href')?.replace('#', '');
+      if (!target) return;
+      event.preventDefault();
+      activateSection(target);
+      document.getElementById('nav')?.classList.remove('open');
+    });
+  });
+}
+
 function initHeader(){
   const header = document.getElementById('header');
   if(!header) return;
@@ -1160,6 +1240,7 @@ function initHeader(){
       document.getElementById('nav')?.classList.remove('open');
     });
   });
+  bindSingleSectionNavigation();
 }
 
 function initMobileMenu(){
@@ -1305,7 +1386,7 @@ function initChatbot(){
 function initChatToggle(){
   if (chatToggleInitialized) return;
   const toggle = document.getElementById('chatToggleBtn');
-  const chat = document.getElementById('siteChatbox') || document.querySelector('.chatbox');
+  const chat = document.getElementById('chatbot') || document.querySelector('.chatbox');
   if(!toggle || !chat) return;
 
   function setOpen(open){

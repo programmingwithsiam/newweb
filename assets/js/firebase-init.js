@@ -19,8 +19,7 @@
    Firebase project to talk to. Actual protection of your data comes
    from Firestore Security Rules (see firestore.rules), not from hiding
    this config. So it is safe for these values to live in this file and
-   be committed/deployed — do NOT confuse this with the GEMINI_API_KEY,
-   which IS a real secret and must stay server-side only (see api/chat.js).
+  be committed/deployed. Server-side secrets must stay outside frontend code.
    ========================================================= */
 
 // TODO: Replace with your Firebase project's web config.

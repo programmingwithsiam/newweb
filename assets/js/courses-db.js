@@ -195,13 +195,8 @@ export async function fetchAllCourses() {
   }
 
   const courses = await Promise.all(sortByOrder(coursesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }))).map(async (course) => {
-    course.price = 0;
-    course.discountPrice = 0;
-    delete course.payment;
     // Do not expose course-level videoUrl to unauthenticated visitors.
-    if (!currentUser) {
-      delete course.videoUrl;
-    }
+    if (!currentUser) delete course.videoUrl;
     const isAdminUser = currentUser?.email?.toLowerCase() === 'mdsiamahmmedloselovestroy@gmail.com' && currentUser.emailVerified === true;
     const isGoogleUser = currentUser?.providerData?.some(provider => provider.providerId === 'google.com');
     let emailAccess = false;
@@ -267,8 +262,8 @@ export async function createCourse(courseData) {
     category: courseData.category || 'General',
     thumbnail: courseData.thumbnail || '',
     videoUrl: courseData.videoUrl || '',
-    price: 0,
-    discountPrice: 0,
+    price: Math.max(0, Number(courseData.price) || 0),
+    discountPrice: Math.max(0, Number(courseData.discountPrice) || 0),
     instructor: courseData.instructor || 'CodeWithSiam',
     status: courseData.status || 'published',
     showOnIndex: courseData.showOnIndex === true,
@@ -331,6 +326,7 @@ export async function createPaymentSubmission(paymentData) {
     amount: Number(paymentData.amount) || 0,
     method: paymentData.method || '',
     transactionId: String(paymentData.transactionId || '').trim(),
+    phone: String(paymentData.phone || '').trim(),
     paymentDate: paymentData.paymentDate || '',
     screenshotUrl: paymentData.screenshotUrl || '',
     status: 'pending',
@@ -485,3 +481,4 @@ export async function saveUserCourseProgress(uid, courseId, data) {
     { merge: true }
   );
 }
+

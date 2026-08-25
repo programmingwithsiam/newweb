@@ -1591,6 +1591,16 @@
               ></textarea>
             </label>
 
+            <label>
+              Price (BDT)
+              <input id="newCoursePrice" type="number" min="0" step="1" value="0" placeholder="0">
+            </label>
+
+            <label>
+              Discount Price (BDT)
+              <input id="newCourseDiscountPrice" type="number" min="0" step="1" value="0" placeholder="Optional">
+            </label>
+
 
             <label>
               Instructor
@@ -1630,7 +1640,7 @@
               </div>
             </div>
 
-            <div class="full free-course-note">All courses are free. Video access is controlled by authorized Gmail accounts.</div>
+            <div class="full free-course-note">Set a price for paid courses. Leave both values at 0 for a free course.</div>
 
 
             <label>
@@ -2347,7 +2357,8 @@
 
               videoUrl: '',
 
-              price: 0,
+              price: Number(document.getElementById('newCoursePrice').value) || 0,
+              discountPrice: Number(document.getElementById('newCourseDiscountPrice').value) || 0,
               status:
                 document
                   .getElementById(

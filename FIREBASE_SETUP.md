@@ -94,7 +94,6 @@ Use this checklist after deploying:
 - [ ] Open the site in an incognito window / different browser — the course you created is visible there too (this confirms it's in Firestore, not localStorage).
 - [ ] Mark a lesson complete while signed in, refresh — progress persists.
 - [ ] Sign in on a second device — progress from the first device appears.
-- [ ] Confirm the Gemini chatbot still replies (needs `GEMINI_API_KEY` set in Vercel).
 - [ ] Open browser dev tools → Network/Sources — confirm `GEMINI_API_KEY` never appears in any frontend file or response.
 
 ## Free-tier notes

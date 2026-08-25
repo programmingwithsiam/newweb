@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="assets/css/course-learning.css">
   <style>
     .access-payment-panel, .payment-submit-panel, .learning-payment-panel, .course-payment-panel { display: none !important; }
+    #courseCheckout { display: grid !important; gap: 14px; margin-top: 18px; padding: 18px; border: 1px solid #273142; border-radius: 8px; background: #101722; }
     .learning-state { width: min(100% - 32px, 560px); min-height: 280px; margin: 8vh auto; padding: 42px 32px; display: grid; place-items: center; align-content: center; gap: 12px; border: 1px solid rgba(255,255,255,.1); border-radius: 16px; background: rgba(14,18,29,.82); box-shadow: 0 24px 70px rgba(0,0,0,.22); text-align: center; }
     .learning-state > i { display: grid; width: 48px; height: 48px; place-items: center; border-radius: 14px; color: #a8c1ff; background: rgba(122,162,255,.14); font-size: 1.2rem; }
     #learningLogin { position: relative; overflow: hidden; border-color: rgba(142,175,255,.24); background: linear-gradient(145deg, rgba(17,24,38,.96), rgba(10,14,23,.98)); }
@@ -74,6 +75,18 @@
     .access-payment-panel .course-payment-methods i { width: 18px; color: var(--learning-accent); }
     .access-payment-panel .course-payment-methods b { margin-left: auto; color: var(--learning-muted); font-weight: 500; }
     .course-payment-methods a { border: 1px solid rgba(255,255,255,.08); border-radius: 6px; padding: 9px 10px !important; background: rgba(255,255,255,.025); }
+    .course-sales-panels { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; margin-top: 26px; }
+    .sales-panel, .faq-panel { border: 1px solid #273142; border-radius: 12px; background: #111722; box-shadow: 0 18px 50px rgba(0,0,0,.14); }
+    .sales-panel { padding: 20px 22px; }
+    .sales-panel h3, .faq-header h3 { margin: 8px 0 0; font-size: 1.08rem; }
+    .sales-panel ul { margin: 14px 0 0; padding-left: 18px; color: var(--learning-muted); line-height: 1.7; }
+    .faq-panel { margin-top: 20px; padding: 20px 22px; }
+    .faq-header { margin-bottom: 10px; }
+    .faq-list { display: grid; gap: 12px; }
+    .faq-list details { border: 1px solid rgba(255,255,255,.09); border-radius: 10px; background: rgba(255,255,255,.02); }
+    .faq-list summary { list-style: none; cursor: pointer; padding: 14px 16px; font-weight: 600; color: var(--learning-text); }
+    .faq-list summary::-webkit-details-marker { display: none; }
+    .faq-list p { margin: 0; padding: 0 16px 14px; color: var(--learning-muted); line-height: 1.6; }
     .payment-brand { display: grid; flex: 0 0 34px; width: 34px; height: 34px; place-items: center; overflow: hidden; border-radius: 8px; background: #fff; }
     .payment-brand img { display: block; width: 26px; height: 26px; object-fit: contain; }
     .payment-brand-fallback { display: block; font-size: .72rem; font-weight: 900; }
@@ -131,13 +144,63 @@
     .learning-button:hover:not(:disabled) { transform: translateY(-1px); border-color: #6d8fd7; }
     .learning-button.primary { color: #07101f; background: #8eafff; border-color: #8eafff; }
     .learning-button.primary:hover:not(:disabled) { background: #b0c5ff; }
+    /* Full course overview: compact, structured learning dashboard. */
+    .course-overview-screen { width: min(100%, 1020px); margin: 0 auto; }
+    .overview-heading { align-items: end; max-width: 860px; margin: 0 auto 24px; }
+    .overview-heading h1 { font-size: clamp(1.8rem, 4vw, 2.65rem); }
+    .overview-heading p:not(.learning-eyebrow) { font-size: .86rem; }
+    .overview-summary { grid-template-columns: minmax(0, 1.15fr) minmax(270px, .85fr); gap: 16px; padding: 14px; border: 1px solid #202a39; border-radius: 8px; background: #11151d; box-shadow: 0 16px 42px rgba(0,0,0,.2); }
+    .overview-summary > img { min-height: 235px; border: 0; border-radius: 5px; box-shadow: none; }
+    .overview-details { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; padding: 22px; border: 0; border-left: 1px solid #273142; border-radius: 5px; background: #080b12; box-shadow: none; }
+    .overview-details h2 { font-size: 1.15rem; }
+    .overview-details .overview-meta { width: 100%; margin: 5px 0 14px; padding: 10px 0; border-top: 1px solid #273142; border-bottom: 1px solid #273142; }
+    .overview-details .progress-line { width: 100%; }
+    .overview-details .learning-button { width: 100%; margin-top: 16px; }
+    .overview-content-grid { margin-top: 18px; }
+    .playlist-panel { padding: 16px; border-radius: 8px; }
+    .panel-heading { padding-bottom: 12px; }
+    .overview-playlist { display: grid; gap: 8px; margin-top: 10px; }
+    .overview-playlist .module-block { margin: 0; }
+    .overview-playlist .lesson-row { min-height: 48px; }
+    .overview-playlist .lesson-row-action { display: inline-flex; align-items: center; min-height: 24px; padding: 3px 8px; border: 1px solid rgba(142,175,255,.55); border-radius: 4px; color: #c6d5ff; background: rgba(122,162,255,.13); font-size: .68rem; font-weight: 700; }
+    .overview-playlist .lesson-row.complete .lesson-row-action { border-color: rgba(87,211,145,.45); color: #8be6b4; background: rgba(87,211,145,.1); }
+    .course-sales-panels { margin-top: 18px; }
+    .faq-panel { margin-top: 18px; }
+    /* Course workspace: playlist first, lesson player second. */
+    .lesson-screen { grid-template-columns: 300px minmax(0, 1fr); gap: 18px; min-height: calc(100vh - 132px); }
+    .lesson-sidebar { grid-column: 1; grid-row: 1; position: sticky; top: 86px; max-height: calc(100vh - 110px); overflow: hidden; border-radius: 8px; background: #101722; }
+    .lesson-main { grid-column: 2; grid-row: 1; min-width: 0; }
+    .sidebar-course-head { padding: 18px; border-bottom: 1px solid #273142; background: #151d2a; }
+    .sidebar-course-head h2 { margin: 0 0 14px; font-size: .98rem; }
+    .lesson-playlist { max-height: calc(100vh - 250px); overflow-y: auto; padding: 8px; }
+    .module-block { margin: 0 0 8px; border-radius: 6px; }
+    .module-title { padding: 11px 12px; font-size: .75rem; }
+    .lesson-row { min-height: 48px; padding: 8px 10px; border-radius: 4px; }
+    .lesson-row-title { font-size: .76rem; }
+    .lesson-row-meta { font-size: .66rem; }
+    .lesson-video-wrap { border-radius: 8px; box-shadow: 0 18px 45px rgba(0,0,0,.26); }
+    .lesson-video-wrap iframe, .lesson-video-wrap video { display: block; width: 100%; aspect-ratio: 16 / 9; }
+    .lesson-heading { display: flex; justify-content: space-between; gap: 16px; padding: 20px 2px 14px; }
+    .lesson-heading h1 { font-size: clamp(1.35rem, 2.5vw, 2rem); }
+    .lesson-heading p:not(.learning-eyebrow) { max-width: 70ch; }
+    .lesson-duration { flex: 0 0 auto; padding-top: 18px; color: #aab5c7; font-size: .78rem; }
+    .lesson-actions { padding: 0 2px; }
     @media (max-width: 760px) {
       .learning-app { width: min(100% - 28px, 600px); padding-top: 34px; }
       .learning-topbar { height: 60px; }
       .overview-heading { flex-direction: column; gap: 14px; }
       .overview-summary { grid-template-columns: 1fr; }
       .overview-summary > img, .overview-summary > .overview-thumbnail { min-height: 190px; }
-      .overview-details { padding: 20px; }
+      .overview-details { padding: 20px; border-left: 0; border-top: 1px solid #273142; }
+      .course-sales-panels { grid-template-columns: 1fr; }
+      .faq-panel, .sales-panel { padding: 18px 16px; }
+      .lesson-screen { display: flex; flex-direction: column; gap: 12px; min-height: 0; }
+      .lesson-sidebar { position: static; order: -1; width: 100%; max-height: 230px; }
+      .sidebar-course-head { padding: 14px; }
+      .lesson-playlist { max-height: 145px; }
+      .lesson-main { width: 100%; }
+      .lesson-heading { padding-top: 16px; }
+      .lesson-duration { padding-top: 14px; }
       .lesson-actions .learning-button { flex: 1 1 100%; }
     }
     @media (prefers-reduced-motion: reduce) {
@@ -244,13 +307,74 @@
           <button id="overviewEnrollBtn" class="learning-button primary" type="button"><i class="fa-solid fa-key"></i> Enroll</button>
           <button id="overviewStartBtn" class="learning-button primary" type="button"><i class="fa-solid fa-play"></i> Enroll Now</button>
           <p id="courseEnrollmentStatus" class="enrollment-success">✓ You're enrolled</p>
+          <section id="courseCheckout" aria-label="Course checkout">
+            <div class="checkout-price"><strong id="checkoutFinalPrice">Free</strong><del id="checkoutOriginalPrice" class="hidden">৳0</del></div>
+            <label class="checkout-label">Enter your Phone Number to continue
+              <span class="checkout-phone-row"><select id="checkoutCountry" aria-label="Country code"><option value="+880">+880</option></select><input id="checkoutPhone" type="tel" inputmode="numeric" maxlength="11" placeholder="01XXXXXXXXX" autocomplete="tel"></span>
+            </label>
+            <p id="checkoutPhoneError" class="checkout-error" role="alert"></p>
+            <label class="checkout-label">Payment method<select id="checkoutPaymentMethod"><option value="bkash">bKash</option><option value="nagad">Nagad</option></select></label>
+            <p id="checkoutPaymentInstruction" class="checkout-note"></p>
+            <label class="checkout-label">Transaction ID<input id="checkoutTransactionId" type="text" maxlength="80" placeholder="Enter transaction ID"></label>
+            <button id="checkoutPayBtn" class="learning-button primary" type="button" disabled>Pay</button>
+            <p id="checkoutStatus" class="checkout-note" role="status"></p>
+            <div class="checkout-benefits"><strong>This course includes:</strong><span id="checkoutBenefits"></span></div>
+            <button id="checkoutShareBtn" class="checkout-share" type="button"><i class="fa-solid fa-share-nodes"></i> Share</button>
+          </section>
         </div>
       </div>
+
+      <div class="course-sales-panels">
+        <div class="sales-panel">
+          <p class="learning-eyebrow">WHY THIS COURSE</p>
+          <h3>Learn by building real projects</h3>
+          <ul>
+            <li>Follow a practical roadmap instead of scattered theory.</li>
+            <li>Work on Python, ML, and AI projects you can actually understand and explain.</li>
+            <li>See the full learning flow from concept to implementation and review.</li>
+          </ul>
+        </div>
+        <div class="sales-panel">
+          <p class="learning-eyebrow">WHO IT’S FOR</p>
+          <h3>Built for curious learners</h3>
+          <ul>
+            <li>Beginners who want a beginner-friendly but practical Python path.</li>
+            <li>Students who want to move from tutorials to building AI projects.</li>
+            <li>Anyone learning ML and AI with a structured step-by-step plan.</li>
+          </ul>
+        </div>
+      </div>
+
       <div class="overview-content-grid">
         <section class="playlist-panel">
           <div class="panel-heading"><div><p class="learning-eyebrow">COURSE CONTENT</p><h2>Playlist</h2></div><span id="playlistCount">0 lessons</span></div>
           <div id="overviewPlaylist" class="overview-playlist"></div>
         </section>
+      </div>
+
+      <div class="faq-panel">
+        <div class="faq-header">
+          <p class="learning-eyebrow">FAQ</p>
+          <h3>Frequently asked questions</h3>
+        </div>
+        <div class="faq-list">
+          <details open>
+            <summary>Do I get instant access after payment?</summary>
+            <p>After your payment is verified, the course access is granted manually. This keeps the process transparent and helps prevent mistakes.</p>
+          </details>
+          <details>
+            <summary>Can I learn even if I’m a beginner?</summary>
+            <p>Yes. The course is designed to help you learn progressively, with clear lessons and practical examples instead of overwhelming theory.</p>
+          </details>
+          <details>
+            <summary>What payment methods are supported?</summary>
+            <p>You can pay through bKash, Rocket, or bank transfer. All instructions are provided directly on the enrollment panel.</p>
+          </details>
+          <details>
+            <summary>Is there a free preview?</summary>
+            <p>Some lessons are marked as free preview, so you can sample the teaching style and content before enrolling in the full course.</p>
+          </details>
+        </div>
       </div>
     </section>
 

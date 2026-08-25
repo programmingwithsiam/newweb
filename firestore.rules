@@ -92,6 +92,11 @@ service cloud.firestore {
         request.resource.data.userId == request.auth.uid &&
         request.resource.data.transactionId is string &&
         request.resource.data.transactionId.size() > 0 &&
+        request.resource.data.phone is string &&
+        request.resource.data.phone.matches('^\\+8801[3-9][0-9]{8}$') &&
+        (request.resource.data.amount == get(/databases/$(database)/documents/courses/$(request.resource.data.courseId)).data.price ||
+          (get(/databases/$(database)/documents/courses/$(request.resource.data.courseId)).data.discountPrice > 0 &&
+            request.resource.data.amount == get(/databases/$(database)/documents/courses/$(request.resource.data.courseId)).data.discountPrice)) &&
         request.resource.data.status == 'pending';
       allow read: if isAdmin() ||
         (isSignedIn() && resource.data.userId == request.auth.uid);
