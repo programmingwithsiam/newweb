@@ -28,12 +28,14 @@ function initSiteEffects(){
   initMobileMenu();
   initCourseDeck();
   initLiveNotification();
+  initChatToggle();
 }
 
 function initLiveNotification() {
   const button = document.getElementById('liveNotificationBtn');
   const panel = document.getElementById('liveNotificationPanel');
   const frame = document.getElementById('liveNotificationFrame');
+  const chat = document.getElementById('liveNotificationChat');
   const openLink = document.getElementById('liveNotificationOpen');
   if (!button || !panel || !frame || !openLink) return;
   import('./courses-db.js').then(async ({ fetchLiveSettings, extractYoutubeId }) => {
@@ -42,6 +44,10 @@ function initLiveNotification() {
     if (settings.enabled !== true || !videoId) return;
     button.classList.remove('hidden');
     frame.src = `https://www.youtube.com/embed/${videoId}?rel=0&playsinline=1`;
+    if (chat && settings.chatEnabled !== false && location.hostname) {
+      chat.src = `https://www.youtube.com/live_chat?v=${videoId}&embed_domain=${encodeURIComponent(location.hostname)}`;
+      chat.classList.remove('hidden');
+    }
     openLink.href = settings.url;
     button.addEventListener('click', () => {
       const open = panel.classList.toggle('hidden') === false;
@@ -62,6 +68,7 @@ let selectedLessonId = null;
 let currentCourseProgress = {};
 let currentSearchValue = '';
 let courseCatalogFilter = 'all';
+let courseLanguageFilter = 'all';
 let activeCourse = null;
 let activeLessonNotes = '';
 let collapsedModules = new Set();
@@ -154,6 +161,7 @@ function renderPublishedCourseCatalog() {
   if (!catalog) return;
   const courses = cachedCourses.filter(course => {
       if (course.status !== 'published') return false;
+  if (courseLanguageFilter !== 'all' && (course.language || '').toLowerCase() !== courseLanguageFilter) return false;
     if (courseCatalogFilter === 'paid') return Number(course.price) > 0;
     if (courseCatalogFilter === 'free') return Number(course.price) <= 0;
     return true;
@@ -194,11 +202,33 @@ function renderPublishedCourseCatalog() {
   });
 }
 
+function renderLanguageExplorer() {
+  const explorer = document.getElementById('languageExplorer');
+  if (!explorer) return;
+  const published = cachedCourses.filter(course => course.status === 'published');
+  const languages = [...new Set(published.map(course => String(course.language || '').trim()).filter(Boolean))]
+    .sort((left, right) => left.localeCompare(right));
+  explorer.innerHTML = [
+    `<button type="button" class="language-chip ${courseLanguageFilter === 'all' ? 'active' : ''}" data-language-filter="all"><strong>All</strong><span>${published.length} courses</span></button>`,
+    ...languages.map(language => {
+      const count = published.filter(course => String(course.language || '').toLowerCase() === language.toLowerCase()).length;
+      const slug = language.toLowerCase();
+      return `<button type="button" class="language-chip ${courseLanguageFilter === slug ? 'active' : ''}" data-language-filter="${escapeHtml(slug)}"><strong>${escapeHtml(language)}</strong><span>${count} ${count === 1 ? 'course' : 'courses'}</span></button>`;
+    })
+  ].join('');
+  explorer.querySelectorAll('[data-language-filter]').forEach(button => button.addEventListener('click', () => {
+    courseLanguageFilter = button.dataset.languageFilter || 'all';
+    renderLanguageExplorer();
+    renderPublishedCourseCatalog();
+  }));
+}
+
 document.querySelectorAll('[data-course-filter]').forEach(tab => {
   tab.addEventListener('click', () => {
     courseCatalogFilter = tab.dataset.courseFilter || 'all';
     document.querySelectorAll('[data-course-filter]').forEach(item => item.classList.toggle('active', item === tab));
     renderPublishedCourseCatalog();
+    renderLanguageExplorer();
   });
 });
 
@@ -1010,7 +1040,7 @@ async function initCoursePlatform() {
   const loading = document.getElementById('courseLoadingState');
   const empty = document.getElementById('courseEmptyState');
   const gate = document.getElementById('courseSignInGate');
-  const continueBtn = document.getElementById('continueLearningHeroBtn');
+  const continueBtn = document.getElementById('continueLearningCourseBtn');
   const continueBtn2 = document.getElementById('continueLearningBtn');
   if (!platform) return;
 
@@ -1143,6 +1173,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // by auth-app.js via window.handleAuthStateChange().
   initSiteEffects();
   activateSection('home');
+  initChatToggle();
 });
 
 /* ---------- Ambient background dust (quiet, no connecting lines) ---------- */
@@ -1377,6 +1408,8 @@ function initChatbot(){
   chatBotInitialized = true;
   const input = document.getElementById('input');
   input?.addEventListener('keydown', e=>{ if(e.key==='Enter') sendMessage(); });
+  document.getElementById('sendBtn')?.addEventListener('click', sendMessage);
+  document.querySelectorAll('[data-question]').forEach(button => button.addEventListener('click', () => quickAsk(button.dataset.question || '')));
 
   initVoiceToggle();
   initMic();
@@ -1388,6 +1421,11 @@ function initChatToggle(){
   const toggle = document.getElementById('chatToggleBtn');
   const chat = document.getElementById('chatbot') || document.querySelector('.chatbox');
   if(!toggle || !chat) return;
+  if (toggle.dataset.chatBound === 'true') {
+    chatToggleInitialized = true;
+    return;
+  }
+  toggle.dataset.chatBound = 'true';
 
   function setOpen(open){
     chat.classList.toggle('active', open);
@@ -1403,10 +1441,10 @@ function initChatToggle(){
     }
   }
 
-  toggle.addEventListener('click', ()=>{
+  toggle.onclick = ()=>{
     const isOpen = chat.classList.contains('active');
     setOpen(!isOpen);
-  });
+  };
 
   // Close chat with Escape
   document.addEventListener('keydown', (e)=>{

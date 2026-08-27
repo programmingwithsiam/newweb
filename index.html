@@ -43,7 +43,7 @@
 <meta property="og:image:width" content="1200" />
 <meta property="og:image:height" content="630" />
 <meta property="og:url" content="https://codewithsiam.vercel.app/" />
-<meta property="og:site_name" content="Siam" />
+<meta property="og:site_name" content="CodeWithSiam" />
 <meta property="og:locale" content="en_US" />
 
 <!-- Twitter / X -->
@@ -67,6 +67,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="preconnect" href="https://img.youtube.com" />
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin />
 
   <link
     href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap"
@@ -76,7 +77,8 @@
   <!-- Styles -->
   <link rel="stylesheet" href="assets/css/style.css?v=20260824-course-mobile-2" />
   <link rel="stylesheet" href="assets/css/scroll-and-ui.css" />
-  <link rel="icon" type="image/jpeg" href="/assets/images/profile-siam.jpeg" />
+  <link rel="icon" type="image/png" sizes="512x512" href="/assets/images/tab.png" />
+  <link rel="apple-touch-icon" href="/assets/images/tab.png" />
 
   <!-- Font Awesome -->
   <link
@@ -103,7 +105,7 @@
         "jobTitle": "Python, Data Science & AI Learner",
         "description": "Siam is a Python, Data Science, and AI/ML learner and developer from Bangladesh, sharing coding tutorials and projects.",
         "sameAs": [
-          "https://www.youtube.com/@SiamLearningHub",
+          "https://www.youtube.com/@ProgrammingBySiam",
           "https://github.com/programmingwithsiam",
           "https://www.facebook.com/siam.ahmed.772527",
           "https://www.facebook.com/profile.php?id=61584789664848",
@@ -208,7 +210,7 @@
 
       <!-- HEADER -->
       <header id="header">
-        <div class="logo">Siam<span class="accent">.</span>dev</div>
+        <div class="logo">CodeWith<span class="accent">Siam</span></div>
         <nav id="nav">
           <a href="#about">About</a>
           <a href="#skills">Skills</a>
@@ -234,6 +236,7 @@
             </div>
           </div>
         </nav>
+        <button type="button" class="mobile-account-btn" id="mobileAccountBtn"><i class="fa-solid fa-user"></i><span>My Account</span></button>
         <button class="menu-btn" id="menuBtn" aria-label="Toggle menu">
           &#9776;
         </button>
@@ -242,6 +245,7 @@
         <div class="live-notification-head"><strong><span class="live-dot"></span> Live now</strong><button type="button" id="closeLiveNotification" aria-label="Close live stream">&times;</button></div>
         <p id="liveNotificationTitle">CodeWithSiam is live on YouTube.</p>
         <iframe id="liveNotificationFrame" title="CodeWithSiam live stream" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>
+        <iframe id="liveNotificationChat" title="CodeWithSiam live chat" loading="lazy" allow="autoplay" class="hidden"></iframe>
         <a id="liveNotificationOpen" href="https://www.youtube.com" target="_blank" rel="noopener noreferrer">Open on YouTube</a>
       </aside>
 
@@ -267,7 +271,10 @@
           </div>
 
           <div class="hero-photo">
-            <img src="assets/images/profile-siam.jpeg" alt="Siam - Python, Data Science & AI Learner" class="hero-photo-img" />
+            <picture>
+              <source srcset="assets/images/profile-siam.webp" type="image/webp" />
+              <img src="assets/images/profile-siam.jpeg" alt="Siam - Python, Data Science & AI Learner" class="hero-photo-img" width="240" height="240" fetchpriority="high" />
+            </picture>
           </div>
         </div>
         <div class="scroll-cue"><span></span></div>
@@ -881,7 +888,7 @@
       <button
         type="button"
         class="btn btn-primary"
-        id="continueLearningHeroBtn">
+        id="continueLearningCourseBtn">
         <i class="fa-solid fa-play"></i>
         Continue Learning
       </button>
@@ -967,7 +974,7 @@
     <!-- PUBLISHED COURSE CARDS -->
     <div class="course-catalog-toolbar">
       <div class="course-tab-profile">
-        <img src="assets/images/profile-siam.jpeg" alt="Siam" />
+        <img src="assets/images/profile-siam.webp" alt="Siam" width="48" height="48" loading="lazy" decoding="async" />
         <div>
           <strong>CodeWithSiam</strong>
           <span>Learn by building real projects</span>
@@ -979,6 +986,7 @@
         <button type="button" class="course-catalog-tab" data-course-filter="paid">Paid Courses</button>
       </div>
     </div>
+    <div id="languageExplorer" class="language-explorer" aria-label="Programming languages"></div>
     <div id="publishedCourseCatalog" class="course-catalog" aria-label="Published courses"></div>
 
 
@@ -1587,6 +1595,27 @@
   </a>
 </div>
 <!-- FOOTER -->
+<aside class="chatbox" aria-label="CodeWithSiam AI assistant" aria-hidden="true">
+  <div class="chat-header"><span class="bot-dot" aria-hidden="true"></span><span>CodeWithSiam Assistant</span><span class="online-indicator">Ready</span><button type="button" id="voiceToggle" aria-label="Toggle voice replies" aria-pressed="true">🔊</button></div>
+  <div id="chat" role="log" aria-live="polite">
+    <div class="msg bot-msg"><span class="avatar">🤖</span><div class="bubble">Hi, I’m the CodeWithSiam assistant. Ask me about Siam, Python, AI/ML, projects, courses, or the learning platform.</div></div>
+  </div>
+  <div class="chat-suggestions" aria-label="Suggested questions">
+    <button type="button" class="suggest-btn" data-question="What projects has Siam built?">Projects?</button>
+    <button type="button" class="suggest-btn" data-question="What are Siam's Python skills?">Python skills?</button>
+    <button type="button" class="suggest-btn" data-question="Tell me about the free course.">Free course?</button>
+    <button type="button" class="suggest-btn" data-question="How can I contact Siam?">Contact?</button>
+  </div>
+  <p id="micStatus" class="mic-status" aria-live="polite"></p>
+  <div class="chat-input-wrap">
+    <button type="button" id="micBtn" aria-label="Use voice input">🎙️</button>
+    <input id="input" type="text" placeholder="Ask CodeWithSiam..." autocomplete="off" aria-label="Message CodeWithSiam assistant">
+    <button type="button" id="sendBtn">Send <span aria-hidden="true">➤</span></button>
+  </div>
+</aside>
+<button type="button" class="chat-toggle-btn" id="chatToggleBtn" aria-label="Open CodeWithSiam AI assistant" aria-expanded="false"><span class="chat-icon" aria-hidden="true">💬</span><span class="online-badge-small" aria-hidden="true"></span></button>
+
+<!-- FOOTER -->
 <footer>
   <p>
     Designed & built by
@@ -1597,7 +1626,7 @@
 </div>
     <!-- /siteRoot -->
 
-    <script src="assets/js/script.js?v=20260824-course-lms"></script>
+    <script src="assets/js/script.js?v=20260827-chat-mobile-3"></script>
     <script type="module" src="assets/js/auth-app.js"></script>
   </body>
 </html>

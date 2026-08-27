@@ -213,10 +213,27 @@ function bindCheckout() {
     if (!user) { $('checkoutStatus').textContent = 'Login to continue.'; showAccessGate(); return; }
     pay.dataset.processing = 'true'; pay.disabled = true; pay.textContent = 'Processing...';
     try {
-      await createPaymentSubmission({ userId: user.uid, courseId: course.id, courseTitle: course.title, amount: Number(course.discountPrice) > 0 && Number(course.discountPrice) < Number(course.price) ? Number(course.discountPrice) : Number(course.price), method: $('checkoutPaymentMethod').value, transactionId: transaction.value.trim(), phone: `+880${phone.value.replace(/^0/, '')}` });
+      const screenshotUrl = await compressPaymentScreenshot($('checkoutPaymentScreenshot')?.files?.[0]);
+      await createPaymentSubmission({ userId: user.uid, courseId: course.id, courseTitle: course.title, amount: Number(course.discountPrice) > 0 && Number(course.discountPrice) < Number(course.price) ? Number(course.discountPrice) : Number(course.price), method: $('checkoutPaymentMethod').value, transactionId: transaction.value.trim(), phone: `+880${phone.value.replace(/^0/, '')}`, screenshotUrl });
       $('checkoutStatus').textContent = 'Payment submitted — waiting for verification.';
       pay.textContent = 'Payment submitted';
     } catch (error) { $('checkoutStatus').textContent = error.message || 'Payment could not be submitted.'; pay.dataset.processing = ''; pay.textContent = `Pay ৳${(Number(course.discountPrice) > 0 && Number(course.discountPrice) < Number(course.price) ? Number(course.discountPrice) : Number(course.price)).toLocaleString('en-BD')}`; update(); }
+  });
+  $('checkoutWhatsappBtn')?.addEventListener('click', () => {
+    const amount = Number(course.discountPrice) > 0 && Number(course.discountPrice) < Number(course.price) ? Number(course.discountPrice) : Number(course.price);
+    const method = $('checkoutPaymentMethod').value;
+    const proofText = [
+      'Hello Siam, I submitted a course payment.',
+      `Student: ${user?.displayName || 'Student'}`,
+      `Gmail: ${user?.email || ''}`,
+      `Course: ${course.title}`,
+      `Amount: ৳${amount.toLocaleString('en-BD')}`,
+      `Payment method: ${method}`,
+      `Transaction ID: ${transaction.value.trim() || 'Not entered yet'}`,
+      '',
+      'I will attach my payment screenshot manually in this chat.'
+    ].join('\n');
+    window.open(`https://wa.me/8801644171751?text=${encodeURIComponent(proofText)}`, '_blank', 'noopener,noreferrer');
   });
   $('checkoutShareBtn')?.addEventListener('click', async () => { const url = location.href; if (navigator.share) await navigator.share({ title: course.title, url }).catch(() => {}); else { await navigator.clipboard?.writeText(url); $('checkoutStatus').textContent = 'Link copied!'; } });
 }
@@ -359,7 +376,9 @@ async function compressPaymentScreenshot(file) {
         canvas.width = Math.max(1, Math.round(image.width * scale));
         canvas.height = Math.max(1, Math.round(image.height * scale));
         canvas.getContext('2d').drawImage(image, 0, 0, canvas.width, canvas.height);
-        resolve(canvas.toDataURL('image/jpeg', 0.58));
+        const compressed = canvas.toDataURL('image/jpeg', 0.58);
+        if (compressed.length > 900 * 1024) reject(new Error('Screenshot is too large. Please use a smaller image.'));
+        else resolve(compressed);
       };
       image.onerror = () => reject(new Error('Screenshot could not be read.'));
       image.src = reader.result;

@@ -6,7 +6,8 @@
 
   <title>Admin Dashboard — CodeWithSiam</title>
   <meta name="robots" content="noindex, nofollow" />
-  <link rel="icon" type="image/png" href="assets/images/tab.png" />
+  <link rel="icon" type="image/png" sizes="512x512" href="assets/images/tab.png" />
+  <link rel="apple-touch-icon" href="assets/images/tab.png" />
 
   <link rel="stylesheet" href="assets/css/style.css" />
 
@@ -1235,7 +1236,8 @@
     .dashboard-nav-item { min-height: 34px; padding: 0 10px; border-radius: 6px; font-size: .76rem; }
     .dashboard-nav-item i { display: none; }
     .dashboard-profile { display: flex; align-items: center; gap: 8px; color: var(--admin-muted); font-size: .75rem; white-space: nowrap; }
-    .dashboard-avatar { display: grid; width: 28px; height: 28px; place-items: center; border: 1px solid #3b4f70; border-radius: 50%; color: var(--admin-accent); background: #17243b; }
+    .dashboard-avatar { display: grid; width: 30px; height: 30px; place-items: center; overflow: hidden; border: 1px solid rgba(201,243,91,.35); border-radius: 50%; color: var(--admin-accent); background: #17243b; }
+    .dashboard-avatar img { display: block; width: 100%; height: 100%; object-fit: cover; }
     .dashboard-menu-toggle { display: none; border: 1px solid #334158; border-radius: 7px; color: var(--admin-text); background: transparent; }
     @media (max-width: 900px) {
       .dashboard-nav { gap: 10px; }
@@ -1249,6 +1251,107 @@
       .dashboard-nav.is-open .dashboard-nav-links { display: flex; }
       .dashboard-nav-item { justify-content: flex-start; width: 100%; }
       .dashboard-nav-item i { display: inline-block; width: 16px; }
+    }
+
+    /* CodeWithSiam admin system: calm workspace, clear operational emphasis. */
+    :root {
+      --admin-bg: #0d1110;
+      --admin-panel: #151c19;
+      --admin-panel-2: #1c2621;
+      --admin-line: rgba(238, 241, 225, .12);
+      --admin-text: #f2f3e9;
+      --admin-muted: #a4ada2;
+      --admin-accent: #c9f35b;
+      --admin-accent-2: #7ed6c0;
+      --admin-danger: #ff8f9d;
+      --admin-success: #78dfa8;
+    }
+    body [hidden] { display: none !important; }
+    body { padding: 18px; background: radial-gradient(circle at 8% 0%, rgba(201,243,91,.08), transparent 28%), #0d1110; font-family: "IBM Plex Sans", sans-serif; }
+    .admin-shell { width: min(1380px, 100%); border-color: rgba(238,241,225,.12); border-radius: 18px; background: rgba(21,28,25,.94); box-shadow: 0 24px 80px rgba(0,0,0,.28); }
+    .admin-hero { padding: 34px 36px; background: linear-gradient(135deg, rgba(201,243,91,.08), transparent 46%), var(--admin-panel); }
+    .admin-hero h1 { letter-spacing: -.05em; }
+    .admin-hero p, .section-subtitle, .panel-note { color: var(--admin-muted); }
+    .brand-mini, .stat-number, .dashboard-brand strong { color: var(--admin-accent); }
+    .admin-welcome { border: 1px solid rgba(201,243,91,.16); background: rgba(201,243,91,.06); color: var(--admin-text); }
+    .dashboard-nav { background: rgba(13,17,16,.92); border-color: rgba(238,241,225,.1); }
+    .dashboard-nav-item { border-radius: 8px; }
+    .dashboard-nav-item:hover, .dashboard-nav-item.active { color: #10150b; background: var(--admin-accent); }
+    .dashboard-nav-item i { color: var(--admin-accent); }
+    .dashboard-nav-item:hover i, .dashboard-nav-item.active i { color: #10150b; }
+    .admin-topbar { border-bottom-color: rgba(238,241,225,.1); }
+    .admin-topbar h2 { letter-spacing: -.035em; }
+    .stat-card, .section-card, .course-manager-item { border-color: rgba(238,241,225,.1); border-radius: 12px; background: #151c19; }
+    .stat-card { position: relative; overflow: hidden; min-height: 112px; }
+    .stat-card::after { content: ""; position: absolute; right: 16px; bottom: 16px; width: 32px; height: 3px; background: var(--admin-accent); opacity: .7; }
+    .stat-card:hover, .course-manager-item:hover { border-color: rgba(201,243,91,.38); box-shadow: 0 16px 34px rgba(0,0,0,.2); }
+    .stat-label { color: var(--admin-muted); letter-spacing: .12em; }
+    .stat-number { font-size: 2rem; }
+    .access-control-card { border-color: rgba(201,243,91,.25); background: linear-gradient(135deg, rgba(201,243,91,.08), #151c19 46%); }
+    .access-control-card::before { background: var(--admin-accent); }
+    .access-badge { color: var(--admin-accent); border-color: rgba(201,243,91,.25); background: rgba(201,243,91,.08); }
+    input, textarea, select { border-color: rgba(238,241,225,.14); background: #0d1110; color: var(--admin-text); }
+    input:focus, textarea:focus, select:focus { border-color: var(--admin-accent); box-shadow: 0 0 0 3px rgba(201,243,91,.12); }
+    .btn, .btn-full, .logout { border-color: rgba(238,241,225,.16); }
+    .btn-primary, .btn-full { color: #10150b; background: var(--admin-accent); box-shadow: 0 8px 22px rgba(201,243,91,.12); }
+    .btn-primary:hover, .btn-full:hover { color: #10150b; background: #dcff7e; }
+    .course-manager-meta .badge.published { color: var(--admin-success); background: rgba(120,223,168,.12); }
+    .course-manager-meta .badge.upcoming { color: var(--admin-accent); background: rgba(201,243,91,.1); }
+    .module-block, .lesson-editor { border-color: rgba(238,241,225,.1); background: #101614; }
+    .module-block.is-collapsed .lesson-list, .module-block.is-collapsed .lesson-form-slot { display: none; }
+    .module-collapse-toggle { display: inline-flex; align-items: center; gap: 8px; border: 0; padding: 0; color: inherit; background: transparent; text-align: left; cursor: pointer; }
+    .module-collapse-toggle i { color: var(--admin-accent); transition: transform .18s ease; }
+    .module-block.is-collapsed .module-collapse-toggle i { transform: rotate(-90deg); }
+    .module-block.is-collapsed { background: #0d1311; }
+    .module-block { padding: 12px 14px; }
+    .module-block-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 16px; }
+    .module-block-head > div:first-child { min-width: 0; }
+    .module-collapse-toggle { width: 100%; min-width: 0; }
+    .module-collapse-toggle .module-title { margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .module-block-head > .admin-btn-row { justify-content: flex-end; width: auto; }
+    .module-block-head > .admin-btn-row .btn { min-height: 36px; padding: 0 11px; }
+    .course-create-trigger { display: inline-flex; align-items: center; gap: 7px; }
+    #coursesSection { position: relative; }
+    #coursesSection:not(.is-form-open) .course-form-grid, #coursesSection:not(.is-form-open) #createCourseStatus { display: none; }
+    #coursesSection.is-form-open { position: fixed; inset: 50% auto auto 50%; z-index: 100; width: min(760px, calc(100vw - 32px)); max-height: min(88vh, 820px); margin: 0; overflow-y: auto; transform: translate(-50%, -50%); border-color: rgba(201,243,91,.35); box-shadow: 0 28px 100px rgba(0,0,0,.6); }
+    #coursesSection.is-form-open::before { content: ""; position: fixed; inset: -100vh; z-index: -1; background: rgba(3,6,5,.72); backdrop-filter: blur(5px); }
+    .course-create-modal-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .course-create-close { display: none; width: 34px; height: 34px; border: 1px solid rgba(238,241,225,.16); border-radius: 8px; color: var(--admin-text); background: transparent; cursor: pointer; }
+    #coursesSection.is-form-open .course-create-close { display: inline-grid; place-items: center; }
+    .course-manager-list { gap: 8px; }
+    .course-manager-item { border-radius: 10px; }
+    .course-manager-head { padding: 12px 14px; align-items: center; }
+    .course-manager-head h3 { font-size: .9rem; }
+    .course-manager-meta { margin-top: 6px; font-size: .72rem; }
+    .course-thumbnail-editor { padding: 0 14px 12px; }
+    .module-manager { padding: 0 14px 14px; }
+    .module-number { color: var(--admin-accent); }
+    .lesson-video-link, .payment-proof { color: var(--admin-accent-2); }
+    .admin-payments-list { display: grid; gap: 12px; }
+    .payment-request-card { padding: 16px; border: 1px solid rgba(238,241,225,.1); border-radius: 12px; background: #101614; }
+    .payment-request-main { display: grid; grid-template-columns: 1.2fr 1.2fr 1fr .8fr; gap: 16px; align-items: start; }
+    .payment-request-main > div { display: grid; gap: 4px; min-width: 0; }
+    .payment-request-main strong { overflow-wrap: anywhere; color: var(--admin-text); font-size: .86rem; }
+    .payment-request-main span:not(.payment-status-badge):not(.payment-request-label) { overflow-wrap: anywhere; color: var(--admin-muted); font-size: .74rem; }
+    .payment-request-label { color: var(--admin-accent); font-size: .65rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+    .payment-request-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; padding-top: 14px; border-top: 1px solid rgba(238,241,225,.08); }
+    .payment-request-actions .btn { min-height: 36px; }
+    @media (max-width: 640px) {
+      body { padding: 8px; }
+      .admin-hero { padding: 24px 18px; }
+      .admin-body { padding: 18px 14px 28px; }
+      .stats-grid { gap: 10px; }
+      .stat-card { min-height: 96px; padding: 14px; }
+      .stat-number { font-size: 1.65rem; }
+      .payment-request-main { grid-template-columns: 1fr 1fr; gap: 14px; }
+      .payment-request-actions .btn { flex: 1 1 100%; }
+      .admin-shell { min-height: calc(100dvh - 16px); }
+      .dashboard-nav-item, .dashboard-menu-toggle, .btn, .btn-full, .logout { min-height: 48px; }
+      input, textarea, select { min-height: 48px; font-size: 16px; }
+      .module-block-head { grid-template-columns: 1fr; gap: 10px; }
+      .module-block-head > .admin-btn-row { justify-content: flex-start; }
+      .module-block-head > .admin-btn-row .btn { flex: 0 1 auto; }
+      #coursesSection.is-form-open { width: calc(100vw - 20px); max-height: 92vh; }
     }
   </style>
 </head>
@@ -1415,10 +1518,11 @@
             <a class="dashboard-nav-item active" href="#dashboardSection"><i class="fa-solid fa-chart-line"></i> Dashboard</a>
             <a class="dashboard-nav-item" href="#coursesSection"><i class="fa-solid fa-layer-group"></i> Courses</a>
             <a class="dashboard-nav-item" href="#studentsSection"><i class="fa-solid fa-users"></i> Students</a>
+            <a class="dashboard-nav-item" href="#paymentsSection"><i class="fa-solid fa-receipt"></i> Payments</a>
             <a class="dashboard-nav-item" href="#activitySection"><i class="fa-solid fa-clock-rotate-left"></i> Activity Log</a>
             <a class="dashboard-nav-item" href="#settingsSection"><i class="fa-solid fa-sliders"></i> Settings</a>
           </div>
-          <div class="dashboard-profile"><span class="dashboard-avatar"><i class="fa-solid fa-user"></i></span><span id="dashboardProfileName">Admin</span></div>
+          <div class="dashboard-profile"><span class="dashboard-avatar"><img id="dashboardProfileAvatar" class="hidden" src="" alt=""><i id="dashboardProfileFallback" class="fa-solid fa-user"></i></span><span id="dashboardProfileName">Admin</span></div>
         </nav>
 
         <div class="admin-topbar">
@@ -1542,6 +1646,29 @@
           <p class="status" id="userAccessStatus" aria-live="polite"></p>
         </div>
 
+        <section class="section-card admin-payments-section" id="paymentsSection" hidden>
+          <div class="access-heading">
+            <div>
+              <h3 class="section-title"><i class="fa-solid fa-receipt"></i> Payment Requests</h3>
+              <p class="section-subtitle">Verify each payment before course access is granted.</p>
+            </div>
+            <button type="button" class="btn" id="refreshPaymentsBtn"><i class="fa-solid fa-rotate"></i> Refresh</button>
+          </div>
+          <div class="payment-toolbar">
+            <select id="paymentStatusFilter" aria-label="Filter payments by status">
+              <option value="all">All requests</option>
+              <option value="pending" selected>Pending</option>
+              <option value="approved">Approved</option>
+              <option value="rejected">Rejected</option>
+            </select>
+            <span id="paymentResultCount" class="course-result-count"></span>
+          </div>
+          <div id="adminPaymentsList" class="admin-payments-list">
+            <div class="empty-state"><i class="fa-solid fa-spinner"></i><strong>Loading payment requests</strong></div>
+          </div>
+          <p class="status" id="paymentAdminStatus" aria-live="polite"></p>
+        </section>
+
 
         <!-- =========================
              CREATE COURSE
@@ -1549,14 +1676,13 @@
 
         <div class="section-card" id="coursesSection">
 
-          <h3 class="section-title">
-            + Create New Course
-          </h3>
-
-          <p class="section-subtitle">
-            Add a new course to your LMS.
-          </p>
-
+          <div class="course-create-modal-head">
+            <div>
+              <h3 class="section-title">Create New Course</h3>
+              <p class="section-subtitle">Add a new course to your LMS.</p>
+            </div>
+            <button type="button" class="course-create-close" id="closeCreateCourseBtn" aria-label="Close course editor"><i class="fa-solid fa-xmark"></i></button>
+          </div>
 
           <div class="course-form-grid">
 
@@ -1579,6 +1705,27 @@
                 type="text"
                 placeholder="e.g. Python, AI, Data Science"
               />
+            </label>
+
+            <label>
+              Programming Language
+
+              <select id="newCourseLanguage">
+                <option value="">Not specified</option>
+                <option>Python</option>
+                <option>JavaScript</option>
+                <option>TypeScript</option>
+                <option>PHP</option>
+                <option>SQL</option>
+                <option>C</option>
+                <option>C++</option>
+                <option>Java</option>
+                <option>Go</option>
+                <option>Rust</option>
+                <option>Kotlin</option>
+                <option>Dart</option>
+                <option>R</option>
+              </select>
             </label>
 
 
@@ -1716,6 +1863,7 @@
             <h3 class="section-title">
               Your Courses
             </h3>
+            <button type="button" class="btn btn-primary course-create-trigger" id="openCreateCourseBtnList"><i class="fa-solid fa-plus"></i> New Course</button>
             <button type="button" class="btn btn-danger" id="deleteSelectedCoursesBtn" disabled>Delete Selected (0)</button>
             <button type="button" class="btn btn-danger" id="deleteAllCoursesBtn">Delete All Courses</button>
           </div>
@@ -1816,6 +1964,8 @@
       updateUserAccess,
       grantEmailAccess,
       revokeEmailAccess,
+      fetchAllPayments,
+      updatePayment,
       fetchLiveSettings,
       updateLiveSettings,
     } from './assets/js/courses-db.js';
@@ -1853,6 +2003,7 @@
       document.getElementById('courseResultCount');
 
     let loadedCourses = [];
+    let loadedPayments = [];
 
 
     /* =========================
@@ -2191,12 +2342,29 @@
             user.displayName ||
             'Admin'
           }`;
-        document.getElementById('dashboardProfileName').textContent = user.displayName || user.email?.split('@')[0] || 'Admin';
+        const dashboardName = user.displayName || user.email?.split('@')[0] || 'Admin';
+        document.getElementById('dashboardProfileName').textContent = dashboardName;
+        const dashboardAvatar = document.getElementById('dashboardProfileAvatar');
+        const dashboardFallback = document.getElementById('dashboardProfileFallback');
+        if (dashboardAvatar && dashboardFallback && user.photoURL) {
+          dashboardAvatar.src = user.photoURL;
+          dashboardAvatar.alt = dashboardName;
+          dashboardAvatar.classList.remove('hidden');
+          dashboardFallback.classList.add('hidden');
+          dashboardAvatar.onerror = () => {
+            dashboardAvatar.classList.add('hidden');
+            dashboardFallback.classList.remove('hidden');
+          };
+        } else if (dashboardAvatar && dashboardFallback) {
+          dashboardAvatar.classList.add('hidden');
+          dashboardFallback.classList.remove('hidden');
+        }
 
 
         showOnly(dashboardPanel);
 
         loadAndRenderCourses();
+        loadAndRenderPayments();
 
       }
     );
@@ -2205,6 +2373,18 @@
     /* =========================
        CREATE COURSE
     ========================== */
+
+    const courseCreateSection = document.getElementById('coursesSection');
+    const openCourseEditor = () => {
+      courseCreateSection?.classList.add('is-form-open');
+      document.getElementById('newCourseTitle')?.focus();
+    };
+    const closeCourseEditor = () => courseCreateSection?.classList.remove('is-form-open');
+    document.getElementById('openCreateCourseBtnList')?.addEventListener('click', openCourseEditor);
+    document.getElementById('closeCreateCourseBtn')?.addEventListener('click', closeCourseEditor);
+    document.addEventListener('keydown', event => {
+      if (event.key === 'Escape' && courseCreateSection?.classList.contains('is-form-open')) closeCourseEditor();
+    });
 
     const thumbnailUrlInput = document.getElementById('newCourseThumbnail');
     const thumbnailFileInput = document.getElementById('newCourseThumbnailFile');
@@ -2339,6 +2519,11 @@
                   .value
                   .trim(),
 
+              language:
+                document
+                  .getElementById('newCourseLanguage')
+                  .value,
+
               instructor:
                 document
                   .getElementById(
@@ -2385,12 +2570,14 @@
               '✓ Course added successfully.',
               true
             );
+            closeCourseEditor();
 
 
             [
               'newCourseTitle',
               'newCourseDescription',
               'newCourseCategory',
+              'newCourseLanguage',
               'newCourseThumbnail',
               'newCourseThumbnailFile',
               'newCourseShowOnIndex'
@@ -2519,6 +2706,70 @@
       button.textContent = `Delete Selected (${count})`;
     }
 
+    function formatAdminDate(value) {
+      if (!value) return 'Date unavailable';
+      const date = value.toDate ? value.toDate() : new Date(value);
+      return Number.isNaN(date.getTime()) ? 'Date unavailable' : date.toLocaleString('en-BD', { dateStyle: 'medium', timeStyle: 'short' });
+    }
+
+    function renderPaymentResults() {
+      const list = document.getElementById('adminPaymentsList');
+      const filter = document.getElementById('paymentStatusFilter')?.value || 'pending';
+      if (!list) return;
+      const visible = loadedPayments.filter(payment => filter === 'all' || payment.status === filter);
+      const count = document.getElementById('paymentResultCount');
+      if (count) count.textContent = `${visible.length} of ${loadedPayments.length} requests`;
+      if (!visible.length) {
+        list.innerHTML = `<div class="empty-state"><i class="fa-solid fa-inbox"></i><strong>No ${filter === 'all' ? '' : filter + ' '}payment requests</strong><span>New payment submissions will appear here.</span></div>`;
+        return;
+      }
+      list.innerHTML = visible.map(payment => {
+        const status = ['pending', 'approved', 'rejected'].includes(payment.status) ? payment.status : 'pending';
+        const screenshot = payment.screenshotUrl ? `<a class="payment-proof" href="${escapeHtml(payment.screenshotUrl)}" target="_blank" rel="noopener noreferrer"><i class="fa-solid fa-image"></i> View proof</a>` : '<span class="payment-proof-empty">No screenshot</span>';
+        const actions = status === 'pending' ? `<div class="payment-request-actions"><button type="button" class="btn btn-success" data-payment-action="approve" data-payment-id="${escapeHtml(payment.id)}"><i class="fa-solid fa-check"></i> Verify &amp; Give Access</button><button type="button" class="btn btn-danger" data-payment-action="reject" data-payment-id="${escapeHtml(payment.id)}"><i class="fa-solid fa-xmark"></i> Reject</button></div>` : '';
+        return `<article class="payment-request-card"><div class="payment-request-main"><div><span class="payment-request-label">Student</span><strong>${escapeHtml(payment.studentName || 'Student')}</strong><span>${escapeHtml(payment.studentEmail || 'Email unavailable')}</span></div><div><span class="payment-request-label">Course</span><strong>${escapeHtml(payment.courseTitle || 'Course')}</strong><span>৳${Number(payment.amount || 0).toLocaleString('en-BD')} · ${escapeHtml(payment.method || 'Payment')}</span></div><div><span class="payment-request-label">Transaction</span><strong>${escapeHtml(payment.transactionId || 'Not provided')}</strong><span>${formatAdminDate(payment.submittedAt)}</span></div><div><span class="payment-status-badge ${status}">${status}</span>${screenshot}</div></div>${actions}</article>`;
+      }).join('');
+    }
+
+    async function loadAndRenderPayments() {
+      const list = document.getElementById('adminPaymentsList');
+      if (!list) return;
+      list.innerHTML = '<div class="empty-state"><i class="fa-solid fa-spinner"></i><strong>Loading payment requests</strong></div>';
+      try {
+        loadedPayments = await fetchAllPayments();
+        renderPaymentResults();
+      } catch (error) {
+        list.innerHTML = `<div class="empty-state"><i class="fa-solid fa-triangle-exclamation"></i><strong>Payments unavailable</strong><span>${escapeHtml(error.message || 'Could not load payment requests.')}</span></div>`;
+      }
+    }
+
+    document.getElementById('paymentStatusFilter')?.addEventListener('change', renderPaymentResults);
+    document.getElementById('refreshPaymentsBtn')?.addEventListener('click', loadAndRenderPayments);
+    document.getElementById('adminPaymentsList')?.addEventListener('click', async event => {
+      const button = event.target.closest('[data-payment-action]');
+      if (!button) return;
+      const payment = loadedPayments.find(item => item.id === button.dataset.paymentId);
+      if (!payment || payment.status !== 'pending') return;
+      const action = button.dataset.paymentAction;
+      if (!confirm(action === 'approve' ? `Verify payment from ${payment.studentEmail || 'this student'} and grant course access?` : 'Reject this payment request?')) return;
+      button.disabled = true;
+      try {
+        if (action === 'approve') {
+          await updatePayment(payment.id, { status: 'approved', accessGranted: true });
+          if (payment.studentEmail) await grantEmailAccess(payment.studentEmail);
+          setStatus(document.getElementById('paymentAdminStatus'), 'Payment verified and course access granted.', true);
+        } else {
+          const reason = prompt('Optional rejection reason:', '') || '';
+          await updatePayment(payment.id, { status: 'rejected', rejectionReason: reason });
+          setStatus(document.getElementById('paymentAdminStatus'), 'Payment request rejected.', true);
+        }
+        await loadAndRenderPayments();
+      } catch (error) {
+        setStatus(document.getElementById('paymentAdminStatus'), error.message || 'Payment status could not be updated.', false);
+        button.disabled = false;
+      }
+    });
+
     const liveUrlInput = document.getElementById('liveStreamUrl');
     const liveChannelInput = document.getElementById('liveChannelId');
     const liveEnabledInput = document.getElementById('liveStreamEnabled');
@@ -2570,6 +2821,7 @@
         subtitle: 'Manage student access and account status.',
         sections: ['studentsSection']
       },
+      payments: { title: 'Payments', subtitle: 'Review payment requests before granting access.', sections: ['paymentsSection'] },
       activity: { title: 'Activity Log', subtitle: 'Track important changes made in your LMS.', sections: ['activitySection'] },
       settings: { title: 'Settings', subtitle: 'Manage the settings that shape your LMS.', sections: ['settingsSection'] }
     };
@@ -2587,6 +2839,7 @@
         item.classList.toggle('active', target === `${activePage}Section` || (activePage === 'students' && target === 'studentsSection'));
       });
       if (activePage === 'settings') loadLiveSettings();
+      if (activePage === 'payments') loadAndRenderPayments();
     }
 
     document.querySelectorAll('.dashboard-nav-item').forEach(item => item.addEventListener('click', event => {
@@ -2877,7 +3130,7 @@
         <div class="course-thumbnail-editor">
           <div class="course-thumbnail-editor-preview">
             ${course.thumbnail
-              ? `<img src="${escapeHtml(course.thumbnail)}" alt="${escapeHtml(course.title)} thumbnail">`
+              ? `<img src="${escapeHtml(course.thumbnail)}" alt="${escapeHtml(course.title)} thumbnail" loading="lazy" decoding="async">`
               : '<span>No thumbnail</span>'}
           </div>
           <div class="course-thumbnail-editor-actions">
@@ -2965,6 +3218,8 @@
             const moduleBlock = [...moduleManager.querySelectorAll('.module-block')]
               .find(block => block.querySelector('.lesson-form-slot'));
             if (moduleBlock) {
+              moduleBlock.classList.remove('is-collapsed');
+              moduleBlock.querySelector('[data-action="toggle-module"]')?.setAttribute('aria-expanded', 'true');
               renderLessonForm(
                 moduleBlock.querySelector('.lesson-form-slot'),
                 course,
@@ -3112,7 +3367,7 @@
 
 
             block.className =
-              'module-block';
+              'module-block is-collapsed';
 
 
             block.innerHTML = `
@@ -3125,11 +3380,10 @@
                     Module ${index + 1}
                   </div>
 
-                  <div class="module-title">
-                    ${escapeHtml(
-                      module.title
-                    )}
-                  </div>
+                  <button type="button" class="module-collapse-toggle" data-action="toggle-module" aria-expanded="false">
+                    <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+                    <span class="module-title">${escapeHtml(module.title)}</span>
+                  </button>
 
                   <div class="course-manager-meta">
                     ${(module.lessons || []).length} ${(module.lessons || []).length === 1 ? 'lesson' : 'lessons'} · Drag to reorder
@@ -3180,6 +3434,11 @@
               block.querySelector(
                 '.lesson-list'
               );
+
+            block.querySelector('[data-action="toggle-module"]')?.addEventListener('click', () => {
+              const collapsed = block.classList.toggle('is-collapsed');
+              block.querySelector('[data-action="toggle-module"]')?.setAttribute('aria-expanded', String(!collapsed));
+            });
 
 
             /* LESSONS */
@@ -3327,6 +3586,9 @@
                       'click',
                       () => {
 
+                        block.classList.remove('is-collapsed');
+                        block.querySelector('[data-action="toggle-module"]')?.setAttribute('aria-expanded', 'true');
+
                         renderLessonForm(
                           block.querySelector(
                             '.lesson-form-slot'
@@ -3396,6 +3658,9 @@
               .addEventListener(
                 'click',
                 () => {
+
+                  block.classList.remove('is-collapsed');
+                  block.querySelector('[data-action="toggle-module"]')?.setAttribute('aria-expanded', 'true');
 
                   renderLessonForm(
                     block.querySelector(

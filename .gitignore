@@ -21,6 +21,8 @@ Thumbs.db
 # Logs
 *.log
 npm-debug.log*
+__pycache__/
+*.py[cod]
 
 # Vercel / local build outputs
 .vercel/

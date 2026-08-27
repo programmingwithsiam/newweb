@@ -32,6 +32,7 @@ const forgotBtn = document.getElementById('forgotPasswordBtn');
 const navLoggedOut = document.getElementById('navAuthLoggedOut');
 const navLoggedIn = document.getElementById('navAuthLoggedIn');
 const headerSignInBtn = document.getElementById('headerSignInBtn');
+const mobileAccountBtn = document.getElementById('mobileAccountBtn');
 const courseGateSignInBtn = document.getElementById('courseGateSignInBtn');
 const userChipBtn = document.getElementById('userChipBtn');
 const userChipAvatar = document.getElementById('userChipAvatar');
@@ -93,6 +94,10 @@ document.addEventListener('keydown', (e) => {
 tabSignIn?.addEventListener('click', () => switchTab(false));
 tabRegister?.addEventListener('click', () => switchTab(true));
 headerSignInBtn?.addEventListener('click', () => openAuthModal());
+mobileAccountBtn?.addEventListener('click', () => {
+  if (!navLoggedIn?.classList.contains('hidden')) userChipBtn?.click();
+  else openAuthModal();
+});
 courseGateSignInBtn?.addEventListener('click', () => openAuthModal());
 
 googleBtn?.addEventListener('click', async () => {
@@ -206,7 +211,7 @@ function renderLoggedIn(user, isAdmin) {
   navLoggedIn?.classList.remove('hidden');
 
   const name = user.displayName || user.email?.split('@')[0] || 'Student';
-  userChipName.textContent = name;
+  userChipName.textContent = 'My Account';
   userDropdownEmail.textContent = user.email || '';
 
   if (user.photoURL) {

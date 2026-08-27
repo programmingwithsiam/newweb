@@ -5,7 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Course | CodeWithSiam</title>
   <meta name="description" content="Learn with CodeWithSiam video lessons.">
-  <link rel="icon" type="image/png" href="assets/images/tab.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="assets/images/tab.png">
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+  <link rel="apple-touch-icon" href="assets/images/tab.png">
   <link rel="stylesheet" href="assets/css/style.css?v=20260824-payment-options-2">
   <link rel="stylesheet" href="assets/css/course-learning.css">
   <style>
@@ -208,6 +210,75 @@
       .learning-button, .lesson-row { transition: none; }
     }
   </style>
+  <style>
+    /* Keep the learning surface readable on narrow phones. */
+    .course-learning-page { font-family: "IBM Plex Sans", sans-serif; }
+    .learning-topbar { min-height: 68px; }
+    .learning-app { width: min(1120px, calc(100% - 32px)); }
+    .overview-summary { align-items: stretch; }
+    .overview-summary > img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; }
+    #learningLoading { position: relative; overflow: hidden; min-height: 420px; border: 1px solid rgba(238,241,225,.12); border-radius: 18px; background: radial-gradient(circle at 50% 18%, rgba(201,243,91,.08), transparent 34%), linear-gradient(145deg, #151c19, #0d1110); box-shadow: 0 24px 70px rgba(0,0,0,.25); }
+    #learningLoading::before { content: "CODEWITHSIAM / LEARNING SPACE"; position: absolute; top: 24px; left: 28px; color: #c9f35b; font-family: "JetBrains Mono", monospace; font-size: .62rem; font-weight: 700; letter-spacing: .15em; }
+    #learningLoading::after { content: ""; position: absolute; right: 18%; bottom: 24px; left: 18%; height: 2px; overflow: hidden; background: rgba(238,241,225,.1); }
+    #learningLoading .loading-spinner { width: 46px; height: 46px; border: 3px solid rgba(238,241,225,.12); border-top-color: #c9f35b; border-right-color: #7ed6c0; box-shadow: 0 0 30px rgba(201,243,91,.12); }
+    #learningLoading h1 { margin-top: 20px; color: #f2f3e9; font-family: "JetBrains Mono", monospace; font-size: clamp(1.35rem, 4vw, 2rem); letter-spacing: -.04em; }
+    #learningLoading p { color: #a4ada2; }
+    @keyframes learning-progress { from { transform: translateX(-100%); } to { transform: translateX(260%); } }
+    #learningLoading::after { background: linear-gradient(90deg, transparent, #c9f35b 35%, #7ed6c0 65%, transparent); background-size: 45% 100%; background-repeat: no-repeat; animation: learning-progress 1.8s ease-in-out infinite; }
+    #courseCheckout { color: var(--learning-text); background: linear-gradient(145deg, #151c19, #101614) !important; border-color: rgba(201,243,91,.22); box-shadow: 0 18px 45px rgba(0,0,0,.22); }
+    .checkout-price { display: flex; align-items: baseline; gap: 10px; padding-bottom: 10px; border-bottom: 1px solid rgba(238,241,225,.1); }
+    .checkout-price strong { color: #c9f35b; font-size: 1.65rem; }
+    .checkout-price del { color: #a4ada2; font-size: .82rem; }
+    .checkout-label { display: grid; gap: 7px; color: #e9eee5; font-size: .8rem; font-weight: 600; }
+    .checkout-label input, .checkout-label select { width: 100%; min-height: 42px; padding: 10px 11px; border: 1px solid rgba(238,241,225,.14); border-radius: 8px; color: #f2f3e9; background: #0d1110; font: inherit; }
+    .checkout-label input:focus, .checkout-label select:focus { outline: 0; border-color: #c9f35b; box-shadow: 0 0 0 3px rgba(201,243,91,.12); }
+    .checkout-label input[type="file"] { padding: 6px; color: #a4ada2; }
+    .checkout-label input[type="file"]::file-selector-button { min-height: 29px; margin-right: 8px; padding: 0 9px; border: 1px solid rgba(201,243,91,.25); border-radius: 6px; color: #10150b; background: #c9f35b; cursor: pointer; }
+    .checkout-phone-row { display: grid; grid-template-columns: 76px minmax(0,1fr); gap: 8px; }
+    .checkout-note, .checkout-error { margin: 0; color: #a4ada2; font-size: .78rem; line-height: 1.5; }
+    .checkout-error { color: #ff9aa6; }
+    .checkout-benefits { display: grid; gap: 7px; padding-top: 8px; color: #e9eee5; font-size: .8rem; }
+    .checkout-benefits > span { color: #a4ada2; }
+    .checkout-share { width: 100%; min-height: 42px; padding: 10px 14px; border: 1px solid rgba(238,241,225,.14); border-radius: 8px; color: #e9eee5; background: rgba(255,255,255,.045); font: inherit; font-weight: 700; cursor: pointer; transition: .18s ease; }
+    .checkout-share:hover { border-color: #c9f35b; color: #c9f35b; background: rgba(201,243,91,.08); transform: translateY(-1px); }
+    #checkoutWhatsappBtn { border-color: rgba(120,223,168,.3); color: #9af0bd; }
+    .checkout-whatsapp-note { margin: 12px 0 0; color: var(--learning-muted); font-size: .78rem; line-height: 1.5; }
+    @media (max-width: 760px) {
+      .learning-topbar { height: auto; min-height: 62px; padding: 12px 16px; gap: 12px; }
+      .learning-brand { font-size: .9rem; }
+      .learning-back { font-size: .74rem; white-space: nowrap; }
+      .learning-app { width: calc(100% - 24px); padding: 28px 0 52px; }
+      .overview-heading { display: grid; gap: 14px; margin-bottom: 18px; }
+      .overview-heading h1 { font-size: clamp(1.65rem, 9vw, 2.25rem); overflow-wrap: anywhere; }
+      .overview-heading .learning-back { justify-self: start; }
+      .overview-summary { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0; padding: 0; border-radius: 10px; }
+      .overview-summary > img { min-height: 0; border-radius: 10px 10px 0 0; }
+      .overview-details { min-width: 0; padding: 18px; border-top: 1px solid #273142; border-left: 0; border-radius: 0 0 10px 10px; }
+      .overview-details h2 { font-size: 1.05rem; overflow-wrap: anywhere; }
+      .overview-meta { display: flex; flex-wrap: wrap; gap: 10px; }
+      #courseCheckout { padding: 14px; gap: 12px; }
+      .checkout-price { display: flex; align-items: baseline; gap: 8px; }
+      .checkout-label, .checkout-phone-row { min-width: 0; }
+      .checkout-phone-row { display: grid; grid-template-columns: 70px minmax(0, 1fr); }
+      .checkout-share, #checkoutPayBtn { width: 100%; min-height: 42px; }
+      .course-sales-panels { margin-top: 16px; }
+      .sales-panel, .faq-panel { border-radius: 10px; }
+      .checkout-phone-row { grid-template-columns: 70px minmax(0,1fr); }
+      #learningLoading { min-height: 360px; border-radius: 12px; }
+      #learningLoading::before { top: 18px; left: 18px; font-size: .54rem; }
+      #learningLoading::after { right: 12%; left: 12%; bottom: 18px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      #learningLoading::after { animation: none; }
+    }
+    @media (max-width: 760px) {
+      .learning-state { min-height: calc(100dvh - 110px); }
+      .learning-button, .checkout-share, .checkout-label input, .checkout-label select { min-height: 48px; }
+      .lesson-sidebar { max-height: 260px; }
+      .lesson-playlist { max-height: 170px; }
+      .lesson-actions .learning-button { flex: 1 1 100%; }
+    }
+  </style>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
 </head>
 <body class="course-learning-page">
@@ -310,15 +381,18 @@
           <section id="courseCheckout" aria-label="Course checkout">
             <div class="checkout-price"><strong id="checkoutFinalPrice">Free</strong><del id="checkoutOriginalPrice" class="hidden">৳0</del></div>
             <label class="checkout-label">Enter your Phone Number to continue
-              <span class="checkout-phone-row"><select id="checkoutCountry" aria-label="Country code"><option value="+880">+880</option></select><input id="checkoutPhone" type="tel" inputmode="numeric" maxlength="11" placeholder="01XXXXXXXXX" autocomplete="tel"></span>
+              <span class="checkout-phone-row"><select id="checkoutCountry" aria-label="Country code"><option value="+880">+880</option></select><input id="checkoutPhone" type="tel" inputmode="numeric" maxlength="11" placeholder="01XXXXXXXXX" autocomplete="tel" autocorrect="off" spellcheck="false"></span>
             </label>
             <p id="checkoutPhoneError" class="checkout-error" role="alert"></p>
             <label class="checkout-label">Payment method<select id="checkoutPaymentMethod"><option value="bkash">bKash</option><option value="nagad">Nagad</option></select></label>
             <p id="checkoutPaymentInstruction" class="checkout-note"></p>
-            <label class="checkout-label">Transaction ID<input id="checkoutTransactionId" type="text" maxlength="80" placeholder="Enter transaction ID"></label>
+            <label class="checkout-label">Transaction ID<input id="checkoutTransactionId" type="text" maxlength="80" placeholder="Enter transaction ID" autocomplete="off" autocorrect="off" spellcheck="false"></label>
+            <label class="checkout-label">Payment screenshot <span>(optional)</span><input id="checkoutPaymentScreenshot" type="file" accept="image/jpeg,image/png,image/webp"></label>
             <button id="checkoutPayBtn" class="learning-button primary" type="button" disabled>Pay</button>
             <p id="checkoutStatus" class="checkout-note" role="status"></p>
             <div class="checkout-benefits"><strong>This course includes:</strong><span id="checkoutBenefits"></span></div>
+              <p class="checkout-whatsapp-note">After submitting, you can send the payment details to WhatsApp and manually attach your screenshot there.</p>
+              <button id="checkoutWhatsappBtn" class="checkout-share" type="button"><i class="fa-brands fa-whatsapp"></i> Send Payment Proof via WhatsApp</button>
             <button id="checkoutShareBtn" class="checkout-share" type="button"><i class="fa-solid fa-share-nodes"></i> Share</button>
           </section>
         </div>
@@ -380,7 +454,7 @@
 
     <section id="lessonPlayer" class="lesson-screen hidden">
       <div class="lesson-main">
-        <div class="lesson-video-wrap"><iframe id="lessonVideo" title="Course lesson video" tabindex="0" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe><video id="lessonMp4" controls playsinline preload="metadata"></video></div>
+        <div class="lesson-video-wrap"><iframe loading="lazy" id="lessonVideo" title="Course lesson video" tabindex="0" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe><video id="lessonMp4" controls playsinline preload="metadata"></video></div>
         <div class="lesson-heading"><div><p class="learning-eyebrow">NOW PLAYING</p><h1 id="lessonTitle">Lesson</h1><p id="lessonDescription"></p><a id="lessonYoutubeLink" class="lesson-youtube-link hidden" href="" target="_blank" rel="noopener noreferrer">Watch on YouTube</a></div><span id="lessonDuration" class="lesson-duration"></span></div>
         <div class="lesson-actions"><button id="previousLesson" class="learning-button" type="button"><i class="fa-solid fa-arrow-left"></i> Previous Lesson</button><button id="completeLesson" class="learning-button primary" type="button">Complete and Continue <i class="fa-solid fa-arrow-right"></i></button><button id="nextLesson" class="learning-button" type="button">Next Lesson <i class="fa-solid fa-arrow-right"></i></button></div>
       </div>

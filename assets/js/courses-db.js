@@ -260,6 +260,7 @@ export async function createCourse(courseData) {
     title: courseData.title || 'Untitled course',
     description: courseData.description || '',
     category: courseData.category || 'General',
+    language: courseData.language || '',
     thumbnail: courseData.thumbnail || '',
     videoUrl: courseData.videoUrl || '',
     price: Math.max(0, Number(courseData.price) || 0),
