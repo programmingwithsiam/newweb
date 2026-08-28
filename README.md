@@ -17,14 +17,17 @@ practical Python, web development, AI, and project-based learning.
 ```
 index.html                 Public academy homepage and course catalog
 course.html                Course overview, checkout, and learning player
+live.html                  Authenticated Live room, replay playlist, and chat
 admin.html                 Admin dashboard (Firebase-auth + role gated)
 assets/css/                Shared portfolio and learning styles
 assets/js/                 Auth, Firestore, course, and UI modules
 assets/images/             Profile, favicon, and course imagery
+manifest.json              PWA metadata and official brand icons
+firestore.rules            Firestore security rules for courses, live, chat
+storage.rules              Firebase Storage rules for uploaded course videos
+vercel.json                Static deployment headers and course route rewrite
 python-backend/             Optional Django catalog/analytics adapter
 php-backend/                Optional PHP 8.3 catalog adapter
-firestore.rules            Firestore security rules
-storage.rules               Firebase Storage security rules
 FIREBASE_SETUP.md           Firebase project setup
 .env.example                Environment variable reference
 ```
@@ -39,6 +42,20 @@ FIREBASE_SETUP.md           Firebase project setup
 3. Sign in once on the live site using the verified administrator email
    configured in `assets/js/auth.js` and `firestore.rules`.
 4. Sign in to `/admin.html` and create your first course.
+5. Open `/live.html` for the authenticated live room. Use Admin → Live Studio
+   to publish a YouTube stream and archive its replay.
+
+## Local development
+
+This is a static HTML/CSS/ES module project; there is no `app/` build folder.
+
+```bash
+npm run check
+npm run dev
+```
+
+The development server serves the repository root, so the main entrypoints are
+`/`, `/course.html`, `/live.html`, and `/admin.html`.
 
 ## Optional backend services
 

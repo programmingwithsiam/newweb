@@ -4,7 +4,20 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Live Learning | CodeWithSiam</title>
-  <link rel="icon" type="image/png" href="assets/images/tab.png">
+  <meta name="description" content="Join CodeWithSiam live learning sessions and watch saved replays.">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <link rel="canonical" href="https://codewithsiam.vercel.app/live.html">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Live Learning | CodeWithSiam">
+  <meta property="og:description" content="Live learning sessions and replay archive from CodeWithSiam.">
+  <meta property="og:image" content="https://codewithsiam.vercel.app/assets/images/profile-siam.jpeg">
+  <meta property="og:image:alt" content="CodeWithSiam official profile image">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:image" content="https://codewithsiam.vercel.app/assets/images/profile-siam.jpeg">
+  <link rel="icon" type="image/jpeg" sizes="1200x1200" href="/assets/images/profile-siam.jpeg">
+  <link rel="icon" type="image/webp" sizes="1200x1200" href="/assets/images/profile-siam.webp">
+  <link rel="apple-touch-icon" sizes="180x180" href="/assets/images/profile-siam.jpeg">
+  <link rel="manifest" href="/manifest.json">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
   <link rel="stylesheet" href="assets/css/style.css">
   <link rel="stylesheet" href="assets/css/course-learning.css">
@@ -13,17 +26,50 @@
     .live-comments .panel-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--learning-line); }
     .live-comments .panel-heading h2 { margin: 0; font-size: 1rem; }
     .live-comments .panel-heading span { color: var(--learning-muted); font-size: .72rem; }
-    .live-comments-list { display: grid; gap: 8px; max-height: 320px; overflow: auto; padding: 12px 0; }
-    .live-comments-list article { padding: 9px 11px; border-radius: 6px; background: var(--learning-panel-2); }
-    .live-comments-list strong { color: var(--learning-accent-2); font-size: .78rem; }
-    .live-comments-list p { margin: 4px 0 0; color: var(--learning-text); font-size: .82rem; overflow-wrap: anywhere; }
-    .live-comment-form { display: grid; gap: 8px; }
+    .live-comments-list { display: flex; flex-direction: column; gap: 12px; max-height: 360px; overflow: auto; padding: 16px 4px; scroll-behavior: smooth; }
+    .chat-message { display: flex; align-items: flex-end; gap: 8px; max-width: 82%; }
+    .chat-message.is-own { align-self: flex-end; flex-direction: row-reverse; }
+    .chat-avatar { display: grid; flex: 0 0 30px; width: 30px; height: 30px; place-items: center; border-radius: 50%; color: #10150b; background: var(--learning-accent-2); font-size: .65rem; font-weight: 800; }
+    .chat-message.is-own .chat-avatar { color: #fff; background: var(--learning-accent); }
+    .chat-bubble-wrap { min-width: 0; }
+    .chat-message-meta { display: flex; align-items: baseline; gap: 7px; margin: 0 10px 4px; }
+    .chat-message-meta strong { color: var(--learning-accent-2); font-size: .7rem; }
+    .chat-message-meta time { color: var(--learning-muted); font-size: .62rem; }
+    .chat-message.is-own .chat-message-meta { justify-content: flex-end; }
+    .chat-message p { margin: 0; padding: 9px 12px; border-radius: 14px 14px 14px 4px; color: var(--learning-text); background: var(--learning-panel-2); font-size: .82rem; line-height: 1.4; overflow-wrap: anywhere; }
+    .chat-message.is-own p { border-radius: 14px 14px 4px 14px; color: #10150b; background: var(--learning-accent-2); }
+    .chat-empty { margin: auto; color: var(--learning-muted); font-size: .8rem; }
+    .live-comment-form { display: grid; gap: 8px; padding-top: 12px; border-top: 1px solid var(--learning-line); }
     .live-comment-form > div { display: flex; gap: 8px; }
-    .live-comment-form input { min-width: 0; width: 100%; padding: 10px; border: 1px solid var(--learning-line); border-radius: 6px; color: var(--learning-text); background: #090c12; }
+    .live-comment-form input { min-width: 0; width: 100%; padding: 10px 12px; border: 1px solid var(--learning-line); border-radius: 18px; color: var(--learning-text); background: #090c12; }
     .live-comment-form button { flex: 0 0 42px; border: 0; border-radius: 6px; color: #10150b; background: var(--learning-accent-2); cursor: pointer; }
     .live-category { margin: 0 0 8px; color: var(--learning-accent-2); font-size: .72rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
     .live-custom-thumbnail { display: block; width: min(100%, 420px); max-height: 180px; margin-top: 16px; border: 1px solid var(--learning-line); border-radius: 8px; object-fit: cover; }
     .live-custom-thumbnail.hidden { display: none; }
+    .chat-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 10px 0 0; }
+    .chat-toolbar button, .chat-action { border: 0; color: var(--learning-muted); background: transparent; font-size: .7rem; cursor: pointer; }
+    .chat-toolbar button:hover, .chat-action:hover { color: var(--learning-accent-2); }
+    .chat-pinned { display: grid; gap: 5px; margin: 12px 0 0; padding: 10px 12px; border-left: 2px solid var(--learning-accent-2); border-radius: 6px; background: rgba(255,212,59,.07); }
+    .chat-pinned-label { color: var(--learning-accent-2); font-size: .65rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+    .chat-pinned p { margin: 0; font-size: .8rem; }
+    .chat-message { animation: chat-in .2s ease-out; }
+    @keyframes chat-in { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+    .chat-message.is-admin .chat-message-meta strong::after { content: 'ADMIN'; margin-left: 5px; padding: 2px 4px; border-radius: 3px; color: #10150b; background: var(--learning-accent-2); font-size: .5rem; vertical-align: middle; }
+    .chat-message.is-reply { margin-left: 38px; }
+    .chat-message.is-own { outline: 1px solid rgba(147,71,255,.22); outline-offset: 2px; }
+    .chat-actions { display: flex; flex-wrap: wrap; gap: 9px; margin: 5px 10px 0; }
+    .chat-action { padding: 0; }
+    .chat-composer-row { display: flex; align-items: flex-end; gap: 8px; }
+    .chat-composer-row textarea { flex: 1; min-height: 42px; max-height: 120px; resize: vertical; padding: 11px 13px; border: 1px solid var(--learning-line); border-radius: 18px; color: var(--learning-text); background: #090c12; font: inherit; }
+    .chat-composer-row textarea:focus, .live-comment-form input:focus { outline: 0; border-color: var(--learning-accent-2); }
+    .chat-composer-row button { flex: 0 0 42px; min-height: 42px; border: 0; border-radius: 50%; color: #10150b; background: var(--learning-accent-2); cursor: pointer; }
+    .chat-composer-row button:disabled { opacity: .5; cursor: wait; }
+    .chat-replying { display: flex; justify-content: space-between; padding: 7px 10px; color: var(--learning-accent-2); font-size: .7rem; background: rgba(255,212,59,.06); }
+    .chat-replying button { border: 0; color: inherit; background: transparent; cursor: pointer; }
+    .chat-auth-note { margin: 0; color: var(--learning-muted); font-size: .75rem; }
+    .chat-status { min-height: 1em; margin: 0; color: var(--learning-muted); font-size: .7rem; }
+    .chat-status.is-error { color: #ff9aa6; }
+    @media (max-width: 560px) { .live-comments { padding: 13px; }.chat-message { max-width: 94%; }.chat-message.is-reply { margin-left: 18px; } }
   </style>
 </head>
 <body class="course-learning-page">
@@ -45,7 +91,7 @@
       </div>
       <aside class="lesson-sidebar"><div class="sidebar-course-head"><p class="learning-eyebrow">LIVE PLAYLIST</p><h2>CodeWithSiam Live</h2><div class="sidebar-progress-label"><strong id="liveProgressText">0% COMPLETE</strong><span id="liveProgressCount">0 / 0 sessions</span></div><div class="progress-line"><span id="liveProgressBar"></span></div></div><div id="livePlaylist" class="lesson-playlist"></div></aside>
     </section>
-    <section class="live-comments"><div class="panel-heading"><div><p class="learning-eyebrow">COMMUNITY</p><h2>Comments</h2></div><span id="liveCommentStatus">Everyone can comment</span></div><div id="liveCommentsList" class="live-comments-list"><p>Loading comments...</p></div><form id="liveCommentForm" class="live-comment-form"><input id="liveCommentName" maxlength="32" placeholder="Your name" aria-label="Your name"><div><input id="liveCommentText" maxlength="240" placeholder="Write a comment..." aria-label="Write a comment" required><button type="submit" aria-label="Post comment"><i class="fa-solid fa-paper-plane"></i></button></div></form></section>
+    <section class="live-comments"><div class="panel-heading"><div><p class="learning-eyebrow">COMMUNITY CHAT</p><h2>Live conversation</h2></div><span id="liveCommentStatus">Realtime</span></div><div id="livePinnedComments" class="chat-pinned hidden"></div><div class="chat-toolbar"><button id="loadMoreComments" type="button">Load older comments</button><button id="newCommentsIndicator" class="hidden" type="button">New comments ↓</button></div><div id="liveCommentsList" class="live-comments-list"><p>Loading comments...</p></div><form id="liveCommentForm" class="live-comment-form"><p id="liveCommentAuthNote" class="chat-auth-note">Sign in to join the conversation.</p><div id="liveReplying" class="chat-replying hidden"><span id="liveReplyingText"></span><button id="cancelLiveReply" type="button" aria-label="Cancel reply"><i class="fa-solid fa-xmark"></i></button></div><div class="chat-composer-row"><textarea id="liveCommentText" maxlength="240" rows="1" placeholder="Write a comment..." aria-label="Write a comment" required></textarea><button type="submit" aria-label="Send comment"><i class="fa-solid fa-paper-plane"></i></button></div><p id="liveCommentSendStatus" class="chat-status" aria-live="polite"></p></form></section>
   </main>
   <script type="module" src="assets/js/live-learning.js"></script>
 </body>

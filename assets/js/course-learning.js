@@ -210,16 +210,32 @@ function renderCheckout(finalPrice, originalPrice, hasAccess) {
   $('checkoutPaymentInstruction').textContent = `${method === 'bkash' ? 'bKash' : 'Nagad'}: ${number}`;
   $('checkoutPayBtn').textContent = `Pay ৳${finalPrice.toLocaleString('en-BD')}`;
 }
-function validBangladeshPhone(value) { return /^(01[3-9]\d{8})$/.test(String(value || '').replace(/\D/g, '')); }
+function getCheckoutCountry() {
+  const select = $('checkoutCountry');
+  const option = select?.selectedOptions?.[0];
+  return { code: option?.value || '+880', country: option?.dataset.country || 'Bangladesh', placeholder: option?.dataset.placeholder || '01XXXXXXXXX' };
+}
+function normalizeCheckoutPhone(value, countryCode) {
+  const digits = String(value || '').replace(/\D/g, '');
+  const localDigits = digits.startsWith('0') ? digits.slice(1) : digits;
+  return `${countryCode}${localDigits}`;
+}
+function validCheckoutPhone(value, countryCode) {
+  const digits = String(value || '').replace(/\D/g, '');
+  if (countryCode === '+880') return /^(01[3-9]\d{8})$/.test(digits);
+  const localDigits = digits.startsWith('0') ? digits.slice(1) : digits;
+  return /^[1-9]\d{6,14}$/.test(localDigits);
+}
 function bindCheckout() {
   const phone = $('checkoutPhone');
   const transaction = $('checkoutTransactionId');
   const pay = $('checkoutPayBtn');
   if (!phone || !transaction || !pay || pay.dataset.bound) return;
   pay.dataset.bound = 'true';
-  const update = () => { const valid = validBangladeshPhone(phone.value); $('checkoutPhoneError').textContent = phone.value && !valid ? 'Please enter a valid 11-digit Bangladesh phone number' : ''; pay.disabled = !valid || !transaction.value.trim() || Boolean(pay.dataset.processing); };
+  const update = () => { const selected = getCheckoutCountry(); const valid = validCheckoutPhone(phone.value, selected.code); $('checkoutPhoneError').textContent = phone.value && !valid ? `Please enter a valid ${selected.country} phone number` : ''; pay.disabled = !valid || !transaction.value.trim() || Boolean(pay.dataset.processing); };
   phone.addEventListener('input', update);
   transaction.addEventListener('input', update);
+  $('checkoutCountry').addEventListener('change', () => { const selected = getCheckoutCountry(); phone.placeholder = selected.placeholder; phone.value = ''; $('checkoutPhoneError').textContent = ''; update(); });
   $('checkoutPaymentMethod').addEventListener('change', () => renderCheckout(Number(course.discountPrice) || Number(course.price) || 0, Number(course.price) || 0, false));
   pay.addEventListener('click', async () => {
     update();
@@ -228,7 +244,7 @@ function bindCheckout() {
     pay.dataset.processing = 'true'; pay.disabled = true; pay.textContent = 'Processing...';
     try {
       const screenshotUrl = await compressPaymentScreenshot($('checkoutPaymentScreenshot')?.files?.[0]);
-      await createPaymentSubmission({ userId: user.uid, courseId: course.id, courseTitle: course.title, amount: Number(course.discountPrice) > 0 && Number(course.discountPrice) < Number(course.price) ? Number(course.discountPrice) : Number(course.price), method: $('checkoutPaymentMethod').value, transactionId: transaction.value.trim(), phone: `+880${phone.value.replace(/^0/, '')}`, screenshotUrl });
+      await createPaymentSubmission({ userId: user.uid, courseId: course.id, courseTitle: course.title, amount: Number(course.discountPrice) > 0 && Number(course.discountPrice) < Number(course.price) ? Number(course.discountPrice) : Number(course.price), method: $('checkoutPaymentMethod').value, transactionId: transaction.value.trim(), phone: normalizeCheckoutPhone(phone.value, getCheckoutCountry().code), screenshotUrl });
       $('checkoutStatus').textContent = 'Payment submitted — waiting for verification.';
       pay.textContent = 'Payment submitted';
     } catch (error) { $('checkoutStatus').textContent = error.message || 'Payment could not be submitted.'; pay.dataset.processing = ''; pay.textContent = `Pay ৳${(Number(course.discountPrice) > 0 && Number(course.discountPrice) < Number(course.price) ? Number(course.discountPrice) : Number(course.price)).toLocaleString('en-BD')}`; update(); }

@@ -93,6 +93,17 @@ function initSiteLiveChat() {
 
   import('./firebase-init.js').then(async ({ db, auth, isFirebaseConfigured }) => {
     if (!isFirebaseConfigured || !db) throw new Error('Firebase is not configured');
+    const currentUser = auth?.currentUser;
+    if (!currentUser) {
+      nameInput.value = '';
+      nameInput.disabled = true;
+      messageInput.disabled = true;
+      form.querySelector('button[type="submit"]')?.setAttribute('disabled', 'true');
+      status.textContent = 'Sign in to comment';
+    } else {
+      nameInput.value = currentUser.displayName || currentUser.email?.split('@')[0] || 'Member';
+      nameInput.disabled = true;
+    }
     const { collection, addDoc, deleteDoc, doc, limit, onSnapshot, orderBy, query, serverTimestamp, updateDoc } = await import('https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js');
     const chatQuery = query(collection(db, 'liveChatMessages'), orderBy('createdAt', 'desc'), limit(50));
     let replyTo = null;
@@ -115,15 +126,16 @@ function initSiteLiveChat() {
     }, () => { status.textContent = 'Chat unavailable'; });
     form.addEventListener('submit', async (event) => {
       event.preventDefault();
-      const name = nameInput.value.trim().slice(0, 32) || 'Guest';
+      if (!currentUser) return;
+      const name = currentUser.displayName?.trim().slice(0, 32) || currentUser.email?.split('@')[0] || 'Member';
       const text = messageInput.value.trim().slice(0, 240);
       if (!text) return;
       const button = form.querySelector('button');
       button.disabled = true;
       try {
         const parentName = replyTo?.name || '';
-        await addDoc(collection(db, 'liveChatMessages'), { name, text, parentId: replyTo?.id || '', parentName, authorUid: auth?.currentUser?.uid || '', createdAt: serverTimestamp() });
-        localStorage.setItem('siam_live_chat_name', name);
+        const authorIsAdmin = currentUser.email?.toLowerCase() === 'mdsiamahmmedloselovestroy@gmail.com' && currentUser.emailVerified === true;
+        await addDoc(collection(db, 'liveChatMessages'), { name, avatarUrl: currentUser.photoURL || '', text, parentId: replyTo?.id || '', parentName, authorUid: currentUser.uid, authorIsAdmin, likes: [], pinned: false, createdAt: serverTimestamp() });
         messageInput.value = '';
         replyTo = null;
         if (replyState) { replyState.textContent = ''; replyState.classList.add('hidden'); }

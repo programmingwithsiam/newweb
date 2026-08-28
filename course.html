@@ -5,9 +5,20 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Course | CodeWithSiam</title>
   <meta name="description" content="Learn with CodeWithSiam video lessons.">
-  <link rel="icon" type="image/png" sizes="256x256" href="assets/images/tab.png?v=20260827">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <link rel="canonical" href="https://codewithsiam.vercel.app/course.html">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Courses | CodeWithSiam">
+  <meta property="og:description" content="Learn practical programming with CodeWithSiam video lessons.">
+  <meta property="og:image" content="https://codewithsiam.vercel.app/assets/images/profile-siam.jpeg">
+  <meta property="og:image:alt" content="CodeWithSiam official profile image">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:image" content="https://codewithsiam.vercel.app/assets/images/profile-siam.jpeg">
+  <link rel="icon" type="image/jpeg" sizes="1200x1200" href="/assets/images/profile-siam.jpeg">
+  <link rel="icon" type="image/webp" sizes="1200x1200" href="/assets/images/profile-siam.webp">
   <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
-  <link rel="apple-touch-icon" href="assets/images/tab.png?v=20260827">
+  <link rel="apple-touch-icon" sizes="180x180" href="/assets/images/profile-siam.jpeg">
+  <link rel="manifest" href="/manifest.json">
   <link rel="stylesheet" href="assets/css/style.css?v=20260824-payment-options-2">
   <link rel="stylesheet" href="assets/css/course-learning.css">
   <style>
@@ -234,7 +245,7 @@
     .checkout-label input:focus, .checkout-label select:focus { outline: 0; border-color: #c9f35b; box-shadow: 0 0 0 3px rgba(201,243,91,.12); }
     .checkout-label input[type="file"] { padding: 6px; color: #a4ada2; }
     .checkout-label input[type="file"]::file-selector-button { min-height: 29px; margin-right: 8px; padding: 0 9px; border: 1px solid rgba(201,243,91,.25); border-radius: 6px; color: #10150b; background: #c9f35b; cursor: pointer; }
-    .checkout-phone-row { display: grid; grid-template-columns: 76px minmax(0,1fr); gap: 8px; }
+    .checkout-phone-row { display: grid; grid-template-columns: minmax(145px, .8fr) minmax(0, 1.5fr); gap: 8px; }
     .checkout-note, .checkout-error { margin: 0; color: #a4ada2; font-size: .78rem; line-height: 1.5; }
     .checkout-error { color: #ff9aa6; }
     .checkout-benefits { display: grid; gap: 7px; padding-top: 8px; color: #e9eee5; font-size: .8rem; }
@@ -258,12 +269,13 @@
       .overview-meta { display: flex; flex-wrap: wrap; gap: 10px; }
       #courseCheckout { padding: 14px; gap: 12px; }
       .checkout-price { display: flex; align-items: baseline; gap: 8px; }
+      .checkout-phone-row { grid-template-columns: minmax(135px, .9fr) minmax(0, 1.1fr); }
       .checkout-label, .checkout-phone-row { min-width: 0; }
-      .checkout-phone-row { display: grid; grid-template-columns: 70px minmax(0, 1fr); }
+      .checkout-phone-row { display: grid; grid-template-columns: minmax(135px, .9fr) minmax(0, 1.1fr); }
       .checkout-share, #checkoutPayBtn { width: 100%; min-height: 42px; }
       .course-sales-panels { margin-top: 16px; }
       .sales-panel, .faq-panel { border-radius: 10px; }
-      .checkout-phone-row { grid-template-columns: 70px minmax(0,1fr); }
+      .checkout-phone-row { grid-template-columns: minmax(135px, .9fr) minmax(0, 1.1fr); }
       #learningLoading { min-height: 360px; border-radius: 12px; }
       #learningLoading::before { top: 18px; left: 18px; font-size: .54rem; }
       #learningLoading::after { right: 12%; left: 12%; bottom: 18px; }
@@ -403,7 +415,7 @@
           <section id="courseCheckout" aria-label="Course checkout">
             <div class="checkout-price"><strong id="checkoutFinalPrice">Free</strong><del id="checkoutOriginalPrice" class="hidden">৳0</del></div>
             <label class="checkout-label">Enter your Phone Number to continue
-              <span class="checkout-phone-row"><select id="checkoutCountry" aria-label="Country code"><option value="+880">+880</option></select><input id="checkoutPhone" type="tel" inputmode="numeric" maxlength="11" placeholder="01XXXXXXXXX" autocomplete="tel" autocorrect="off" spellcheck="false"></span>
+              <span class="checkout-phone-row"><select id="checkoutCountry" aria-label="Country code"><option value="+880" data-placeholder="01XXXXXXXXX" data-country="Bangladesh">🇧🇩 +880 Bangladesh</option><option value="+91" data-placeholder="XXXXXXXXXX" data-country="India">🇮🇳 +91 India</option><option value="+92" data-placeholder="XXXXXXXXXX" data-country="Pakistan">🇵🇰 +92 Pakistan</option><option value="+971" data-placeholder="5XXXXXXXX" data-country="UAE">🇦🇪 +971 UAE</option><option value="+966" data-placeholder="5XXXXXXXX" data-country="Saudi Arabia">🇸🇦 +966 Saudi Arabia</option><option value="+60" data-placeholder="1XXXXXXXX" data-country="Malaysia">🇲🇾 +60 Malaysia</option><option value="+44" data-placeholder="7XXXXXXXXX" data-country="United Kingdom">🇬🇧 +44 UK</option><option value="+1" data-placeholder="XXXXXXXXXX" data-country="United States">🇺🇸 +1 USA</option></select><input id="checkoutPhone" type="tel" inputmode="numeric" maxlength="15" placeholder="01XXXXXXXXX" autocomplete="tel" autocorrect="off" spellcheck="false"></span>
             </label>
             <p id="checkoutPhoneError" class="checkout-error" role="alert"></p>
             <label class="checkout-label">Payment method<select id="checkoutPaymentMethod"><option value="bkash">bKash</option><option value="nagad">Nagad</option></select></label>
