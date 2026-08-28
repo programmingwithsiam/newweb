@@ -1,0 +1,27 @@
+.post-actions {
+  position: relative;
+}
+
+.post-actions .reaction-picker {
+  left: 0;
+  bottom: calc(100% + 8px);
+  z-index: 10;
+  max-width: calc(100vw - 48px);
+  overflow-x: auto;
+  overscroll-behavior: contain;
+  white-space: nowrap;
+}
+
+.post-actions .reaction-picker button {
+  flex: 0 0 29px;
+}
+
+@media (max-width: 640px) {
+  .post-card {
+    overflow: visible;
+  }
+
+  .post-actions .reaction-picker {
+    left: -4px;
+  }
+}

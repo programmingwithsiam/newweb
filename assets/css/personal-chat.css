@@ -312,6 +312,15 @@
     inset: 64px 0 0;
     z-index: 4;
     height: calc(100dvh - 64px);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .chat-active {
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
   }
 
   .chat-window-head {
@@ -337,6 +346,37 @@
   }
 
   .chat-active .message-form {
+    min-height: 52px;
     margin: 0 10px 8px;
+  }
+}
+
+.chat-window-head > div {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.chat-window-head > div h2,
+.chat-window-head > div small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chat-header-actions {
+  flex: 0 0 auto;
+}
+
+@media (max-width: 480px) {
+  .chat-header-actions button:nth-child(-n + 3) {
+    display: none;
+  }
+
+  .chat-window-head {
+    gap: 8px;
+  }
+
+  .chat-active .message-form {
+    margin-inline: 8px;
   }
 }
