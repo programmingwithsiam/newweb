@@ -172,9 +172,10 @@ service cloud.firestore {
     }
 
     match /directMessages/{conversationId}/messages/{messageId} {
-      allow read: if isSignedIn() && (resource.data.senderId == request.auth.uid || resource.data.receiverId == request.auth.uid);
+      allow read: if isSignedIn() && request.auth.uid in get(/databases/$(database)/documents/directConversations/$(conversationId)).data.participants;
       allow create: if isSignedIn() && request.resource.data.senderId == request.auth.uid &&
         request.resource.data.receiverId is string && request.resource.data.receiverId != request.auth.uid &&
+        request.auth.uid in get(/databases/$(database)/documents/directConversations/$(conversationId)).data.participants &&
         request.resource.data.text is string && request.resource.data.text.size() > 0 && request.resource.data.text.size() <= 1000 &&
         request.resource.data.createdAt == request.time;
       allow update: if isSignedIn() && ((resource.data.senderId == request.auth.uid && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text'])) || (resource.data.receiverId == request.auth.uid && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['readAt']) && request.resource.data.readAt == request.time));
