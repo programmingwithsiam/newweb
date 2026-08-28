@@ -1,5 +1,5 @@
 import { auth, db } from './firebase-init.js';
-import { observeAuthState, signInWithGoogle } from './auth.js';
+import { observeAuthState, signInWithGoogle } from './auth.js?v=20260829-auth-fix-1';
 
 const feed = document.getElementById('postFeed');
 const text = document.getElementById('postText');
@@ -69,6 +69,20 @@ async function init() {
   const postsQuery = query(collection(db, 'communityPosts'), orderBy('createdAt', 'desc'), limit(50));
   let feedLoaded = false;
   const feedTimeout = setTimeout(() => { if (!feedLoaded) { status.textContent = 'Community is taking too long to load. Check Firebase connection.'; feed.innerHTML = `<div class="feed-empty"><i class="fa-solid fa-triangle-exclamation"></i><p>${escapeHtml(status.textContent)}</p></div>`; } }, 10000);
+  setTimeout(async () => {
+    if (feedLoaded) return;
+    try {
+      const fallbackSnapshot = await getDocs(query(collection(db, 'communityPosts'), limit(50)));
+      feedLoaded = true;
+      clearTimeout(feedTimeout);
+      postItems = fallbackSnapshot.docs
+        .map(item => ({ id: item.id, ...item.data() }))
+        .sort((a, b) => timestamp(b.createdAt) - timestamp(a.createdAt));
+      render();
+    } catch (error) {
+      console.error('Community fallback load failed:', error);
+    }
+  }, 5000);
   onSnapshot(postsQuery, snapshot => { feedLoaded = true; clearTimeout(feedTimeout); postItems = snapshot.docs.map(item => ({ id: item.id, ...item.data() })); render(); }, error => { feedLoaded = true; clearTimeout(feedTimeout); status.textContent = error.code === 'permission-denied' ? 'Community read access is blocked by Firestore rules.' : 'Community is temporarily unavailable.'; feed.innerHTML = `<div class="feed-empty"><i class="fa-solid fa-triangle-exclamation"></i><p>${escapeHtml(status.textContent)}</p></div>`; });
   postButton.addEventListener('click', async () => {
     const value = text.value.trim();
@@ -102,6 +116,11 @@ async function init() {
     if (button.dataset.commentAction) return;
   });
   feed.addEventListener('submit', async event => { const form = event.target.closest('.comment-form'); if (!form) return; event.preventDefault(); const card = form.closest('[data-post-id]'); const value = form.comment.value.trim(); if (!value) return; await addDoc(collection(db, 'communityPosts', card.dataset.postId, 'comments'), { text: value.slice(0, 500), authorName: currentUser?.displayName || currentUser?.email?.split('@')[0] || 'Visitor', avatarUrl: currentUser?.photoURL || '', authorUid: currentUser?.uid || visitorId, createdAt: serverTimestamp() }).then(() => { form.reset(); status.textContent = 'Comment added.'; card.querySelector('[data-post-action="comment"]').click(); card.querySelector('[data-post-action="comment"]').click(); }).catch(() => { status.textContent = 'Comment failed. Try again.'; }); });
+  document.addEventListener('click', event => {
+    if (!event.target.closest('.post-actions [data-post-action="like"], .reaction-picker')) {
+      document.querySelectorAll('.reaction-picker').forEach(picker => picker.remove());
+    }
+  });
 }
 signInButton.addEventListener('click', () => signInWithGoogle().catch(error => { status.textContent = error.message || 'Sign-in failed.'; }));
 themeToggle.addEventListener('click', () => { document.body.classList.toggle('light'); localStorage.setItem('community-theme', document.body.classList.contains('light') ? 'light' : 'dark'); });

@@ -16,7 +16,7 @@ import {
   logout,
   observeAuthState,
   isCurrentUserAdmin,
-} from './auth.js';
+} from './auth.js?v=20260829-auth-fix-1';
 import { isFirebaseConfigured } from './firebase-init.js';
 
 const modal = document.getElementById('authModal');

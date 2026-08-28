@@ -1,5 +1,5 @@
 import { auth, db } from './firebase-init.js';
-import { observeAuthState, signInWithGoogle } from './auth.js';
+import { observeAuthState, signInWithGoogle } from './auth.js?v=20260829-auth-fix-1';
 
 const contacts = document.getElementById('chatContactsList');
 const empty = document.getElementById('chatEmpty');

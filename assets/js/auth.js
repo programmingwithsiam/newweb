@@ -51,6 +51,7 @@ function friendlyAuthError(error) {
     'auth/weak-password': 'Password should be at least 6 characters.',
     'auth/too-many-requests': 'Too many attempts. Please wait a moment and try again.',
     'auth/user-disabled': 'This account has been disabled.',
+    'auth/operation-not-allowed': 'This sign-in method is disabled in Firebase Authentication. Enable Email/Password or Google in the Firebase Console.',
   };
   return map[code] || error?.message || 'Something went wrong. Please try again.';
 }
@@ -93,8 +94,20 @@ export async function signInWithEmail(email, password) {
   if (!isFirebaseConfigured) throw new Error('Firebase is not configured yet. See FIREBASE_SETUP.md.');
   const { signInWithEmailAndPassword } = await loadAuthModule();
   try {
-    const result = await signInWithEmailAndPassword(auth, email, password);
+    const result = await signInWithEmailAndPassword(auth, email.trim().toLowerCase(), password);
     return result.user;
+  } catch (error) {
+    throw new Error(friendlyAuthError(error));
+  }
+}
+
+export async function sendVerificationEmail() {
+  if (!isFirebaseConfigured || !auth?.currentUser) {
+    throw new Error('Please sign in before requesting a verification email.');
+  }
+  const { sendEmailVerification } = await loadAuthModule();
+  try {
+    await sendEmailVerification(auth.currentUser);
   } catch (error) {
     throw new Error(friendlyAuthError(error));
   }
