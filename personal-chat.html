@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Personal Chat | CodeWithSiam</title>
+  <meta name="description" content="Private text conversations for CodeWithSiam community members.">
+  <link rel="icon" type="image/png" sizes="256x256" href="/assets/images/profile-siam-round.png?v=20260828">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+  <link rel="stylesheet" href="assets/css/community.css">
+  <link rel="stylesheet" href="assets/css/community-overrides.css">
+</head>
+<body class="personal-chat-page">
+  <header class="community-topbar"><a href="community.html" class="brand"><i class="fa-solid fa-arrow-left"></i> Community</a><strong class="personal-chat-title">Personal Chat</strong><span></span></header>
+  <main class="personal-chat-layout">
+    <aside class="chat-contacts"><div class="chat-contacts-head"><h1>Chats</h1><span id="chatUserState">Sign in</span></div><div id="chatContactsList" class="chat-contacts-list"><p class="comments-empty">Sign in to view your chats.</p></div></aside>
+    <section class="chat-window"><div id="chatEmpty" class="chat-window-empty"><i class="fa-regular fa-message"></i><h2>Select a conversation</h2><p>Choose a person from your chats to start messaging.</p></div><div id="chatActive" class="chat-active hidden"><div class="chat-window-head"><span id="chatTargetAvatar" class="message-avatar"></span><div><h2 id="chatTargetName">Personal Chat</h2><small id="chatTargetPresence">Offline</small></div></div><div id="chatMessages" class="message-list"></div><form id="chatForm" class="message-form"><input id="chatText" maxlength="1000" placeholder="Type a message" aria-label="Write a private message" required><button type="submit" aria-label="Send message"><i class="fa-solid fa-paper-plane"></i></button></form><p id="chatStatus" class="message-status"></p></div></section>
+  </main>
+  <script type="module" src="assets/js/personal-chat.js"></script>
+</body>
+</html>
