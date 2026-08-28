@@ -211,12 +211,20 @@ async function loadLiveRoom(user) {
     workspace.classList.add('hidden');
     empty.classList.add('hidden');
     access.classList.remove('hidden');
+    initComments(null).catch(error => {
+      document.getElementById('liveCommentStatus').textContent = 'Comments unavailable';
+      console.error('Public comments failed:', error);
+    });
     return;
   }
   access.classList.add('hidden');
   empty.classList.add('hidden');
   workspace.classList.add('hidden');
   loading.classList.remove('hidden');
+  initComments(user).catch(error => {
+    document.getElementById('liveCommentStatus').textContent = 'Comments unavailable';
+    console.error('Live comments failed:', error);
+  });
   try {
   const [settings, archived] = await Promise.all([fetchLiveSettings(), fetchLiveSessions()]);
   const currentId = settings.enabled === true ? extractYoutubeId(settings.url || '') : null;
@@ -224,7 +232,7 @@ async function loadLiveRoom(user) {
   sessions = [...current, ...archived];
   loading.classList.add('hidden');
   if (!sessions.length) empty.classList.remove('hidden');
-  else { workspace.classList.remove('hidden'); renderSession(); await initComments(); }
+  else { workspace.classList.remove('hidden'); renderSession(); }
   roomLoaded = true;
   } catch (error) {
   loading.classList.add('hidden');
@@ -240,7 +248,7 @@ document.getElementById('liveSignIn').addEventListener('click', async event => {
   const button = event.currentTarget;
   button.disabled = true;
   document.getElementById('liveAuthStatus').textContent = 'Opening Google sign-in...';
-  try { await signInWithGoogle(); }
+  try { await signInWithGoogle(); window.location.reload(); }
   catch (error) { document.getElementById('liveAuthStatus').textContent = error.message || 'Sign-in failed.'; button.disabled = false; }
 });
 
