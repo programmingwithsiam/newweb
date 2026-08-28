@@ -1904,7 +1904,9 @@
           <p class="section-subtitle">Start a session, then archive its replay with the topic and ending date.</p>
           <div class="live-settings-grid">
             <label>Live topic<input id="liveTopic" type="text" placeholder="e.g. Build a Python AI project live"></label>
+            <label>Category<input id="liveCategory" type="text" placeholder="e.g. Python, AI, Web Development"></label>
             <label>YouTube Live URL<input id="liveStreamUrl" type="url" placeholder="https://www.youtube.com/watch?v=..."></label>
+            <label>Custom thumbnail URL<input id="liveThumbnail" type="url" placeholder="https://.../thumbnail.jpg"></label>
             <label>Short description<textarea id="liveDescription" rows="2" placeholder="What will viewers learn?"></textarea></label>
             <label>YouTube Channel ID<input id="liveChannelId" type="text" placeholder="UC..."></label>
             <label class="checkbox-label"><input id="liveStreamEnabled" type="checkbox"> Show live now</label>
@@ -2797,6 +2799,8 @@
 
     const liveUrlInput = document.getElementById('liveStreamUrl');
     const liveTopicInput = document.getElementById('liveTopic');
+    const liveCategoryInput = document.getElementById('liveCategory');
+    const liveThumbnailInput = document.getElementById('liveThumbnail');
     const liveDescriptionInput = document.getElementById('liveDescription');
     const liveChannelInput = document.getElementById('liveChannelId');
     const liveEnabledInput = document.getElementById('liveStreamEnabled');
@@ -2811,6 +2815,8 @@
     async function loadLiveSettings() {
       const settings = await fetchLiveSettings();
       if (liveTopicInput) liveTopicInput.value = settings.title || '';
+      if (liveCategoryInput) liveCategoryInput.value = settings.category || '';
+      if (liveThumbnailInput) liveThumbnailInput.value = settings.thumbnail || '';
       if (liveDescriptionInput) liveDescriptionInput.value = settings.description || '';
       if (liveUrlInput) liveUrlInput.value = settings.url || '';
       if (liveChannelInput) liveChannelInput.value = settings.channelId || '';
@@ -2827,7 +2833,7 @@
         return;
       }
       try {
-        await updateLiveSettings({ title: liveTopicInput?.value.trim() || '', description: liveDescriptionInput?.value.trim() || '', url, channelId: liveChannelInput?.value.trim() || '', enabled: liveEnabledInput?.checked === true, chatEnabled: liveChatInput?.checked !== false });
+        await updateLiveSettings({ title: liveTopicInput?.value.trim() || '', category: liveCategoryInput?.value.trim() || 'Live learning', thumbnail: liveThumbnailInput?.value.trim() || '', description: liveDescriptionInput?.value.trim() || '', url, channelId: liveChannelInput?.value.trim() || '', enabled: liveEnabledInput?.checked === true, chatEnabled: liveChatInput?.checked !== false });
         setStatus(status, 'Live settings saved.', true);
       } catch (error) {
         setStatus(status, error.message || 'Live settings could not be saved.', false);
@@ -2836,7 +2842,7 @@
     document.getElementById('endLiveSessionBtn')?.addEventListener('click', async () => {
       const status = document.getElementById('liveSettingsStatus');
       try {
-        await createLiveSession({ title: liveTopicInput?.value.trim() || '', description: liveDescriptionInput?.value.trim() || '', videoUrl: liveUrlInput?.value.trim() || '' });
+        await createLiveSession({ title: liveTopicInput?.value.trim() || '', category: liveCategoryInput?.value.trim() || 'Live learning', thumbnail: liveThumbnailInput?.value.trim() || '', description: liveDescriptionInput?.value.trim() || '', videoUrl: liveUrlInput?.value.trim() || '' });
         await updateLiveSettings({ enabled: false });
         if (liveEnabledInput) liveEnabledInput.checked = false;
         setStatus(status, 'Live ended and replay saved to the archive.', true);

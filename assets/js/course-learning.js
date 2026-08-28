@@ -267,7 +267,7 @@ function renderPlayer() {
   setupCustomVideoPlayer(isMp4);
   $('lessonVideo').classList.toggle('hidden', isMp4);
   $('lessonMp4').classList.toggle('hidden', !isMp4);
-  $('lessonVideo').src = !isMp4 && id ? `https://www.youtube.com/embed/${id}?controls=0&rel=0&playsinline=1&modestbranding=1` : '';
+  $('lessonVideo').src = !isMp4 && id ? `https://www.youtube.com/embed/${id}?controls=1&rel=0&playsinline=1` : '';
   $('lessonMp4').src = isMp4 ? lesson.videoUrl : '';
   const videoWrap = $('lessonVideo').closest('.lesson-video-wrap');
   if (videoWrap && !videoWrap.dataset.controlsReady) {

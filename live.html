@@ -5,8 +5,26 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Live Learning | CodeWithSiam</title>
   <link rel="icon" type="image/png" href="assets/images/tab.png">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
   <link rel="stylesheet" href="assets/css/style.css">
   <link rel="stylesheet" href="assets/css/course-learning.css">
+  <style>
+    .live-comments { margin-top: 20px; padding: 18px; border: 1px solid var(--learning-line); border-radius: 10px; background: var(--learning-panel); }
+    .live-comments .panel-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--learning-line); }
+    .live-comments .panel-heading h2 { margin: 0; font-size: 1rem; }
+    .live-comments .panel-heading span { color: var(--learning-muted); font-size: .72rem; }
+    .live-comments-list { display: grid; gap: 8px; max-height: 320px; overflow: auto; padding: 12px 0; }
+    .live-comments-list article { padding: 9px 11px; border-radius: 6px; background: var(--learning-panel-2); }
+    .live-comments-list strong { color: var(--learning-accent-2); font-size: .78rem; }
+    .live-comments-list p { margin: 4px 0 0; color: var(--learning-text); font-size: .82rem; overflow-wrap: anywhere; }
+    .live-comment-form { display: grid; gap: 8px; }
+    .live-comment-form > div { display: flex; gap: 8px; }
+    .live-comment-form input { min-width: 0; width: 100%; padding: 10px; border: 1px solid var(--learning-line); border-radius: 6px; color: var(--learning-text); background: #090c12; }
+    .live-comment-form button { flex: 0 0 42px; border: 0; border-radius: 6px; color: #10150b; background: var(--learning-accent-2); cursor: pointer; }
+    .live-category { margin: 0 0 8px; color: var(--learning-accent-2); font-size: .72rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+    .live-custom-thumbnail { display: block; width: min(100%, 420px); max-height: 180px; margin-top: 16px; border: 1px solid var(--learning-line); border-radius: 8px; object-fit: cover; }
+    .live-custom-thumbnail.hidden { display: none; }
+  </style>
 </head>
 <body class="course-learning-page">
   <header class="learning-topbar">
@@ -16,15 +34,18 @@
   </header>
   <main class="learning-app">
     <section id="liveLoading" class="learning-state"><div class="loading-spinner"></div><h1>Loading live room</h1></section>
+    <section id="liveAccess" class="learning-state hidden"><i class="fa-solid fa-lock"></i><h1>Sign in to enter the Live room</h1><p>Only signed-in learners can watch live sessions and join the audio room.</p><button id="liveSignIn" class="learning-button primary" type="button"><i class="fa-brands fa-google"></i> Continue with Google</button><p id="liveAuthStatus" class="auth-status"></p></section>
     <section id="liveEmpty" class="learning-state hidden"><i class="fa-solid fa-tower-broadcast"></i><h1>No live sessions yet</h1><p>When a session ends, its replay will stay here with the topic and date.</p></section>
     <section id="liveWorkspace" class="lesson-screen hidden">
       <div class="lesson-main">
         <div class="lesson-video-wrap"><iframe id="liveVideo" title="Live session video" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe></div>
-        <div class="lesson-heading"><div><p class="learning-eyebrow" id="liveState">LIVE ARCHIVE</p><h1 id="liveTitle">Live session</h1><p id="liveDescription"></p><a id="liveYoutubeLink" class="lesson-youtube-link" href="" target="_blank" rel="noopener noreferrer">Watch on YouTube</a></div><span id="liveDate" class="lesson-duration"></span></div>
-        <div class="lesson-actions"><button id="previousLive" class="learning-button" type="button"><i class="fa-solid fa-arrow-left"></i> Previous</button><button id="completeLive" class="learning-button primary" type="button">Complete and Continue <i class="fa-solid fa-arrow-right"></i></button><button id="nextLive" class="learning-button" type="button">Next <i class="fa-solid fa-arrow-right"></i></button></div>
+        <div class="lesson-heading"><div><p class="learning-eyebrow" id="liveState">LIVE ARCHIVE</p><p id="liveCategory" class="live-category"></p><h1 id="liveTitle">Live session</h1><p id="liveDescription"></p><a id="liveYoutubeLink" class="lesson-youtube-link" href="" target="_blank" rel="noopener noreferrer">Watch on YouTube</a></div><span id="liveDate" class="lesson-duration"></span></div>
+        <img id="liveThumbnail" class="live-custom-thumbnail hidden" src="" alt="">
+        <div class="lesson-actions"><button id="previousLive" class="learning-button" type="button"><i class="fa-solid fa-arrow-left"></i> Previous</button><button id="completeLive" class="learning-button primary" type="button">Complete and Continue <i class="fa-solid fa-arrow-right"></i></button><button id="nextLive" class="learning-button" type="button">Next <i class="fa-solid fa-arrow-right"></i></button><button id="joinAudioRoom" class="learning-button" type="button"><i class="fa-solid fa-microphone"></i> Join audio room</button></div>
       </div>
       <aside class="lesson-sidebar"><div class="sidebar-course-head"><p class="learning-eyebrow">LIVE PLAYLIST</p><h2>CodeWithSiam Live</h2><div class="sidebar-progress-label"><strong id="liveProgressText">0% COMPLETE</strong><span id="liveProgressCount">0 / 0 sessions</span></div><div class="progress-line"><span id="liveProgressBar"></span></div></div><div id="livePlaylist" class="lesson-playlist"></div></aside>
     </section>
+    <section class="live-comments"><div class="panel-heading"><div><p class="learning-eyebrow">COMMUNITY</p><h2>Comments</h2></div><span id="liveCommentStatus">Everyone can comment</span></div><div id="liveCommentsList" class="live-comments-list"><p>Loading comments...</p></div><form id="liveCommentForm" class="live-comment-form"><input id="liveCommentName" maxlength="32" placeholder="Your name" aria-label="Your name"><div><input id="liveCommentText" maxlength="240" placeholder="Write a comment..." aria-label="Write a comment" required><button type="submit" aria-label="Post comment"><i class="fa-solid fa-paper-plane"></i></button></div></form></section>
   </main>
   <script type="module" src="assets/js/live-learning.js"></script>
 </body>

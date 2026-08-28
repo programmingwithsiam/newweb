@@ -161,7 +161,7 @@ export function extractYoutubeId(url) {
 
 export function getYoutubeEmbedUrl(url) {
   const id = extractYoutubeId(url);
-  return id ? `https://www.youtube.com/embed/${id}?rel=0` : null;
+  return id ? `https://www.youtube.com/embed/${id}?controls=1&rel=0&playsinline=1` : null;
 }
 
 export function isValidYoutubeUrl(url) {
@@ -376,6 +376,8 @@ export async function createLiveSession(sessionData) {
   if (!String(sessionData.title || '').trim()) throw new Error('Live topic is required.');
   return addDoc(collection(db, 'liveSessions'), {
     title: String(sessionData.title).trim(),
+    category: String(sessionData.category || 'Live learning').trim(),
+    thumbnail: String(sessionData.thumbnail || '').trim(),
     description: String(sessionData.description || '').trim(),
     videoUrl: `https://www.youtube.com/watch?v=${videoId}`,
     youtubeVideoId: videoId,

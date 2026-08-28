@@ -41,10 +41,10 @@ function initLiveHub() {
     const [settings, sessions] = await Promise.all([fetchLiveSettings().catch(() => ({})), fetchLiveSessions().catch(() => [])]);
     const liveId = extractYoutubeId(settings.url || '');
     if (settings.enabled === true && liveId) {
-      current.innerHTML = `<div class="live-hub-player"><div class="live-hub-player-copy"><span class="live-status"><span class="live-dot"></span> Live now</span><h3>${escapeHtml(settings.title || 'CodeWithSiam is live')}</h3><p>${escapeHtml(settings.description || 'Join the live session and learn by building along.')}</p><a class="btn btn-primary" href="${escapeHtml(settings.url)}" target="_blank" rel="noopener noreferrer"><i class="fa-brands fa-youtube"></i> Open on YouTube</a></div><iframe src="https://www.youtube.com/embed/${liveId}?rel=0&playsinline=1" title="${escapeHtml(settings.title || 'CodeWithSiam live stream')}" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe></div>`;
+      current.innerHTML = `<div class="live-hub-empty"><i class="fa-solid fa-lock"></i><strong>Live room is available</strong><span>Sign in to watch and join the conversation.</span><a class="btn btn-primary" href="live.html">Enter Live room</a></div>`;
     }
     count.textContent = `${sessions.length} session${sessions.length === 1 ? '' : 's'}`;
-    archive.innerHTML = sessions.length ? sessions.map(session => `<article class="live-archive-card"><div class="live-archive-thumb"><img src="https://i.ytimg.com/vi/${escapeHtml(session.youtubeVideoId || extractYoutubeId(session.videoUrl || ''))}/hqdefault.jpg" alt="${escapeHtml(session.title || 'Live session')}" loading="lazy"><span><i class="fa-solid fa-play"></i> Replay</span></div><div class="live-archive-copy"><time>${formatLiveDate(session.endedAt)}</time><h4>${escapeHtml(session.title || 'Live session')}</h4><p>${escapeHtml(session.description || 'Watch this CodeWithSiam live session again.')}</p><a href="${escapeHtml(session.videoUrl || '#')}" target="_blank" rel="noopener noreferrer">Watch replay <i class="fa-solid fa-arrow-up-right-from-square"></i></a></div></article>`).join('') : '<p class="live-hub-empty">Your completed live sessions will be saved here.</p>';
+    archive.innerHTML = sessions.length ? sessions.map(session => `<article class="live-archive-card"><div class="live-archive-thumb"><img src="https://i.ytimg.com/vi/${escapeHtml(session.youtubeVideoId || extractYoutubeId(session.videoUrl || ''))}/hqdefault.jpg" alt="${escapeHtml(session.title || 'Live session')}" loading="lazy"><span><i class="fa-solid fa-lock"></i> Members</span></div><div class="live-archive-copy"><time>${formatLiveDate(session.endedAt)}</time><h4>${escapeHtml(session.title || 'Live session')}</h4><p>${escapeHtml(session.description || 'Sign in to watch this CodeWithSiam live replay.')}</p><a href="live.html">Enter Live room <i class="fa-solid fa-arrow-right"></i></a></div></article>`).join('') : '<p class="live-hub-empty">Your completed live sessions will be saved here.</p>';
   }).catch(() => { archive.innerHTML = '<p class="live-hub-empty">The live archive is unavailable right now.</p>'; });
 }
 
@@ -65,7 +65,7 @@ function initLiveNotification() {
     const videoId = extractYoutubeId(settings.url || '');
     if (settings.enabled !== true || !videoId) return;
     button.classList.remove('hidden');
-    frame.src = `https://www.youtube.com/embed/${videoId}?rel=0&playsinline=1`;
+    frame.src = `https://www.youtube.com/embed/${videoId}?controls=1&rel=0&playsinline=1`;
     if (settings.chatEnabled !== false) initSiteLiveChat();
     else document.querySelector('.site-live-chat')?.classList.add('hidden');
     openLink.href = settings.url;
@@ -195,7 +195,7 @@ function getYoutubeEmbedUrl(url) {
   } catch {
     return null;
   }
-  return id ? `https://www.youtube.com/embed/${id}?rel=0` : null;
+  return id ? `https://www.youtube.com/embed/${id}?controls=1&rel=0&playsinline=1` : null;
 }
 
 function getYoutubeThumbnailUrl(url) {
@@ -745,7 +745,7 @@ if (!lesson) {
       if (ytFrame) {
         const separator = ytEmbed.includes('?') ? '&' : '?';
         ytFrame.src =
-          `${ytEmbed}${separator}rel=0&modestbranding=1&playsinline=1&controls=1`;
+          `${ytEmbed}${separator}rel=0&playsinline=1&controls=1`;
         ytFrame.classList.remove('hidden');
       }
 
