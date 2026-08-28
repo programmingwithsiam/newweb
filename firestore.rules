@@ -171,6 +171,15 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    match /directMessages/{conversationId}/messages/{messageId} {
+      allow read: if isSignedIn() && (resource.data.senderId == request.auth.uid || resource.data.receiverId == request.auth.uid);
+      allow create: if isSignedIn() && request.resource.data.senderId == request.auth.uid &&
+        request.resource.data.receiverId is string && request.resource.data.receiverId != request.auth.uid &&
+        request.resource.data.text is string && request.resource.data.text.size() > 0 && request.resource.data.text.size() <= 1000 &&
+        request.resource.data.createdAt == request.time;
+      allow update, delete: if isSignedIn() && resource.data.senderId == request.auth.uid;
+    }
+
     // ---------------- Learning progress (private to each user) ----------------
     match /progress/{uid}/courses/{courseId} {
       allow read, write: if isOwner(uid);
