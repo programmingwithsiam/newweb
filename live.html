@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Live Learning | CodeWithSiam</title>
+  <link rel="icon" type="image/png" href="assets/images/tab.png">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="stylesheet" href="assets/css/course-learning.css">
+</head>
+<body class="course-learning-page">
+  <header class="learning-topbar">
+    <a class="learning-back" href="index.html"><i class="fa-solid fa-arrow-left"></i> Back to Portfolio</a>
+    <a class="learning-brand" href="live.html">CodeWith<span class="accent">Siam</span> / Live</a>
+    <a class="learning-button primary learning-youtube" href="https://www.youtube.com/@CodeWithSiam" target="_blank" rel="noopener noreferrer"><i class="fa-brands fa-youtube"></i> YouTube</a>
+  </header>
+  <main class="learning-app">
+    <section id="liveLoading" class="learning-state"><div class="loading-spinner"></div><h1>Loading live room</h1></section>
+    <section id="liveEmpty" class="learning-state hidden"><i class="fa-solid fa-tower-broadcast"></i><h1>No live sessions yet</h1><p>When a session ends, its replay will stay here with the topic and date.</p></section>
+    <section id="liveWorkspace" class="lesson-screen hidden">
+      <div class="lesson-main">
+        <div class="lesson-video-wrap"><iframe id="liveVideo" title="Live session video" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe></div>
+        <div class="lesson-heading"><div><p class="learning-eyebrow" id="liveState">LIVE ARCHIVE</p><h1 id="liveTitle">Live session</h1><p id="liveDescription"></p><a id="liveYoutubeLink" class="lesson-youtube-link" href="" target="_blank" rel="noopener noreferrer">Watch on YouTube</a></div><span id="liveDate" class="lesson-duration"></span></div>
+        <div class="lesson-actions"><button id="previousLive" class="learning-button" type="button"><i class="fa-solid fa-arrow-left"></i> Previous</button><button id="completeLive" class="learning-button primary" type="button">Complete and Continue <i class="fa-solid fa-arrow-right"></i></button><button id="nextLive" class="learning-button" type="button">Next <i class="fa-solid fa-arrow-right"></i></button></div>
+      </div>
+      <aside class="lesson-sidebar"><div class="sidebar-course-head"><p class="learning-eyebrow">LIVE PLAYLIST</p><h2>CodeWithSiam Live</h2><div class="sidebar-progress-label"><strong id="liveProgressText">0% COMPLETE</strong><span id="liveProgressCount">0 / 0 sessions</span></div><div class="progress-line"><span id="liveProgressBar"></span></div></div><div id="livePlaylist" class="lesson-playlist"></div></aside>
+    </section>
+  </main>
+  <script type="module" src="assets/js/live-learning.js"></script>
+</body>
+</html>

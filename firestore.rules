@@ -110,6 +110,11 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    match /liveSessions/{sessionId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
     // Public messages for the website-owned live chat. Keep the payload small
     // and predictable; moderation can remove documents from the console.
     match /liveChatMessages/{messageId} {

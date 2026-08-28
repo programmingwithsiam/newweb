@@ -1519,6 +1519,7 @@
           <div class="dashboard-nav-links">
             <a class="dashboard-nav-item active" href="#dashboardSection"><i class="fa-solid fa-chart-line"></i> Dashboard</a>
             <a class="dashboard-nav-item" href="#coursesSection"><i class="fa-solid fa-layer-group"></i> Courses</a>
+            <a class="dashboard-nav-item" href="#liveSection"><i class="fa-solid fa-tower-broadcast"></i> Live</a>
             <a class="dashboard-nav-item" href="#studentsSection"><i class="fa-solid fa-users"></i> Students</a>
             <a class="dashboard-nav-item" href="#paymentsSection"><i class="fa-solid fa-receipt"></i> Payments</a>
             <a class="dashboard-nav-item" href="#activitySection"><i class="fa-solid fa-clock-rotate-left"></i> Activity Log</a>
@@ -1898,23 +1899,26 @@
           <div class="empty-state"><i class="fa-solid fa-clock-rotate-left"></i><strong>No activity recorded yet</strong><span>Important admin actions will appear here as activity logging is enabled.</span></div>
         </section>
 
-        <section class="section-card admin-empty-view" id="settingsSection" hidden>
-          <h3 class="section-title">Settings</h3>
-          <p class="section-subtitle">Manage the settings that shape your LMS.</p>
+        <section class="section-card admin-empty-view" id="liveSection" hidden>
+          <h3 class="section-title">Live Studio</h3>
+          <p class="section-subtitle">Start a session, then archive its replay with the topic and ending date.</p>
           <div class="live-settings-grid">
-            <label>Live Stream URL
-              <input id="liveStreamUrl" type="url" placeholder="https://www.youtube.com/watch?v=...">
-            </label>
-            <label>YouTube Channel ID
-              <input id="liveChannelId" type="text" placeholder="UC...">
-            </label>
-            <label class="checkbox-label"><input id="liveStreamEnabled" type="checkbox"> Show live stream</label>
+            <label>Live topic<input id="liveTopic" type="text" placeholder="e.g. Build a Python AI project live"></label>
+            <label>YouTube Live URL<input id="liveStreamUrl" type="url" placeholder="https://www.youtube.com/watch?v=..."></label>
+            <label>Short description<textarea id="liveDescription" rows="2" placeholder="What will viewers learn?"></textarea></label>
+            <label>YouTube Channel ID<input id="liveChannelId" type="text" placeholder="UC..."></label>
+            <label class="checkbox-label"><input id="liveStreamEnabled" type="checkbox"> Show live now</label>
             <label class="checkbox-label"><input id="liveChatEnabled" type="checkbox" checked> Enable website live chat</label>
           </div>
           <div class="live-preview-wrap"><iframe id="liveStreamPreview" title="YouTube Live preview" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe><p id="liveStreamPreviewEmpty">Add a YouTube Live URL to preview it here.</p></div>
-          <p class="panel-note">Website live chat lets visitors join the stream conversation without opening YouTube. Messages are stored in Firestore for real-time display.</p>
-          <button type="button" class="btn btn-primary" id="saveLiveSettingsBtn">Save Live Settings</button>
+          <div class="admin-btn-row"><button type="button" class="btn btn-primary" id="saveLiveSettingsBtn"><i class="fa-solid fa-tower-broadcast"></i> Save &amp; Go Live</button><button type="button" class="btn btn-danger" id="endLiveSessionBtn"><i class="fa-solid fa-stop"></i> End &amp; Archive Replay</button></div>
           <p class="status" id="liveSettingsStatus" aria-live="polite"></p>
+        </section>
+
+        <section class="section-card admin-empty-view" id="settingsSection" hidden>
+          <h3 class="section-title">Settings</h3>
+          <p class="section-subtitle">Manage the settings that shape your LMS.</p>
+          <p class="panel-note">Live broadcasting and replay archiving are managed from the Live Studio section.</p>
         </section>
 
       </section>
@@ -1970,6 +1974,7 @@
       updatePayment,
       fetchLiveSettings,
       updateLiveSettings,
+      createLiveSession,
     } from './assets/js/courses-db.js';
 
 
@@ -2791,6 +2796,8 @@
     });
 
     const liveUrlInput = document.getElementById('liveStreamUrl');
+    const liveTopicInput = document.getElementById('liveTopic');
+    const liveDescriptionInput = document.getElementById('liveDescription');
     const liveChannelInput = document.getElementById('liveChannelId');
     const liveEnabledInput = document.getElementById('liveStreamEnabled');
     const liveChatInput = document.getElementById('liveChatEnabled');
@@ -2803,6 +2810,8 @@
     }
     async function loadLiveSettings() {
       const settings = await fetchLiveSettings();
+      if (liveTopicInput) liveTopicInput.value = settings.title || '';
+      if (liveDescriptionInput) liveDescriptionInput.value = settings.description || '';
       if (liveUrlInput) liveUrlInput.value = settings.url || '';
       if (liveChannelInput) liveChannelInput.value = settings.channelId || '';
       if (liveEnabledInput) liveEnabledInput.checked = settings.enabled === true;
@@ -2818,10 +2827,21 @@
         return;
       }
       try {
-        await updateLiveSettings({ url, channelId: liveChannelInput?.value.trim() || '', enabled: liveEnabledInput?.checked === true, chatEnabled: liveChatInput?.checked !== false });
+        await updateLiveSettings({ title: liveTopicInput?.value.trim() || '', description: liveDescriptionInput?.value.trim() || '', url, channelId: liveChannelInput?.value.trim() || '', enabled: liveEnabledInput?.checked === true, chatEnabled: liveChatInput?.checked !== false });
         setStatus(status, 'Live settings saved.', true);
       } catch (error) {
         setStatus(status, error.message || 'Live settings could not be saved.', false);
+      }
+    });
+    document.getElementById('endLiveSessionBtn')?.addEventListener('click', async () => {
+      const status = document.getElementById('liveSettingsStatus');
+      try {
+        await createLiveSession({ title: liveTopicInput?.value.trim() || '', description: liveDescriptionInput?.value.trim() || '', videoUrl: liveUrlInput?.value.trim() || '' });
+        await updateLiveSettings({ enabled: false });
+        if (liveEnabledInput) liveEnabledInput.checked = false;
+        setStatus(status, 'Live ended and replay saved to the archive.', true);
+      } catch (error) {
+        setStatus(status, error.message || 'Replay could not be archived.', false);
       }
     });
 
@@ -2843,7 +2863,8 @@
       },
       payments: { title: 'Payments', subtitle: 'Review payment requests before granting access.', sections: ['paymentsSection'] },
       activity: { title: 'Activity Log', subtitle: 'Track important changes made in your LMS.', sections: ['activitySection'] },
-      settings: { title: 'Settings', subtitle: 'Manage the settings that shape your LMS.', sections: ['settingsSection'] }
+      settings: { title: 'Settings', subtitle: 'Manage the settings that shape your LMS.', sections: ['settingsSection'] },
+      live: { title: 'Live Studio', subtitle: 'Broadcast now and preserve every replay.', sections: ['liveSection'] }
     };
 
     function setAdminPage(pageName) {
@@ -2858,7 +2879,7 @@
         const target = item.getAttribute('href')?.slice(1);
         item.classList.toggle('active', target === `${activePage}Section` || (activePage === 'students' && target === 'studentsSection'));
       });
-      if (activePage === 'settings') loadLiveSettings();
+      if (activePage === 'settings' || activePage === 'live') loadLiveSettings();
       if (activePage === 'payments') loadAndRenderPayments();
     }
 

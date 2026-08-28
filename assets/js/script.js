@@ -28,7 +28,30 @@ function initSiteEffects(){
   initMobileMenu();
   initCourseDeck();
   initLiveNotification();
+  initLiveHub();
   initChatToggle();
+}
+
+function initLiveHub() {
+  const current = document.getElementById('liveHubCurrent');
+  const archive = document.getElementById('liveArchiveList');
+  const count = document.getElementById('liveArchiveCount');
+  if (!current || !archive) return;
+  import('./courses-db.js').then(async ({ fetchLiveSettings, fetchLiveSessions, extractYoutubeId }) => {
+    const [settings, sessions] = await Promise.all([fetchLiveSettings().catch(() => ({})), fetchLiveSessions().catch(() => [])]);
+    const liveId = extractYoutubeId(settings.url || '');
+    if (settings.enabled === true && liveId) {
+      current.innerHTML = `<div class="live-hub-player"><div class="live-hub-player-copy"><span class="live-status"><span class="live-dot"></span> Live now</span><h3>${escapeHtml(settings.title || 'CodeWithSiam is live')}</h3><p>${escapeHtml(settings.description || 'Join the live session and learn by building along.')}</p><a class="btn btn-primary" href="${escapeHtml(settings.url)}" target="_blank" rel="noopener noreferrer"><i class="fa-brands fa-youtube"></i> Open on YouTube</a></div><iframe src="https://www.youtube.com/embed/${liveId}?rel=0&playsinline=1" title="${escapeHtml(settings.title || 'CodeWithSiam live stream')}" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe></div>`;
+    }
+    count.textContent = `${sessions.length} session${sessions.length === 1 ? '' : 's'}`;
+    archive.innerHTML = sessions.length ? sessions.map(session => `<article class="live-archive-card"><div class="live-archive-thumb"><img src="https://i.ytimg.com/vi/${escapeHtml(session.youtubeVideoId || extractYoutubeId(session.videoUrl || ''))}/hqdefault.jpg" alt="${escapeHtml(session.title || 'Live session')}" loading="lazy"><span><i class="fa-solid fa-play"></i> Replay</span></div><div class="live-archive-copy"><time>${formatLiveDate(session.endedAt)}</time><h4>${escapeHtml(session.title || 'Live session')}</h4><p>${escapeHtml(session.description || 'Watch this CodeWithSiam live session again.')}</p><a href="${escapeHtml(session.videoUrl || '#')}" target="_blank" rel="noopener noreferrer">Watch replay <i class="fa-solid fa-arrow-up-right-from-square"></i></a></div></article>`).join('') : '<p class="live-hub-empty">Your completed live sessions will be saved here.</p>';
+  }).catch(() => { archive.innerHTML = '<p class="live-hub-empty">The live archive is unavailable right now.</p>'; });
+}
+
+function formatLiveDate(value) {
+  if (!value) return 'Date unavailable';
+  const date = value.toDate ? value.toDate() : new Date(value);
+  return Number.isNaN(date.getTime()) ? 'Date unavailable' : date.toLocaleDateString('en-BD', { dateStyle: 'medium' });
 }
 
 function initLiveNotification() {

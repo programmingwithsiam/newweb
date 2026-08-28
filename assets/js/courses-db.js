@@ -362,6 +362,27 @@ export async function updateLiveSettings(data) {
   return setDoc(doc(db, 'settings', 'liveStream'), { ...data, updatedAt: serverTimestamp() }, { merge: true });
 }
 
+export async function fetchLiveSessions() {
+  if (!isFirebaseConfigured || !db) return [];
+  const { collection, getDocs, orderBy, query } = await loadFirestore();
+  const snapshot = await getDocs(query(collection(db, 'liveSessions'), orderBy('endedAt', 'desc')));
+  return snapshot.docs.map(item => ({ id: item.id, ...item.data() }));
+}
+
+export async function createLiveSession(sessionData) {
+  const { addDoc, collection, serverTimestamp } = await loadFirestore();
+  const videoId = extractYoutubeId(sessionData.videoUrl || '');
+  if (!videoId) throw new Error('A valid YouTube replay URL is required.');
+  if (!String(sessionData.title || '').trim()) throw new Error('Live topic is required.');
+  return addDoc(collection(db, 'liveSessions'), {
+    title: String(sessionData.title).trim(),
+    description: String(sessionData.description || '').trim(),
+    videoUrl: `https://www.youtube.com/watch?v=${videoId}`,
+    youtubeVideoId: videoId,
+    endedAt: serverTimestamp(),
+  });
+}
+
 export async function deleteCourse(courseId) {
   const { doc, deleteDoc, collection, getDocs } = await loadFirestore();
   // Clean up nested modules/lessons first (client-side cascade; fine at this scale).
