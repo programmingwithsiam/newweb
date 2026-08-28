@@ -14,9 +14,8 @@
   <meta property="og:image:alt" content="CodeWithSiam official profile image">
   <meta name="twitter:card" content="summary">
   <meta name="twitter:image" content="https://codewithsiam.vercel.app/assets/images/profile-siam.jpeg">
-  <link rel="icon" type="image/jpeg" sizes="1200x1200" href="/assets/images/profile-siam.jpeg">
-  <link rel="icon" type="image/webp" sizes="1200x1200" href="/assets/images/profile-siam.webp">
-  <link rel="apple-touch-icon" sizes="180x180" href="/assets/images/profile-siam.jpeg">
+  <link rel="icon" type="image/png" sizes="256x256" href="/assets/images/profile-siam-round.png?v=20260828">
+  <link rel="apple-touch-icon" sizes="180x180" href="/assets/images/profile-siam-round.png?v=20260828">
   <link rel="manifest" href="/manifest.json">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
   <link rel="stylesheet" href="assets/css/style.css">
@@ -85,7 +84,7 @@
     <section id="liveWorkspace" class="lesson-screen hidden">
       <div class="lesson-main">
         <div class="lesson-video-wrap"><iframe id="liveVideo" title="Live session video" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe></div>
-        <div class="lesson-heading"><div><p class="learning-eyebrow" id="liveState">LIVE ARCHIVE</p><p id="liveCategory" class="live-category"></p><h1 id="liveTitle">Live session</h1><p id="liveDescription"></p><a id="liveYoutubeLink" class="lesson-youtube-link" href="" target="_blank" rel="noopener noreferrer">Watch on YouTube</a></div><span id="liveDate" class="lesson-duration"></span></div>
+        <div class="lesson-heading"><div><p class="learning-eyebrow" id="liveState">LIVE ARCHIVE</p><p id="liveCategory" class="live-category"></p><h1 id="liveTitle">Live session</h1><p id="liveDescription"></p></div><span id="liveDate" class="lesson-duration"></span></div>
         <img id="liveThumbnail" class="live-custom-thumbnail hidden" src="" alt="">
         <div class="lesson-actions"><button id="previousLive" class="learning-button" type="button"><i class="fa-solid fa-arrow-left"></i> Previous</button><button id="completeLive" class="learning-button primary" type="button">Complete and Continue <i class="fa-solid fa-arrow-right"></i></button><button id="nextLive" class="learning-button" type="button">Next <i class="fa-solid fa-arrow-right"></i></button><button id="joinAudioRoom" class="learning-button" type="button"><i class="fa-solid fa-microphone"></i> Join audio room</button></div>
       </div>
@@ -93,6 +92,6 @@
     </section>
     <section class="live-comments"><div class="panel-heading"><div><p class="learning-eyebrow">COMMUNITY CHAT</p><h2>Live conversation</h2></div><span id="liveCommentStatus">Realtime</span></div><div id="livePinnedComments" class="chat-pinned hidden"></div><div class="chat-toolbar"><button id="loadMoreComments" type="button">Load older comments</button><button id="newCommentsIndicator" class="hidden" type="button">New comments ↓</button></div><div id="liveCommentsList" class="live-comments-list"><p>Loading comments...</p></div><form id="liveCommentForm" class="live-comment-form"><p id="liveCommentAuthNote" class="chat-auth-note">Sign in to join the conversation.</p><div id="liveReplying" class="chat-replying hidden"><span id="liveReplyingText"></span><button id="cancelLiveReply" type="button" aria-label="Cancel reply"><i class="fa-solid fa-xmark"></i></button></div><div class="chat-composer-row"><textarea id="liveCommentText" maxlength="240" rows="1" placeholder="Write a comment..." aria-label="Write a comment" required></textarea><button type="submit" aria-label="Send comment"><i class="fa-solid fa-paper-plane"></i></button></div><p id="liveCommentSendStatus" class="chat-status" aria-live="polite"></p></form></section>
   </main>
-  <script type="module" src="assets/js/live-learning.js"></script>
+  <script type="module" src="assets/js/live-learning.js?v=20260828-live-comments-fix"></script>
 </body>
 </html>

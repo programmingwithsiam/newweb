@@ -14,7 +14,6 @@ const category = document.getElementById('liveCategory');
 const thumbnail = document.getElementById('liveThumbnail');
 const date = document.getElementById('liveDate');
 const state = document.getElementById('liveState');
-const youtubeLink = document.getElementById('liveYoutubeLink');
 let sessions = [];
 let selectedIndex = 0;
 let roomLoaded = false;
@@ -72,9 +71,8 @@ function renderSession() {
     thumbnail.alt = `${session.title || 'Live session'} thumbnail`;
     thumbnail.classList.toggle('hidden', !session.thumbnail);
   }
-  date.textContent = formatDate(session.endedAt);
+  date.textContent = session.isCurrent ? 'Streaming now' : formatDate(session.endedAt);
   state.textContent = selectedIndex === 0 && session.isCurrent ? 'LIVE NOW' : 'LIVE ARCHIVE';
-  youtubeLink.href = session.videoUrl || '#';
   document.getElementById('liveProgressText').textContent = `${sessions.length ? Math.round(((selectedIndex + 1) / sessions.length) * 100) : 0}% COMPLETE`;
   document.getElementById('liveProgressCount').textContent = `${selectedIndex + 1} / ${sessions.length} sessions`;
   document.getElementById('liveProgressBar').style.width = `${sessions.length ? ((selectedIndex + 1) / sessions.length) * 100 : 0}%`;
@@ -101,6 +99,7 @@ async function initComments(user = auth?.currentUser) {
   form.dataset.bound = 'true';
   if (!db) {
     status.textContent = 'Comments require Firebase setup';
+    list.innerHTML = '<p class="chat-empty">Comments are temporarily unavailable.</p>';
     return;
   }
   const { collection, addDoc, arrayRemove, arrayUnion, deleteDoc, doc, getDoc, getDocs, limit, onSnapshot, orderBy, query, serverTimestamp, setDoc, startAfter, updateDoc } = await import('https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js');
@@ -142,6 +141,7 @@ async function initComments(user = auth?.currentUser) {
     if (prepend) list.scrollTop = 12;
     render();
   }
+  list.innerHTML = '<p class="chat-empty">Connecting to the conversation...</p>';
   const latestQuery = query(collection(db, 'liveChatMessages'), orderBy('createdAt', 'desc'), limit(30));
   onSnapshot(latestQuery, snapshot => {
     const incoming = snapshot.docs.map(item => ({ id: item.id, ...item.data() })).reverse();
@@ -155,7 +155,10 @@ async function initComments(user = auth?.currentUser) {
     hasOlder = snapshot.docs.length === 30;
     loadMore.classList.toggle('hidden', !hasOlder);
     status.textContent = `${comments.length} comments · realtime`;
-  }, () => { status.textContent = 'Comments unavailable'; });
+  }, error => {
+    status.textContent = error?.code === 'permission-denied' ? 'Comment access is blocked by Firebase rules' : 'Comments unavailable';
+    list.innerHTML = '<p class="chat-empty">Comments could not be loaded. Please refresh the page.</p>';
+  });
   loadMore.addEventListener('click', async () => {
     if (!oldestDoc || !hasOlder) return;
     loadMore.disabled = true;

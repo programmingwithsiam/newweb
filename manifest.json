@@ -9,15 +9,15 @@
   "theme_color": "#0f172a",
   "icons": [
     {
-      "src": "/assets/images/profile-siam.jpeg",
-      "sizes": "1200x1200",
-      "type": "image/jpeg",
+      "src": "/assets/images/profile-siam-round.png?v=20260828",
+      "sizes": "256x256",
+      "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/assets/images/profile-siam.webp",
-      "sizes": "1200x1200",
-      "type": "image/webp",
+      "src": "/assets/images/profile-siam-round.png?v=20260828",
+      "sizes": "256x256",
+      "type": "image/png",
       "purpose": "any maskable"
     }
   ]

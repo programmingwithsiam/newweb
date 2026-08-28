@@ -33,5 +33,12 @@ service firebase.storage {
         request.resource.size <= 104857600;
       allow delete: if isAdmin();
     }
+
+    match /community_images/{uid}/{fileName} {
+      allow read: if true;
+      allow write: if isGoogleUser() && request.auth.uid == uid &&
+        request.resource.contentType.matches('image/.*') && request.resource.size <= 5242880;
+      allow delete: if isGoogleUser() && request.auth.uid == uid;
+    }
   }
 }
