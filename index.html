@@ -245,7 +245,14 @@
         <div class="live-notification-head"><strong><span class="live-dot"></span> Live now</strong><button type="button" id="closeLiveNotification" aria-label="Close live stream">&times;</button></div>
         <p id="liveNotificationTitle">CodeWithSiam is live on YouTube.</p>
         <iframe id="liveNotificationFrame" title="CodeWithSiam live stream" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>
-        <iframe id="liveNotificationChat" title="CodeWithSiam live chat" loading="lazy" allow="autoplay" class="hidden"></iframe>
+        <section class="site-live-chat" aria-label="Live chat">
+          <div class="site-live-chat-head"><span><i class="fa-solid fa-comments"></i> Live chat</span><small id="liveChatStatus">Connecting...</small></div>
+          <div id="liveChatMessages" class="site-live-chat-messages" role="log" aria-live="polite"><p class="live-chat-empty">Join the conversation.</p></div>
+          <form id="liveChatForm" class="site-live-chat-form">
+            <input id="liveChatName" type="text" maxlength="32" placeholder="Your name" autocomplete="nickname" aria-label="Your name">
+            <div class="site-live-chat-compose"><input id="liveChatInput" type="text" maxlength="240" placeholder="Say something..." autocomplete="off" aria-label="Live chat message"><button type="submit" aria-label="Send live chat message"><i class="fa-solid fa-paper-plane"></i></button></div>
+          </form>
+        </section>
         <a id="liveNotificationOpen" href="https://www.youtube.com" target="_blank" rel="noopener noreferrer">Open on YouTube</a>
       </aside>
 

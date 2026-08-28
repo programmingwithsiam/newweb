@@ -110,6 +110,16 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // Public messages for the website-owned live chat. Keep the payload small
+    // and predictable; moderation can remove documents from the console.
+    match /liveChatMessages/{messageId} {
+      allow read: if true;
+      allow create: if request.resource.data.keys().hasOnly(['name', 'text', 'createdAt']) &&
+        request.resource.data.name is string && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 32 &&
+        request.resource.data.text is string && request.resource.data.text.size() > 0 && request.resource.data.text.size() <= 240;
+      allow update, delete: if isAdmin();
+    }
+
     // ---------------- Learning progress (private to each user) ----------------
     match /progress/{uid}/courses/{courseId} {
       allow read, write: if isOwner(uid);

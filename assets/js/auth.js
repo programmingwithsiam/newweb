@@ -58,7 +58,7 @@ function friendlyAuthError(error) {
 /* ---------- ensure a user profile document exists ---------- */
 async function ensureUserProfile(user) {
   if (!db || !user) return;
-  const { doc, getDoc, setDoc, serverTimestamp } = await loadFirestoreModule();
+  const { doc, getDoc, setDoc, updateDoc, serverTimestamp } = await loadFirestoreModule();
   const ref = doc(db, 'users', user.uid);
   const snap = await getDoc(ref);
   if (!snap.exists()) {
@@ -69,6 +69,8 @@ async function ensureUserProfile(user) {
       role: 'student',
       createdAt: serverTimestamp(),
     });
+  } else if (user.photoURL && snap.data().photoURL !== user.photoURL) {
+    await updateDoc(ref, { photoURL: user.photoURL, name: user.displayName || snap.data().name || 'Student' });
   }
 }
 

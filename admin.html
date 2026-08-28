@@ -359,6 +359,8 @@
       font-size: 1.1rem;
     }
 
+    .access-account-icon img { display: block; width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+
     .access-account-copy { display: grid; min-width: 0; gap: 3px; }
     .access-account-copy strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .access-account-copy span { color: var(--admin-muted); font-size: .76rem; }
@@ -1619,7 +1621,7 @@
           </div>
           <p class="section-subtitle">Enter a Google Gmail address to allow or remove access to all course videos.</p>
           <div class="access-account-preview" id="accessAccountPreview" aria-live="polite">
-            <span class="access-account-icon"><i class="fa-brands fa-google"></i></span>
+            <span class="access-account-icon"><img id="accessAccountAvatar" class="hidden" src="" alt=""><i id="accessAccountFallback" class="fa-brands fa-google"></i></span>
             <div class="access-account-copy">
               <strong id="accessAccountEmail">No student selected</strong>
               <span id="accessAccountMeta">Enter a Google Gmail to view authorization status.</span>
@@ -1907,10 +1909,10 @@
               <input id="liveChannelId" type="text" placeholder="UC...">
             </label>
             <label class="checkbox-label"><input id="liveStreamEnabled" type="checkbox"> Show live stream</label>
-            <label class="checkbox-label"><input id="liveChatEnabled" type="checkbox" checked> Enable live chat</label>
+            <label class="checkbox-label"><input id="liveChatEnabled" type="checkbox" checked> Enable website live chat</label>
           </div>
           <div class="live-preview-wrap"><iframe id="liveStreamPreview" title="YouTube Live preview" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe><p id="liveStreamPreviewEmpty">Add a YouTube Live URL to preview it here.</p></div>
-          <p class="panel-note">YouTube Live Chat shows comments and the current audience. Viewer names and exact join counts are controlled by YouTube and are not exposed by this panel.</p>
+          <p class="panel-note">Website live chat lets visitors join the stream conversation without opening YouTube. Messages are stored in Firestore for real-time display.</p>
           <button type="button" class="btn btn-primary" id="saveLiveSettingsBtn">Save Live Settings</button>
           <p class="status" id="liveSettingsStatus" aria-live="polite"></p>
         </section>
@@ -2174,6 +2176,8 @@
     const accessAccountEmail = document.getElementById('accessAccountEmail');
     const accessAccountMeta = document.getElementById('accessAccountMeta');
     const accessAccountState = document.getElementById('accessAccountState');
+    const accessAccountAvatar = document.getElementById('accessAccountAvatar');
+    const accessAccountFallback = document.getElementById('accessAccountFallback');
     const accessActionButtons = [
       document.getElementById('grantCourseAccessBtn'),
       document.getElementById('revokeCourseAccessBtn'),
@@ -2202,6 +2206,8 @@
         accessAccountMeta.textContent = message || 'Enter a registered Gmail to view account status.';
         accessAccountState.textContent = 'Waiting';
         accessAccountState.className = 'access-account-state';
+        accessAccountAvatar?.classList.add('hidden');
+        accessAccountFallback?.classList.remove('hidden');
         accessActionButtons.forEach(button => { if (button) button.disabled = true; });
         return;
       }
@@ -2211,6 +2217,19 @@
       accessAccountMeta.textContent = `${accessCount} course${accessCount === 1 ? '' : 's'} granted`;
       accessAccountState.textContent = user.blocked === true ? 'Blocked' : 'Active';
       accessAccountState.className = `access-account-state ${user.blocked === true ? 'is-blocked' : 'is-active'}`;
+      if (accessAccountAvatar && accessAccountFallback && user.photoURL) {
+        accessAccountAvatar.src = user.photoURL;
+        accessAccountAvatar.alt = user.name || user.email || 'Student profile picture';
+        accessAccountAvatar.classList.remove('hidden');
+        accessAccountFallback.classList.add('hidden');
+        accessAccountAvatar.onerror = () => {
+          accessAccountAvatar.classList.add('hidden');
+          accessAccountFallback.classList.remove('hidden');
+        };
+      } else {
+        accessAccountAvatar?.classList.add('hidden');
+        accessAccountFallback?.classList.remove('hidden');
+      }
       accessActionButtons.forEach(button => { if (button) button.disabled = false; });
       const blockButton = document.getElementById('toggleUserBlockBtn');
       if (blockButton) blockButton.innerHTML = user.blocked === true
@@ -2727,7 +2746,8 @@
         const status = ['pending', 'approved', 'rejected'].includes(payment.status) ? payment.status : 'pending';
         const screenshot = payment.screenshotUrl ? `<a class="payment-proof" href="${escapeHtml(payment.screenshotUrl)}" target="_blank" rel="noopener noreferrer"><i class="fa-solid fa-image"></i> View proof</a>` : '<span class="payment-proof-empty">No screenshot</span>';
         const actions = status === 'pending' ? `<div class="payment-request-actions"><button type="button" class="btn btn-success" data-payment-action="approve" data-payment-id="${escapeHtml(payment.id)}"><i class="fa-solid fa-check"></i> Verify &amp; Give Access</button><button type="button" class="btn btn-danger" data-payment-action="reject" data-payment-id="${escapeHtml(payment.id)}"><i class="fa-solid fa-xmark"></i> Reject</button></div>` : '';
-        return `<article class="payment-request-card"><div class="payment-request-main"><div><span class="payment-request-label">Student</span><strong>${escapeHtml(payment.studentName || 'Student')}</strong><span>${escapeHtml(payment.studentEmail || 'Email unavailable')}</span></div><div><span class="payment-request-label">Course</span><strong>${escapeHtml(payment.courseTitle || 'Course')}</strong><span>৳${Number(payment.amount || 0).toLocaleString('en-BD')} · ${escapeHtml(payment.method || 'Payment')}</span></div><div><span class="payment-request-label">Transaction</span><strong>${escapeHtml(payment.transactionId || 'Not provided')}</strong><span>${formatAdminDate(payment.submittedAt)}</span></div><div><span class="payment-status-badge ${status}">${status}</span>${screenshot}</div></div>${actions}</article>`;
+        const enrollmentTime = payment.enrolledAt || (status === 'approved' ? payment.reviewedAt : null);
+        return `<article class="payment-request-card"><div class="payment-request-main"><div><span class="payment-request-label">Student</span><strong>${escapeHtml(payment.studentName || 'Student')}</strong><span>${escapeHtml(payment.studentEmail || 'Email unavailable')}</span></div><div><span class="payment-request-label">Course</span><strong>${escapeHtml(payment.courseTitle || 'Course')}</strong><span>৳${Number(payment.amount || 0).toLocaleString('en-BD')} · ${escapeHtml(payment.method || 'Payment')}</span></div><div><span class="payment-request-label">Transaction</span><strong>${escapeHtml(payment.transactionId || 'Not provided')}</strong><span>Requested: ${formatAdminDate(payment.submittedAt)}</span><span class="payment-enrolled-time">Enrolled: ${enrollmentTime ? formatAdminDate(enrollmentTime) : 'Not enrolled yet'}</span></div><div><span class="payment-status-badge ${status}">${status}</span>${screenshot}</div></div>${actions}</article>`;
       }).join('');
     }
 
@@ -2755,7 +2775,7 @@
       button.disabled = true;
       try {
         if (action === 'approve') {
-          await updatePayment(payment.id, { status: 'approved', accessGranted: true });
+          await updatePayment(payment.id, { status: 'approved', accessGranted: true, enrolledAt: new Date() });
           if (payment.studentEmail) await grantEmailAccess(payment.studentEmail);
           setStatus(document.getElementById('paymentAdminStatus'), 'Payment verified and course access granted.', true);
         } else {

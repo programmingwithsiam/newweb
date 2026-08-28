@@ -179,7 +179,14 @@ function renderOverview() {
   $('overviewStartBtn').onclick = () => hasAccess && lesson && go(lesson.id);
   $('overviewEnrollBtn').classList.toggle('hidden', hasAccess);
   $('overviewEnrollBtn').disabled = !lesson;
-  $('overviewEnrollBtn').onclick = () => showAccessGate({ signedIn: Boolean(user) });
+  $('overviewEnrollBtn').onclick = () => {
+    if (!user) {
+      showAccessGate();
+      return;
+    }
+    $('courseCheckout')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    $('checkoutPhone')?.focus();
+  };
   $('courseEnrollmentStatus').classList.toggle('hidden', !hasAccess);
   renderCheckout(discountPrice, originalPrice, hasAccess);
   $('playlistCount').textContent = `${lessons.length} lessons`;

@@ -35,7 +35,6 @@ function initLiveNotification() {
   const button = document.getElementById('liveNotificationBtn');
   const panel = document.getElementById('liveNotificationPanel');
   const frame = document.getElementById('liveNotificationFrame');
-  const chat = document.getElementById('liveNotificationChat');
   const openLink = document.getElementById('liveNotificationOpen');
   if (!button || !panel || !frame || !openLink) return;
   import('./courses-db.js').then(async ({ fetchLiveSettings, extractYoutubeId }) => {
@@ -44,10 +43,8 @@ function initLiveNotification() {
     if (settings.enabled !== true || !videoId) return;
     button.classList.remove('hidden');
     frame.src = `https://www.youtube.com/embed/${videoId}?rel=0&playsinline=1`;
-    if (chat && settings.chatEnabled !== false && location.hostname) {
-      chat.src = `https://www.youtube.com/live_chat?v=${videoId}&embed_domain=${encodeURIComponent(location.hostname)}`;
-      chat.classList.remove('hidden');
-    }
+    if (settings.chatEnabled !== false) initSiteLiveChat();
+    else document.querySelector('.site-live-chat')?.classList.add('hidden');
     openLink.href = settings.url;
     button.addEventListener('click', () => {
       const open = panel.classList.toggle('hidden') === false;
@@ -58,6 +55,46 @@ function initLiveNotification() {
       button.setAttribute('aria-expanded', 'false');
     });
   }).catch(() => {});
+}
+
+function initSiteLiveChat() {
+  const messages = document.getElementById('liveChatMessages');
+  const form = document.getElementById('liveChatForm');
+  const nameInput = document.getElementById('liveChatName');
+  const messageInput = document.getElementById('liveChatInput');
+  const status = document.getElementById('liveChatStatus');
+  if (!messages || !form || !messageInput || form.dataset.bound === 'true') return;
+  form.dataset.bound = 'true';
+  const savedName = localStorage.getItem('siam_live_chat_name') || '';
+  nameInput.value = savedName;
+
+  import('./firebase-init.js').then(async ({ db, isFirebaseConfigured }) => {
+    if (!isFirebaseConfigured || !db) throw new Error('Firebase is not configured');
+    const { collection, addDoc, limit, onSnapshot, orderBy, query, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js');
+    const chatQuery = query(collection(db, 'liveChatMessages'), orderBy('createdAt', 'desc'), limit(50));
+    onSnapshot(chatQuery, (snapshot) => {
+      const items = snapshot.docs.map(item => ({ id: item.id, ...item.data() })).reverse();
+      messages.innerHTML = items.length ? items.map(item => `<article class="live-chat-message"><strong>${escapeHtml(item.name || 'Guest')}</strong><p>${escapeHtml(item.text || '')}</p></article>`).join('') : '<p class="live-chat-empty">Be the first to say hello.</p>';
+      messages.scrollTop = messages.scrollHeight;
+      status.textContent = `${items.length} recent messages`;
+    }, () => { status.textContent = 'Chat unavailable'; });
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const name = nameInput.value.trim().slice(0, 32) || 'Guest';
+      const text = messageInput.value.trim().slice(0, 240);
+      if (!text) return;
+      const button = form.querySelector('button');
+      button.disabled = true;
+      try {
+        await addDoc(collection(db, 'liveChatMessages'), { name, text, createdAt: serverTimestamp() });
+        localStorage.setItem('siam_live_chat_name', name);
+        messageInput.value = '';
+      } catch (error) {
+        status.textContent = 'Could not send message';
+        console.error('Live chat send failed:', error);
+      } finally { button.disabled = false; }
+    });
+  }).catch(() => { status.textContent = 'Chat setup required'; });
 }
 
 const COURSE_PROGRESS_KEY = 'siam_portfolio_course_progress'; // local cache only; source of truth is Firestore progress/{uid}
