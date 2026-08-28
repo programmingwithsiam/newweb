@@ -385,6 +385,12 @@ export async function createLiveSession(sessionData) {
   });
 }
 
+export async function deleteLiveSession(sessionId) {
+  const { doc, deleteDoc } = await loadFirestore();
+  if (!sessionId) throw new Error('Replay id is required.');
+  return deleteDoc(doc(db, 'liveSessions', sessionId));
+}
+
 export async function deleteCourse(courseId) {
   const { doc, deleteDoc, collection, getDocs } = await loadFirestore();
   // Clean up nested modules/lessons first (client-side cascade; fine at this scale).

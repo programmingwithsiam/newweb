@@ -62,7 +62,7 @@ function renderSession() {
   const session = sessions[selectedIndex];
   if (!session) return;
   const videoId = session.youtubeVideoId || extractYoutubeId(session.videoUrl || '');
-  video.src = videoId ? `https://www.youtube.com/embed/${videoId}?controls=1&rel=0&playsinline=1&iv_load_policy=3` : '';
+  video.src = videoId ? `https://www.youtube.com/embed/${videoId}?autoplay=1&controls=0&disablekb=1&fs=0&iv_load_policy=3&modestbranding=1&mute=1&playsinline=1&rel=0` : '';
   title.textContent = session.title || 'Live session';
   description.textContent = session.description || 'Watch this CodeWithSiam live session again.';
   category.textContent = session.category || 'Live learning';

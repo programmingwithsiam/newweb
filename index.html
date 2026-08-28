@@ -250,6 +250,7 @@
           </div>
         </nav>
         <button type="button" class="mobile-account-btn" id="mobileAccountBtn"><i class="fa-solid fa-user"></i><span>My Account</span></button>
+        <button type="button" class="live-notification-btn hidden" id="liveNotificationBtn" aria-label="Live stream available" aria-expanded="false"><span class="live-dot" aria-hidden="true"></span>Live</button>
         <button class="menu-btn" id="menuBtn" aria-label="Toggle menu">
           &#9776;
         </button>
@@ -1315,6 +1316,17 @@
 
             </div>
 
+            <!-- WATCH ON YOUTUBE -->
+            <a
+              id="watchOnYoutube"
+              href="#"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="lesson-youtube-link hidden"
+              aria-label="Watch this lesson on YouTube">
+              Watch on YouTube <i class="fa-solid fa-arrow-up-right-from-square"></i>
+            </a>
+
 
             <!-- VIDEO CONTROLS -->
             <div
@@ -1344,6 +1356,42 @@
               </span>
 
 
+              <!-- PLAYBACK SPEED -->
+              <select
+                id="speedSelect"
+                class="video-control-select"
+                aria-label="Video playback speed">
+                <option value="0.5">0.5x</option>
+                <option value="0.75">0.75x</option>
+                <option value="1" selected>1x</option>
+                <option value="1.25">1.25x</option>
+                <option value="1.5">1.5x</option>
+                <option value="1.75">1.75x</option>
+                <option value="2">2x</option>
+              </select>
+
+              <!-- RESTART LESSON -->
+              <button
+                type="button"
+                class="video-control-btn"
+                id="restartLessonBtn"
+                aria-label="Restart lesson from beginning">
+
+                <i class="fa-solid fa-redo"></i>
+
+              </button>
+
+              <!-- PICTURE-IN-PICTURE -->
+              <button
+                type="button"
+                class="video-control-btn"
+                id="pipBtn"
+                aria-label="Picture-in-picture">
+
+                <i class="fa-solid fa-window-restore"></i>
+
+              </button>
+
               <!-- MUTE -->
               <button
                 type="button"
@@ -1354,7 +1402,6 @@
                 <i class="fa-solid fa-volume-high"></i>
 
               </button>
-
 
               <!-- FULLSCREEN -->
               <button

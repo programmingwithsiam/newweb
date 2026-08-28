@@ -1915,6 +1915,7 @@
           </div>
           <div class="live-preview-wrap"><iframe id="liveStreamPreview" title="YouTube Live preview" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe><p id="liveStreamPreviewEmpty">Add a YouTube Live URL to preview it here.</p></div>
           <div class="admin-btn-row"><button type="button" class="btn btn-primary" id="saveLiveSettingsBtn"><i class="fa-solid fa-tower-broadcast"></i> Save &amp; Go Live</button><button type="button" class="btn btn-danger" id="endLiveSessionBtn"><i class="fa-solid fa-stop"></i> End &amp; Archive Replay</button></div>
+          <div id="liveArchiveList" class="admin-btn-row" aria-live="polite"></div>
           <p class="status" id="liveSettingsStatus" aria-live="polite"></p>
         </section>
 
@@ -1976,8 +1977,10 @@
       fetchAllPayments,
       updatePayment,
       fetchLiveSettings,
+      fetchLiveSessions,
       updateLiveSettings,
       createLiveSession,
+      deleteLiveSession,
     } from './assets/js/courses-db.js';
 
 
@@ -2808,6 +2811,12 @@
     const liveChatInput = document.getElementById('liveChatEnabled');
     const livePreview = document.getElementById('liveStreamPreview');
     const livePreviewWrap = document.querySelector('.live-preview-wrap');
+    const liveArchiveList = document.getElementById('liveArchiveList');
+    async function loadLiveArchive() {
+      if (!liveArchiveList) return;
+      const sessions = await fetchLiveSessions();
+      liveArchiveList.innerHTML = sessions.length ? sessions.map(session => `<div class="admin-btn-row"><span class="panel-note">${escapeHtml(session.title || 'Live replay')}</span><button type="button" class="btn btn-danger" data-delete-live="${escapeHtml(session.id)}"><i class="fa-regular fa-trash-can"></i> Delete</button></div>`).join('') : '<span class="panel-note">No archived replays yet.</span>';
+    }
     function updateLivePreview() {
       const id = extractYoutubeId(liveUrlInput?.value);
       if (livePreview) livePreview.src = id ? `https://www.youtube.com/embed/${id}?rel=0&enablejsapi=1` : '';
@@ -2826,6 +2835,7 @@
       updateLivePreview();
     }
     liveUrlInput?.addEventListener('input', updateLivePreview);
+    liveArchiveList?.addEventListener('click', async event => { const button = event.target.closest('[data-delete-live]'); if (!button || !confirm('Delete this replay?')) return; try { await deleteLiveSession(button.dataset.deleteLive); await loadLiveArchive(); setStatus(document.getElementById('liveSettingsStatus'), 'Replay deleted.', true); } catch (error) { setStatus(document.getElementById('liveSettingsStatus'), error.message || 'Replay could not be deleted.', false); } });
     document.getElementById('saveLiveSettingsBtn')?.addEventListener('click', async () => {
       const status = document.getElementById('liveSettingsStatus');
       const url = liveUrlInput?.value.trim() || '';
@@ -2851,6 +2861,7 @@
         setStatus(status, error.message || 'Replay could not be archived.', false);
       }
     });
+    loadLiveArchive().catch(() => {});
 
     const adminPages = {
       dashboard: {

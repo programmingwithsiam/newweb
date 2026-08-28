@@ -67,6 +67,13 @@
     .chat-replying button { border: 0; color: inherit; background: transparent; cursor: pointer; }
     .chat-auth-note { margin: 0; color: var(--learning-muted); font-size: .75rem; }
     .chat-status { min-height: 1em; margin: 0; color: var(--learning-muted); font-size: .7rem; }
+    .live-comments { overflow: hidden; }
+    .live-comments-list { width: 100%; min-width: 0; overflow-x: hidden; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: var(--learning-accent-2) transparent; }
+    .chat-message { min-width: 0; }
+    .chat-bubble-wrap { max-width: 100%; overflow-wrap: anywhere; }
+    .chat-message p { overflow-wrap: anywhere; }
+    .lesson-video-wrap iframe { pointer-events: none; }
+    @media (max-width: 760px) { .learning-topbar { gap: 8px; padding: 10px 14px; } .learning-back, .learning-brand { font-size: .72rem; } .learning-youtube { padding: 8px 10px; font-size: .68rem; white-space: nowrap; } .lesson-screen { display: block; } .lesson-main { min-width: 0; } .lesson-sidebar { margin-top: 16px; } .lesson-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; } .lesson-actions button { min-width: 0; } }
     .chat-status.is-error { color: #ff9aa6; }
     @media (max-width: 560px) { .live-comments { padding: 13px; }.chat-message { max-width: 94%; }.chat-message.is-reply { margin-left: 18px; } }
   </style>
@@ -75,7 +82,7 @@
   <header class="learning-topbar">
     <a class="learning-back" href="index.html"><i class="fa-solid fa-arrow-left"></i> Back to Portfolio</a>
     <a class="learning-brand" href="live.html">CodeWith<span class="accent">Siam</span> / Live</a>
-    <a class="learning-button primary learning-youtube" href="https://www.youtube.com/@CodeWithSiam" target="_blank" rel="noopener noreferrer"><i class="fa-brands fa-youtube"></i> YouTube</a>
+    <span class="learning-button primary learning-youtube" aria-label="CodeWithSiam Live"><i class="fa-brands fa-youtube"></i> Live video</span>
   </header>
   <main class="learning-app">
     <section id="liveLoading" class="learning-state"><div class="loading-spinner"></div><h1>Loading live room</h1></section>

@@ -1870,6 +1870,10 @@ body, #siteRoot, .section {
 .live-notification:hover { color: var(--accent); border-color: var(--accent); }
 .live-notification-dot, .live-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #ff4d67; }
 .live-notification-dot { position: absolute; top: 6px; right: 6px; border: 2px solid var(--bg); }
+.live-notification-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px; border: 1px solid rgba(255,255,255,.18); border-radius: 6px; color: var(--text); background: rgba(255,255,255,.05); cursor: pointer; font-size: 0.8rem; }
+.live-notification-btn:hover { color: var(--accent); border-color: var(--accent); }
+.live-notification-btn .live-dot { animation: liveNotificationPulse 2s ease-in-out infinite; }
+@keyframes liveNotificationPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
 .live-notification-panel { position: fixed; z-index: 100; top: 78px; right: 24px; width: min(760px, calc(100vw - 32px)); padding: 16px; border: 1px solid rgba(255,255,255,.14); border-radius: 12px; background: #111722; box-shadow: 0 18px 50px rgba(0,0,0,.4); }
 .live-notification-panel.hidden { display: none; }
 .live-notification-head { display: flex; justify-content: space-between; align-items: center; color: var(--text); }
@@ -2532,6 +2536,30 @@ body, #siteRoot, .section {
   cursor: pointer;
 }
 .video-control-btn:hover {
+  background: rgba(255, 212, 59, 0.16);
+  color: var(--cyan);
+}
+.video-control-select {
+  border: none;
+  min-width: 60px;
+  height: 38px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text);
+  background: rgba(255,255,255,0.06);
+  cursor: pointer;
+  font-size: 0.75rem;
+  font-family: inherit;
+}
+.video-control-select:hover {
+  background: rgba(255, 212, 59, 0.16);
+  color: var(--cyan);
+}
+.video-control-select:focus {
+  outline: none;
   background: rgba(255, 212, 59, 0.16);
   color: var(--cyan);
 }
