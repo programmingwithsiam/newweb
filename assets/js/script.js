@@ -68,15 +68,27 @@ function initSiteLiveChat() {
   const savedName = localStorage.getItem('siam_live_chat_name') || '';
   nameInput.value = savedName;
 
-  import('./firebase-init.js').then(async ({ db, isFirebaseConfigured }) => {
+  import('./firebase-init.js').then(async ({ db, auth, isFirebaseConfigured }) => {
     if (!isFirebaseConfigured || !db) throw new Error('Firebase is not configured');
-    const { collection, addDoc, limit, onSnapshot, orderBy, query, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js');
+    const { collection, addDoc, deleteDoc, doc, limit, onSnapshot, orderBy, query, serverTimestamp, updateDoc } = await import('https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js');
     const chatQuery = query(collection(db, 'liveChatMessages'), orderBy('createdAt', 'desc'), limit(50));
-    onSnapshot(chatQuery, (snapshot) => {
-      const items = snapshot.docs.map(item => ({ id: item.id, ...item.data() })).reverse();
-      messages.innerHTML = items.length ? items.map(item => `<article class="live-chat-message"><strong>${escapeHtml(item.name || 'Guest')}</strong><p>${escapeHtml(item.text || '')}</p></article>`).join('') : '<p class="live-chat-empty">Be the first to say hello.</p>';
+    let replyTo = null;
+    const replyState = document.getElementById('liveChatReplyState');
+    const renderMessages = (items) => {
+      const currentUid = auth?.currentUser?.uid || '';
+      messages.innerHTML = items.length ? items.map(item => {
+        const canManage = Boolean(currentUid && item.authorUid === currentUid);
+        const controls = `<div class="live-chat-message-actions"><button type="button" data-chat-action="reply" data-message-id="${escapeHtml(item.id)}">Reply</button>${canManage ? `<button type="button" data-chat-action="edit" data-message-id="${escapeHtml(item.id)}">Edit</button><button type="button" data-chat-action="delete" data-message-id="${escapeHtml(item.id)}">Delete</button>` : ''}</div>`;
+        const replyLabel = item.parentName ? `<small>Replying to ${escapeHtml(item.parentName)}</small>` : '';
+        return `<article class="live-chat-message ${item.parentId ? 'is-reply' : ''}" data-message-id="${escapeHtml(item.id)}"><div class="live-chat-message-top"><strong>${escapeHtml(item.name || 'Guest')}</strong>${replyLabel}</div><p>${escapeHtml(item.text || '')}</p>${controls}</article>`;
+      }).join('') : '<p class="live-chat-empty">Be the first to say hello.</p>';
       messages.scrollTop = messages.scrollHeight;
       status.textContent = `${items.length} recent messages`;
+    };
+    onSnapshot(chatQuery, (snapshot) => {
+      const items = snapshot.docs.map(item => ({ id: item.id, ...item.data() })).reverse();
+      renderMessages(items);
+      messages.dataset.items = JSON.stringify(items);
     }, () => { status.textContent = 'Chat unavailable'; });
     form.addEventListener('submit', async (event) => {
       event.preventDefault();
@@ -86,13 +98,37 @@ function initSiteLiveChat() {
       const button = form.querySelector('button');
       button.disabled = true;
       try {
-        await addDoc(collection(db, 'liveChatMessages'), { name, text, createdAt: serverTimestamp() });
+        const parentName = replyTo?.name || '';
+        await addDoc(collection(db, 'liveChatMessages'), { name, text, parentId: replyTo?.id || '', parentName, authorUid: auth?.currentUser?.uid || '', createdAt: serverTimestamp() });
         localStorage.setItem('siam_live_chat_name', name);
         messageInput.value = '';
+        replyTo = null;
+        if (replyState) { replyState.textContent = ''; replyState.classList.add('hidden'); }
       } catch (error) {
         status.textContent = 'Could not send message';
         console.error('Live chat send failed:', error);
       } finally { button.disabled = false; }
+    });
+    messages.addEventListener('click', async (event) => {
+      const button = event.target.closest('[data-chat-action]');
+      if (!button) return;
+      const items = JSON.parse(messages.dataset.items || '[]');
+      const item = items.find(entry => entry.id === button.dataset.messageId);
+      if (!item) return;
+      const action = button.dataset.chatAction;
+      if (action === 'reply') {
+        replyTo = item;
+        if (replyState) { replyState.textContent = `Replying to ${item.name || 'Guest'} (tap Escape to cancel)`; replyState.classList.remove('hidden'); }
+        messageInput.focus();
+      } else if (action === 'edit') {
+        const text = prompt('Edit your comment:', item.text || '');
+        if (text?.trim()) await updateDoc(doc(db, 'liveChatMessages', item.id), { text: text.trim().slice(0, 240), editedAt: serverTimestamp() });
+      } else if (action === 'delete' && confirm('Delete this comment?')) {
+        await deleteDoc(doc(db, 'liveChatMessages', item.id));
+      }
+    });
+    messageInput.addEventListener('keydown', event => {
+      if (event.key === 'Escape' && replyTo) { replyTo = null; replyState?.classList.add('hidden'); }
     });
   }).catch(() => { status.textContent = 'Chat setup required'; });
 }
