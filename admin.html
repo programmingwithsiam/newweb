@@ -2151,15 +2151,9 @@
               password
             );
 
-            if (user.email?.toLowerCase() === ADMIN_EMAIL && !user.emailVerified) {
-              await sendVerificationEmail();
-              await logout();
-              setStatus(
-                loginStatus,
-                'Your administrator email is not verified. A verification link was sent; verify it, then sign in again.',
-                false
-              );
-            }
+            // Admin login successful
+            // isCurrentUserAdmin() will check Firestore for admin role
+            // No need to manually verify email
 
           } catch (error) {
 
@@ -2363,16 +2357,6 @@
 
 
         if (!admin) {
-
-          if (user.email?.toLowerCase() === ADMIN_EMAIL && !user.emailVerified) {
-            showOnly(loginPanel);
-            setStatus(
-              loginStatus,
-              'Verify the administrator email before signing in here.',
-              false
-            );
-            return;
-          }
 
           showOnly(accessDenied);
 

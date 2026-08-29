@@ -62,12 +62,16 @@ async function ensureUserProfile(user) {
   const { doc, getDoc, setDoc, updateDoc, serverTimestamp } = await loadFirestoreModule();
   const ref = doc(db, 'users', user.uid);
   const snap = await getDoc(ref);
+  
+  // Determine the role: admin if email matches ADMIN_EMAIL, otherwise student
+  const defaultRole = user.email?.toLowerCase() === ADMIN_EMAIL ? 'admin' : 'student';
+  
   if (!snap.exists()) {
     await setDoc(ref, {
       name: user.displayName || user.email?.split('@')[0] || 'Student',
       email: user.email || null,
       photoURL: user.photoURL || null,
-      role: 'student',
+      role: defaultRole,
       createdAt: serverTimestamp(),
     });
   } else if (user.photoURL && snap.data().photoURL !== user.photoURL) {
@@ -166,13 +170,28 @@ export function observeAuthState(callback) {
 }
 
 /**
- * Checks whether the current user is the single allowed administrator.
- * Firestore rules enforce the same email restriction server-side.
+ * Checks whether the current user is an administrator.
+ * Reads the user's role from their Firestore document.
+ * Email verification is no longer required to be an admin, but the role must be 'admin' in Firestore.
  */
 export async function isCurrentUserAdmin() {
   if (!isFirebaseConfigured || !auth?.currentUser) return false;
   const currentUser = auth.currentUser;
-  return currentUser.emailVerified === true && currentUser.email?.toLowerCase() === ADMIN_EMAIL;
+  
+  // Only admin email can be admin, but we check Firestore for the role
+  if (currentUser.email?.toLowerCase() !== ADMIN_EMAIL) return false;
+  
+  try {
+    const { doc, getDoc } = await loadFirestoreModule();
+    const userRef = doc(db, 'users', currentUser.uid);
+    const userSnap = await getDoc(userRef);
+    
+    if (!userSnap.exists()) return false;
+    return userSnap.data().role === 'admin';
+  } catch (error) {
+    console.error('Failed to check admin role:', error);
+    return false;
+  }
 }
 
 export function getCurrentUser() {
