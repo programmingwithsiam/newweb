@@ -1,1 +1,16 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><defs><clipPath id="circle"><circle cx="128" cy="128" r="128"/></clipPath></defs><image href="/assets/images/profile-siam.jpeg" width="256" height="256" preserveAspectRatio="xMidYMid slice" clip-path="url(#circle)"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="CodeWithSiam S logo">
+  <defs>
+    <linearGradient id="bg" x1="0%" x2="100%" y1="0%" y2="100%">
+      <stop offset="0%" stop-color="#101722"/>
+      <stop offset="100%" stop-color="#0a0f18"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0%" x2="100%" y1="0%" y2="100%">
+      <stop offset="0%" stop-color="#d9ff7a"/>
+      <stop offset="100%" stop-color="#c9f35b"/>
+    </linearGradient>
+  </defs>
+  <circle cx="128" cy="128" r="124" fill="url(#bg)" stroke="#c9f35b" stroke-width="8"/>
+  <path d="M175 66c-12-15-32-24-55-24-29 0-54 13-71 36-9 12-14 27-14 43 0 20 9 38 24 51 16 14 37 21 59 21 20 0 39-7 53-20 8-8 12-18 12-29 0-11-6-19-17-19-8 0-13 5-15 12-3 8-8 13-17 17-10 5-20 7-32 7-17 0-31-6-40-17-10-12-15-28-15-45 0-17 5-31 16-41 12-11 27-17 45-17 18 0 32 6 42 16 6 7 10 15 12 24h-28c-7 0-12 5-12 12 0 7 5 12 12 12h52c9 0 15-7 15-16 0-8-3-18-10-27zm-16 74c-4 0-8 3-8 8 0 10 7 17 17 17 10 0 17-7 17-17 0-10-7-17-17-17h-9z" fill="url(#accent)"/>
+  <text x="128" y="155" text-anchor="middle" font-family="Verdana, Arial, sans-serif" font-size="118" font-weight="700" fill="#c9f35b" letter-spacing="-10">S</text>
+</svg>
+
