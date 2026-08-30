@@ -20,7 +20,7 @@
     <aside class="community-sidebar"><a class="side-link active" href="community.html"><i class="fa-solid fa-users"></i> Community</a><a class="side-link" href="live.html"><i class="fa-solid fa-video"></i> Live learning</a><a class="side-link" href="course.html"><i class="fa-solid fa-graduation-cap"></i> Courses</a></aside>
     <section class="community-feed">
       <div class="community-heading"><div><p class="eyebrow">CODEWITHSIAM COMMUNITY</p><h1>Learn together.</h1><p>Share progress, ask questions, and build in public.</p></div><span id="memberStatus" class="member-status">Community</span></div>
-        <section id="storiesStrip" class="stories-strip" aria-label="Community stories"></section><section class="composer"><div class="composer-avatar" id="composerAvatar">S</div><div class="composer-main"><p id="composerIdentity">Sign in to share with the community</p><textarea id="postText" rows="3" maxlength="1000" placeholder="What are you learning today?" aria-label="Write a community post"></textarea><div id="imagePreview" class="image-preview hidden"><img id="imagePreviewPhoto" src="" alt="Selected photo preview"><button id="removePostImage" type="button" aria-label="Remove selected photo"><i class="fa-solid fa-xmark"></i></button></div><div class="composer-actions"><span id="postStatus" aria-live="polite"></span><label class="image-picker" for="postImage"><i class="fa-regular fa-image"></i> Add photo</label><input id="postImage" type="file" accept="image/jpeg,image/png,image/webp,image/gif" hidden><button id="signInBtn" class="secondary" type="button"><i class="fa-brands fa-google"></i> Sign in</button><button id="postBtn" class="primary" type="button" disabled><i class="fa-solid fa-paper-plane"></i> Post</button></div></div></section>
+        <section class="composer"><div class="composer-avatar" id="composerAvatar">S</div><div class="composer-main"><p id="composerIdentity">Sign in to share with the community</p><textarea id="postText" rows="3" maxlength="1000" placeholder="What are you learning today?" aria-label="Write a community post"></textarea><div id="imagePreview" class="image-preview hidden"><img id="imagePreviewPhoto" src="" alt="Selected photo preview"><button id="removePostImage" type="button" aria-label="Remove selected photo"><i class="fa-solid fa-xmark"></i></button></div><div class="composer-actions"><span id="postStatus" aria-live="polite"></span><label class="image-picker" for="postImage"><i class="fa-regular fa-image"></i> Add photo</label><input id="postImage" type="file" accept="image/jpeg,image/png,image/webp,image/gif" hidden><button id="signInBtn" class="secondary" type="button"><i class="fa-brands fa-google"></i> Sign in</button><button id="postBtn" class="primary" type="button" disabled><i class="fa-solid fa-paper-plane"></i> Post</button></div></div></section>
       <div class="feed-toolbar"><h2>Recent posts</h2><span id="postCount">Realtime</span></div>
       <section id="postFeed" class="post-feed"><div class="feed-empty"><i class="fa-solid fa-spinner fa-spin"></i><p>Loading community...</p></div></section>
     </section>
@@ -29,126 +29,6 @@
   <div id="profileModal" class="community-modal hidden" role="dialog" aria-modal="true" aria-labelledby="profileModalTitle"><div class="community-modal-card"><button class="modal-close" type="button" data-close-modal aria-label="Close profile"><i class="fa-solid fa-xmark"></i></button><div id="profileModalBody"></div></div></div>
   <div id="messageModal" class="community-modal hidden" role="dialog" aria-modal="true" aria-labelledby="messageModalTitle"><div class="community-modal-card message-card"><div class="message-header"><span id="messageAvatar" class="message-avatar"></span><div><h2 id="messageModalTitle">Personal Chat</h2><small id="messagePresence">Offline</small></div><button class="modal-close" type="button" data-close-modal aria-label="Close messages"><i class="fa-solid fa-xmark"></i></button></div><div id="messageList" class="message-list"></div><form id="messageForm" class="message-form"><button type="button" class="message-attach" aria-label="Attach file"><i class="fa-solid fa-paperclip"></i></button><input id="messageText" maxlength="1000" placeholder="Type a message" aria-label="Write a private message" required><button type="submit" aria-label="Send message"><i class="fa-solid fa-paper-plane"></i></button></form><p id="messageStatus" class="message-status"></p></div></div>
   <div id="inboxModal" class="community-modal hidden" role="dialog" aria-modal="true" aria-labelledby="inboxTitle"><div class="community-modal-card inbox-card"><button class="modal-close" type="button" data-close-modal aria-label="Close inbox"><i class="fa-solid fa-xmark"></i></button><p class="eyebrow">PERSONAL CHAT</p><h2 id="inboxTitle">Personal Chat</h2><div id="inboxList" class="inbox-list"><p class="comments-empty">Sign in to view messages.</p></div></div></div>
-
-  <!-- Story Creation Modal -->
-  <div id="storyCreationModal" class="community-modal hidden" role="dialog" aria-modal="true" aria-labelledby="storyCreationTitle">
-    <div class="community-modal-card story-creation-card">
-      <button class="modal-close" type="button" data-close-modal aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
-      <h2 id="storyCreationTitle">Create Story</h2>
-      <div class="story-creation-tabs">
-        <button class="story-tab-btn active" data-story-type="text" type="button">
-          <i class="fa-solid fa-quote-left"></i> Text Story
-        </button>
-        <button class="story-tab-btn" data-story-type="image" type="button">
-          <i class="fa-solid fa-image"></i> Image Story
-        </button>
-      </div>
-      <form id="storyCreationForm" class="story-creation-form">
-        <!-- Text Story Tab -->
-        <div id="textStoryTab" class="story-tab-pane active">
-          <div class="form-group">
-            <label for="storyText">Your Story</label>
-            <textarea id="storyText" maxlength="240" rows="4" placeholder="Share your learning update..."></textarea>
-            <small id="storyTextCount">0/240</small>
-          </div>
-          <div class="form-group">
-            <label for="storyBackground">Background Style</label>
-            <select id="storyBackground">
-              <option value="default">Default</option>
-              <option value="gradient1">Purple Gradient</option>
-              <option value="gradient2">Pink Gradient</option>
-              <option value="dark">Dark</option>
-            </select>
-          </div>
-        </div>
-
-        <!-- Image Story Tab -->
-        <div id="imageStoryTab" class="story-tab-pane hidden">
-          <div class="form-group">
-            <label for="storyImage">Upload Image</label>
-            <div class="file-input-wrapper">
-              <input id="storyImage" type="file" accept="image/jpeg,image/png,image/webp" hidden>
-              <button id="storyImageBtn" class="file-select-btn" type="button">
-                <i class="fa-solid fa-cloud-arrow-up"></i> Choose Image
-              </button>
-              <span id="storyImageFileName">No file selected</span>
-            </div>
-            <small>Max 5 MB. Recommended: 1080x1920px</small>
-          </div>
-          <div id="storyImagePreview" class="image-preview hidden">
-            <img id="storyImagePreviewPhoto" src="" alt="Story image preview">
-          </div>
-          <div class="form-group">
-            <label for="storyCaption">Caption (optional)</label>
-            <textarea id="storyCaption" maxlength="240" rows="2" placeholder="Add a caption..."></textarea>
-          </div>
-        </div>
-
-        <!-- Common Fields -->
-        <div class="form-group">
-          <label for="storyCategory">Category</label>
-          <select id="storyCategory">
-            <option value="learning">🚀 Learning Update</option>
-            <option value="project">💻 Project Update</option>
-            <option value="achievement">🎯 Achievement</option>
-            <option value="study">📚 Study Update</option>
-            <option value="idea">💡 Quick Idea</option>
-            <option value="challenge">🔥 Challenge</option>
-          </select>
-        </div>
-
-        <div class="form-actions">
-          <button type="submit" class="primary" id="storySubmitBtn">
-            <i class="fa-solid fa-share"></i> Share Story
-          </button>
-          <button type="button" class="secondary" data-close-modal>Cancel</button>
-        </div>
-
-        <p id="storyCreationStatus" class="form-status"></p>
-      </form>
-    </div>
-  </div>
-
-  <!-- Story Viewer Modal -->
-  <div id="storyViewerModal" class="community-modal story-viewer-modal hidden" role="dialog" aria-modal="true">
-    <div class="story-viewer-wrapper">
-      <button class="story-close-btn" type="button" data-close-modal aria-label="Close story">
-        <i class="fa-solid fa-xmark"></i>
-      </button>
-      
-      <!-- Progress Bar -->
-      <div class="story-progress-bar">
-        <div class="story-progress-indicator"></div>
-      </div>
-
-      <!-- Story Header -->
-      <div class="story-viewer-header">
-        <div class="story-author-info">
-          <img id="storyViewerAvatar" src="" alt="Story author" class="story-viewer-avatar">
-          <div>
-            <p id="storyViewerName" class="story-viewer-name">Story Author</p>
-            <p id="storyViewerTime" class="story-viewer-time">Just now</p>
-          </div>
-        </div>
-        <button id="storyViewerMenu" class="story-menu-btn" type="button">
-          <i class="fa-solid fa-ellipsis-v"></i>
-        </button>
-      </div>
-
-      <!-- Story Content -->
-      <div id="storyViewerContent" class="story-viewer-content">
-        <!-- Content rendered here -->
-      </div>
-
-      <!-- Navigation -->
-      <button class="story-nav-btn story-prev-btn" type="button" aria-label="Previous story">
-        <i class="fa-solid fa-chevron-left"></i>
-      </button>
-      <button class="story-nav-btn story-next-btn" type="button" aria-label="Next story">
-        <i class="fa-solid fa-chevron-right"></i>
-      </button>
-    </div>
-  </div>
 
   <script type="module" src="assets/js/community.js?v=20260829-feed-fallback-1"></script>
   <script type="module" src="assets/js/social-enhancements.js?v=20260830-social-1"></script>

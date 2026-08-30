@@ -85,28 +85,6 @@ function watchNotifications() {
   });
 }
 
-function setupStories() {
-  const strip = document.getElementById('storiesStrip');
-  if (!strip) return;
-  if (strip.dataset.bound === 'true') return;
-  strip.dataset.bound = 'true';
-  strip.innerHTML = '<div class="stories-heading"><strong>Stories</strong><button type="button" class="story-add" aria-label="Create story"><i class="fa-solid fa-plus"></i></button></div><div class="stories-list"><p class="comments-empty">Loading stories...</p></div>';
-  strip.querySelector('.story-add').addEventListener('click', async () => {
-    if (!currentUser) { document.getElementById('postStatus').textContent = 'Sign in to create a story.'; return; }
-    const text = prompt('Share a short learning story:');
-    if (!text?.trim()) return;
-    const { addDoc, collection, serverTimestamp } = await loadFirestore();
-    await addDoc(collection(db, 'stories'), { text: text.trim().slice(0, 240), authorUid: currentUser.uid, authorName: currentUser.displayName || currentUser.email?.split('@')[0] || 'Member', avatarUrl: currentUser.photoURL || '', createdAt: serverTimestamp() }).catch(() => {});
-  });
-  loadFirestore().then(({ collection, limit, onSnapshot, orderBy, query }) => {
-    onSnapshot(query(collection(db, 'stories'), orderBy('createdAt', 'desc'), limit(20)), snapshot => {
-      const list = strip.querySelector('.stories-list');
-      list.innerHTML = snapshot.docs.length ? snapshot.docs.map(item => { const story = item.data(); return `<button type="button" class="story-card" data-story-text="${escapeHtml(story.text)}"><span class="story-avatar">${story.avatarUrl ? `<img src="${escapeHtml(story.avatarUrl)}" alt="">` : initials(story.authorName)}</span><strong>${escapeHtml(story.authorName || 'Member')}</strong><small>${timeLabel(story.createdAt)}</small></button>`; }).join('') : '<p class="comments-empty">No stories yet.</p>';
-      list.querySelectorAll('[data-story-text]').forEach(item => item.addEventListener('click', () => alert(item.dataset.storyText)));
-    }, () => { strip.querySelector('.stories-list').innerHTML = '<p class="comments-empty">Stories are unavailable.</p>'; });
-  });
-}
-
 function setupCommunityEvents() {
   const feed = document.getElementById('postFeed');
   if (!feed) return;
@@ -206,7 +184,7 @@ function setupChatEnhancements() {
 
 observeAuthState(user => {
   currentUser = user;
-  if (isCommunity) { setupStories(); watchNotifications(); }
+  if (isCommunity) { watchNotifications(); }
   if (isChat) setupChatEnhancements();
 });
 if (isCommunity) { addNotificationButton(); setupCommunityEvents(); }
