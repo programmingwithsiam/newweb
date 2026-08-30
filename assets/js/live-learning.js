@@ -14,6 +14,7 @@ const category = document.getElementById('liveCategory');
 const thumbnail = document.getElementById('liveThumbnail');
 const date = document.getElementById('liveDate');
 const state = document.getElementById('liveState');
+const commentsPanel = document.querySelector('.live-comments');
 let sessions = [];
 let selectedIndex = 0;
 let roomLoaded = false;
@@ -85,7 +86,7 @@ function move(offset) {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-async function initComments(user = auth?.currentUser) {
+async function initComments(user = auth?.currentUser, sessionId = '') {
   const list = document.getElementById('liveCommentsList');
   const form = document.getElementById('liveCommentForm');
   const textInput = document.getElementById('liveCommentText');
@@ -102,9 +103,9 @@ async function initComments(user = auth?.currentUser) {
     list.innerHTML = '<p class="chat-empty">Comments are temporarily unavailable.</p>';
     return;
   }
-  const { collection, addDoc, arrayRemove, arrayUnion, deleteDoc, doc, getDoc, getDocs, limit, onSnapshot, orderBy, query, serverTimestamp, setDoc, startAfter, updateDoc } = await import('https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js');
+  const { collection, addDoc, arrayRemove, arrayUnion, deleteDoc, doc, getDoc, limit, onSnapshot, query, serverTimestamp, setDoc, updateDoc, where } = await import('https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js');
   const profile = user ? (await getDoc(doc(db, 'users', user.uid)).catch(() => null))?.data() || {} : {};
-  const identity = { uid: user?.uid || '', name: profile.name || user?.displayName || user?.email?.split('@')[0] || 'Member', photoURL: profile.photoURL || user?.photoURL || '', admin: user?.email?.toLowerCase() === 'mdsiamahmmedloselovestroy@gmail.com' && user.emailVerified === true };
+  const identity = { uid: user?.uid || '', name: profile.name || user?.displayName || user?.email?.split('@')[0] || 'Member', photoURL: profile.photoURL || user?.photoURL || '', admin: user?.email?.toLowerCase() === 'mdsiamahmmedloselovestroy@gmail.com' };
   let comments = [];
   let latestSnapshot;
   let replyTo = null;
@@ -142,35 +143,21 @@ async function initComments(user = auth?.currentUser) {
     render();
   }
   list.innerHTML = '<p class="chat-empty">Connecting to the conversation...</p>';
-  const latestQuery = query(collection(db, 'liveChatMessages'), orderBy('createdAt', 'desc'), limit(30));
+  const latestQuery = query(collection(db, 'liveChatMessages'), where('liveSessionId', '==', sessionId), limit(30));
   onSnapshot(latestQuery, snapshot => {
-    const incoming = snapshot.docs.map(item => ({ id: item.id, ...item.data() })).reverse();
+    const incoming = snapshot.docs.map(item => ({ id: item.id, ...item.data() })).sort((a, b) => timestampValue(a.createdAt) - timestampValue(b.createdAt));
     const previousIds = new Set(comments.map(comment => comment.id));
     const unseen = incoming.filter(comment => !previousIds.has(comment.id));
     const nearBottom = list.scrollHeight - list.scrollTop - list.clientHeight < 80;
     if (comments.length && unseen.length && !nearBottom) { pendingNew += unseen.length; newIndicator.textContent = `${pendingNew} new comment${pendingNew === 1 ? '' : 's'} ↓`; newIndicator.classList.remove('hidden'); }
     merge(incoming);
     latestSnapshot = snapshot;
-    oldestDoc = snapshot.docs[snapshot.docs.length - 1] || oldestDoc;
-    hasOlder = snapshot.docs.length === 30;
-    loadMore.classList.toggle('hidden', !hasOlder);
+    hasOlder = false;
+    loadMore.classList.add('hidden');
     status.textContent = `${comments.length} comments · realtime`;
   }, error => {
     status.textContent = error?.code === 'permission-denied' ? 'Comment access is blocked by Firebase rules' : 'Comments unavailable';
     list.innerHTML = '<p class="chat-empty">Comments could not be loaded. Please refresh the page.</p>';
-  });
-  loadMore.addEventListener('click', async () => {
-    if (!oldestDoc || !hasOlder) return;
-    loadMore.disabled = true;
-    try {
-      const older = await getDocs(query(collection(db, 'liveChatMessages'), orderBy('createdAt', 'desc'), startAfter(oldestDoc), limit(30)));
-      const items = older.docs.map(item => ({ id: item.id, ...item.data() })).reverse();
-      merge(items, true);
-      oldestDoc = older.docs[older.docs.length - 1] || oldestDoc;
-      hasOlder = older.docs.length === 30;
-      loadMore.classList.toggle('hidden', !hasOlder);
-    } catch { status.textContent = 'Older comments could not load'; }
-    finally { loadMore.disabled = false; }
   });
   newIndicator.addEventListener('click', () => { list.scrollTop = list.scrollHeight; pendingNew = 0; newIndicator.classList.add('hidden'); });
   list.addEventListener('click', async event => {
@@ -197,7 +184,7 @@ async function initComments(user = auth?.currentUser) {
     sendStatus.classList.remove('is-error');
     try {
       if (await getDoc(doc(db, 'muted_users', identity.uid)).then(snapshot => snapshot.exists())) throw new Error('You are muted.');
-      await addDoc(collection(db, 'liveChatMessages'), { name: identity.name, avatarUrl: identity.photoURL, authorUid: identity.uid, authorIsAdmin: identity.admin, text, parentId: replyTo?.id || '', parentName: replyTo?.name || '', likes: [], pinned: false, createdAt: serverTimestamp() });
+      await addDoc(collection(db, 'liveChatMessages'), { liveSessionId: sessionId, name: identity.name, avatarUrl: identity.photoURL, authorUid: identity.uid, authorIsAdmin: identity.admin, text, parentId: replyTo?.id || '', parentName: replyTo?.name || '', likes: [], pinned: false, createdAt: serverTimestamp() });
       textInput.value = '';
       replyTo = null;
       document.getElementById('liveReplying').classList.add('hidden');
@@ -209,30 +196,29 @@ async function initComments(user = auth?.currentUser) {
 }
 
 async function loadLiveRoom(user) {
+  commentsPanel?.classList.add('hidden');
   if (!user) {
     loading.classList.add('hidden');
     workspace.classList.add('hidden');
     empty.classList.add('hidden');
     access.classList.remove('hidden');
-    initComments(null).catch(error => {
-      document.getElementById('liveCommentStatus').textContent = 'Comments unavailable';
-      console.error('Public comments failed:', error);
-    });
     return;
   }
   access.classList.add('hidden');
   empty.classList.add('hidden');
   workspace.classList.add('hidden');
   loading.classList.remove('hidden');
-  initComments(user).catch(error => {
-    document.getElementById('liveCommentStatus').textContent = 'Comments unavailable';
-    console.error('Live comments failed:', error);
-  });
   try {
   const [settings, archived] = await Promise.all([fetchLiveSettings(), fetchLiveSessions()]);
   const currentId = settings.enabled === true ? extractYoutubeId(settings.url || '') : null;
   const current = currentId ? [{ title: settings.title || 'CodeWithSiam is live', category: settings.category || 'Live learning', thumbnail: settings.thumbnail || '', description: settings.description || 'Join the live session and learn by building along.', videoUrl: settings.url, youtubeVideoId: currentId, isCurrent: true }] : [];
   sessions = [...current, ...archived];
+  const activeSession = current[0];
+  commentsPanel?.classList.toggle('hidden', !activeSession);
+  if (activeSession) initComments(user, activeSession.youtubeVideoId).catch(error => {
+    document.getElementById('liveCommentStatus').textContent = 'Comments unavailable';
+    console.error('Live comments failed:', error);
+  });
   loading.classList.add('hidden');
   if (!sessions.length) empty.classList.remove('hidden');
   else { workspace.classList.remove('hidden'); renderSession(); }

@@ -42,7 +42,7 @@ async function showConversation(nextTarget, firestore) {
     const data = snapshot.data();
     const seen = data?.lastSeen?.toDate?.();
     const online = data?.online === true && seen && Date.now() - seen.getTime() < 120000;
-    presence.textContent = online ? 'Online' : seen ? `Last seen ${seen.toLocaleTimeString('en-BD', { hour: 'numeric', minute: '2-digit' })}` : 'Offline';
+    presence.textContent = online && data?.typing ? 'Typing...' : online ? 'Online' : seen ? `Last seen ${seen.toLocaleTimeString('en-BD', { hour: 'numeric', minute: '2-digit' })}` : 'Offline';
     presence.className = online ? 'online' : 'offline';
   });
   if (stopChat) stopChat();

@@ -33,8 +33,7 @@ service cloud.firestore {
 
     function isAdmin() {
       return isSignedIn() &&
-        request.auth.token.email == 'mdsiamahmmedloselovestroy@gmail.com' &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+        request.auth.token.email == 'mdsiamahmmedloselovestroy@gmail.com';
     }
 
     function canAccessCourse(courseId) {
@@ -68,7 +67,10 @@ service cloud.firestore {
       // A user may create their own profile document on first sign-in.
       allow create: if isOwner(uid) &&
         request.resource.data.keys().hasOnly(['name', 'email', 'photoURL', 'role', 'createdAt']) &&
-        (!('role' in request.resource.data) || request.resource.data.role == 'student');
+        request.resource.data.email == request.auth.token.email &&
+        request.resource.data.createdAt == request.time &&
+        ((request.auth.token.email == 'mdsiamahmmedloselovestroy@gmail.com' && request.resource.data.role == 'admin') ||
+          (!('role' in request.resource.data) || request.resource.data.role == 'student'));
 
       // A user may update their own profile fields, but cannot grant
       // themselves administrator access through this document.
@@ -124,7 +126,7 @@ service cloud.firestore {
         request.resource.data.authorUid == request.auth.uid &&
         request.resource.data.authorName is string && request.resource.data.authorName.size() > 0 && request.resource.data.authorName.size() <= 80 &&
         request.resource.data.avatarUrl is string && request.resource.data.avatarUrl.size() <= 1000 &&
-        request.resource.data.authorIsAdmin == isAdmin() &&
+        request.resource.data.authorIsAdmin is bool &&
         request.resource.data.likes is list && request.resource.data.likes.size() <= 1000 &&
         request.resource.data.createdAt == request.time;
       allow update: if isAdmin() ||
@@ -134,11 +136,12 @@ service cloud.firestore {
 
       match /comments/{commentId} {
         allow read: if true;
-        allow create: if request.resource.data.keys().hasOnly(['text', 'authorName', 'avatarUrl', 'authorUid', 'createdAt']) &&
+        allow create: if request.resource.data.keys().hasOnly(['text', 'authorName', 'avatarUrl', 'authorUid', 'parentId', 'parentName', 'createdAt']) &&
           request.resource.data.text is string && request.resource.data.text.size() > 0 && request.resource.data.text.size() <= 500 &&
           request.resource.data.authorName is string && request.resource.data.authorName.size() > 0 && request.resource.data.authorName.size() <= 80 &&
           request.resource.data.avatarUrl is string && request.resource.data.avatarUrl.size() <= 1000 &&
           request.resource.data.authorUid is string && request.resource.data.authorUid.size() > 0 &&
+          request.resource.data.parentId is string && request.resource.data.parentName is string &&
           request.resource.data.createdAt == request.time;
         allow update, delete: if isAdmin() || (isSignedIn() && resource.data.authorUid == request.auth.uid);
       }
@@ -150,7 +153,8 @@ service cloud.firestore {
       allow read: if true;
       allow create: if isSignedIn() &&
         !exists(/databases/$(database)/documents/muted_users/$(request.auth.uid)) &&
-        request.resource.data.keys().hasOnly(['name', 'avatarUrl', 'text', 'parentId', 'parentName', 'authorUid', 'authorIsAdmin', 'likes', 'pinned', 'createdAt']) &&
+        request.resource.data.keys().hasOnly(['liveSessionId', 'name', 'avatarUrl', 'text', 'parentId', 'parentName', 'authorUid', 'authorIsAdmin', 'likes', 'pinned', 'createdAt']) &&
+        request.resource.data.liveSessionId is string && request.resource.data.liveSessionId.size() > 0 &&
         request.resource.data.name is string && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 32 &&
         request.resource.data.avatarUrl is string && request.resource.data.avatarUrl.size() <= 1000 &&
         request.resource.data.text is string && request.resource.data.text.size() > 0 && request.resource.data.text.size() <= 240 &&
@@ -202,8 +206,29 @@ service cloud.firestore {
 
     match /presence/{uid} {
       allow read: if true;
-      allow create, update: if isOwner(uid) && request.resource.data.keys().hasOnly(['online', 'lastSeen']) &&
+      allow create, update: if isOwner(uid) && request.resource.data.keys().hasOnly(['online', 'lastSeen', 'typing']) &&
         request.resource.data.online is bool && request.resource.data.lastSeen == request.time;
+    }
+
+    match /stories/{storyId} {
+      allow read: if true;
+      allow create: if isSignedIn() && request.resource.data.authorUid == request.auth.uid &&
+        request.resource.data.text is string && request.resource.data.text.size() > 0 && request.resource.data.text.size() <= 240 &&
+        request.resource.data.authorName is string && request.resource.data.authorName.size() > 0 &&
+        request.resource.data.avatarUrl is string && request.resource.data.createdAt == request.time;
+      allow delete: if isSignedIn() && resource.data.authorUid == request.auth.uid;
+    }
+
+    match /notifications/{uid}/items/{notificationId} {
+      allow read, delete: if isOwner(uid);
+      allow create: if isSignedIn() && request.resource.data.actorUid == request.auth.uid &&
+        request.resource.data.type is string && request.resource.data.type.size() > 0 &&
+        request.resource.data.message is string && request.resource.data.message.size() > 0 &&
+        request.resource.data.targetId is string && request.resource.data.targetId.size() > 0 &&
+        request.resource.data.createdAt == request.time;
+      allow update: if isOwner(uid) &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['readAt']) &&
+        request.resource.data.readAt == request.time;
     }
 
     // ---------------- Learning progress (private to each user) ----------------

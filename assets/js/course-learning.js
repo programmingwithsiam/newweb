@@ -1,4 +1,4 @@
-import { fetchAllCourses, saveUserCourseProgress, createPaymentSubmission, extractYoutubeId, isMp4VideoUrl } from './courses-db.js';
+import { fetchAllCourses, saveUserCourseProgress, createPaymentSubmission, extractYoutubeId } from './courses-db.js';
 import { observeAuthState, signInWithGoogle } from './auth.js';
 
 const progressKey = 'siam_portfolio_course_progress';
@@ -278,13 +278,28 @@ function renderPlayer() {
   const youtubeUrl = lesson.youtubeUrl || (youtubeId(lesson) ? `https://www.youtube.com/watch?v=${youtubeId(lesson)}` : '');
   youtubeLink.classList.toggle('hidden', lesson.showYoutubeLink !== true || !youtubeUrl);
   youtubeLink.href = youtubeUrl;
+  
+  const isMp4 = lesson.videoType === 'mp4' || (lesson.videoUrl && lesson.videoUrl.toLowerCase().endsWith('.mp4'));
   const id = youtubeId(lesson);
-  const isMp4 = lesson.videoType === 'file' || isMp4VideoUrl(lesson.videoUrl);
-  setupCustomVideoPlayer(isMp4);
-  $('lessonVideo').classList.toggle('hidden', isMp4);
-  $('lessonMp4').classList.toggle('hidden', !isMp4);
-  $('lessonVideo').src = !isMp4 && id ? `https://www.youtube.com/embed/${id}?controls=1&rel=0&playsinline=1` : '';
-  $('lessonMp4').src = isMp4 ? lesson.videoUrl : '';
+  
+  if (isMp4 && lesson.videoUrl) {
+    // Display MP4 video
+    $('lessonVideo').classList.add('hidden');
+    $('lessonMp4').classList.remove('hidden');
+    $('lessonMp4').src = lesson.videoUrl;
+    setupCustomVideoPlayer(true);
+  } else if (id) {
+    // Display YouTube video
+    $('lessonVideo').classList.remove('hidden');
+    $('lessonMp4').classList.add('hidden');
+    $('lessonVideo').src = `https://www.youtube.com/embed/${id}?controls=1&rel=0&playsinline=1`;
+    $('lessonMp4').removeAttribute('src');
+  } else {
+    // No valid video
+    $('lessonVideo').classList.add('hidden');
+    $('lessonMp4').classList.add('hidden');
+  }
+  
   const videoWrap = $('lessonVideo').closest('.lesson-video-wrap');
   if (videoWrap && !videoWrap.dataset.controlsReady) {
     videoWrap.dataset.controlsReady = 'true';

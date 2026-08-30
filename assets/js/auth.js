@@ -170,9 +170,8 @@ export function observeAuthState(callback) {
 }
 
 /**
- * Checks whether the current user is an administrator.
- * Reads the user's role from their Firestore document.
- * Email verification is no longer required to be an admin, but the role must be 'admin' in Firestore.
+ * Checks whether the current user is the configured administrator.
+ * The exact Firebase Auth email is the admin identity; no profile document is required.
  */
 export async function isCurrentUserAdmin() {
   if (!isFirebaseConfigured || !auth?.currentUser) return false;
@@ -181,17 +180,7 @@ export async function isCurrentUserAdmin() {
   // Only admin email can be admin, but we check Firestore for the role
   if (currentUser.email?.toLowerCase() !== ADMIN_EMAIL) return false;
   
-  try {
-    const { doc, getDoc } = await loadFirestoreModule();
-    const userRef = doc(db, 'users', currentUser.uid);
-    const userSnap = await getDoc(userRef);
-    
-    if (!userSnap.exists()) return false;
-    return userSnap.data().role === 'admin';
-  } catch (error) {
-    console.error('Failed to check admin role:', error);
-    return false;
-  }
+  return true;
 }
 
 export function getCurrentUser() {

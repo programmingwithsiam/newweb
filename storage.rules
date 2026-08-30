@@ -18,22 +18,6 @@ service firebase.storage {
         firestore.get(/databases/(default)/documents/authorized_users/$(request.auth.token.email)).data.access == 'granted');
     }
 
-    match /lessons_videos/{courseId}/{lessonId}/{fileName} {
-      allow read: if canAccessCourse(courseId);
-      allow write: if isAdmin() &&
-        request.resource.contentType == 'video/mp4' &&
-        request.resource.size <= 104857600;
-      allow delete: if isAdmin();
-    }
-
-    match /courses_videos/{courseId}/{fileName} {
-      allow read: if canAccessCourse(courseId);
-      allow write: if isAdmin() &&
-        request.resource.contentType == 'video/mp4' &&
-        request.resource.size <= 104857600;
-      allow delete: if isAdmin();
-    }
-
     match /community_images/{uid}/{fileName} {
       allow read: if true;
       allow write: if isGoogleUser() && request.auth.uid == uid &&

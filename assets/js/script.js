@@ -134,7 +134,7 @@ function initSiteLiveChat() {
       button.disabled = true;
       try {
         const parentName = replyTo?.name || '';
-        const authorIsAdmin = currentUser.email?.toLowerCase() === 'mdsiamahmmedloselovestroy@gmail.com' && currentUser.emailVerified === true;
+        const authorIsAdmin = currentUser.email?.toLowerCase() === 'mdsiamahmmedloselovestroy@gmail.com';
         await addDoc(collection(db, 'liveChatMessages'), { name, avatarUrl: currentUser.photoURL || '', text, parentId: replyTo?.id || '', parentName, authorUid: currentUser.uid, authorIsAdmin, likes: [], pinned: false, createdAt: serverTimestamp() });
         messageInput.value = '';
         replyTo = null;

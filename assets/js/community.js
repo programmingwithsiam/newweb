@@ -18,6 +18,28 @@ const defaultProfileImage = 'assets/images/profile-siam-round.png';
 let currentUser = null;
 let postItems = [];
 let previewUrl = '';
+
+/* ===== Facebook-style Reaction Animations ===== */
+function createFloatingEmoji(emoji, clientX, clientY) {
+  const floatingEmoji = document.createElement('div');
+  floatingEmoji.className = 'reaction-float-emoji';
+  floatingEmoji.textContent = emoji;
+  floatingEmoji.style.left = clientX + 'px';
+  floatingEmoji.style.top = clientY + 'px';
+  const randomOffset = (Math.random() - 0.5) * 30;
+  floatingEmoji.style.setProperty('--tx', randomOffset + 'px');
+  document.body.appendChild(floatingEmoji);
+  setTimeout(() => floatingEmoji.remove(), 1200);
+}
+
+const reactionEmojis = {
+  like: '👍',
+  love: '❤️',
+  haha: '😂',
+  wow: '😮',
+  sad: '😢',
+  angry: '😠'
+};
 let markOnline = () => {};
 const visitorId = `visitor_${localStorage.getItem('community-visitor-id') || crypto.randomUUID?.() || `${Date.now()}_${Math.random().toString(36).slice(2)}`}`;
 localStorage.setItem('community-visitor-id', visitorId.replace(/^visitor_/, ''));
@@ -31,7 +53,7 @@ function compressImage(file) { return new Promise((resolve, reject) => { const i
 function syncPostButton() { const googleUser = Boolean(currentUser?.providerData?.some(provider => provider.providerId === 'google.com')); postButton.disabled = !googleUser || (!text.value.trim() && !imageInput.files[0]); }
 function render() {
   feed.innerHTML = postItems.length ? postItems.map(post => { const own = currentUser?.uid === post.authorUid; const admin = currentUser?.email?.toLowerCase() === 'mdsiamahmmedloselovestroy@gmail.com' && currentUser.emailVerified === true; const myAvatar = currentUser?.photoURL ? `<img src="${escapeHtml(currentUser.photoURL)}" alt="">` : initials(currentUser?.displayName || 'Member'); const likes = post.likes?.length || 0; return `<article class="post-card" data-post-id="${escapeHtml(post.id)}"><div class="post-head"><span class="post-avatar">${post.avatarUrl ? `<img src="${escapeHtml(post.avatarUrl)}" alt="" loading="lazy">` : initials(post.authorName)}</span><div><button class="profile-link" type="button" data-profile-uid="${escapeHtml(post.authorUid || '')}" data-profile-name="${escapeHtml(post.authorName || 'Member')}" data-profile-avatar="${escapeHtml(post.avatarUrl || '')}"><strong>${escapeHtml(post.authorName || 'Member')}</strong></button>${post.authorIsAdmin ? '<small class="admin-badge">ADMIN</small>' : ''}<time>${relativeTime(post.createdAt)}</time></div>${own || admin ? '<span class="post-manage"><button type="button" data-post-action="edit" aria-label="Edit post"><i class="fa-solid fa-pen"></i></button><button type="button" data-post-action="delete" aria-label="Delete post"><i class="fa-regular fa-trash-can"></i></button></span>' : ''}</div><p class="post-text">${escapeHtml(post.text)}</p>${post.imageData || post.imageUrl ? `<img class="post-image" src="${escapeHtml(post.imageData || post.imageUrl)}" alt="Image shared by ${escapeHtml(post.authorName || 'member')}" loading="lazy">` : ''}<div class="post-summary"><span class="reaction-pills"><i class="fa-solid fa-thumbs-up"></i><i class="fa-solid fa-heart"></i> ${likes || ''}</span><span>Comments <b class="comment-count" data-comment-count="${escapeHtml(post.id)}"></b></span></div><div class="post-actions"><button type="button" data-post-action="like"><i class="fa-regular fa-thumbs-up"></i> Like</button><button type="button" data-post-action="comment"><i class="fa-regular fa-comment"></i> Comment</button><button type="button" data-post-action="share"><i class="fa-solid fa-share"></i> Share</button></div><div class="post-comments hidden"><div class="comments-list"><p class="comments-empty">Open comments to join the conversation.</p></div><form class="comment-form"><span class="comment-compose-avatar">${myAvatar}</span><div class="comment-compose-main"><div class="comment-input-wrap"><input name="comment" maxlength="500" placeholder="Write a comment..." aria-label="Write a comment"><button type="submit" aria-label="Send comment"><i class="fa-solid fa-paper-plane"></i></button></div><div class="comment-tools"><button type="button" aria-label="Add emoji"><i class="fa-regular fa-face-smile"></i></button><button type="button" aria-label="Add image"><i class="fa-regular fa-image"></i></button><button type="button" aria-label="Add GIF">GIF</button></div></div></form></div></article>`; }).join('') : '<div class="feed-empty"><i class="fa-regular fa-comments"></i><p>No posts yet. Start the community conversation.</p></div>';
-  count.textContent = `${postItems.length} posts · realtime`;
+    count.textContent = `${postItems.length} posts · realtime`;
 }
 function updateIdentity(user) {
   currentUser = user;
@@ -96,10 +118,24 @@ async function init() {
     const card = button?.closest('[data-post-id]');
     const post = postItems.find(item => item.id === card?.dataset.postId);
     if (!button || !post) return;
-    if (button.dataset.reaction) { const reactionId = currentUser?.uid || visitorId; await updateDoc(doc(db, 'communityPosts', post.id), { likes: post.likes?.includes(reactionId) ? arrayRemove(reactionId) : arrayUnion(reactionId) }).catch(() => { status.textContent = 'Reaction failed.'; }); card.querySelector('.reaction-picker')?.remove(); return; }
+    if (button.dataset.reaction) { 
+      const reactionId = currentUser?.uid || visitorId; 
+      const reactionType = button.dataset.reaction;
+      
+      // Add click animation to button
+      button.classList.add('reaction-button-clicked');
+      setTimeout(() => button.classList.remove('reaction-button-clicked'), 600);
+      
+      // Create floating emoji
+      createFloatingEmoji(reactionEmojis[reactionType], event.clientX, event.clientY);
+      
+      await updateDoc(doc(db, 'communityPosts', post.id), { likes: post.likes?.includes(reactionId) ? arrayRemove(reactionId) : arrayUnion(reactionId) }).catch(() => { status.textContent = 'Reaction failed.'; }); 
+      card.querySelector('.reaction-picker')?.remove(); 
+      return; 
+    }
     if (button.dataset.commentAction) { const commentRow = button.closest('[data-comment-id]'); const commentId = commentRow?.dataset.commentId; const commentRef = doc(db, 'communityPosts', post.id, 'comments', commentId); if (button.dataset.commentAction === 'like') { if (!currentUser) { status.textContent = 'Sign in to react to comments.'; return; } const snapshot = await getDocs(query(collection(db, 'communityPosts', post.id, 'comments'), where('__name__', '==', commentId))); const comment = snapshot.docs[0]?.data(); if (comment) { const reactionId = currentUser.uid; await updateDoc(commentRef, { likes: comment.likes?.includes(reactionId) ? arrayRemove(reactionId) : arrayUnion(reactionId) }).catch(() => { status.textContent = 'Reaction failed.'; }); } return; } if (button.dataset.commentAction === 'reply') { const commentInput = card.querySelector('input[name="comment"]'); commentInput.placeholder = `Reply to ${commentRow.querySelector('strong')?.textContent || 'this comment'}...`; commentInput.focus(); return; } if (button.dataset.commentAction === 'delete' && confirm('Delete this comment?')) await deleteDoc(commentRef).then(() => { commentRow.remove(); status.textContent = 'Comment deleted.'; }).catch(() => { status.textContent = 'Comment delete failed.'; }); if (button.dataset.commentAction === 'edit') { const current = commentRow.querySelector('.comment-content p').textContent; const value = prompt('Edit comment:', current); if (value?.trim()) await updateDoc(commentRef, { text: value.trim().slice(0, 500) }).then(() => { commentRow.querySelector('.comment-content p').textContent = value.trim().slice(0, 500); status.textContent = 'Comment updated.'; }).catch(() => { status.textContent = 'Comment update failed.'; }); } return; }
     if (button.dataset.postAction === 'like') {
-      card.querySelector('.reaction-picker')?.remove(); const picker = document.createElement('span'); picker.className = 'reaction-picker'; picker.innerHTML = '<button type="button" data-reaction="like" aria-label="Like">&#128077;</button><button type="button" data-reaction="love" aria-label="Love">&#10084;&#65039;</button><button type="button" data-reaction="haha" aria-label="Haha">&#128514;</button><button type="button" data-reaction="wow" aria-label="Wow">&#128558;</button><button type="button" data-reaction="sad" aria-label="Sad">&#128546;</button><button type="button" data-reaction="angry" aria-label="Angry">&#128545;</button>'; button.parentElement.style.position = 'relative'; button.parentElement.append(picker);
+      card.querySelector('.reaction-picker')?.remove(); const picker = document.createElement('span'); picker.className = 'reaction-picker'; picker.innerHTML = '<button type="button" data-reaction="like" aria-label="Like" title="Like">👍</button><button type="button" data-reaction="love" aria-label="Love" title="Love">❤️</button><button type="button" data-reaction="haha" aria-label="Haha" title="Haha">😂</button><button type="button" data-reaction="wow" aria-label="Wow" title="Wow">😮</button><button type="button" data-reaction="sad" aria-label="Sad" title="Sad">😢</button><button type="button" data-reaction="angry" aria-label="Angry" title="Angry">😠</button>'; button.parentElement.style.position = 'relative'; button.parentElement.append(picker);
     }
     if (button.dataset.postAction === 'edit') { const value = prompt('Edit post:', post.text || ''); if (value?.trim()) await updateDoc(doc(db, 'communityPosts', post.id), { text: value.trim().slice(0, 1000) }).then(() => { status.textContent = 'Post updated.'; }).catch(() => { status.textContent = 'Post update failed.'; }); }
     if (button.dataset.postAction === 'delete' && confirm('Delete this post?')) await deleteDoc(doc(db, 'communityPosts', post.id)).then(() => { status.textContent = 'Post deleted.'; }).catch(() => { status.textContent = 'Post delete failed.'; });

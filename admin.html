@@ -1030,6 +1030,8 @@
     .dashboard-nav-item i { color: var(--admin-accent); }
 
     .admin-topbar { margin-bottom: 24px; }
+    .admin-topbar-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .admin-website-link { color: var(--admin-accent); text-decoration: none; }
     .admin-dashboard { display: grid; grid-template-columns: 210px minmax(0, 1fr); gap: 0 24px; align-items: start; }
     .admin-dashboard > *:not(.dashboard-nav) { grid-column: 2; min-width: 0; }
     .admin-topbar h2 { font-size: 1.35rem; }
@@ -1116,7 +1118,8 @@
 
     @media (max-width: 760px) {
       .admin-topbar { align-items: stretch; flex-direction: column; }
-      .admin-topbar .btn, .admin-topbar .logout { width: 100%; }
+      .admin-topbar-actions { width: 100%; }
+      .admin-topbar-actions .btn, .admin-topbar-actions .logout { flex: 1 1 160px; }
     }
 
     input, textarea, select {
@@ -1264,8 +1267,8 @@
       --admin-line: rgba(238, 241, 225, .12);
       --admin-text: #f2f3e9;
       --admin-muted: #a4ada2;
-      --admin-accent: #c9f35b;
-      --admin-accent-2: #7ed6c0;
+      --admin-accent: #b99cff;
+      --admin-accent-2: #d5c5ff;
       --admin-danger: #ff8f9d;
       --admin-success: #78dfa8;
     }
@@ -1276,12 +1279,12 @@
     .admin-hero h1 { letter-spacing: -.05em; }
     .admin-hero p, .section-subtitle, .panel-note { color: var(--admin-muted); }
     .brand-mini, .stat-number, .dashboard-brand strong { color: var(--admin-accent); }
-    .admin-welcome { border: 1px solid rgba(201,243,91,.16); background: rgba(201,243,91,.06); color: var(--admin-text); }
+    .admin-welcome { border: 1px solid rgba(185,156,255,.2); background: rgba(185,156,255,.08); color: var(--admin-text); }
     .dashboard-nav { background: rgba(13,17,16,.92); border-color: rgba(238,241,225,.1); }
     .dashboard-nav-item { border-radius: 8px; }
-    .dashboard-nav-item:hover, .dashboard-nav-item.active { color: #10150b; background: var(--admin-accent); }
+    .dashboard-nav-item:hover, .dashboard-nav-item.active { color: #171021; background: var(--admin-accent); }
     .dashboard-nav-item i { color: var(--admin-accent); }
-    .dashboard-nav-item:hover i, .dashboard-nav-item.active i { color: #10150b; }
+    .dashboard-nav-item:hover i, .dashboard-nav-item.active i { color: #171021; }
     .admin-topbar { border-bottom-color: rgba(238,241,225,.1); }
     .admin-topbar h2 { letter-spacing: -.035em; }
     .stat-card, .section-card, .course-manager-item { border-color: rgba(238,241,225,.1); border-radius: 12px; background: #151c19; }
@@ -1296,8 +1299,8 @@
     input, textarea, select { border-color: rgba(238,241,225,.14); background: #0d1110; color: var(--admin-text); }
     input:focus, textarea:focus, select:focus { border-color: var(--admin-accent); box-shadow: 0 0 0 3px rgba(201,243,91,.12); }
     .btn, .btn-full, .logout { border-color: rgba(238,241,225,.16); }
-    .btn-primary, .btn-full { color: #10150b; background: var(--admin-accent); box-shadow: 0 8px 22px rgba(201,243,91,.12); }
-    .btn-primary:hover, .btn-full:hover { color: #10150b; background: #dcff7e; }
+    .btn-primary, .btn-full { color: #171021; background: var(--admin-accent); box-shadow: 0 8px 22px rgba(185,156,255,.14); }
+    .btn-primary:hover, .btn-full:hover { color: #171021; background: var(--admin-accent-2); }
     .course-manager-meta .badge.published { color: var(--admin-success); background: rgba(120,223,168,.12); }
     .course-manager-meta .badge.upcoming { color: var(--admin-accent); background: rgba(201,243,91,.1); }
     .module-block, .lesson-editor { border-color: rgba(238,241,225,.1); background: #101614; }
@@ -1331,6 +1334,15 @@
     .module-number { color: var(--admin-accent); }
     .lesson-video-link, .payment-proof { color: var(--admin-accent-2); }
     .admin-payments-list { display: grid; gap: 12px; }
+    .video-manager-list { display: grid; gap: 8px; }
+    .video-manager-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 16px; align-items: center; padding: 13px 0; border-bottom: 1px solid rgba(238,241,225,.08); }
+    .video-manager-row > div:first-child { display: grid; gap: 4px; min-width: 0; }
+    .video-manager-row strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .86rem; }
+    .video-manager-row small, .video-manager-context { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--admin-muted); font-size: .72rem; }
+    .video-manager-context { color: var(--admin-accent-2); }
+    .video-manager-status { padding: 5px 8px; border-radius: 6px; font-size: .68rem; font-weight: 700; }
+    .video-manager-status.connected { color: var(--admin-success); background: rgba(120,223,168,.12); }
+    .video-manager-status.missing { color: var(--admin-danger); background: rgba(255,125,141,.12); }
     .payment-request-card { padding: 16px; border: 1px solid rgba(238,241,225,.1); border-radius: 12px; background: #101614; }
     .payment-request-main { display: grid; grid-template-columns: 1.2fr 1.2fr 1fr .8fr; gap: 16px; align-items: start; }
     .payment-request-main > div { display: grid; gap: 4px; min-width: 0; }
@@ -1347,6 +1359,8 @@
       .stat-card { min-height: 96px; padding: 14px; }
       .stat-number { font-size: 1.65rem; }
       .payment-request-main { grid-template-columns: 1fr 1fr; gap: 14px; }
+      .video-manager-row { grid-template-columns: 1fr auto; gap: 10px; }
+      .video-manager-row > .admin-btn-row { grid-column: 1 / -1; }
       .payment-request-actions .btn { flex: 1 1 100%; }
       .admin-shell { min-height: calc(100dvh - 16px); }
       .dashboard-nav-item, .dashboard-menu-toggle, .btn, .btn-full, .logout { min-height: 48px; }
@@ -1519,10 +1533,13 @@
           <button class="dashboard-menu-toggle" type="button" aria-label="Open admin navigation" aria-expanded="false"><i class="fa-solid fa-bars"></i></button>
           <div class="dashboard-nav-links">
             <a class="dashboard-nav-item active" href="#dashboardSection"><i class="fa-solid fa-chart-line"></i> Dashboard</a>
+            <a class="dashboard-nav-item dashboard-nav-website" href="index.html"><i class="fa-solid fa-house"></i> View Website</a>
             <a class="dashboard-nav-item" href="#coursesSection"><i class="fa-solid fa-layer-group"></i> Courses</a>
             <a class="dashboard-nav-item" href="#liveSection"><i class="fa-solid fa-tower-broadcast"></i> Live</a>
             <a class="dashboard-nav-item" href="#studentsSection"><i class="fa-solid fa-users"></i> Students</a>
             <a class="dashboard-nav-item" href="#paymentsSection"><i class="fa-solid fa-receipt"></i> Payments</a>
+            <a class="dashboard-nav-item dashboard-nav-route" href="community.html"><i class="fa-solid fa-comments"></i> Community</a>
+            <a class="dashboard-nav-item dashboard-nav-route" href="personal-chat.html"><i class="fa-solid fa-message"></i> Chat</a>
             <a class="dashboard-nav-item" href="#activitySection"><i class="fa-solid fa-clock-rotate-left"></i> Activity Log</a>
             <a class="dashboard-nav-item" href="#settingsSection"><i class="fa-solid fa-sliders"></i> Settings</a>
           </div>
@@ -1539,15 +1556,18 @@
             </p>
           </div>
 
-          <button class="btn" id="refreshCoursesBtn" type="button">Refresh Data</button>
+          <div class="admin-topbar-actions">
+            <a class="btn admin-website-link" href="index.html">View Website <span aria-hidden="true">↗</span></a>
+            <button class="btn" id="refreshCoursesBtn" type="button">Refresh Data</button>
 
-          <button
-            class="logout"
-            id="logoutBtn"
-            type="button"
-          >
-            Logout
-          </button>
+            <button
+              class="logout"
+              id="logoutBtn"
+              type="button"
+            >
+              Logout
+            </button>
+          </div>
 
         </div>
 
@@ -1611,6 +1631,21 @@
             >
               0
             </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-label">Students</div>
+            <div class="stat-number" id="statStudents">0</div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-label">Pending Payments</div>
+            <div class="stat-number" id="statPendingPayments">0</div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-label">Community Posts</div>
+            <div class="stat-number" id="statCommunityPosts">0</div>
           </div>
 
         </div>
@@ -1894,10 +1929,39 @@
         </div>
 
 
+        <section class="section-card" id="videoManagerSection">
+          <div class="access-heading">
+            <div>
+              <h3 class="section-title"><i class="fa-solid fa-circle-play"></i> Video Manager</h3>
+              <p class="section-subtitle">Review YouTube connections across every course lesson.</p>
+            </div>
+            <span id="videoManagerCount" class="course-result-count"></span>
+          </div>
+          <div class="course-tools">
+            <input id="videoManagerSearch" type="search" placeholder="Search course, module, or lesson..." aria-label="Search videos">
+            <select id="videoManagerFilter" aria-label="Filter videos by status">
+              <option value="all">All videos</option>
+              <option value="connected">Connected</option>
+              <option value="missing">Missing</option>
+            </select>
+          </div>
+          <div id="videoManagerList" class="video-manager-list">
+            <div class="empty-state"><i class="fa-solid fa-spinner"></i><strong>Loading video manager</strong></div>
+          </div>
+        </section>
+
+
         <section class="section-card admin-empty-view" id="activitySection" hidden>
-          <h3 class="section-title">Activity Log</h3>
-          <p class="section-subtitle">Track important changes made in your LMS.</p>
-          <div class="empty-state"><i class="fa-solid fa-clock-rotate-left"></i><strong>No activity recorded yet</strong><span>Important admin actions will appear here as activity logging is enabled.</span></div>
+          <div class="access-heading">
+            <div>
+              <h3 class="section-title">Activity Log</h3>
+              <p class="section-subtitle">Track important changes made in your LMS.</p>
+            </div>
+            <button type="button" class="btn btn-secondary" id="refreshActivityBtn"><i class="fa-solid fa-arrows-rotate"></i> Refresh</button>
+          </div>
+          <div id="adminActivityList" class="activity-log-list">
+            <div class="empty-state"><i class="fa-solid fa-clock-rotate-left"></i><strong>Loading activity</strong><span>Recent admin actions will appear here.</span></div>
+          </div>
         </section>
 
         <section class="section-card admin-empty-view" id="liveSection" hidden>
@@ -1923,6 +1987,10 @@
           <h3 class="section-title">Settings</h3>
           <p class="section-subtitle">Manage the settings that shape your LMS.</p>
           <p class="panel-note">Live broadcasting and replay archiving are managed from the Live Studio section.</p>
+          <div class="admin-btn-row" style="margin-top:16px;">
+            <button type="button" class="btn btn-primary" id="exportCourseBackupBtn"><i class="fa-solid fa-download"></i> Export Course Backup</button>
+          </div>
+          <p class="status" id="backupStatus" aria-live="polite"></p>
         </section>
 
       </section>
@@ -1977,6 +2045,9 @@
       grantEmailAccess,
       revokeEmailAccess,
       fetchAllPayments,
+      fetchAdminDashboardStats,
+      fetchAdminActivityLog,
+      logAdminActivity,
       updatePayment,
       fetchLiveSettings,
       fetchLiveSessions,
@@ -2303,6 +2374,13 @@
         const email = accessEmailInput.value.trim().toLowerCase();
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error('Enter a valid Gmail address.');
         await grantEmailAccess(email);
+        await logAdminActivity('Student access granted', {
+          page: 'students',
+          entityType: 'student',
+          entityId: email,
+          description: `Granted course access to ${email}.`,
+          metadata: { email }
+        }).catch(() => {});
         renderAccessAccountPreview({ email, courseAccess: ['All courses'], blocked: false });
         setStatus(accessStatus, `Access granted to ${email}.`, true);
       } catch (error) {
@@ -2315,6 +2393,13 @@
         const email = accessEmailInput.value.trim().toLowerCase();
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error('Enter a valid Gmail address.');
         await revokeEmailAccess(email);
+        await logAdminActivity('Student access revoked', {
+          page: 'students',
+          entityType: 'student',
+          entityId: email,
+          description: `Revoked course access from ${email}.`,
+          metadata: { email }
+        }).catch(() => {});
         renderAccessAccountPreview({ email, courseAccess: [], blocked: false });
         setStatus(accessStatus, `Access revoked from ${email}.`, true);
       } catch (error) {
@@ -2327,6 +2412,13 @@
         const user = await getAccessUser();
         const blocked = user.blocked !== true;
         await updateUserAccess(user.id, { blocked });
+        await logAdminActivity(blocked ? 'Student blocked' : 'Student unblocked', {
+          page: 'students',
+          entityType: 'student',
+          entityId: user.id,
+          description: `${user.email} was ${blocked ? 'blocked' : 'unblocked'}.`,
+          metadata: { email: user.email, blocked }
+        }).catch(() => {});
         renderAccessAccountPreview({ ...user, blocked });
         setStatus(accessStatus, `${user.email} is now ${blocked ? 'blocked' : 'unblocked'}.`, true);
       } catch (error) {
@@ -2401,6 +2493,7 @@
 
         loadAndRenderCourses();
         loadAndRenderPayments();
+        loadAdminActivity();
 
       }
     );
@@ -2606,6 +2699,13 @@
               '✓ Course added successfully.',
               true
             );
+            await logAdminActivity('Course created', {
+              page: 'courses',
+              entityType: 'course',
+              entityId: createdCourse?.id || '',
+              description: `Created course "${title}".`,
+              metadata: { title }
+            }).catch(() => {});
             closeCourseEditor();
 
 
@@ -2697,6 +2797,8 @@
         `;
       }
       updateStats(courses);
+      renderVideoManager(courses);
+      fetchAdminDashboardStats().then(updateAdminStats).catch(error => console.warn('Dashboard metrics unavailable:', error.code || error.message));
 
 
       if (!courses.length) {
@@ -2780,8 +2882,33 @@
       }
     }
 
+    async function loadAdminActivity() {
+      const list = document.getElementById('adminActivityList');
+      if (!list) return;
+      list.innerHTML = '<div class="empty-state"><i class="fa-solid fa-spinner"></i><strong>Loading activity</strong><span>Recent admin actions will appear here.</span></div>';
+      try {
+        const logs = await fetchAdminActivityLog(20);
+        if (!logs.length) {
+          list.innerHTML = '<div class="empty-state"><i class="fa-solid fa-clock-rotate-left"></i><strong>No activity recorded yet</strong><span>Important admin actions will appear here as activity logging is enabled.</span></div>';
+          return;
+        }
+        list.innerHTML = logs.map(log => {
+          const description = escapeHtml(log.description || (log.action ? `${log.action} was performed.` : 'No details provided.'));
+          const adminName = escapeHtml(log.adminName || 'Admin');
+          const adminEmail = escapeHtml(log.adminEmail || '');
+          const action = escapeHtml(log.action || 'Admin action');
+          const page = escapeHtml(log.page || 'Admin area');
+          const time = formatAdminDate(log.createdAt || null);
+          return `<article class="payment-request-card"><div class="payment-request-main"><div><span class="payment-request-label">Action</span><strong>${action}</strong><span>${description}</span></div><div><span class="payment-request-label">By</span><strong>${adminName}</strong><span>${adminEmail}</span></div><div><span class="payment-request-label">When</span><strong>${time}</strong><span>${page}</span></div></div></article>`;
+        }).join('');
+      } catch (error) {
+        list.innerHTML = `<div class="empty-state"><i class="fa-solid fa-triangle-exclamation"></i><strong>Activity unavailable</strong><span>${escapeHtml(error.message || 'Could not load the activity log.')}</span></div>`;
+      }
+    }
+
     document.getElementById('paymentStatusFilter')?.addEventListener('change', renderPaymentResults);
     document.getElementById('refreshPaymentsBtn')?.addEventListener('click', loadAndRenderPayments);
+    document.getElementById('refreshActivityBtn')?.addEventListener('click', loadAdminActivity);
     document.getElementById('adminPaymentsList')?.addEventListener('click', async event => {
       const button = event.target.closest('[data-payment-action]');
       if (!button) return;
@@ -2794,13 +2921,28 @@
         if (action === 'approve') {
           await updatePayment(payment.id, { status: 'approved', accessGranted: true, enrolledAt: new Date() });
           if (payment.studentEmail) await grantEmailAccess(payment.studentEmail);
+          await logAdminActivity('Payment verified', {
+            page: 'payments',
+            entityType: 'payment',
+            entityId: payment.id,
+            description: `Verified payment for ${payment.studentEmail || 'student'} and granted access.`,
+            metadata: { studentEmail: payment.studentEmail, courseId: payment.courseId }
+          }).catch(() => {});
           setStatus(document.getElementById('paymentAdminStatus'), 'Payment verified and course access granted.', true);
         } else {
           const reason = prompt('Optional rejection reason:', '') || '';
           await updatePayment(payment.id, { status: 'rejected', rejectionReason: reason });
+          await logAdminActivity('Payment rejected', {
+            page: 'payments',
+            entityType: 'payment',
+            entityId: payment.id,
+            description: `Rejected payment for ${payment.studentEmail || 'student'}${reason ? ` (${reason})` : ''}.`,
+            metadata: { studentEmail: payment.studentEmail, reason }
+          }).catch(() => {});
           setStatus(document.getElementById('paymentAdminStatus'), 'Payment request rejected.', true);
         }
         await loadAndRenderPayments();
+        await loadAdminActivity();
       } catch (error) {
         setStatus(document.getElementById('paymentAdminStatus'), error.message || 'Payment status could not be updated.', false);
         button.disabled = false;
@@ -2851,6 +2993,13 @@
       }
       try {
         await updateLiveSettings({ title: liveTopicInput?.value.trim() || '', category: liveCategoryInput?.value.trim() || 'Live learning', thumbnail: liveThumbnailInput?.value.trim() || '', description: liveDescriptionInput?.value.trim() || '', url, channelId: liveChannelInput?.value.trim() || '', enabled: liveEnabledInput?.checked === true, chatEnabled: liveChatInput?.checked !== false });
+        await logAdminActivity('Live settings updated', {
+          page: 'live',
+          entityType: 'live_settings',
+          description: `Updated live studio settings for ${liveTopicInput?.value.trim() || 'the next stream'}.`,
+          metadata: { title: liveTopicInput?.value.trim() || '', enabled: liveEnabledInput?.checked === true }
+        }).catch(() => {});
+        await loadAdminActivity();
         setStatus(status, 'Live settings saved.', true);
       } catch (error) {
         setStatus(status, error.message || 'Live settings could not be saved.', false);
@@ -2861,7 +3010,14 @@
       try {
         await createLiveSession({ title: liveTopicInput?.value.trim() || '', category: liveCategoryInput?.value.trim() || 'Live learning', thumbnail: liveThumbnailInput?.value.trim() || '', description: liveDescriptionInput?.value.trim() || '', videoUrl: liveUrlInput?.value.trim() || '' });
         await updateLiveSettings({ enabled: false });
+        await logAdminActivity('Live session archived', {
+          page: 'live',
+          entityType: 'live_session',
+          description: `Archived the live session "${liveTopicInput?.value.trim() || 'Untitled session'}".`,
+          metadata: { title: liveTopicInput?.value.trim() || '', archived: true }
+        }).catch(() => {});
         if (liveEnabledInput) liveEnabledInput.checked = false;
+        await loadAdminActivity();
         setStatus(status, 'Live ended and replay saved to the archive.', true);
       } catch (error) {
         setStatus(status, error.message || 'Replay could not be archived.', false);
@@ -2878,7 +3034,7 @@
       courses: {
         title: 'Courses',
         subtitle: 'Create, organize, and manage your courses.',
-        sections: ['coursesSection', 'coursesListSection']
+        sections: ['coursesSection', 'coursesListSection', 'videoManagerSection']
       },
       students: {
         title: 'Students',
@@ -2907,7 +3063,33 @@
       if (activePage === 'payments') loadAndRenderPayments();
     }
 
+    document.getElementById('exportCourseBackupBtn')?.addEventListener('click', async () => {
+      const button = document.getElementById('exportCourseBackupBtn');
+      const status = document.getElementById('backupStatus');
+      if (!loadedCourses.length) {
+        setStatus(status, 'Load courses before exporting a backup.', false);
+        return;
+      }
+      const blob = new Blob([JSON.stringify({ exportedAt: new Date().toISOString(), courses: loadedCourses }, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `codewithsiam-courses-${new Date().toISOString().slice(0, 10)}.json`;
+      link.click();
+      URL.revokeObjectURL(url);
+      await logAdminActivity('Course backup exported', {
+        page: 'settings',
+        entityType: 'backup',
+        description: `Exported a course backup containing ${loadedCourses.length} course(s).`,
+        metadata: { courseCount: loadedCourses.length }
+      }).catch(() => {});
+      await loadAdminActivity();
+      setStatus(status, 'Course backup exported.', true);
+      button.blur();
+    });
+
     document.querySelectorAll('.dashboard-nav-item').forEach(item => item.addEventListener('click', event => {
+      if (item.classList.contains('dashboard-nav-website') || item.classList.contains('dashboard-nav-route')) return;
       event.preventDefault();
       const target = item.getAttribute('href')?.slice(1) || 'dashboardSection';
       const pageName = target.replace('Section', '') || 'dashboard';
@@ -2941,8 +3123,18 @@
       button.disabled = true;
       button.textContent = 'Deleting...';
       try {
-        await Promise.all(selectedCourses.map(course => deleteCourse(course.id)));
+        await Promise.all(selectedCourses.map(async course => {
+          await deleteCourse(course.id);
+          await logAdminActivity('Course deleted', {
+            page: 'courses',
+            entityType: 'course',
+            entityId: course.id,
+            description: `Deleted course "${course.title}".`,
+            metadata: { title: course.title }
+          }).catch(() => {});
+        }));
         await loadAndRenderCourses();
+        await loadAdminActivity();
         setStatus(document.getElementById('createCourseStatus'), `${selectedCourses.length} course(s) deleted.`, true);
       } catch (error) {
         setStatus(document.getElementById('createCourseStatus'), error.message || 'Selected courses could not be deleted.', false);
@@ -2961,8 +3153,18 @@
       button.disabled = true;
       button.textContent = 'Deleting...';
       try {
-        await Promise.all(loadedCourses.map(course => deleteCourse(course.id)));
+        await Promise.all(loadedCourses.map(async course => {
+          await deleteCourse(course.id);
+          await logAdminActivity('Course deleted', {
+            page: 'courses',
+            entityType: 'course',
+            entityId: course.id,
+            description: `Deleted course "${course.title}".`,
+            metadata: { title: course.title }
+          }).catch(() => {});
+        }));
         await loadAndRenderCourses();
+        await loadAdminActivity();
         setStatus(document.getElementById('createCourseStatus'), 'All courses deleted. You can add a new course now.', true);
       } catch (error) {
         setStatus(document.getElementById('createCourseStatus'), error.message || 'Courses could not be deleted.', false);
@@ -3039,6 +3241,34 @@
       ).textContent =
         published;
     }
+
+    function updateAdminStats(stats) {
+      document.getElementById('statStudents').textContent = stats.students ?? '—';
+      document.getElementById('statPendingPayments').textContent = stats.pendingPayments ?? '—';
+      document.getElementById('statCommunityPosts').textContent = stats.communityPosts ?? '—';
+    }
+
+    function renderVideoManager(courses) {
+      const list = document.getElementById('videoManagerList');
+      const search = document.getElementById('videoManagerSearch')?.value.trim().toLowerCase() || '';
+      const filter = document.getElementById('videoManagerFilter')?.value || 'all';
+      if (!list) return;
+      const videos = courses.flatMap(course => (course.modules || []).flatMap(module => (module.lessons || []).map(lesson => ({ course, module, lesson }))));
+      const visible = videos.filter(item => {
+        const connected = Boolean(item.lesson.videoUrl && isValidYoutubeUrl(item.lesson.videoUrl));
+        const text = `${item.course.title} ${item.module.title} ${item.lesson.title}`.toLowerCase();
+        return (filter === 'all' || (filter === 'connected' ? connected : !connected)) && text.includes(search);
+      });
+      document.getElementById('videoManagerCount').textContent = `${visible.length} of ${videos.length} lessons`;
+      list.innerHTML = visible.length ? visible.map(({ course, module, lesson }) => {
+        const connected = Boolean(lesson.videoUrl && isValidYoutubeUrl(lesson.videoUrl));
+        const playerUrl = `course.html?course=${encodeURIComponent(course.id)}&lesson=${encodeURIComponent(lesson.id)}`;
+        return `<article class="video-manager-row"><div><span class="video-manager-context">${escapeHtml(course.title)} / ${escapeHtml(module.title)}</span><strong>${escapeHtml(lesson.title || 'Untitled lesson')}</strong><small>${escapeHtml(lesson.duration || '0 min')}</small></div><span class="video-manager-status ${connected ? 'connected' : 'missing'}">${connected ? 'Connected' : 'Missing'}</span><div class="admin-btn-row"><a class="btn" href="${playerUrl}" target="_blank" rel="noopener noreferrer">Preview</a>${connected ? `<a class="btn" href="${escapeHtml(lesson.videoUrl)}" target="_blank" rel="noopener noreferrer">YouTube</a>` : ''}</div></article>`;
+      }).join('') : '<div class="empty-state"><i class="fa-solid fa-video-slash"></i><strong>No matching videos</strong><span>Add a YouTube URL from the lesson editor.</span></div>';
+    }
+
+    document.getElementById('videoManagerSearch')?.addEventListener('input', () => renderVideoManager(loadedCourses));
+    document.getElementById('videoManagerFilter')?.addEventListener('change', () => renderVideoManager(loadedCourses));
 
 
     /* =========================
@@ -3994,8 +4224,8 @@
       lesson
     ) {
 
-      const isEdit =
-        !!lesson;
+      const isEdit = !!lesson;
+      const videoType = 'youtube';
 
 slot.innerHTML = `
 
@@ -4004,15 +4234,11 @@ slot.innerHTML = `
     <div class="lesson-editor-header">
 
       <h4>
-        ${
-          isEdit
-            ? '✏ Edit Lesson'
-            : '🎬 Add New Lesson'
-        }
+        ${isEdit ? '✏ Edit Lesson' : '🎬 Add New Lesson'}
       </h4>
 
       <span class="video-hint">
-        Add a YouTube video
+      Add a YouTube video link
       </span>
 
     </div>
@@ -4026,9 +4252,7 @@ slot.innerHTML = `
         <input
           type="text"
           id="lf-title"
-          value="${escapeHtml(
-            lesson?.title || ''
-          )}"
+          value="${escapeHtml(lesson?.title || '')}"
           placeholder="e.g. Python Variables"
         />
       </label>
@@ -4050,37 +4274,32 @@ slot.innerHTML = `
       </div>
 
       <div class="video-box">
+        <div id="lf-youtube-section">
+          <div class="video-label">
+            <strong>▶ YouTube Link</strong>
+            <span class="video-hint">Paste the YouTube link here</span>
+          </div>
 
-        <div class="video-label">
+          <div class="youtube-input-wrap">
+            <input
+              id="lf-video"
+              type="url"
+              value="${escapeHtml(lesson?.videoUrl || '')}"
+              placeholder="https://www.youtube.com/watch?v=..."
+            />
+            <span class="youtube-valid" id="lf-video-valid">✓ Valid</span>
+          </div>
 
-          <strong>
-            ▶ YouTube Link
-          </strong>
+          <div class="youtube-error" id="lf-video-error">Enter a valid YouTube URL.</div>
 
-          <span class="video-hint">
-            Paste the YouTube link here
-          </span>
-
-        </div>
-
-        <div class="youtube-input-wrap">
-
-          <input
-            id="lf-video"
-            type="url"
-            value="${escapeHtml(
-              lesson?.videoUrl || ''
-            )}"
-            placeholder="https://www.youtube.com/watch?v=..."
-          />
-
-          <span
-            class="youtube-valid"
-            id="lf-video-valid"
-          >
-            ✓ Valid
-          </span>
-
+          <div class="yt-preview" id="lf-preview">
+            <iframe
+              src=""
+              title="YouTube preview"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowfullscreen
+            ></iframe>
+          </div>
         </div>
 
         <label>
@@ -4108,35 +4327,6 @@ slot.innerHTML = `
           </label>
         </div>
 
-        <div
-          class="youtube-error"
-          id="lf-video-error"
-        >
-          Enter a valid YouTube URL.
-        </div>
-
-        <div
-          class="yt-preview"
-          id="lf-preview"
-        >
-
-          <iframe
-            src=""
-            title="YouTube preview"
-            allow="
-              accelerometer;
-              autoplay;
-              clipboard-write;
-              encrypted-media;
-              gyroscope;
-              picture-in-picture;
-              web-share
-            "
-            allowfullscreen
-          ></iframe>
-
-        </div>
-
       </div>
 
 
@@ -4149,11 +4339,7 @@ slot.innerHTML = `
           class="btn btn-primary"
           data-action="save-lesson"
         >
-          ${
-            isEdit
-              ? '✓ Save Changes'
-              : '+ Add New Video'
-          }
+          ${isEdit ? '✓ Save Changes' : '+ Add New Video'}
         </button>
 
 
@@ -4168,10 +4354,7 @@ slot.innerHTML = `
       </div>
 
 
-      <p
-        class="status"
-        id="lf-status"
-      ></p>
+      <p class="status" id="lf-status"></p>
 
     </div>
 
@@ -4179,39 +4362,18 @@ slot.innerHTML = `
 
 `;
 
-      const videoInput =
-        slot.querySelector(
-          '#lf-video'
-        );
-
-
-      const preview =
-        slot.querySelector(
-          '#lf-preview'
-        );
-
-
-      const previewIframe =
-        preview.querySelector(
-          'iframe'
-        );
-
-
-      const validLabel =
-        slot.querySelector(
-          '#lf-video-valid'
-        );
-
-
-      const errorLabel =
-        slot.querySelector(
-          '#lf-video-error'
-        );
-
+      // Get elements
+      const videoInput = slot.querySelector('#lf-video');
+      const preview = slot.querySelector('#lf-preview');
+      const previewIframe = preview?.querySelector('iframe');
+      const validLabel = slot.querySelector('#lf-video-valid');
+      const errorLabel = slot.querySelector('#lf-video-error');
       const durationInput = slot.querySelector('#lf-duration');
+      const statusEl = slot.querySelector('#lf-status');
+
       let youtubeApiPromise;
       let durationRequest = 0;
-
+      // YouTube video validation
       function loadYoutubeApi() {
         if (window.YT?.Player) return Promise.resolve(window.YT);
         if (youtubeApiPromise) return youtubeApiPromise;
@@ -4258,301 +4420,107 @@ slot.innerHTML = `
         }
       }
 
-      /* =========================
-         VIDEO PREVIEW
-      ========================== */
-
       function updatePreview() {
-
-        const value =
-          videoInput.value.trim();
-
+        const value = videoInput.value.trim();
 
         if (!value) {
-
-          preview.classList.remove(
-            'show'
-          );
-
+          preview.classList.remove('show');
           previewIframe.src = '';
-
-          validLabel.classList.remove(
-            'show'
-          );
-
-          errorLabel.classList.remove(
-            'show'
-          );
-
+          validLabel.classList.remove('show');
+          errorLabel.classList.remove('show');
           return;
         }
 
-
-        const valid =
-          isValidYoutubeUrl(value);
-
-
+        const valid = isValidYoutubeUrl(value);
         if (!valid) {
-
-          preview.classList.remove(
-            'show'
-          );
-
+          preview.classList.remove('show');
           previewIframe.src = '';
-
-          validLabel.classList.remove(
-            'show'
-          );
-
-          errorLabel.classList.add(
-            'show'
-          );
-
+          validLabel.classList.remove('show');
+          errorLabel.classList.add('show');
           return;
         }
 
-
-        const embed =
-          getYoutubeEmbedUrl(value);
-
-
+        const embed = getYoutubeEmbedUrl(value);
         if (!embed) {
-
-          preview.classList.remove(
-            'show'
-          );
-
+          preview.classList.remove('show');
           previewIframe.src = '';
-
-          validLabel.classList.remove(
-            'show'
-          );
-
-          errorLabel.classList.add(
-            'show'
-          );
-
+          validLabel.classList.remove('show');
+          errorLabel.classList.add('show');
           return;
         }
 
-
-        validLabel.classList.add(
-          'show'
-        );
-
-        errorLabel.classList.remove(
-          'show'
-        );
-
-
-        previewIframe.src =
-          embed;
-
-
-        preview.classList.add(
-          'show'
-        );
-
+        validLabel.classList.add('show');
+        errorLabel.classList.remove('show');
+        previewIframe.src = embed;
+        preview.classList.add('show');
         updateAutomaticDuration(value);
-
       }
 
-
-      videoInput.addEventListener(
-        'input',
-        updatePreview
-      );
-
-
+      videoInput?.addEventListener('input', updatePreview);
       updatePreview();
 
+      // Cancel button
+      slot.querySelector('[data-action="cancel-lesson"]')?.addEventListener('click', () => {
+        slot.innerHTML = '';
+      });
 
-      /* =========================
-         CANCEL
-      ========================== */
+      // Save button
+      slot.querySelector('[data-action="save-lesson"]')?.addEventListener('click', async () => {
+        let videoUrl = videoInput.value.trim();
+        const videoId = extractYoutubeId(videoUrl);
 
-      slot
-        .querySelector(
-          '[data-action="cancel-lesson"]'
-        )
-        .addEventListener(
-          'click',
-          () => {
+        if (!videoUrl || !videoId || !isValidYoutubeUrl(videoUrl)) {
+          setStatus(statusEl, 'Enter a valid YouTube URL.', false);
+          videoInput.focus();
+          return;
+        }
+        videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
 
-            slot.innerHTML = '';
+        const title = slot.querySelector('#lf-title').value.trim();
+        if (!title) {
+          setStatus(statusEl, 'Lesson title is required.', false);
+          return;
+        }
 
+        const description = slot.querySelector('#lf-description').value.trim();
+        const duration = slot.querySelector('#lf-duration').value.trim() || '0 min';
+        const order = Number(slot.querySelector('#lf-order').value) || 0;
+        const subtitleLanguage = slot.querySelector('#lf-subtitle-language').value;
+
+        const payload = {
+          title,
+          duration,
+          description,
+          videoUrl,
+          youtubeVideoId: videoId,
+          youtubeUrl: videoUrl,
+          videoType,
+          subtitleLanguage,
+          showYoutubeLink: slot.querySelector('#lf-show-youtube-link').checked,
+          freePreview: slot.querySelector('#lf-free-preview').checked,
+          published: slot.querySelector('#lf-published').checked,
+          resources: [],
+          order
+        };
+
+        try {
+          setStatus(statusEl, isEdit ? 'Saving lesson…' : 'Adding lesson…', true);
+
+          if (isEdit) {
+            await updateLesson(course.id, module.id, lesson.id, payload);
+          } else {
+            const created = await createLesson(course.id, module.id, payload);
           }
-        );
 
+          setStatus(statusEl, '✓ Lesson saved successfully.', true);
 
-      /* =========================
-         SAVE LESSON
-      ========================== */
-
-      slot
-        .querySelector(
-          '[data-action="save-lesson"]'
-        )
-        .addEventListener(
-          'click',
-          async () => {
-
-            const statusEl =
-              slot.querySelector(
-                '#lf-status'
-              );
-
-
-            const videoUrl =
-              videoInput.value.trim();
-            const videoId = extractYoutubeId(videoUrl);
-
-
-            /* VIDEO REQUIRED */
-
-            if (!videoUrl) {
-
-              setStatus(
-                statusEl,
-                'YouTube video URL is required.',
-                false
-              );
-
-              videoInput.focus();
-
-              return;
-            }
-
-
-            /* VIDEO VALIDATION */
-
-            if (!videoId || !isValidYoutubeUrl(videoUrl)) {
-
-              setStatus(
-                statusEl,
-                'Enter a valid YouTube URL.',
-                false
-              );
-
-              videoInput.focus();
-
-              return;
-            }
-
-
-            const title =
-              slot
-                .querySelector(
-                  '#lf-title'
-                )
-                .value
-                .trim();
-
-
-            if (!title) {
-
-              setStatus(
-                statusEl,
-                'Lesson title is required.',
-                false
-              );
-
-              return;
-            }
-
-            const description = slot.querySelector('#lf-description').value.trim();
-            const duration = slot.querySelector('#lf-duration').value.trim() || '0 min';
-            const order = Number(slot.querySelector('#lf-order').value) || 0;
-            const subtitleLanguage = slot.querySelector('#lf-subtitle-language').value;
-
-
-            const payload = {
-
-              title,
-
-              duration,
-
-              description,
-
-              videoUrl: `https://www.youtube.com/watch?v=${videoId}`,
-
-              youtubeVideoId: videoId,
-
-              youtubeUrl: `https://www.youtube.com/watch?v=${videoId}`,
-
-              videoType: videoUrl ? 'youtube' : '',
-
-              subtitleLanguage,
-
-              showYoutubeLink: slot.querySelector('#lf-show-youtube-link').checked,
-
-              freePreview: slot.querySelector('#lf-free-preview').checked,
-
-              published: slot.querySelector('#lf-published').checked,
-
-              resources: [],
-
-              order
-
-            };
-
-
-            try {
-
-              setStatus(
-                statusEl,
-                isEdit
-                  ? 'Saving lesson…'
-                  : 'Adding lesson…',
-                true
-              );
-
-
-              if (isEdit) {
-                await updateLesson(
-                  course.id,
-                  module.id,
-                  lesson.id,
-                  payload
-                );
-
-              } else {
-
-                const created = await createLesson(
-                  course.id,
-                  module.id,
-                  payload
-                );
-              }
-
-
-              setStatus(
-                statusEl,
-                '✓ Lesson saved successfully.',
-                true
-              );
-
-
-              setTimeout(
-                () => {
-                  loadAndRenderCourses();
-                },
-                500
-              );
-
-
-            } catch (error) {
-
-              setStatus(
-                statusEl,
-                error.message,
-                false
-              );
-
-            }
-
-          }
-        );
+          setTimeout(() => {
+            loadAndRenderCourses();
+          }, 500);
+        } catch (error) {
+          setStatus(statusEl, error.message, false);
+        }
+      });
 
     }
 

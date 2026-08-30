@@ -17,10 +17,9 @@
        completedLessons[], lastLessonId, lastUpdated, completion
    ========================================================= */
 
-import { db, storage, isFirebaseConfigured, auth } from './firebase-init.js';
+import { db, isFirebaseConfigured, auth } from './firebase-init.js';
 
 let fs = null;
-let storageModule = null;
 async function loadFirestore() {
   if (!fs) {
     fs = await import('https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js');
@@ -28,117 +27,15 @@ async function loadFirestore() {
   return fs;
 }
 
-async function loadStorage() {
-  if (!storageModule) {
-    storageModule = await import('https://www.gstatic.com/firebasejs/10.13.0/firebase-storage.js');
-  }
-  return storageModule;
-}
-
-export const MAX_VIDEO_BYTES = 100 * 1024 * 1024;
-
-export function isStorageVideoUrl(url) {
-  return /^https:\/\/firebasestorage\.googleapis\.com\//i.test(String(url || ''));
-}
-
-export function isMp4VideoUrl(url) {
-  return isStorageVideoUrl(url) || /\.mp4(?:[?#].*)?$/i.test(String(url || ''));
-}
-
 export function isValidLessonVideoUrl(url) {
   return isValidYoutubeUrl(url) || isMp4VideoUrl(url);
 }
 
-function friendlyStorageError(error) {
-  const code = error?.code || '';
-  if (code.includes('storage/unauthorized')) return new Error('Video upload denied. Sign in with the configured admin Google account.');
-  if (code.includes('storage/unauthenticated')) return new Error('Please sign in with the admin Google account before uploading.');
-  if (code.includes('storage/unknown') || code.includes('storage/retry-limit-exceeded')) return new Error('Video upload failed. Check that Firebase Storage is enabled and try again.');
-  if (code.includes('storage/bucket-not-found')) return new Error('Firebase Storage bucket was not found. Enable Storage in the Firebase Console.');
-  if (code.includes('storage/quota-exceeded')) return new Error('Firebase Storage quota is full. Delete old videos or upgrade the Firebase plan.');
-  return error instanceof Error ? error : new Error('Video upload failed. Check Firebase Storage setup and try again.');
-}
-
-export function uploadLessonVideo(courseId, moduleId, lessonId, file, onProgress) {
-  if (!storage) return Promise.reject(new Error('Firebase Storage is not enabled or configured. Enable Storage in the Firebase Console.'));
-  if (!auth?.currentUser) return Promise.reject(new Error('Please sign in with the admin Google account before uploading.'));
-  if (!file) return Promise.reject(new Error('Choose an MP4 video first.'));
-  if (!file.name.toLowerCase().endsWith('.mp4') || file.type !== 'video/mp4') {
-    return Promise.reject(new Error('Only MP4 video files are supported.'));
-  }
-  if (file.size > MAX_VIDEO_BYTES) {
-    return Promise.reject(new Error(`Video must be smaller than ${MAX_VIDEO_BYTES / (1024 * 1024)} MB.`));
-  }
-  return loadStorage().then(({ ref, uploadBytesResumable, getDownloadURL }) => {
-    const safeName = file.name.toLowerCase().replace(/[^a-z0-9._-]+/g, '-');
-    const fileRef = ref(storage, `lessons_videos/${courseId}/${lessonId}/${Date.now()}-${safeName}`);
-    const task = uploadBytesResumable(fileRef, file, { contentType: 'video/mp4' });
-    return new Promise((resolve, reject) => {
-      let bytesTransferred = 0;
-      const startTimer = setTimeout(() => {
-        if (bytesTransferred === 0) {
-          task.cancel();
-          reject(new Error('Video upload could not start. Check your connection and Firebase Storage setup.'));
-        }
-      }, 15000);
-      task.on('state_changed', snapshot => {
-        bytesTransferred = snapshot.bytesTransferred;
-        if (snapshot.state === 'paused') task.resume();
-        onProgress?.(Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100));
-      }, error => {
-        clearTimeout(startTimer);
-        reject(friendlyStorageError(error));
-      }, () => {
-        clearTimeout(startTimer);
-        getDownloadURL(task.snapshot.ref).then(resolve).catch(error => reject(friendlyStorageError(error)));
-      });
-    });
-  });
-}
-
-export function uploadCourseVideo(courseId, file, onProgress) {
-  if (!storage) return Promise.reject(new Error('Firebase Storage is not enabled or configured. Enable Storage in the Firebase Console.'));
-  if (!auth?.currentUser) return Promise.reject(new Error('Please sign in with the admin Google account before uploading.'));
-  if (!file) return Promise.reject(new Error('Choose an MP4 video first.'));
-  if (!file.name.toLowerCase().endsWith('.mp4') || file.type !== 'video/mp4') {
-    return Promise.reject(new Error('Only MP4 video files are supported.'));
-  }
-  if (file.size > MAX_VIDEO_BYTES) {
-    return Promise.reject(new Error(`Video must be smaller than ${MAX_VIDEO_BYTES / (1024 * 1024)} MB.`));
-  }
-  return loadStorage().then(({ ref, uploadBytesResumable, getDownloadURL }) => {
-    const safeName = file.name.toLowerCase().replace(/[^a-z0-9._-]+/g, '-');
-    const fileRef = ref(storage, `courses_videos/${courseId}/${Date.now()}-${safeName}`);
-    const task = uploadBytesResumable(fileRef, file, { contentType: 'video/mp4' });
-    return new Promise((resolve, reject) => {
-      let bytesTransferred = 0;
-      const startTimer = setTimeout(() => {
-        if (bytesTransferred === 0) {
-          task.cancel();
-          reject(new Error('Video upload could not start. Check your connection and Firebase Storage setup.'));
-        }
-      }, 15000);
-      task.on('state_changed', snapshot => {
-        bytesTransferred = snapshot.bytesTransferred;
-        if (snapshot.state === 'paused') task.resume();
-        onProgress?.(Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100));
-      }, error => {
-        clearTimeout(startTimer);
-        reject(friendlyStorageError(error));
-      }, () => {
-        clearTimeout(startTimer);
-        getDownloadURL(task.snapshot.ref).then(resolve).catch(error => reject(friendlyStorageError(error)));
-      });
-    });
-  });
-}
-
-export async function deleteLessonVideo(url) {
-  if (!storage || !url || !isStorageVideoUrl(url)) return;
-  const encodedPath = String(url).split('/o/')[1]?.split('?')[0];
-  if (!encodedPath) return;
-  const { ref, deleteObject } = await loadStorage();
-  return deleteObject(ref(storage, decodeURIComponent(encodedPath)));
+/* ---------- MP4 helpers ---------- */
+export function isMp4VideoUrl(url) {
+  if (!url) return false;
+  const urlStr = String(url).trim().toLowerCase();
+  return urlStr.endsWith('.mp4') || /\.mp4([?#]|$)/.test(urlStr);
 }
 
 /* ---------- YouTube helpers ---------- */
@@ -197,7 +94,7 @@ export async function fetchAllCourses() {
   const courses = await Promise.all(sortByOrder(coursesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }))).map(async (course) => {
     // Do not expose course-level videoUrl to unauthenticated visitors.
     if (!currentUser) delete course.videoUrl;
-    const isAdminUser = currentUser?.email?.toLowerCase() === 'mdsiamahmmedloselovestroy@gmail.com' && currentUser.emailVerified === true;
+    const isAdminUser = currentUser?.email?.toLowerCase() === 'mdsiamahmmedloselovestroy@gmail.com';
     const isGoogleUser = currentUser?.providerData?.some(provider => provider.providerId === 'google.com');
     let emailAccess = false;
     if (isGoogleUser && currentUser.email) {
@@ -209,7 +106,7 @@ export async function fetchAllCourses() {
         console.warn('Email authorization unavailable:', error.code || error.message);
       }
     }
-    const hasAccess = !!currentUser && isGoogleUser && (isAdminUser || emailAccess);
+    const hasAccess = !!currentUser && (isAdminUser || (isGoogleUser && emailAccess));
     course.accessDenied = !!currentUser && !hasAccess;
     if (!hasAccess) delete course.videoUrl;
 
@@ -341,6 +238,46 @@ export async function fetchAllPayments() {
   return snap.docs.map(item => ({ id: item.id, ...item.data() }));
 }
 
+export async function fetchAdminDashboardStats() {
+  const { collection, getDocs } = await loadFirestore();
+  const [usersSnap, paymentsSnap, postsSnap] = await Promise.all([
+    getDocs(collection(db, 'users')),
+    getDocs(collection(db, 'payments')),
+    getDocs(collection(db, 'communityPosts')),
+  ]);
+  return {
+    students: usersSnap.size,
+    pendingPayments: paymentsSnap.docs.filter(item => item.data().status === 'pending').length,
+    communityPosts: postsSnap.size,
+  };
+}
+
+export async function fetchAdminActivityLog(limitCount = 25) {
+  if (!isFirebaseConfigured || !db) return [];
+  const { collection, getDocs, orderBy, query, limit } = await loadFirestore();
+  const snapshot = await getDocs(query(collection(db, 'adminActivity'), orderBy('createdAt', 'desc'), limit(limitCount)));
+  return snapshot.docs.map(item => ({ id: item.id, ...item.data() }));
+}
+
+export async function logAdminActivity(action, details = {}) {
+  if (!isFirebaseConfigured || !db) return null;
+  const { addDoc, collection, serverTimestamp } = await loadFirestore();
+  const adminName = auth?.currentUser?.displayName || auth?.currentUser?.email || 'Admin';
+  const adminEmail = auth?.currentUser?.email || 'admin@codewithsiam.com';
+  const entry = {
+    action: String(action || 'Admin action').trim(),
+    description: String(details.description || '').trim(),
+    page: String(details.page || 'admin').trim(),
+    entityType: String(details.entityType || '').trim(),
+    entityId: String(details.entityId || '').trim(),
+    adminName,
+    adminEmail,
+    metadata: details.metadata || {},
+    createdAt: serverTimestamp(),
+  };
+  return addDoc(collection(db, 'adminActivity'), entry);
+}
+
 export async function updatePayment(paymentId, data) {
   const { doc, updateDoc, serverTimestamp } = await loadFirestore();
   return updateDoc(doc(db, 'payments', paymentId), { ...data, reviewedAt: serverTimestamp() });
@@ -430,21 +367,24 @@ export async function deleteModule(courseId, moduleId) {
 }
 
 export async function createLesson(courseId, moduleId, lessonData) {
-  if (!lessonData.videoUrl || !isValidYoutubeUrl(lessonData.videoUrl)) {
-    throw new Error('That does not look like a valid YouTube URL.');
+  const videoUrl = lessonData.videoUrl || '';
+  if (!videoUrl || (!isValidYoutubeUrl(videoUrl) && !isMp4VideoUrl(videoUrl))) {
+    throw new Error('A valid YouTube URL or MP4 video URL is required.');
   }
   const { collection, addDoc } = await loadFirestore();
+  const isYoutube = isValidYoutubeUrl(videoUrl);
   const lesson = {
     title: lessonData.title || 'New lesson',
     description: lessonData.description || '',
     duration: lessonData.duration || '0 min',
-    videoUrl: lessonData.videoUrl || '',
-    youtubeVideoId: extractYoutubeId(lessonData.videoUrl || ''),
-    youtubeUrl: extractYoutubeId(lessonData.videoUrl || '') ? lessonData.videoUrl : '',
-    videoType: extractYoutubeId(lessonData.videoUrl || '') ? 'youtube' : lessonData.videoUrl ? 'file' : '',
+    videoUrl: videoUrl,
+    youtubeVideoId: isYoutube ? extractYoutubeId(videoUrl) : '',
+    youtubeUrl: isYoutube ? videoUrl : '',
+    videoType: isYoutube ? 'youtube' : 'mp4',
     subtitleLanguage: lessonData.subtitleLanguage || '',
     freePreview: lessonData.freePreview === true,
     published: lessonData.published !== false,
+    showYoutubeLink: lessonData.showYoutubeLink === true,
     resources: Array.isArray(lessonData.resources) ? lessonData.resources : [],
     order: Number(lessonData.order) || 0,
   };
@@ -454,18 +394,26 @@ export async function createLesson(courseId, moduleId, lessonData) {
 }
 
 export async function updateLesson(courseId, moduleId, lessonId, lessonData) {
-  if ('videoUrl' in lessonData && (!lessonData.videoUrl || !isValidYoutubeUrl(lessonData.videoUrl))) {
-    throw new Error('That does not look like a valid YouTube URL.');
+  if ('videoUrl' in lessonData) {
+    const videoUrl = lessonData.videoUrl || '';
+    if (videoUrl && !isValidYoutubeUrl(videoUrl) && !isMp4VideoUrl(videoUrl)) {
+      throw new Error('A valid YouTube URL or MP4 video URL is required.');
+    }
   }
   const { doc, updateDoc } = await loadFirestore();
-  const result = await updateDoc(doc(db, 'courses', courseId, 'modules', moduleId, 'lessons', lessonId), {
+
+  const isYoutube = lessonData.videoUrl && isValidYoutubeUrl(lessonData.videoUrl);
+  const isMp4 = lessonData.videoUrl && isMp4VideoUrl(lessonData.videoUrl);
+  const updatePayload = {
     ...lessonData,
     ...(lessonData.videoUrl ? {
-      youtubeVideoId: extractYoutubeId(lessonData.videoUrl),
-      youtubeUrl: lessonData.videoUrl,
-      videoType: 'youtube'
+      youtubeVideoId: isYoutube ? extractYoutubeId(lessonData.videoUrl) : '',
+      youtubeUrl: isYoutube ? lessonData.videoUrl : '',
+      videoType: isYoutube ? 'youtube' : isMp4 ? 'mp4' : 'youtube'
     } : {})
-  });
+  };
+
+  const result = await updateDoc(doc(db, 'courses', courseId, 'modules', moduleId, 'lessons', lessonId), updatePayload);
   await syncLessonCatalog(courseId, moduleId);
   return result;
 }
@@ -487,6 +435,43 @@ export async function deleteLesson(courseId, moduleId, lessonId) {
   const result = await deleteDoc(doc(db, 'courses', courseId, 'modules', moduleId, 'lessons', lessonId));
   await syncLessonCatalog(courseId, moduleId);
   return result;
+}
+
+/* ---------- VIDEO UPLOAD (for MP4 files to Firebase Storage) ---------- */
+export async function uploadLessonVideo(file, courseId, moduleId, onProgress) {
+  if (!isFirebaseConfigured) throw new Error('Firebase is not configured');
+  if (!file) throw new Error('No file selected');
+  if (!file.type.startsWith('video/')) throw new Error('Only video files are supported');
+  
+  const { storage } = await import('./firebase-init.js');
+  if (!storage) throw new Error('Firebase Storage is not available');
+  
+  const storageModule = await import('https://www.gstatic.com/firebasejs/10.13.0/firebase-storage.js');
+  const { ref, uploadBytesResumable, getDownloadURL } = storageModule;
+  
+  const storagePath = `lessons/${courseId}/${moduleId}/${Date.now()}-${file.name}`;
+  const fileRef = ref(storage, storagePath);
+  
+  return new Promise((resolve, reject) => {
+    const uploadTask = uploadBytesResumable(fileRef, file);
+    uploadTask.on('state_changed',
+      (snapshot) => {
+        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+        if (onProgress) onProgress(progress);
+      },
+      (error) => {
+        reject(new Error('Video upload failed: ' + (error.message || 'Unknown error')));
+      },
+      async () => {
+        try {
+          const downloadUrl = await getDownloadURL(fileRef);
+          resolve(downloadUrl);
+        } catch (error) {
+          reject(new Error('Could not get download URL: ' + (error.message || 'Unknown error')));
+        }
+      }
+    );
+  });
 }
 
 /* ---------- PROGRESS (per authenticated user, cross-device) ---------- */

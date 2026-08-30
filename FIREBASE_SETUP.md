@@ -55,12 +55,12 @@ These rules already enforce:
 - Users marked `blocked: true` cannot read lessons.
 - Learning progress under `progress/{uid}/...` is private — only that user can read/write it.
 
-## 7. Enable Firebase Storage for MP4 uploads
+## 7. Add course videos through YouTube
 
-1. In the Firebase console, open **Build -> Storage** and click **Get started**.
-2. Choose the same region used for Firestore and finish setup.
-3. Open the Storage **Rules** tab and publish the contents of `storage.rules` from this project.
-4. The admin upload accepts MP4 files up to 100 MB. YouTube URLs are also supported and avoid Storage usage.
+1. Upload or publish the lesson video on YouTube.
+2. In `admin.html`, paste the YouTube watch URL into the lesson's existing video field.
+3. Firestore stores the canonical YouTube URL and video ID; the course player embeds YouTube.
+4. Do not enable Firebase Storage or add a billing account for course videos. The Spark/no-cost setup is sufficient for this flow.
 
 ## 8. Sign in as the administrator
 
