@@ -984,43 +984,59 @@
     </div>
 
 
-    <!-- COURSE CATALOG COMING SOON -->
-    <div class="empty-state">
-      <i class="fa-solid fa-graduation-cap" style="font-size: 3rem; color: var(--accent); margin-bottom: 1.5rem;"></i>
-      <h3>Course catalog coming soon</h3>
-      <p>
-        I'm organizing structured learning paths in Python, data science, and AI. Course materials will be available here shortly.
-      </p>
-      <div style="margin-top: 1.5rem; display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
-        <a href="https://www.youtube.com/@ProgrammingBySiam" target="_blank" rel="noopener noreferrer" class="btn btn-outline">
-          <i class="fa-brands fa-youtube"></i> YouTube Lessons
+    <!-- LEARN RESOURCES GRID -->
+    <div style="margin-top: 2rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem;">
+      <!-- COURSES -->
+      <div class="box tilt-card">
+        <div class="box-icon" style="font-size: 2rem;">📚</div>
+        <h3>Courses</h3>
+        <p style="color: var(--text-dim); font-size: 0.9rem; margin: 1rem 0;">
+          Structured learning paths in Python, data science, and AI.
+        </p>
+        <a href="#" class="btn btn-sm btn-outline" style="width: 100%; text-align: center;">
+          Coming Soon
         </a>
-        <a href="community.html" class="btn btn-outline">
+      </div>
+
+      <!-- TUTORIALS -->
+      <div class="box tilt-card">
+        <div class="box-icon" style="font-size: 2rem;">🎬</div>
+        <h3>Tutorials</h3>
+        <p style="color: var(--text-dim); font-size: 0.9rem; margin: 1rem 0;">
+          Step-by-step video tutorials on YouTube and the community.
+        </p>
+        <a href="https://www.youtube.com/@ProgrammingBySiam" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline" style="width: 100%; text-align: center;">
+          <i class="fa-brands fa-youtube"></i> YouTube
+        </a>
+      </div>
+
+      <!-- LIVE SESSIONS -->
+      <div class="box tilt-card">
+        <div class="box-icon" style="font-size: 2rem;">🔴</div>
+        <h3>Live Sessions</h3>
+        <p style="color: var(--text-dim); font-size: 0.9rem; margin: 1rem 0;">
+          Interactive live coding sessions and Q&A with the community.
+        </p>
+        <a href="live.html" class="btn btn-sm btn-outline" style="width: 100%; text-align: center;">
+          Join Live
+        </a>
+      </div>
+
+      <!-- RESOURCES -->
+      <div class="box tilt-card">
+        <div class="box-icon" style="font-size: 2rem;">📖</div>
+        <h3>Resources</h3>
+        <p style="color: var(--text-dim); font-size: 0.9rem; margin: 1rem 0;">
+          Curated links, code snippets, and learning materials.
+        </p>
+        <a href="community.html" class="btn btn-sm btn-outline" style="width: 100%; text-align: center;">
           <i class="fa-solid fa-users"></i> Community
         </a>
       </div>
     </div>
 
-    <!-- PUBLISHED COURSE CARDS (HIDDEN) -->
-    <div class="course-catalog-toolbar hidden">
-      <div class="course-tab-profile">
-        <img src="assets/images/profile-siam.webp" alt="Siam" width="48" height="48" loading="lazy" decoding="async" />
-        <div>
-          <strong>CodeWithSiam</strong>
-          <span>Learn by building real projects</span>
-        </div>
-      </div>
-      <div class="course-catalog-tabs" role="tablist" aria-label="Course types">
-        <button type="button" class="course-catalog-tab active" data-course-filter="all">All Courses</button>
-        <button type="button" class="course-catalog-tab" data-course-filter="free">Free Courses</button>
-        <button type="button" class="course-catalog-tab" data-course-filter="paid">Paid Courses</button>
-      </div>
-    </div>
-    <div id="languageExplorer" class="language-explorer hidden" aria-label="Programming languages"></div>
-    <div id="publishedCourseCatalog" class="course-catalog hidden" aria-label="Published courses"></div>
 
-
-    <!-- SIGN IN (HIDDEN UNTIL COURSES EXIST) -->
+    <!-- COURSE PLATFORM (HIDDEN) -->
     <div
       id="courseSignInGate"
       class="empty-state hidden">
