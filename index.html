@@ -224,15 +224,13 @@
       <header id="header">
         <div class="logo">CodeWith<span class="accent">Siam</span></div>
         <nav id="nav">
+          <a href="#home">Home</a>
           <a href="#about">About</a>
-          <a href="#skills">Skills</a>
-          <a href="#ml">ML Stats</a>
           <a href="#projects">Projects</a>
-          <a href="#course">Free Course</a>
-          <a href="live.html">Live</a>
+          <a href="#course">Learn</a>
+          <a href="community.html">Community</a>
           <a href="#contact">Contact</a>
           <a href="admin.html" id="adminNavLink" class="hidden">Admin</a>
-          <a class="community-nav-link" href="community.html" aria-label="Open community"><i class="fa-solid fa-users"></i><span>Community</span></a>
           <div class="nav-auth" id="navAuthLoggedOut">
             <button type="button" class="btn btn-outline small" id="headerSignInBtn">Sign In</button>
           </div>
@@ -341,19 +339,16 @@
               </div>
               <div class="about-stats">
                 <div class="stat-item">
-                  <span class="stat-num" data-target="15">0</span
-                  ><span class="stat-suffix">+</span>
-                  <p>Projects</p>
+                  <span class="stat-num">Python</span>
+                  <p>Core focus</p>
                 </div>
                 <div class="stat-item">
-                  <span class="stat-num" data-target="92">0</span
-                  ><span class="stat-suffix">%</span>
-                  <p>Top Accuracy</p>
+                  <span class="stat-num">AI</span>
+                  <p>Learning path</p>
                 </div>
                 <div class="stat-item">
-                  <span class="stat-num" data-target="5">0</span
-                  ><span class="stat-suffix">k+</span>
-                  <p>Lines of Code</p>
+                  <span class="stat-num">Public</span>
+                  <p>Learning style</p>
                 </div>
               </div>
             </div>
@@ -391,7 +386,7 @@
               <h3><span class="cat-icon">🐍</span> Python &amp; Core</h3>
               <div class="skill-tags">
                 <span class="skill-tag">Python</span>
-                <span cla<form id="registerForm" class="auth-ss="skill-tag">NumPy</span>
+                <span class="skill-tag">NumPy</span>
                 <span class="skill-tag">Pandas</span>
                 <span class="skill-tag">Data Visualization</span>
                 <span class="skill-tag">SQL</span>
@@ -431,42 +426,39 @@
         </div>
       </section>
 
-      <!-- ML STATS DASHBOARD -->
+      <!-- LEARNING JOURNEY -->
       <section class="section" id="ml">
         <div class="container reveal">
           <h2 class="section-title">
-            ML <span class="accent">Dashboard</span>
+            Learning <span class="accent">Journey</span>
           </h2>
+          <p class="section-sub">
+            A practical roadmap built around real projects, structured learning, and continuous experimentation.
+          </p>
           <div class="boxes">
             <div class="box tilt-card">
-              <div class="box-icon">🎯</div>
-              <h3>Best Accuracy</h3>
-              <p class="big-num">
-                <span class="stat-num" data-target="92">0</span>%
-              </p>
-              <small>Image Classification CNN</small>
-            </div>
-            <div class="box tilt-card">
-              <div class="box-icon">🏗️</div>
-              <h3>Architectures</h3>
-              <p class="big-num" style="font-size: 1rem">CNN · RNN · GAN</p>
-              <small>Deep Learning Models</small>
+              <div class="box-icon">🐍</div>
+              <h3>Python Foundations</h3>
+              <p class="big-num">Core logic</p>
+              <small>Functions, data structures, automation</small>
             </div>
             <div class="box tilt-card">
               <div class="box-icon">📊</div>
-              <h3>Datasets Used</h3>
-              <p class="big-num">
-                <span class="stat-num" data-target="10">0</span>+
-              </p>
-              <small>Public &amp; Custom</small>
+              <h3>Data &amp; ML</h3>
+              <p class="big-num">Exploration</p>
+              <small>Model building, evaluation, and iteration</small>
             </div>
             <div class="box tilt-card">
               <div class="box-icon">🤖</div>
-              <h3>AI Models Built</h3>
-              <p class="big-num">
-                <span class="stat-num" data-target="8">0</span>+
-              </p>
-              <small>Deployed &amp; Researched</small>
+              <h3>AI Experiments</h3>
+              <p class="big-num">Research</p>
+              <small>Computer vision, NLP, and applied AI work</small>
+            </div>
+            <div class="box tilt-card">
+              <div class="box-icon">🌍</div>
+              <h3>Community Build</h3>
+              <p class="big-num">In public</p>
+              <small>Sharing lessons, projects, and progress</small>
             </div>
           </div>
         </div>
@@ -508,7 +500,7 @@
                   accuracy. Supports real-time webcam inference via OpenCV.
                 </p>
                 <div class="project-meta">
-                  <span class="badge-acc">92% Acc</span>
+                  <span class="badge-acc">Completed</span>
                   <span class="badge-lang">Python 🐍</span>
                 </div>
                 <div class="project-links">
@@ -549,7 +541,7 @@
                   REST API built with FastAPI serving real-time predictions.
                 </p>
                 <div class="project-meta">
-                  <span class="badge-acc">89% Acc</span>
+                  <span class="badge-acc">In Progress</span>
                   <span class="badge-lang">Python 🐍</span>
                 </div>
                 <div class="project-links">
@@ -591,7 +583,7 @@
                   Visualises datasets with live filtering, charts and export.
                 </p>
                 <div class="project-meta">
-                  <span class="badge-acc">Live Data</span>
+                  <span class="badge-acc">Learning Project</span>
                   <span class="badge-lang">Python 🐍</span>
                 </div>
                 <div class="project-links">
@@ -633,7 +625,7 @@
                   with a feature engineering pipeline. R² score of 0.85.
                 </p>
                 <div class="project-meta">
-                  <span class="badge-acc">R² 0.85</span>
+                  <span class="badge-acc">Completed</span>
                   <span class="badge-lang">Python 🐍</span>
                 </div>
                 <div class="project-links">
@@ -675,7 +667,7 @@
                   author's style.
                 </p>
                 <div class="project-meta">
-                  <span class="badge-acc">Gen AI</span>
+                  <span class="badge-acc">Planned</span>
                   <span class="badge-lang">Python 🐍</span>
                 </div>
                 <div class="project-links">
@@ -802,7 +794,7 @@
                   articles.
                 </p>
                 <div class="project-meta">
-                  <span class="badge-acc">94% Acc</span>
+                  <span class="badge-acc">Completed</span>
                   <span class="badge-lang">Python 🐍</span>
                 </div>
                 <div class="project-links">
@@ -845,7 +837,7 @@
                   charts.
                 </p>
                 <div class="project-meta">
-                  <span class="badge-acc">RMSE 1.8</span>
+                  <span class="badge-acc">In Progress</span>
                   <span class="badge-lang">Python 🐍</span>
                 </div>
                 <div class="project-links">
@@ -888,7 +880,7 @@
                   CSV/database.
                 </p>
                 <div class="project-meta">
-                  <span class="badge-acc">Real-time</span>
+                  <span class="badge-acc">Learning Project</span>
                   <span class="badge-lang">Python 🐍</span>
                 </div>
                 <div class="project-links">
@@ -942,16 +934,15 @@
 
         <div class="course-pill">
           <i class="fa-solid fa-graduation-cap"></i>
-          CodeWithSiam Course
+          Learn with Siam
         </div>
 
         <h3>
-          Learn Python with practical video lessons.
+          Courses are currently being prepared.
         </h3>
 
         <p>
-          Follow the playlist in order and continue from where you stopped.
-          Your lesson progress is saved automatically.
+          I’m organizing the learning roadmap into practical Python, AI, and project-based lessons. New materials will appear here soon.
         </p>
 
         <div class="hero-actions">
@@ -960,8 +951,8 @@
             type="button"
             class="btn btn-primary"
             id="continueLearningBtn">
-            <i class="fa-solid fa-play"></i>
-            Start Learning
+            <i class="fa-solid fa-clock"></i>
+            Coming Soon
           </button>
 
           <a
@@ -975,44 +966,43 @@
 
       </div>
 
-
       <div class="course-hero-metrics">
-
         <div class="metric-card">
           <strong id="courseCount">0</strong>
           <span>Courses</span>
         </div>
-
         <div class="metric-card">
           <strong id="lessonCount">0</strong>
           <span>Lessons</span>
         </div>
-
         <div class="metric-card">
           <strong id="upcomingCount">0</strong>
-          <span>Upcoming</span>
+          <span>Coming soon</span>
         </div>
-
       </div>
 
     </div>
 
 
-    <!-- LOADING -->
-    <div
-      id="courseLoadingState"
-      class="course-loading-shell"
-      aria-live="polite">
-
-      <div class="course-loading-skeleton"></div>
-      <div class="course-loading-skeleton short"></div>
-      <div class="course-loading-skeleton short"></div>
-
+    <!-- COURSE CATALOG COMING SOON -->
+    <div class="empty-state">
+      <i class="fa-solid fa-graduation-cap" style="font-size: 3rem; color: var(--accent); margin-bottom: 1.5rem;"></i>
+      <h3>Course catalog coming soon</h3>
+      <p>
+        I'm organizing structured learning paths in Python, data science, and AI. Course materials will be available here shortly.
+      </p>
+      <div style="margin-top: 1.5rem; display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+        <a href="https://www.youtube.com/@ProgrammingBySiam" target="_blank" rel="noopener noreferrer" class="btn btn-outline">
+          <i class="fa-brands fa-youtube"></i> YouTube Lessons
+        </a>
+        <a href="community.html" class="btn btn-outline">
+          <i class="fa-solid fa-users"></i> Community
+        </a>
+      </div>
     </div>
 
-
-    <!-- PUBLISHED COURSE CARDS -->
-    <div class="course-catalog-toolbar">
+    <!-- PUBLISHED COURSE CARDS (HIDDEN) -->
+    <div class="course-catalog-toolbar hidden">
       <div class="course-tab-profile">
         <img src="assets/images/profile-siam.webp" alt="Siam" width="48" height="48" loading="lazy" decoding="async" />
         <div>
@@ -1026,11 +1016,11 @@
         <button type="button" class="course-catalog-tab" data-course-filter="paid">Paid Courses</button>
       </div>
     </div>
-    <div id="languageExplorer" class="language-explorer" aria-label="Programming languages"></div>
-    <div id="publishedCourseCatalog" class="course-catalog" aria-label="Published courses"></div>
+    <div id="languageExplorer" class="language-explorer hidden" aria-label="Programming languages"></div>
+    <div id="publishedCourseCatalog" class="course-catalog hidden" aria-label="Published courses"></div>
 
 
-    <!-- SIGN IN -->
+    <!-- SIGN IN (HIDDEN UNTIL COURSES EXIST) -->
     <div
       id="courseSignInGate"
       class="empty-state hidden">
