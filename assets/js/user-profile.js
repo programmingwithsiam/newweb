@@ -1,0 +1,320 @@
+import { auth, db } from './firebase-init.js';
+import { observeAuthState } from './auth.js?v=20260829-auth-fix-1';
+
+let currentUser = null;
+let viewingUserId = null;
+let userProfileData = null;
+
+const profileContent = document.getElementById('profileContent');
+const profileLoading = document.getElementById('profileLoading');
+const editProfileModal = document.getElementById('editProfileModal');
+const editProfileBtn = document.getElementById('editProfileBtn');
+const editProfileForm = document.getElementById('editProfileForm');
+
+function escapeHtml(value) { const node = document.createElement('div'); node.textContent = String(value ?? ''); return node.innerHTML; }
+function initials(name) { return String(name || 'Member').trim().split(/\s+/).slice(0, 2).map(part => part[0]).join('').toUpperCase(); }
+function relativeTime(value) { const date = value?.toDate?.() || new Date(value || 0); const diff = Date.now() - date.getTime(); const days = Math.floor(diff / 86400000); if (days === 0) return 'Today'; if (days === 1) return 'Yesterday'; if (days < 7) return `${days} days ago`; if (days < 30) return `${Math.floor(days / 7)} weeks ago`; return `${Math.floor(days / 30)} months ago`; }
+
+async function getUserProfile(userId) {
+  const { doc, getDoc } = await import('https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js');
+  try {
+    const userRef = doc(db, 'users', userId);
+    const userSnap = await getDoc(userRef);
+    return userSnap.exists() ? { id: userSnap.id, ...userSnap.data() } : null;
+  } catch (error) {
+    console.error('Error fetching user profile:', error);
+    return null;
+  }
+}
+
+async function getUserPosts(userId) {
+  const { collection, query, where, getDocs, orderBy } = await import('https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js');
+  try {
+    const q = query(collection(db, 'communityPosts'), where('authorUid', '==', userId), orderBy('createdAt', 'desc'));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  } catch (error) {
+    console.error('Error fetching user posts:', error);
+    return [];
+  }
+}
+
+async function renderUserProfile() {
+  if (!userProfileData) return;
+
+  const isOwnProfile = currentUser?.uid === viewingUserId;
+
+  // Update header info
+  document.getElementById('profileName').textContent = userProfileData.name || 'Member';
+  document.getElementById('profileUsername').textContent = '@' + (userProfileData.username || 'user');
+  document.getElementById('profileRole').textContent = userProfileData.learningRole || 'Learning Role';
+  document.getElementById('profileBio').textContent = userProfileData.bio || 'No bio yet';
+  
+  // Update timestamps
+  const joinDate = userProfileData.createdAt?.toDate?.() || new Date(userProfileData.createdAt || 0);
+  document.getElementById('profileJoinDate').textContent = `Joined ${joinDate.toLocaleDateString('en-US', { year: 'numeric', month: 'short' })}`;
+  document.getElementById('aboutJoinDate').textContent = joinDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
+  // Update profile picture
+  if (userProfileData.profilePicture) {
+    document.getElementById('profilePicture').src = userProfileData.profilePicture;
+    document.getElementById('profilePicture').alt = userProfileData.name || 'Profile picture';
+  } else {
+    document.getElementById('profilePicture').src = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect fill='%23101722' width='100' height='100'/%3E%3Ctext x='50' y='55' font-size='50' text-anchor='middle' fill='%23c9f35b' font-weight='bold'%3E${initials(userProfileData.name)}%3C/text%3E%3C/svg%3E`;
+  }
+
+  // Update cover photo
+  if (userProfileData.coverPhoto) {
+    document.getElementById('profileCover').src = userProfileData.coverPhoto;
+  }
+
+  // Update skills
+  const skillsSection = document.getElementById('skillsSection');
+  const skillsTags = document.getElementById('skillsTags');
+  const aboutSkills = document.getElementById('aboutSkills');
+  
+  if (userProfileData.skills && userProfileData.skills.length > 0) {
+    skillsSection.classList.remove('hidden');
+    skillsTags.innerHTML = userProfileData.skills
+      .map(skill => `<span class="skill-tag">${escapeHtml(skill)}</span>`)
+      .join('');
+    aboutSkills.innerHTML = userProfileData.skills
+      .map(skill => `<span class="about-skill-tag">${escapeHtml(skill)}</span>`)
+      .join('');
+  } else {
+    skillsSection.classList.add('hidden');
+  }
+
+  // Update bio in about tab
+  document.getElementById('aboutBio').textContent = userProfileData.bio || 'No bio yet';
+
+  // Update stats
+  const userPosts = await getUserPosts(viewingUserId);
+  document.getElementById('totalPosts').textContent = userPosts.length;
+  document.getElementById('totalProjects').textContent = userProfileData.totalProjects || 0;
+  document.getElementById('followerCount').textContent = userProfileData.followers?.length || 0;
+  document.getElementById('followingCount').textContent = userProfileData.following?.length || 0;
+
+  // Update action buttons
+  if (isOwnProfile) {
+    editProfileBtn.classList.remove('hidden');
+  } else {
+    const messageBtn = document.getElementById('messageProfileBtn');
+    messageBtn.classList.remove('hidden');
+    messageBtn.addEventListener('click', () => {
+      // Navigate back to community and show message modal (or implement here)
+      // For now, redirect to community
+      window.location.href = `community.html?message=${escapeHtml(viewingUserId)}`;
+    });
+  }
+
+  // Render posts
+  const userPostsFeed = document.getElementById('userPostsFeed');
+  if (userPosts.length > 0) {
+    userPostsFeed.innerHTML = userPosts.map(post => `
+      <article class="post-card" data-post-id="${escapeHtml(post.id)}">
+        <div class="post-head">
+          <span class="post-avatar">${post.avatarUrl ? `<img src="${escapeHtml(post.avatarUrl)}" alt="">` : initials(post.authorName)}</span>
+          <div>
+            <strong>${escapeHtml(post.authorName || 'Member')}</strong>
+            <time>${relativeTime(post.createdAt)}</time>
+          </div>
+        </div>
+        <p class="post-text">${escapeHtml(post.text || '')}</p>
+        ${post.imageData || post.imageUrl ? `<img class="post-image" src="${escapeHtml(post.imageData || post.imageUrl)}" alt="Post image" loading="lazy">` : ''}
+      </article>
+    `).join('');
+  } else {
+    userPostsFeed.innerHTML = '<p class="empty-message">No posts yet</p>';
+  }
+
+  profileLoading.classList.add('hidden');
+  profileContent.classList.remove('hidden');
+}
+
+async function setupEditProfile() {
+  if (!currentUser) return;
+
+  // Set current values
+  document.getElementById('editDisplayName').value = currentUser.displayName || '';
+  document.getElementById('editUsername').value = currentUser.username || '';
+  document.getElementById('editBio').value = currentUser.bio || '';
+  document.getElementById('editRole').value = currentUser.learningRole || '';
+  document.getElementById('editSkills').value = (currentUser.skills || []).join(', ');
+
+  // File input handlers
+  document.getElementById('profilePictureBtn').addEventListener('click', (e) => {
+    e.preventDefault();
+    document.getElementById('editProfilePicture').click();
+  });
+
+  document.getElementById('coverPhotoBtn').addEventListener('click', (e) => {
+    e.preventDefault();
+    document.getElementById('editCoverPhoto').click();
+  });
+
+  document.getElementById('editProfilePicture').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      document.getElementById('profilePictureFileName').textContent = file.name;
+    }
+  });
+
+  document.getElementById('editCoverPhoto').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      document.getElementById('coverPhotoFileName').textContent = file.name;
+    }
+  });
+
+  // Form submission
+  editProfileForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    await saveProfileChanges();
+  });
+}
+
+async function saveProfileChanges() {
+  const { doc, updateDoc, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js');
+  const { getStorage, ref, uploadBytes, getDownloadURL } = await import('https://www.gstatic.com/firebasejs/10.13.0/firebase-storage.js');
+  
+  const status = document.getElementById('editStatus');
+  status.textContent = 'Saving...';
+  status.className = 'form-status';
+
+  try {
+    const storage = getStorage();
+    const updates = {
+      name: document.getElementById('editDisplayName').value.trim(),
+      username: document.getElementById('editUsername').value.trim().toLowerCase(),
+      bio: document.getElementById('editBio').value.trim(),
+      learningRole: document.getElementById('editRole').value,
+      skills: document.getElementById('editSkills').value
+        .split(',')
+        .map(s => s.trim())
+        .filter(s => s),
+      updatedAt: serverTimestamp()
+    };
+
+    // Handle profile picture upload
+    const profilePictureFile = document.getElementById('editProfilePicture').files[0];
+    if (profilePictureFile) {
+      if (profilePictureFile.size > 5 * 1024 * 1024) {
+        throw new Error('Profile picture must be smaller than 5 MB');
+      }
+      if (!profilePictureFile.type.startsWith('image/')) {
+        throw new Error('Profile picture must be an image file');
+      }
+      
+      const profilePicRef = ref(storage, `profile-pictures/${currentUser.uid}/picture`);
+      status.textContent = 'Uploading profile picture...';
+      await uploadBytes(profilePicRef, profilePictureFile);
+      updates.profilePicture = await getDownloadURL(profilePicRef);
+    }
+
+    // Handle cover photo upload
+    const coverPhotoFile = document.getElementById('editCoverPhoto').files[0];
+    if (coverPhotoFile) {
+      if (coverPhotoFile.size > 5 * 1024 * 1024) {
+        throw new Error('Cover photo must be smaller than 5 MB');
+      }
+      if (!coverPhotoFile.type.startsWith('image/')) {
+        throw new Error('Cover photo must be an image file');
+      }
+      
+      const coverPhotoRef = ref(storage, `profile-pictures/${currentUser.uid}/cover`);
+      status.textContent = 'Uploading cover photo...';
+      await uploadBytes(coverPhotoRef, coverPhotoFile);
+      updates.coverPhoto = await getDownloadURL(coverPhotoRef);
+    }
+
+    // Update user profile in Firestore
+    const userRef = doc(db, 'users', currentUser.uid);
+    await updateDoc(userRef, updates);
+
+    status.textContent = 'Profile updated successfully!';
+    status.className = 'form-status success';
+
+    // Close modal and refresh profile
+    setTimeout(() => {
+      document.querySelector('[data-close-modal]').click();
+      location.reload();
+    }, 1500);
+  } catch (error) {
+    console.error('Error saving profile:', error);
+    status.textContent = error.message || 'Failed to save profile. Try again.';
+    status.className = 'form-status error';
+  }
+}
+
+function setupTabs() {
+  const tabButtons = document.querySelectorAll('.profile-tab-btn');
+  const tabPanes = document.querySelectorAll('.tab-pane');
+
+  tabButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tabName = btn.dataset.tab;
+      
+      // Remove active class from all
+      tabButtons.forEach(b => b.classList.remove('active'));
+      tabPanes.forEach(p => p.classList.remove('active'));
+
+      // Add active class to clicked
+      btn.classList.add('active');
+      document.getElementById(tabName + 'Tab').classList.add('active');
+    });
+  });
+}
+
+function setupModals() {
+  document.querySelectorAll('[data-close-modal]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      editProfileModal.classList.add('hidden');
+    });
+  });
+
+  editProfileBtn.addEventListener('click', () => {
+    setupEditProfile();
+    editProfileModal.classList.remove('hidden');
+  });
+
+  editProfileModal.addEventListener('click', (e) => {
+    if (e.target === editProfileModal) {
+      editProfileModal.classList.add('hidden');
+    }
+  });
+}
+
+async function init() {
+  // Get userId from URL
+  const params = new URLSearchParams(window.location.search);
+  viewingUserId = params.get('uid');
+
+  if (!viewingUserId) {
+    profileLoading.innerHTML = '<p>User not found</p>';
+    return;
+  }
+
+  userProfileData = await getUserProfile(viewingUserId);
+
+  if (!userProfileData) {
+    profileLoading.innerHTML = '<p>User profile not found</p>';
+    return;
+  }
+
+  await renderUserProfile();
+  setupTabs();
+  setupModals();
+}
+
+observeAuthState(user => {
+  currentUser = user;
+  if (userProfileData && currentUser) {
+    setupEditProfile();
+  }
+});
+
+init().catch(error => {
+  console.error('Error loading profile:', error);
+  profileLoading.innerHTML = '<p>Error loading profile. Try again.</p>';
+});

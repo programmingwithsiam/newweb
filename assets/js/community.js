@@ -1,5 +1,6 @@
-import { auth, db } from './firebase-init.js';
+import { auth, db, storage } from './firebase-init.js';
 import { observeAuthState, signInWithGoogle } from './auth.js?v=20260829-auth-fix-1';
+import { createStory, uploadStoryImage, getActiveStories, addStoryView, deleteStory, getStoryCategory, renderStoryCard, renderStoryViewer } from './story-manager.js';
 
 const feed = document.getElementById('postFeed');
 const text = document.getElementById('postText');
@@ -14,32 +15,59 @@ const imageInput = document.getElementById('postImage');
 const imagePreview = document.getElementById('imagePreview');
 const imagePreviewPhoto = document.getElementById('imagePreviewPhoto');
 const removePostImage = document.getElementById('removePostImage');
+
+// Story elements
+const storiesStrip = document.getElementById('storiesStrip');
+const storyCreationModal = document.getElementById('storyCreationModal');
+const storyCreationForm = document.getElementById('storyCreationForm');
+const storyViewerModal = document.getElementById('storyViewerModal');
+const storyViewerContent = document.getElementById('storyViewerContent');
+
 const defaultProfileImage = 'assets/images/profile-siam-round.png';
 let currentUser = null;
 let postItems = [];
 let previewUrl = '';
+let activeStories = [];
+let currentStoryIndex = 0;
 
-/* ===== Facebook-style Reaction Animations ===== */
+/* ============================================================
+   CODEWITHSIAM CUSTOM REACTION SYSTEM
+   ============================================================ */
+
 function createFloatingEmoji(emoji, clientX, clientY) {
   const floatingEmoji = document.createElement('div');
   floatingEmoji.className = 'reaction-float-emoji';
   floatingEmoji.textContent = emoji;
   floatingEmoji.style.left = clientX + 'px';
   floatingEmoji.style.top = clientY + 'px';
-  const randomOffset = (Math.random() - 0.5) * 30;
+  const randomOffset = (Math.random() - 0.5) * 40;
   floatingEmoji.style.setProperty('--tx', randomOffset + 'px');
   document.body.appendChild(floatingEmoji);
   setTimeout(() => floatingEmoji.remove(), 1200);
 }
 
-const reactionEmojis = {
-  like: '👍',
-  love: '❤️',
-  haha: '😂',
-  wow: '😮',
-  sad: '😢',
-  angry: '😠'
+const customReactions = {
+  support: { emoji: '👍', label: 'Support' },
+  brilliant: { emoji: '🔥', label: 'Brilliant' },
+  insight: { emoji: '💡', label: 'Insight' },
+  levelup: { emoji: '🚀', label: 'Level Up' },
+  smart: { emoji: '🧠', label: 'Smart' },
+  keepgoing: { emoji: '💪', label: 'Keep Going' },
+  helpful: { emoji: '🎯', label: 'Helpful' },
+  awesome: { emoji: '⭐', label: 'Awesome' },
+  mindblown: { emoji: '🤯', label: 'Mind Blown' }
 };
+
+const reactionOrder = ['support', 'brilliant', 'insight', 'levelup', 'smart', 'keepgoing', 'helpful', 'awesome', 'mindblown'];
+
+function getReactionEmoji(type) {
+  return customReactions[type]?.emoji || '👍';
+}
+
+function getReactionLabel(type) {
+  return customReactions[type]?.label || 'Support';
+}
+
 let markOnline = () => {};
 const visitorId = `visitor_${localStorage.getItem('community-visitor-id') || crypto.randomUUID?.() || `${Date.now()}_${Math.random().toString(36).slice(2)}`}`;
 localStorage.setItem('community-visitor-id', visitorId.replace(/^visitor_/, ''));
@@ -51,8 +79,120 @@ function initials(name) { return String(name || 'Member').trim().split(/\s+/).sl
 function imageOrFallback(url) { return url || defaultProfileImage; }
 function compressImage(file) { return new Promise((resolve, reject) => { const image = new Image(); const objectUrl = URL.createObjectURL(file); image.onload = () => { const scale = Math.min(1, 720 / Math.max(image.width, image.height)); const canvas = document.createElement('canvas'); canvas.width = Math.max(1, Math.round(image.width * scale)); canvas.height = Math.max(1, Math.round(image.height * scale)); canvas.getContext('2d').drawImage(image, 0, 0, canvas.width, canvas.height); URL.revokeObjectURL(objectUrl); resolve(canvas.toDataURL('image/jpeg', .72)); }; image.onerror = () => { URL.revokeObjectURL(objectUrl); reject(new Error('This image could not be read.')); }; image.src = objectUrl; }); }
 function syncPostButton() { const googleUser = Boolean(currentUser?.providerData?.some(provider => provider.providerId === 'google.com')); postButton.disabled = !googleUser || (!text.value.trim() && !imageInput.files[0]); }
+
+function showReactionModal(postId, post) {
+  const modal = document.createElement('div');
+  modal.className = 'reaction-modal-overlay';
+  modal.innerHTML = `<div class="reaction-modal">
+    <div class="reaction-modal-header">
+      <h3>Reactions</h3>
+      <button class="reaction-modal-close" type="button" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="reaction-modal-tabs"></div>
+    <div class="reaction-modal-content">
+      <div class="reaction-modal-list"></div>
+    </div>
+  </div>`;
+  
+  document.body.appendChild(modal);
+  const tabs = modal.querySelector('.reaction-modal-tabs');
+  const list = modal.querySelector('.reaction-modal-list');
+  const header = modal.querySelector('.reaction-modal-header h3');
+  
+  const reactionsMap = post.reactions || {};
+  const reactionCounts = {};
+  reactionOrder.forEach(type => { reactionCounts[type] = 0; });
+  Object.entries(reactionsMap).forEach(([_, type]) => {
+    if (reactionCounts.hasOwnProperty(type)) reactionCounts[type]++;
+  });
+  
+  const totalCount = Object.values(reactionCounts).reduce((a, b) => a + b, 0);
+  const tabOrder = ['all', ...reactionOrder.filter(type => reactionCounts[type] > 0)];
+  
+  let activeTab = 'all';
+  
+  const renderTab = (tab) => {
+    header.textContent = tab === 'all' ? `Reactions (${totalCount})` : `${getReactionLabel(tab)} (${reactionCounts[tab]})`;
+    list.innerHTML = '';
+    
+    const toShow = tab === 'all' 
+      ? Object.entries(reactionsMap)
+      : Object.entries(reactionsMap).filter(([_, type]) => type === tab);
+    
+    if (!toShow.length) {
+      list.innerHTML = '<div class="reaction-modal-empty">No reactions yet</div>';
+      return;
+    }
+    
+    toShow.forEach(async ([uid, type]) => {
+      const userDoc = await getDocs(query(collection(db, 'users'), where('__name__', '==', uid))).catch(() => null);
+      const userData = userDoc?.docs?.[0]?.data();
+      const name = userData?.name || (uid === currentUser?.uid ? currentUser.displayName : 'Member');
+      const avatar = userData?.photoURL || (uid === currentUser?.uid ? currentUser.photoURL : '');
+      
+      const item = document.createElement('div');
+      item.className = 'reaction-modal-item';
+      item.innerHTML = `
+        <span class="reaction-modal-avatar">${avatar ? `<img src="${escapeHtml(avatar)}" alt="">` : initials(name)}</span>
+        <span class="reaction-modal-user">
+          <span class="reaction-modal-username">${escapeHtml(name)}</span>
+          <span class="reaction-modal-presence">Reacted with ${getReactionLabel(type)}</span>
+        </span>
+        <span style="font-size: 1.5rem">${getReactionEmoji(type)}</span>
+      `;
+      list.appendChild(item);
+    });
+  };
+  
+  tabs.innerHTML = tabOrder.map((tab, idx) => `
+    <button class="reaction-modal-tab ${tab === 'all' ? 'active' : ''}" type="button" data-tab="${tab}">
+      ${tab === 'all' ? 'All' : `${getReactionEmoji(tab)} ${reactionCounts[tab]}`}
+    </button>
+  `).join('');
+  
+  tabs.addEventListener('click', event => {
+    const button = event.target.closest('[data-tab]');
+    if (!button) return;
+    tabs.querySelectorAll('.reaction-modal-tab').forEach(b => b.classList.remove('active'));
+    button.classList.add('active');
+    activeTab = button.dataset.tab;
+    renderTab(activeTab);
+  });
+  
+  renderTab('all');
+  
+  modal.querySelector('.reaction-modal-close').addEventListener('click', () => modal.remove());
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) modal.remove();
+  });
+}
+
 function render() {
-  feed.innerHTML = postItems.length ? postItems.map(post => { const own = currentUser?.uid === post.authorUid; const admin = currentUser?.email?.toLowerCase() === 'mdsiamahmmedloselovestroy@gmail.com' && currentUser.emailVerified === true; const myAvatar = currentUser?.photoURL ? `<img src="${escapeHtml(currentUser.photoURL)}" alt="">` : initials(currentUser?.displayName || 'Member'); const likes = post.likes?.length || 0; return `<article class="post-card" data-post-id="${escapeHtml(post.id)}"><div class="post-head"><span class="post-avatar">${post.avatarUrl ? `<img src="${escapeHtml(post.avatarUrl)}" alt="" loading="lazy">` : initials(post.authorName)}</span><div><button class="profile-link" type="button" data-profile-uid="${escapeHtml(post.authorUid || '')}" data-profile-name="${escapeHtml(post.authorName || 'Member')}" data-profile-avatar="${escapeHtml(post.avatarUrl || '')}"><strong>${escapeHtml(post.authorName || 'Member')}</strong></button>${post.authorIsAdmin ? '<small class="admin-badge">ADMIN</small>' : ''}<time>${relativeTime(post.createdAt)}</time></div>${own || admin ? '<span class="post-manage"><button type="button" data-post-action="edit" aria-label="Edit post"><i class="fa-solid fa-pen"></i></button><button type="button" data-post-action="delete" aria-label="Delete post"><i class="fa-regular fa-trash-can"></i></button></span>' : ''}</div><p class="post-text">${escapeHtml(post.text)}</p>${post.imageData || post.imageUrl ? `<img class="post-image" src="${escapeHtml(post.imageData || post.imageUrl)}" alt="Image shared by ${escapeHtml(post.authorName || 'member')}" loading="lazy">` : ''}<div class="post-summary"><span class="reaction-pills"><i class="fa-solid fa-thumbs-up"></i><i class="fa-solid fa-heart"></i> ${likes || ''}</span><span>Comments <b class="comment-count" data-comment-count="${escapeHtml(post.id)}"></b></span></div><div class="post-actions"><button type="button" data-post-action="like"><i class="fa-regular fa-thumbs-up"></i> Like</button><button type="button" data-post-action="comment"><i class="fa-regular fa-comment"></i> Comment</button><button type="button" data-post-action="share"><i class="fa-solid fa-share"></i> Share</button></div><div class="post-comments hidden"><div class="comments-list"><p class="comments-empty">Open comments to join the conversation.</p></div><form class="comment-form"><span class="comment-compose-avatar">${myAvatar}</span><div class="comment-compose-main"><div class="comment-input-wrap"><input name="comment" maxlength="500" placeholder="Write a comment..." aria-label="Write a comment"><button type="submit" aria-label="Send comment"><i class="fa-solid fa-paper-plane"></i></button></div><div class="comment-tools"><button type="button" aria-label="Add emoji"><i class="fa-regular fa-face-smile"></i></button><button type="button" aria-label="Add image"><i class="fa-regular fa-image"></i></button><button type="button" aria-label="Add GIF">GIF</button></div></div></form></div></article>`; }).join('') : '<div class="feed-empty"><i class="fa-regular fa-comments"></i><p>No posts yet. Start the community conversation.</p></div>';
+  feed.innerHTML = postItems.length ? postItems.map(post => { 
+    const own = currentUser?.uid === post.authorUid; 
+    const admin = currentUser?.email?.toLowerCase() === 'mdsiamahmmedloselovestroy@gmail.com' && currentUser.emailVerified === true; 
+    const myAvatar = currentUser?.photoURL ? `<img src="${escapeHtml(currentUser.photoURL)}" alt="">` : initials(currentUser?.displayName || 'Member');
+    
+    // Build reactions summary
+    const reactionsMap = post.reactions || {};
+    const reactionCounts = {};
+    reactionOrder.forEach(type => { reactionCounts[type] = 0; });
+    Object.entries(reactionsMap).forEach(([_, type]) => {
+      if (reactionCounts.hasOwnProperty(type)) reactionCounts[type]++;
+    });
+    const totalReactions = Object.values(reactionCounts).reduce((a, b) => a + b, 0);
+    const topReactions = reactionOrder
+      .filter(type => reactionCounts[type] > 0)
+      .sort((a, b) => reactionCounts[b] - reactionCounts[a])
+      .slice(0, 3);
+    const reactionPillsHtml = totalReactions ? `<span class="reaction-pills" data-post-reactions="${escapeHtml(JSON.stringify(reactionCounts))}" style="cursor:pointer">${topReactions.map(type => `<span class="reaction-pill-item">${getReactionEmoji(type)}</span>`).join('')} <span class="reaction-pill-count">${totalReactions}</span></span>` : '';
+    
+    // User's current reaction
+    const reactionId = currentUser?.uid || visitorId;
+    const userReactionType = Object.entries(reactionsMap).find(([uid]) => uid === reactionId)?.[1];
+    
+    return `<article class="post-card" data-post-id="${escapeHtml(post.id)}"><div class="post-head"><span class="post-avatar">${post.avatarUrl ? `<img src="${escapeHtml(post.avatarUrl)}" alt="" loading="lazy">` : initials(post.authorName)}</span><div><button class="profile-link" type="button" data-profile-uid="${escapeHtml(post.authorUid || '')}" data-profile-name="${escapeHtml(post.authorName || 'Member')}" data-profile-avatar="${escapeHtml(post.avatarUrl || '')}"><strong>${escapeHtml(post.authorName || 'Member')}</strong></button>${post.authorIsAdmin ? '<small class="admin-badge">ADMIN</small>' : ''}<time>${relativeTime(post.createdAt)}</time></div>${own || admin ? '<span class="post-manage"><button type="button" data-post-action="edit" aria-label="Edit post"><i class="fa-solid fa-pen"></i></button><button type="button" data-post-action="delete" aria-label="Delete post"><i class="fa-regular fa-trash-can"></i></button></span>' : ''}</div><p class="post-text">${escapeHtml(post.text)}</p>${post.imageData || post.imageUrl ? `<img class="post-image" src="${escapeHtml(post.imageData || post.imageUrl)}" alt="Image shared by ${escapeHtml(post.authorName || 'member')}" loading="lazy">` : ''}<div class="post-summary">${reactionPillsHtml}<span>Comments <b class="comment-count" data-comment-count="${escapeHtml(post.id)}"></b></span></div><div class="post-actions"><button type="button" data-post-action="reaction" class="${userReactionType ? 'reaction-button-active' : ''}"><span>${getReactionEmoji(userReactionType || 'support')}</span> ${getReactionLabel(userReactionType || 'Support')}</button><button type="button" data-post-action="comment"><i class="fa-regular fa-comment"></i> Comment</button><button type="button" data-post-action="share"><i class="fa-solid fa-share"></i> Share</button></div><div class="post-comments hidden"><div class="comments-list"><p class="comments-empty">Open comments to join the conversation.</p></div><form class="comment-form"><span class="comment-compose-avatar">${myAvatar}</span><div class="comment-compose-main"><div class="comment-input-wrap"><input name="comment" maxlength="500" placeholder="Write a comment..." aria-label="Write a comment"><button type="submit" aria-label="Send comment"><i class="fa-solid fa-paper-plane"></i></button></div><div class="comment-tools"><button type="button" aria-label="Add emoji"><i class="fa-regular fa-face-smile"></i></button><button type="button" aria-label="Add image"><i class="fa-regular fa-image"></i></button><button type="button" aria-label="Add GIF">GIF</button></div></div></form></div></article>`; 
+  }).join('') : '<div class="feed-empty"><i class="fa-regular fa-comments"></i><p>No posts yet. Start the community conversation.</p></div>';
     count.textContent = `${postItems.length} posts · realtime`;
 }
 function updateIdentity(user) {
@@ -72,6 +212,242 @@ function updateIdentity(user) {
 imageInput.addEventListener('change', () => { const image = imageInput.files[0]; if (previewUrl) URL.revokeObjectURL(previewUrl); previewUrl = ''; if (!image) { imagePreview.classList.add('hidden'); syncPostButton(); return; } if (!image.type.startsWith('image/') || image.size > 5 * 1024 * 1024) { status.textContent = 'Choose an image smaller than 5 MB.'; imageInput.value = ''; imagePreview.classList.add('hidden'); syncPostButton(); return; } previewUrl = URL.createObjectURL(image); imagePreviewPhoto.src = previewUrl; imagePreview.classList.remove('hidden'); status.textContent = ''; syncPostButton(); });
 removePostImage.addEventListener('click', () => { imageInput.value = ''; if (previewUrl) URL.revokeObjectURL(previewUrl); previewUrl = ''; imagePreviewPhoto.removeAttribute('src'); imagePreview.classList.add('hidden'); status.textContent = ''; syncPostButton(); });
 text.addEventListener('input', syncPostButton);
+
+/* ============================================================
+   STORY MANAGEMENT
+   ============================================================ */
+
+async function renderStoryStrip() {
+  activeStories = await getActiveStories();
+  
+  if (activeStories.length === 0) {
+    storiesStrip.innerHTML = '';
+    return;
+  }
+
+  let html = `<button class="story-create-btn" type="button" aria-label="Create story">
+    <i class="fa-solid fa-plus"></i>
+    <span>Create</span>
+  </button>`;
+
+  activeStories.forEach(story => {
+    html += renderStoryCard(story);
+  });
+
+  storiesStrip.innerHTML = html;
+
+  // Add create story handler
+  storiesStrip.querySelector('.story-create-btn')?.addEventListener('click', () => {
+    if (!currentUser) {
+      status.textContent = 'Sign in to create a story.';
+      return;
+    }
+    storyCreationModal.classList.remove('hidden');
+  });
+
+  // Add story card click handlers
+  storiesStrip.querySelectorAll('.story-card').forEach(card => {
+    card.addEventListener('click', () => openStoryViewer(card.dataset.storyId));
+  });
+}
+
+function openStoryViewer(storyId) {
+  const storyIndex = activeStories.findIndex(s => s.id === storyId);
+  if (storyIndex === -1) return;
+  
+  currentStoryIndex = storyIndex;
+  storyViewerModal.classList.remove('hidden');
+  displayCurrentStory();
+}
+
+function displayCurrentStory() {
+  const story = activeStories[currentStoryIndex];
+  if (!story) return;
+
+  // Add view to story
+  if (currentUser) {
+    addStoryView(story.id).catch(() => {});
+  }
+
+  // Update header
+  document.getElementById('storyViewerName').textContent = story.authorName;
+  document.getElementById('storyViewerAvatar').src = story.avatarUrl || 'data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27%3E%3Crect fill=%27%23667eea%27 width=%27100%27 height=%27100%27/%3E%3Ctext x=%2750%27 y=%2755%27 font-size=%2750%27 text-anchor=%27middle%27 fill=%27%23fff%27 font-weight=%27bold%27%3E' + initials(story.authorName) + '%3C/text%3E%3C/svg%3E';
+  
+  const storyTime = story.createdAt?.toDate?.() || new Date(story.createdAt);
+  const timeStr = storyTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+  document.getElementById('storyViewerTime').textContent = timeStr;
+
+  // Render story content
+  storyViewerContent.innerHTML = renderStoryViewer(story);
+
+  // Update navigation buttons
+  document.querySelector('.story-prev-btn').style.display = currentStoryIndex > 0 ? 'flex' : 'none';
+  document.querySelector('.story-next-btn').style.display = currentStoryIndex < activeStories.length - 1 ? 'flex' : 'none';
+}
+
+// Story viewer navigation
+document.querySelector('.story-prev-btn')?.addEventListener('click', () => {
+  if (currentStoryIndex > 0) {
+    currentStoryIndex--;
+    displayCurrentStory();
+  }
+});
+
+document.querySelector('.story-next-btn')?.addEventListener('click', () => {
+  if (currentStoryIndex < activeStories.length - 1) {
+    currentStoryIndex++;
+    displayCurrentStory();
+  }
+});
+
+// Story creation form
+const storyTextInput = document.getElementById('storyText');
+const storyTextCount = document.getElementById('storyTextCount');
+const storyImageInput = document.getElementById('storyImage');
+const storyImageBtn = document.getElementById('storyImageBtn');
+const storyImagePreview = document.getElementById('storyImagePreview');
+const storyImagePreviewPhoto = document.getElementById('storyImagePreviewPhoto');
+const storyCreationStatus = document.getElementById('storyCreationStatus');
+const storySubmitBtn = document.getElementById('storySubmitBtn');
+
+// Story type tabs
+document.querySelectorAll('.story-tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const type = btn.dataset.storyType;
+    document.querySelectorAll('.story-tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.story-tab-pane').forEach(p => p.classList.add('hidden'));
+    btn.classList.add('active');
+    document.getElementById(type + 'StoryTab').classList.remove('hidden');
+  });
+});
+
+// Story text counter
+storyTextInput?.addEventListener('input', () => {
+  storyTextCount.textContent = `${storyTextInput.value.length}/240`;
+});
+
+// Story image picker
+storyImageBtn?.addEventListener('click', (e) => {
+  e.preventDefault();
+  storyImageInput?.click();
+});
+
+storyImageInput?.addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  if (!file.type.startsWith('image/')) {
+    storyCreationStatus.textContent = 'Please select an image file.';
+    storyCreationStatus.className = 'form-status error';
+    storyImageInput.value = '';
+    return;
+  }
+
+  if (file.size > 5 * 1024 * 1024) {
+    storyCreationStatus.textContent = 'Image must be smaller than 5 MB.';
+    storyCreationStatus.className = 'form-status error';
+    storyImageInput.value = '';
+    return;
+  }
+
+  document.getElementById('storyImageFileName').textContent = file.name;
+  
+  const reader = new FileReader();
+  reader.onload = (event) => {
+    storyImagePreviewPhoto.src = event.target.result;
+    storyImagePreview.classList.remove('hidden');
+    storyCreationStatus.textContent = '';
+    storyCreationStatus.className = 'form-status';
+  };
+  reader.readAsDataURL(file);
+});
+
+// Story creation submit
+storyCreationForm?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  if (!currentUser) {
+    storyCreationStatus.textContent = 'Sign in to create a story.';
+    storyCreationStatus.className = 'form-status error';
+    return;
+  }
+
+  const storyType = document.querySelector('.story-tab-btn.active').dataset.storyType;
+  let storyContent = '';
+  let mediaUrl = '';
+
+  try {
+    storySubmitBtn.disabled = true;
+    storyCreationStatus.textContent = 'Creating story...';
+    storyCreationStatus.className = 'form-status';
+
+    if (storyType === 'text') {
+      storyContent = storyTextInput.value.trim();
+      if (!storyContent) {
+        throw new Error('Please add text to your story.');
+      }
+    } else if (storyType === 'image') {
+      const imageFile = storyImageInput?.files[0];
+      if (!imageFile) {
+        throw new Error('Please select an image.');
+      }
+      storyCreationStatus.textContent = 'Uploading image...';
+      mediaUrl = await uploadStoryImage(imageFile);
+      storyContent = document.getElementById('storyCaption').value.trim();
+    }
+
+    const storyData = {
+      type: storyType,
+      content: storyContent,
+      mediaUrl,
+      category: document.getElementById('storyCategory').value
+    };
+
+    await createStory(storyData);
+
+    storyCreationStatus.textContent = 'Story created! 🎉';
+    storyCreationStatus.className = 'form-status success';
+
+    // Reset form
+    setTimeout(() => {
+      storyCreationForm.reset();
+      storyTextCount.textContent = '0/240';
+      storyImagePreview.classList.add('hidden');
+      storyImageInput.value = '';
+      document.getElementById('storyImageFileName').textContent = 'No file selected';
+      storyCreationStatus.textContent = '';
+      storyCreationModal.classList.add('hidden');
+      renderStoryStrip();
+    }, 1500);
+  } catch (error) {
+    console.error('Error creating story:', error);
+    storyCreationStatus.textContent = error.message || 'Failed to create story.';
+    storyCreationStatus.className = 'form-status error';
+  } finally {
+    storySubmitBtn.disabled = false;
+  }
+});
+
+// Close modals
+document.querySelectorAll('[data-close-modal]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    storyCreationModal.classList.add('hidden');
+    storyViewerModal.classList.add('hidden');
+  });
+});
+
+storyViewerModal?.addEventListener('click', (e) => {
+  if (e.target === storyViewerModal) {
+    storyViewerModal.classList.add('hidden');
+  }
+});
+
+storyCreationModal?.addEventListener('click', (e) => {
+  if (e.target === storyCreationModal) {
+    storyCreationModal.classList.add('hidden');
+  }
+});
+
 async function init() {
   if (!db) { status.textContent = 'Community database is not configured.'; return; }
   const { addDoc, arrayRemove, arrayUnion, collection, deleteDoc, getDocs, limit, onSnapshot, orderBy, query, serverTimestamp, setDoc, updateDoc, where, doc } = await import('https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js');
@@ -85,7 +461,12 @@ async function init() {
   document.getElementById('openInbox')?.addEventListener('click', () => { if (!currentUser) { status.textContent = 'Sign in to view your messages.'; return; } inboxModal.classList.remove('hidden'); if (stopInbox) stopInbox(); stopInbox = onSnapshot(query(collection(db, 'directConversations'), where('participants', 'array-contains', currentUser.uid)), snapshot => { const items = snapshot.docs.map(item => item.data()).sort((a, b) => (b.updatedAt?.toMillis?.() || 0) - (a.updatedAt?.toMillis?.() || 0)); inboxList.innerHTML = items.length ? items.map(item => { const other = item.participants.find(uid => uid !== currentUser.uid); return `<button class="inbox-item" type="button" data-inbox-uid="${escapeHtml(other)}" data-inbox-name="${escapeHtml(item.participantNames?.[other] || 'Member')}" data-inbox-avatar="${escapeHtml(item.participantAvatars?.[other] || '')}"><span class="inbox-item-avatar">${item.participantAvatars?.[other] ? `<img src="${escapeHtml(item.participantAvatars[other])}" alt="">` : initials(item.participantNames?.[other])}</span><span class="inbox-item-copy"><strong>${escapeHtml(item.participantNames?.[other] || 'Member')}</strong><span>${escapeHtml(item.lastMessage || 'Open conversation')}</span></span></button>`; }).join('') : '<p class="comments-empty">No conversations yet.</p>'; }); });
   inboxList.addEventListener('click', event => { const item = event.target.closest('[data-inbox-uid]'); if (!item) return; inboxModal.classList.add('hidden'); openMessages({ uid: item.dataset.inboxUid, name: item.dataset.inboxName, avatar: item.dataset.inboxAvatar }); });
   function renderComments(panel, commentDocs) { panel.querySelector('.comments-list').innerHTML = commentDocs.length ? commentDocs.map(item => { const comment = { id: item.id, ...item.data() }; const canManage = currentUser?.uid === comment.authorUid; const reactionId = currentUser?.uid || visitorId; const liked = comment.likes?.includes(reactionId); const likes = comment.likes?.length || 0; return `<div class="community-comment" data-comment-id="${escapeHtml(comment.id)}"><span class="comment-avatar">${comment.avatarUrl ? `<img src="${escapeHtml(comment.avatarUrl)}" alt="">` : initials(comment.authorName)}</span><div class="comment-content"><strong>${escapeHtml(comment.authorName || 'Visitor')}</strong><time>${relativeTime(comment.createdAt)}</time><p>${escapeHtml(comment.text)}</p><div class="comment-actions"><button type="button" data-comment-action="like" class="${liked ? 'is-liked' : ''}"><i class="fa-${liked ? 'solid' : 'regular'} fa-thumbs-up"></i>${likes ? ` ${likes}` : ' Like'}</button><button type="button" data-comment-action="reply">Reply</button>${canManage ? `<button type="button" data-comment-action="edit">Edit</button><button type="button" data-comment-action="delete">Delete</button>` : ''}</div></div></div>`; }).join('') : '<p class="comments-empty">No comments yet.</p>'; panel.querySelectorAll('.comment-avatar img').forEach(image => image.addEventListener('error', () => { image.parentElement.textContent = initials(image.closest('.community-comment')?.querySelector('strong')?.textContent); })); }
-  feed.addEventListener('click', event => { const profile = event.target.closest('[data-profile-uid]'); if (!profile) return; const target = { uid: profile.dataset.profileUid, name: profile.dataset.profileName, avatar: profile.dataset.profileAvatar }; profileBody.innerHTML = `<div class="profile-modal-head"><span class="profile-modal-avatar">${target.avatar ? `<img src="${escapeHtml(target.avatar)}" alt="">` : initials(target.name)}</span><div><h2 id="profileModalTitle">${escapeHtml(target.name)}</h2><small>Community member</small></div></div><p class="profile-modal-about">Learning, building and sharing progress with CodeWithSiam.</p>${currentUser?.uid !== target.uid ? '<button class="primary" type="button" data-message-profile>Message</button>' : '<p class="comments-empty">This is your profile.</p>'}`; profileModal.classList.remove('hidden'); profileBody.querySelector('[data-message-profile]')?.addEventListener('click', () => { profileModal.classList.add('hidden'); openMessages(target); }); });
+  feed.addEventListener('click', event => { 
+    const profile = event.target.closest('[data-profile-uid]'); 
+    if (!profile) return; 
+    // Navigate to full user profile page
+    window.location.href = `user-profile.html?uid=${escapeHtml(profile.dataset.profileUid)}`; 
+  });
   messageForm.addEventListener('submit', async event => { event.preventDefault(); const value = messageText.value.trim(); if (!value || !messageTarget || !currentUser) return; const conversationId = [currentUser.uid, messageTarget.uid].sort().join('_'); messageStatus.textContent = 'Sending...'; await setDoc(doc(db, 'directConversations', conversationId), { participants: [currentUser.uid, messageTarget.uid], participantNames: { [currentUser.uid]: currentUser.displayName || currentUser.email?.split('@')[0] || 'Member', [messageTarget.uid]: messageTarget.name }, participantAvatars: { [currentUser.uid]: currentUser.photoURL || '', [messageTarget.uid]: messageTarget.avatar || '' }, lastMessage: value.slice(0, 1000), updatedAt: serverTimestamp() }, { merge: true }).then(() => addDoc(collection(db, 'directMessages', conversationId, 'messages'), { senderId: currentUser.uid, receiverId: messageTarget.uid, text: value.slice(0, 1000), createdAt: serverTimestamp() })).then(() => { messageText.value = ''; messageStatus.textContent = ''; }).catch(() => { messageStatus.textContent = 'Message failed. Try again.'; }); });
   document.querySelectorAll('[data-close-modal]').forEach(button => button.addEventListener('click', () => { profileModal.classList.add('hidden'); messageModal.classList.add('hidden'); inboxModal.classList.add('hidden'); if (stopMessages) { stopMessages(); stopMessages = null; } if (stopPresence) { stopPresence(); stopPresence = null; } }));
   const postsQuery = query(collection(db, 'communityPosts'), orderBy('createdAt', 'desc'), limit(50));
@@ -106,18 +487,50 @@ async function init() {
     }
   }, 5000);
   onSnapshot(postsQuery, snapshot => { feedLoaded = true; clearTimeout(feedTimeout); postItems = snapshot.docs.map(item => ({ id: item.id, ...item.data() })); render(); }, error => { feedLoaded = true; clearTimeout(feedTimeout); status.textContent = error.code === 'permission-denied' ? 'Community read access is blocked by Firestore rules.' : 'Community is temporarily unavailable.'; feed.innerHTML = `<div class="feed-empty"><i class="fa-solid fa-triangle-exclamation"></i><p>${escapeHtml(status.textContent)}</p></div>`; });
+  
+  // Load and render stories
+  renderStoryStrip();
+  setInterval(renderStoryStrip, 30000); // Refresh stories every 30 seconds
+  
   postButton.addEventListener('click', async () => {
     const value = text.value.trim();
     const googleUser = Boolean(currentUser?.providerData?.some(provider => provider.providerId === 'google.com'));
     if (!googleUser || (!value && !imageInput.files[0])) { status.textContent = 'Add text or a photo to post.'; return; }
     postButton.disabled = true; status.textContent = 'Publishing...';
-    try { let imageData = ''; const image = imageInput.files[0]; if (image) { if (!image.type.startsWith('image/') || image.size > 5 * 1024 * 1024) throw new Error('Choose an image smaller than 5 MB.'); status.textContent = 'Preparing image...'; imageData = await compressImage(image); if (imageData.length > 700000) throw new Error('Choose a smaller image.'); } await addDoc(collection(db, 'communityPosts'), { text: value.slice(0, 1000), imageData, authorUid: currentUser.uid, authorName: currentUser.displayName || currentUser.email?.split('@')[0] || 'Member', avatarUrl: currentUser.photoURL || '', authorIsAdmin: currentUser.email?.toLowerCase() === 'mdsiamahmmedloselovestroy@gmail.com' && currentUser.emailVerified === true, likes: [], createdAt: serverTimestamp() }); text.value = ''; imageInput.value = ''; status.textContent = 'Published'; } catch (error) { status.textContent = error.message || (error.code === 'permission-denied' ? 'Sign in is required to post.' : 'Post failed. Try again.'); } finally { postButton.disabled = false; }
+    try { 
+      let imageData = ''; 
+      const image = imageInput.files[0]; 
+      if (image) { 
+        if (!image.type.startsWith('image/') || image.size > 5 * 1024 * 1024) throw new Error('Choose an image smaller than 5 MB.'); 
+        status.textContent = 'Preparing image...'; 
+        imageData = await compressImage(image); 
+        if (imageData.length > 700000) throw new Error('Choose a smaller image.'); 
+      } 
+      await addDoc(collection(db, 'communityPosts'), { 
+        text: value.slice(0, 1000), 
+        imageData, 
+        authorUid: currentUser.uid, 
+        authorName: currentUser.displayName || currentUser.email?.split('@')[0] || 'Member', 
+        avatarUrl: currentUser.photoURL || '', 
+        authorIsAdmin: currentUser.email?.toLowerCase() === 'mdsiamahmmedloselovestroy@gmail.com' && currentUser.emailVerified === true, 
+        reactions: {}, 
+        createdAt: serverTimestamp() 
+      }); 
+      text.value = ''; 
+      imageInput.value = ''; 
+      status.textContent = 'Published'; 
+    } catch (error) { 
+      status.textContent = error.message || (error.code === 'permission-denied' ? 'Sign in is required to post.' : 'Post failed. Try again.'); 
+    } finally { 
+      postButton.disabled = false; 
+    }
   });
   feed.addEventListener('click', async event => {
     const button = event.target.closest('[data-post-action], [data-comment-action], [data-reaction]');
     const card = button?.closest('[data-post-id]');
     const post = postItems.find(item => item.id === card?.dataset.postId);
     if (!button || !post) return;
+    
     if (button.dataset.reaction) { 
       const reactionId = currentUser?.uid || visitorId; 
       const reactionType = button.dataset.reaction;
@@ -127,29 +540,105 @@ async function init() {
       setTimeout(() => button.classList.remove('reaction-button-clicked'), 600);
       
       // Create floating emoji
-      createFloatingEmoji(reactionEmojis[reactionType], event.clientX, event.clientY);
+      createFloatingEmoji(getReactionEmoji(reactionType), event.clientX, event.clientY);
       
-      await updateDoc(doc(db, 'communityPosts', post.id), { likes: post.likes?.includes(reactionId) ? arrayRemove(reactionId) : arrayUnion(reactionId) }).catch(() => { status.textContent = 'Reaction failed.'; }); 
+      await updateDoc(doc(db, 'communityPosts', post.id), { 
+        reactions: post.reactions?.[(reactionId)] === reactionType 
+          ? arrayRemove(reactionId) 
+          : { ...Object.fromEntries(Object.entries(post.reactions || {}).filter(([uid]) => uid !== reactionId)), [reactionId]: reactionType }
+      }).catch(() => { status.textContent = 'Reaction failed.'; }); 
       card.querySelector('.reaction-picker')?.remove(); 
       return; 
     }
-    if (button.dataset.commentAction) { const commentRow = button.closest('[data-comment-id]'); const commentId = commentRow?.dataset.commentId; const commentRef = doc(db, 'communityPosts', post.id, 'comments', commentId); if (button.dataset.commentAction === 'like') { if (!currentUser) { status.textContent = 'Sign in to react to comments.'; return; } const snapshot = await getDocs(query(collection(db, 'communityPosts', post.id, 'comments'), where('__name__', '==', commentId))); const comment = snapshot.docs[0]?.data(); if (comment) { const reactionId = currentUser.uid; await updateDoc(commentRef, { likes: comment.likes?.includes(reactionId) ? arrayRemove(reactionId) : arrayUnion(reactionId) }).catch(() => { status.textContent = 'Reaction failed.'; }); } return; } if (button.dataset.commentAction === 'reply') { const commentInput = card.querySelector('input[name="comment"]'); commentInput.placeholder = `Reply to ${commentRow.querySelector('strong')?.textContent || 'this comment'}...`; commentInput.focus(); return; } if (button.dataset.commentAction === 'delete' && confirm('Delete this comment?')) await deleteDoc(commentRef).then(() => { commentRow.remove(); status.textContent = 'Comment deleted.'; }).catch(() => { status.textContent = 'Comment delete failed.'; }); if (button.dataset.commentAction === 'edit') { const current = commentRow.querySelector('.comment-content p').textContent; const value = prompt('Edit comment:', current); if (value?.trim()) await updateDoc(commentRef, { text: value.trim().slice(0, 500) }).then(() => { commentRow.querySelector('.comment-content p').textContent = value.trim().slice(0, 500); status.textContent = 'Comment updated.'; }).catch(() => { status.textContent = 'Comment update failed.'; }); } return; }
-    if (button.dataset.postAction === 'like') {
-      card.querySelector('.reaction-picker')?.remove(); const picker = document.createElement('span'); picker.className = 'reaction-picker'; picker.innerHTML = '<button type="button" data-reaction="like" aria-label="Like" title="Like">👍</button><button type="button" data-reaction="love" aria-label="Love" title="Love">❤️</button><button type="button" data-reaction="haha" aria-label="Haha" title="Haha">😂</button><button type="button" data-reaction="wow" aria-label="Wow" title="Wow">😮</button><button type="button" data-reaction="sad" aria-label="Sad" title="Sad">😢</button><button type="button" data-reaction="angry" aria-label="Angry" title="Angry">😠</button>'; button.parentElement.style.position = 'relative'; button.parentElement.append(picker);
+    
+    if (button.dataset.commentAction) { 
+      const commentRow = button.closest('[data-comment-id]'); 
+      const commentId = commentRow?.dataset.commentId; 
+      const commentRef = doc(db, 'communityPosts', post.id, 'comments', commentId); 
+      if (button.dataset.commentAction === 'like') { 
+        if (!currentUser) { status.textContent = 'Sign in to react to comments.'; return; } 
+        const snapshot = await getDocs(query(collection(db, 'communityPosts', post.id, 'comments'), where('__name__', '==', commentId))); 
+        const comment = snapshot.docs[0]?.data(); 
+        if (comment) { 
+          const reactionId = currentUser.uid; 
+          await updateDoc(commentRef, { likes: comment.likes?.includes(reactionId) ? arrayRemove(reactionId) : arrayUnion(reactionId) }).catch(() => { status.textContent = 'Reaction failed.'; }); 
+        } 
+        return; 
+      } 
+      if (button.dataset.commentAction === 'reply') { 
+        const commentInput = card.querySelector('input[name="comment"]'); 
+        commentInput.placeholder = `Reply to ${commentRow.querySelector('strong')?.textContent || 'this comment'}...`; 
+        commentInput.focus(); 
+        return; 
+      } 
+      if (button.dataset.commentAction === 'delete' && confirm('Delete this comment?')) 
+        await deleteDoc(commentRef).then(() => { commentRow.remove(); status.textContent = 'Comment deleted.'; }).catch(() => { status.textContent = 'Comment delete failed.'; }); 
+      if (button.dataset.commentAction === 'edit') { 
+        const current = commentRow.querySelector('.comment-content p').textContent; 
+        const value = prompt('Edit comment:', current); 
+        if (value?.trim()) 
+          await updateDoc(commentRef, { text: value.trim().slice(0, 500) }).then(() => { commentRow.querySelector('.comment-content p').textContent = value.trim().slice(0, 500); status.textContent = 'Comment updated.'; }).catch(() => { status.textContent = 'Comment update failed.'; }); 
+      } 
+      return; 
     }
-    if (button.dataset.postAction === 'edit') { const value = prompt('Edit post:', post.text || ''); if (value?.trim()) await updateDoc(doc(db, 'communityPosts', post.id), { text: value.trim().slice(0, 1000) }).then(() => { status.textContent = 'Post updated.'; }).catch(() => { status.textContent = 'Post update failed.'; }); }
-    if (button.dataset.postAction === 'delete' && confirm('Delete this post?')) await deleteDoc(doc(db, 'communityPosts', post.id)).then(() => { status.textContent = 'Post deleted.'; }).catch(() => { status.textContent = 'Post delete failed.'; });
+    
+    if (button.dataset.postAction === 'reaction') {
+      card.querySelector('.reaction-picker')?.remove(); 
+      const picker = document.createElement('div'); 
+      picker.className = 'reaction-picker'; 
+      picker.innerHTML = reactionOrder.map(type => `<button type="button" data-reaction="${escapeHtml(type)}" title="${getReactionLabel(type)}" aria-label="${getReactionLabel(type)}"><span>${getReactionEmoji(type)}</span><span>${getReactionLabel(type)}</span></button>`).join('');
+      
+      // Position picker
+      const rect = button.getBoundingClientRect();
+      if (rect.top < 200) {
+        picker.setAttribute('data-position', 'bottom');
+      }
+      
+      button.parentElement.style.position = 'relative'; 
+      button.parentElement.append(picker);
+    }
+    
+    if (button.dataset.postAction === 'edit') { 
+      const value = prompt('Edit post:', post.text || ''); 
+      if (value?.trim()) 
+        await updateDoc(doc(db, 'communityPosts', post.id), { text: value.trim().slice(0, 1000) }).then(() => { status.textContent = 'Post updated.'; }).catch(() => { status.textContent = 'Post update failed.'; }); 
+    }
+    
+    if (button.dataset.postAction === 'delete' && confirm('Delete this post?')) 
+      await deleteDoc(doc(db, 'communityPosts', post.id)).then(() => { status.textContent = 'Post deleted.'; }).catch(() => { status.textContent = 'Post delete failed.'; });
+    
     if (button.dataset.postAction === 'comment') {
       const panel = card.querySelector('.post-comments');
       panel.classList.toggle('hidden');
-      if (!panel.classList.contains('hidden')) { try { const comments = await getDocs(query(collection(db, 'communityPosts', post.id, 'comments'), orderBy('createdAt', 'asc'), limit(50))); renderComments(panel, comments.docs); const commentCount = card.querySelector(`[data-comment-count="${post.id}"]`); if (commentCount) commentCount.textContent = comments.size ? `(${comments.size})` : ''; } catch { panel.querySelector('.comments-list').innerHTML = '<p class="comments-empty">Comments could not be loaded.</p>'; } } }
+      if (!panel.classList.contains('hidden')) { 
+        try { 
+          const comments = await getDocs(query(collection(db, 'communityPosts', post.id, 'comments'), orderBy('createdAt', 'asc'), limit(50))); 
+          renderComments(panel, comments.docs); 
+          const commentCount = card.querySelector(`[data-comment-count="${post.id}"]`); 
+          if (commentCount) commentCount.textContent = comments.size ? `(${comments.size})` : ''; 
+        } catch { 
+          panel.querySelector('.comments-list').innerHTML = '<p class="comments-empty">Comments could not be loaded.</p>'; 
+        } 
+      } 
+    }
+    
     if (button.dataset.postAction === 'share') {
       const postUrl = `${location.origin}${location.pathname}#${post.id}`;
-      if (navigator.share) { await navigator.share({ title: 'CodeWithSiam community post', text: post.text, url: postUrl }).catch(() => {}); return; }
+      if (navigator.share) { 
+        await navigator.share({ title: 'CodeWithSiam community post', text: post.text, url: postUrl }).catch(() => {}); 
+        return; 
+      }
       if (!navigator.clipboard) { status.textContent = 'Copy this page link to share.'; return; }
       await navigator.clipboard.writeText(postUrl).then(() => { status.textContent = 'Post link copied.'; }).catch(() => { status.textContent = 'Post link could not be copied.'; });
     }
+    
     if (button.dataset.commentAction) return;
+    
+    // Handle reaction pills click to show modal
+    const reactionPills = event.target.closest('.reaction-pills');
+    if (reactionPills && card) {
+      showReactionModal(card.dataset.postId, post);
+    }
   });
   feed.addEventListener('submit', async event => { const form = event.target.closest('.comment-form'); if (!form) return; event.preventDefault(); const card = form.closest('[data-post-id]'); const value = form.comment.value.trim(); if (!value) return; await addDoc(collection(db, 'communityPosts', card.dataset.postId, 'comments'), { text: value.slice(0, 500), authorName: currentUser?.displayName || currentUser?.email?.split('@')[0] || 'Visitor', avatarUrl: currentUser?.photoURL || '', authorUid: currentUser?.uid || visitorId, createdAt: serverTimestamp() }).then(() => { form.reset(); status.textContent = 'Comment added.'; card.querySelector('[data-post-action="comment"]').click(); card.querySelector('[data-post-action="comment"]').click(); }).catch(() => { status.textContent = 'Comment failed. Try again.'; }); });
   document.addEventListener('click', event => {

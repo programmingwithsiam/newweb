@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Story Viewer | CodeWithSiam</title>
+  <meta name="description" content="CodeWithSiam Community Stories">
+  <meta name="theme-color" content="#080b12">
+  <link rel="icon" type="image/png" sizes="256x256" href="/assets/images/profile-siam-round.png?v=20260828">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+  <link rel="stylesheet" href="assets/css/stories.css">
+</head>
+<body class="story-viewer-body">
+  <div class="story-viewer-container">
+    <!-- Story Display -->
+    <div class="story-viewer-main">
+      <div id="storyContent" class="story-content">
+        <!-- Story will be rendered here -->
+      </div>
+
+      <!-- Progress Bar -->
+      <div class="story-progress-container">
+        <div id="storyProgress" class="story-progress"></div>
+      </div>
+
+      <!-- Story Header -->
+      <div class="story-header">
+        <div class="story-header-left">
+          <img id="storyAuthorAvatar" class="story-author-avatar" src="" alt="Author avatar">
+          <div class="story-author-info">
+            <h3 id="storyAuthorName">Author Name</h3>
+            <small id="storyTimestamp">Just now</small>
+          </div>
+        </div>
+        <button id="closeStoryBtn" class="story-close-btn" type="button" aria-label="Close story">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Story Reactions -->
+      <div class="story-reactions">
+        <button id="storyReactionBtn" class="story-reaction-btn" type="button" title="React to story">
+          <i class="fa-regular fa-heart"></i>
+        </button>
+      </div>
+
+      <!-- Story Navigation -->
+      <div class="story-nav">
+        <button id="prevStoryBtn" class="story-nav-btn prev" type="button" aria-label="Previous story">
+          <i class="fa-solid fa-chevron-left"></i>
+        </button>
+        <button id="nextStoryBtn" class="story-nav-btn next" type="button" aria-label="Next story">
+          <i class="fa-solid fa-chevron-right"></i>
+        </button>
+      </div>
+
+      <!-- Swipe hint (mobile) -->
+      <div class="story-swipe-hint">
+        <span>← Swipe →</span>
+      </div>
+    </div>
+
+    <!-- Story Sidebar (Desktop) -->
+    <aside id="storyViewersSidebar" class="story-viewers-sidebar hidden">
+      <div class="sidebar-header">
+        <h3>Story views</h3>
+        <button id="closeSidebarBtn" class="sidebar-close-btn" type="button">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div id="storyViewersList" class="story-viewers-list">
+        <!-- Viewers will be listed here -->
+      </div>
+    </aside>
+  </div>
+
+  <!-- Story Creation Modal -->
+  <div id="createStoryModal" class="community-modal hidden" role="dialog" aria-modal="true" aria-labelledby="createStoryTitle">
+    <div class="community-modal-card create-story-card">
+      <button class="modal-close" type="button" data-close-modal aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+      <h2 id="createStoryTitle">Create Story</h2>
+
+      <div class="story-type-selector">
+        <button class="story-type-btn active" data-type="text" type="button">
+          <i class="fa-solid fa-pen"></i> Text
+        </button>
+        <button class="story-type-btn" data-type="image" type="button">
+          <i class="fa-solid fa-image"></i> Image
+        </button>
+        <button class="story-type-btn" data-type="learning" type="button">
+          <i class="fa-solid fa-book"></i> Learning
+        </button>
+        <button class="story-type-btn" data-type="project" type="button">
+          <i class="fa-solid fa-code"></i> Project
+        </button>
+      </div>
+
+      <form id="createStoryForm" class="create-story-form">
+        <!-- Text Story Form -->
+        <div id="textStoryForm" class="story-form-section">
+          <div class="form-group">
+            <label for="storyText">What's on your mind?</label>
+            <textarea id="storyText" maxlength="280" placeholder="Share your thoughts, progress, or ideas..." rows="5"></textarea>
+            <small id="textCharCount">0/280</small>
+          </div>
+
+          <div class="form-group">
+            <label for="textStoryCategory">Category</label>
+            <select id="textStoryCategory">
+              <option value="">Select a category</option>
+              <option value="🚀 Learning Update">🚀 Learning Update</option>
+              <option value="💻 Project Update">💻 Project Update</option>
+              <option value="🎯 Achievement">🎯 Achievement</option>
+              <option value="📚 Study Update">📚 Study Update</option>
+              <option value="💡 Quick Idea">💡 Quick Idea</option>
+              <option value="🔥 Challenge">🔥 Challenge</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="textBgStyle">Background Style</label>
+            <div class="bg-style-picker">
+              <button class="bg-style-btn active" data-style="default" type="button" title="Default"></button>
+              <button class="bg-style-btn" data-style="gradient1" type="button" title="Gradient"></button>
+              <button class="bg-style-btn" data-style="gradient2" type="button" title="Gradient"></button>
+              <button class="bg-style-btn" data-style="dark" type="button" title="Dark"></button>
+            </div>
+          </div>
+
+          <div id="textPreview" class="story-preview"></div>
+        </div>
+
+        <!-- Image Story Form -->
+        <div id="imageStoryForm" class="story-form-section hidden">
+          <div class="form-group">
+            <label for="storyImage">Upload Image</label>
+            <div class="file-input-wrapper">
+              <input id="storyImage" type="file" accept="image/jpeg,image/png,image/webp" hidden>
+              <button id="imageUploadBtn" class="file-select-btn" type="button">
+                <i class="fa-solid fa-image"></i> Choose Image
+              </button>
+              <span id="imageFileName">No file selected</span>
+            </div>
+            <small>Max 5MB</small>
+          </div>
+
+          <div class="form-group">
+            <label for="imageCaption">Caption (optional)</label>
+            <input id="imageCaption" type="text" maxlength="200" placeholder="Add a caption...">
+          </div>
+
+          <div class="form-group">
+            <label for="imageCategory">Category</label>
+            <select id="imageCategory">
+              <option value="">Select a category</option>
+              <option value="🚀 Learning Update">🚀 Learning Update</option>
+              <option value="💻 Project Update">💻 Project Update</option>
+              <option value="🎯 Achievement">🎯 Achievement</option>
+              <option value="📚 Study Update">📚 Study Update</option>
+              <option value="💡 Quick Idea">💡 Quick Idea</option>
+              <option value="🔥 Challenge">🔥 Challenge</option>
+            </select>
+          </div>
+
+          <div id="imagePreview" class="image-preview-container hidden">
+            <img id="imagePreviewImg" src="" alt="Image preview">
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="primary">Post Story</button>
+          <button type="button" class="secondary" data-close-modal>Cancel</button>
+        </div>
+
+        <p id="createStoryStatus" class="form-status"></p>
+      </form>
+    </div>
+  </div>
+
+  <script type="module" src="assets/js/stories.js?v=20260830-stories-1"></script>
+</body>
+</html>

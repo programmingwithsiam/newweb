@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>User Profile | CodeWithSiam</title>
+  <meta name="description" content="CodeWithSiam Community Profile">
+  <meta name="theme-color" content="#080b12">
+  <link rel="icon" type="image/png" sizes="256x256" href="/assets/images/profile-siam-round.png?v=20260828">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+  <link rel="stylesheet" href="assets/css/community.css">
+  <link rel="stylesheet" href="assets/css/community-overrides.css">
+  <link rel="stylesheet" href="assets/css/user-profile.css">
+</head>
+<body>
+  <header class="community-topbar">
+    <a href="community.html" class="brand"><i class="fa-solid fa-arrow-left"></i> CodeWith<span>Siam</span></a>
+    <nav>
+      <a href="index.html"><i class="fa-solid fa-house"></i> Home</a>
+      <a href="community.html"><i class="fa-solid fa-users"></i> Community</a>
+      <button id="themeToggle" type="button" aria-label="Toggle dark mode"><i class="fa-solid fa-sun"></i></button>
+    </nav>
+  </header>
+
+  <main class="user-profile-container">
+    <div id="profileLoading" class="profile-loading">
+      <i class="fa-solid fa-spinner fa-spin"></i>
+      <p>Loading profile...</p>
+    </div>
+
+    <section id="profileContent" class="profile-content hidden">
+      <!-- Cover Photo -->
+      <div class="profile-cover-section">
+        <img id="profileCover" class="profile-cover" src="assets/images/profile-siam-round.png" alt="Cover photo">
+        <div class="cover-overlay"></div>
+      </div>
+
+      <!-- Profile Header -->
+      <div class="profile-header">
+        <div class="profile-header-top">
+          <img id="profilePicture" class="profile-picture" src="assets/images/profile-siam-round.png" alt="Profile picture">
+          <div class="profile-info-top">
+            <h1 id="profileName">Loading...</h1>
+            <p id="profileUsername" class="profile-username">@username</p>
+            <p id="profileRole" class="profile-role">Learning Role</p>
+          </div>
+        </div>
+
+        <div class="profile-actions">
+          <button id="editProfileBtn" class="profile-action-btn edit-btn hidden" type="button">
+            <i class="fa-solid fa-pen"></i> Edit Profile
+          </button>
+          <button id="messageProfileBtn" class="profile-action-btn message-btn hidden" type="button">
+            <i class="fa-solid fa-message"></i> Message
+          </button>
+          <button id="followProfileBtn" class="profile-action-btn follow-btn hidden" type="button">
+            <i class="fa-solid fa-user-plus"></i> Follow
+          </button>
+        </div>
+      </div>
+
+      <!-- Profile Stats -->
+      <div class="profile-stats">
+        <div class="stat-item">
+          <span class="stat-number" id="totalPosts">0</span>
+          <span class="stat-label">Posts</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-number" id="totalProjects">0</span>
+          <span class="stat-label">Projects</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-number" id="followerCount">0</span>
+          <span class="stat-label">Followers</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-number" id="followingCount">0</span>
+          <span class="stat-label">Following</span>
+        </div>
+      </div>
+
+      <!-- Bio -->
+      <div class="profile-bio-section">
+        <p id="profileBio" class="profile-bio">Bio goes here...</p>
+        <p id="profileJoinDate" class="profile-join-date">Joined Aug 2026</p>
+      </div>
+
+      <!-- Skills Section -->
+      <div id="skillsSection" class="profile-skills-section hidden">
+        <h3>Skills</h3>
+        <div id="skillsTags" class="skills-tags">
+          <!-- Skills will be added here -->
+        </div>
+      </div>
+
+      <!-- Profile Tabs -->
+      <div class="profile-tabs">
+        <button class="profile-tab-btn active" data-tab="posts" type="button">
+          <i class="fa-solid fa-file-lines"></i> Posts
+        </button>
+        <button class="profile-tab-btn" data-tab="projects" type="button">
+          <i class="fa-solid fa-code"></i> Projects
+        </button>
+        <button class="profile-tab-btn" data-tab="achievements" type="button">
+          <i class="fa-solid fa-trophy"></i> Achievements
+        </button>
+        <button class="profile-tab-btn" data-tab="about" type="button">
+          <i class="fa-solid fa-circle-info"></i> About
+        </button>
+      </div>
+
+      <!-- Tab Content -->
+      <div class="profile-tab-content">
+        <!-- Posts Tab -->
+        <div id="postsTab" class="tab-pane active">
+          <div id="userPostsFeed" class="user-posts-feed">
+            <p class="empty-message">No posts yet</p>
+          </div>
+        </div>
+
+        <!-- Projects Tab -->
+        <div id="projectsTab" class="tab-pane">
+          <div id="userProjectsFeed" class="user-projects-feed">
+            <p class="empty-message">No projects yet</p>
+          </div>
+        </div>
+
+        <!-- Achievements Tab -->
+        <div id="achievementsTab" class="tab-pane">
+          <div id="userAchievements" class="user-achievements">
+            <p class="empty-message">No achievements yet</p>
+          </div>
+        </div>
+
+        <!-- About Tab -->
+        <div id="aboutTab" class="tab-pane">
+          <div class="about-content">
+            <div class="about-section">
+              <h4>About</h4>
+              <p id="aboutBio"></p>
+            </div>
+            <div class="about-section">
+              <h4>Skills</h4>
+              <div id="aboutSkills" class="about-skills"></div>
+            </div>
+            <div class="about-section">
+              <h4>Member Since</h4>
+              <p id="aboutJoinDate"></p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Edit Profile Modal -->
+    <div id="editProfileModal" class="community-modal hidden" role="dialog" aria-modal="true" aria-labelledby="editProfileTitle">
+      <div class="community-modal-card edit-profile-card">
+        <button class="modal-close" type="button" data-close-modal aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+        <h2 id="editProfileTitle">Edit Profile</h2>
+        
+        <form id="editProfileForm" class="edit-profile-form">
+          <div class="form-group">
+            <label for="editDisplayName">Display Name</label>
+            <input id="editDisplayName" type="text" maxlength="50" placeholder="Your display name" required>
+          </div>
+
+          <div class="form-group">
+            <label for="editUsername">Username</label>
+            <input id="editUsername" type="text" maxlength="30" placeholder="username (no spaces)" required>
+          </div>
+
+          <div class="form-group">
+            <label for="editBio">Bio</label>
+            <textarea id="editBio" maxlength="200" placeholder="Tell us about yourself..." rows="3"></textarea>
+          </div>
+
+          <div class="form-group">
+            <label for="editRole">Learning Role</label>
+            <select id="editRole">
+              <option value="">Select a role...</option>
+              <option value="🐍 Python Learner">🐍 Python Learner</option>
+              <option value="💻 Web Developer">💻 Web Developer</option>
+              <option value="🤖 AI Enthusiast">🤖 AI Enthusiast</option>
+              <option value="📊 Data Science Learner">📊 Data Science Learner</option>
+              <option value="🚀 Student Developer">🚀 Student Developer</option>
+              <option value="🎨 Frontend Developer">🎨 Frontend Developer</option>
+              <option value="⚙️ Backend Developer">⚙️ Backend Developer</option>
+              <option value="📱 Mobile Developer">📱 Mobile Developer</option>
+              <option value="☁️ DevOps Learner">☁️ DevOps Learner</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="editSkills">Skills (comma-separated)</label>
+            <input id="editSkills" type="text" maxlength="500" placeholder="Python, JavaScript, React, etc.">
+          </div>
+
+          <div class="form-group">
+            <label for="editProfilePicture">Profile Picture</label>
+            <div class="file-input-wrapper">
+              <input id="editProfilePicture" type="file" accept="image/jpeg,image/png,image/webp" hidden>
+              <button id="profilePictureBtn" class="file-select-btn" type="button">
+                <i class="fa-solid fa-image"></i> Choose Image
+              </button>
+              <span id="profilePictureFileName">No file selected</span>
+            </div>
+            <small>Recommended: 400x400px, max 5MB</small>
+          </div>
+
+          <div class="form-group">
+            <label for="editCoverPhoto">Cover Photo</label>
+            <div class="file-input-wrapper">
+              <input id="editCoverPhoto" type="file" accept="image/jpeg,image/png,image/webp" hidden>
+              <button id="coverPhotoBtn" class="file-select-btn" type="button">
+                <i class="fa-solid fa-image"></i> Choose Image
+              </button>
+              <span id="coverPhotoFileName">No file selected</span>
+            </div>
+            <small>Recommended: 1200x400px, max 5MB</small>
+          </div>
+
+          <div class="form-actions">
+            <button type="submit" class="primary">Save Changes</button>
+            <button type="button" class="secondary" data-close-modal">Cancel</button>
+          </div>
+
+          <p id="editStatus" class="form-status"></p>
+        </form>
+      </div>
+    </div>
+  </main>
+
+  <script type="module" src="assets/js/user-profile.js?v=20260830-profile-1"></script>
+</body>
+</html>
