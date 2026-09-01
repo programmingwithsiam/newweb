@@ -264,41 +264,68 @@ async function init() {
   messageForm.addEventListener('submit', async event => { event.preventDefault(); const value = messageText.value.trim(); if (!value || !messageTarget || !currentUser) return; const conversationId = [currentUser.uid, messageTarget.uid].sort().join('_'); messageStatus.textContent = 'Sending...'; await setDoc(doc(db, 'directConversations', conversationId), { participants: [currentUser.uid, messageTarget.uid], participantNames: { [currentUser.uid]: currentUser.displayName || currentUser.email?.split('@')[0] || 'Member', [messageTarget.uid]: messageTarget.name }, participantAvatars: { [currentUser.uid]: currentUser.photoURL || '', [messageTarget.uid]: messageTarget.avatar || '' }, lastMessage: value.slice(0, 1000), updatedAt: serverTimestamp() }, { merge: true }).then(() => addDoc(collection(db, 'directMessages', conversationId, 'messages'), { senderId: currentUser.uid, receiverId: messageTarget.uid, text: value.slice(0, 1000), createdAt: serverTimestamp() })).then(() => { messageText.value = ''; messageStatus.textContent = ''; }).catch(() => { messageStatus.textContent = 'Message failed. Try again.'; }); });
   document.querySelectorAll('[data-close-modal]').forEach(button => button.addEventListener('click', () => { profileModal.classList.add('hidden'); messageModal.classList.add('hidden'); inboxModal.classList.add('hidden'); if (stopMessages) { stopMessages(); stopMessages = null; } if (stopPresence) { stopPresence(); stopPresence = null; } }));
   
+  // Load posts - using aggressive fallback
   const postsQuery = query(collection(db, 'communityPosts'), orderBy('createdAt', 'desc'), limit(50));
   let feedLoaded = false;
   
-  // Immediate fallback load
-  (async () => {
+  // Try immediate load first
+  const loadPostsImmediately = async () => {
     try {
-      console.log('Loading community posts...');
-      const fallbackSnapshot = await getDocs(postsQuery);
+      console.log('[Community] Starting post load...');
+      const snapshot = await getDocs(postsQuery);
+      console.log(`[Community] Firestore returned ${snapshot.docs.length} documents`);
+      
+      postItems = snapshot.docs.map(doc => {
+        const data = doc.data();
+        console.log(`[Community] Post ${doc.id}:`, { text: data.text?.slice?.(0, 50), createdAt: data.createdAt });
+        return { id: doc.id, ...data };
+      });
+      
+      // Sort by createdAt if available
+      if (postItems.length > 0 && postItems[0].createdAt) {
+        postItems.sort((a, b) => {
+          const aTime = timestamp(a.createdAt);
+          const bTime = timestamp(b.createdAt);
+          return bTime - aTime;
+        });
+      }
+      
       feedLoaded = true;
-      postItems = fallbackSnapshot.docs
-        .map(item => ({ id: item.id, ...item.data() }))
-        .sort((a, b) => timestamp(b.createdAt) - timestamp(a.createdAt));
-      if (postItems.length > 0) {
-        render();
-        console.log(`✓ Loaded ${postItems.length} posts`);
-      } else {
+      console.log(`[Community] Loaded and sorted ${postItems.length} posts`);
+      
+      if (postItems.length === 0) {
         feed.innerHTML = `<div class="feed-empty"><i class="fa-regular fa-comments"></i><p>No posts yet. Be the first to share!</p></div>`;
         count.textContent = '0 posts · realtime';
+      } else {
+        render();
+        console.log('[Community] ✓ Posts rendered successfully');
       }
     } catch (error) {
-      console.error('Failed to load posts:', error);
+      console.error('[Community] Load error:', error);
       feedLoaded = true;
-      feed.innerHTML = `<div class="feed-empty"><i class="fa-solid fa-triangle-exclamation"></i><p>Unable to load community. ${error.message || 'Check your connection.'}</p></div>`;
+      const errorMsg = error.code === 'permission-denied' 
+        ? 'You do not have permission to view posts.' 
+        : error.message || 'Unable to load posts';
+      feed.innerHTML = `<div class="feed-empty"><i class="fa-solid fa-triangle-exclamation"></i><p>${errorMsg}</p><small>${error.code || ''}</small></div>`;
+      status.textContent = `Error: ${errorMsg}`;
     }
-  })();
+  };
   
-  // Real-time listener (runs after initial load)
+  // Execute immediately
+  loadPostsImmediately();
+  
+  // Also set up real-time listener for future updates
   onSnapshot(postsQuery, snapshot => { 
-    feedLoaded = true; 
-    postItems = snapshot.docs.map(item => ({ id: item.id, ...item.data() })); 
-    render(); 
+    if (!feedLoaded) {
+      // First real-time update - use it
+      postItems = snapshot.docs.map(item => ({ id: item.id, ...item.data() })); 
+      render();
+      feedLoaded = true;
+      console.log('[Community] Real-time listener synced');
+    }
   }, error => { 
     if (!feedLoaded) {
-      console.error('Real-time listener error:', error);
-      feed.innerHTML = `<div class="feed-empty"><i class="fa-solid fa-triangle-exclamation"></i><p>${error.code === 'permission-denied' ? 'Permission denied' : 'Connection error'}</p></div>`;
+      console.error('[Community] Real-time listener error:', error);
     }
   });
   
