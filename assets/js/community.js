@@ -22,6 +22,43 @@ let postItems = [];
 let previewUrl = '';
 
 /* ============================================================
+   IMAGE COMPRESSION UTILITY
+   ============================================================ */
+async function compressImage(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target.result;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+        
+        // Scale down to max 800px width
+        if (width > 800) {
+          height = (height * 800) / width;
+          width = 800;
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        // Compress with quality 0.7
+        const compressed = canvas.toDataURL('image/jpeg', 0.7);
+        resolve(compressed);
+      };
+      img.onerror = () => reject(new Error('Image loading failed'));
+    };
+    reader.onerror = () => reject(new Error('File reading failed'));
+  });
+}
+
+/* ============================================================
    CODEWITHSIAM CUSTOM REACTION SYSTEM
    ============================================================ */
 
@@ -245,36 +282,74 @@ async function init() {
   onSnapshot(postsQuery, snapshot => { feedLoaded = true; clearTimeout(feedTimeout); postItems = snapshot.docs.map(item => ({ id: item.id, ...item.data() })); render(); }, error => { feedLoaded = true; clearTimeout(feedTimeout); status.textContent = error.code === 'permission-denied' ? 'Community read access is blocked by Firestore rules.' : 'Community is temporarily unavailable.'; feed.innerHTML = `<div class="feed-empty"><i class="fa-solid fa-triangle-exclamation"></i><p>${escapeHtml(status.textContent)}</p></div>`; });
   
   postButton.addEventListener('click', async () => {
+    // Validate authentication
+    if (!currentUser) {
+      status.textContent = 'Please sign in to post.';
+      return;
+    }
+
     const value = text.value.trim();
-    const googleUser = Boolean(currentUser?.providerData?.some(provider => provider.providerId === 'google.com'));
-    if (!googleUser || (!value && !imageInput.files[0])) { status.textContent = 'Add text or a photo to post.'; return; }
-    postButton.disabled = true; status.textContent = 'Publishing...';
-    try { 
-      let imageData = ''; 
-      const image = imageInput.files[0]; 
-      if (image) { 
-        if (!image.type.startsWith('image/') || image.size > 5 * 1024 * 1024) throw new Error('Choose an image smaller than 5 MB.'); 
-        status.textContent = 'Preparing image...'; 
-        imageData = await compressImage(image); 
-        if (imageData.length > 700000) throw new Error('Choose a smaller image.'); 
-      } 
-      await addDoc(collection(db, 'communityPosts'), { 
-        text: value.slice(0, 1000), 
-        imageData, 
-        authorUid: currentUser.uid, 
-        authorName: currentUser.displayName || currentUser.email?.split('@')[0] || 'Member', 
-        avatarUrl: currentUser.photoURL || '', 
-        authorIsAdmin: currentUser.email?.toLowerCase() === 'mdsiamahmmedloselovestroy@gmail.com' && currentUser.emailVerified === true, 
-        reactions: {}, 
-        createdAt: serverTimestamp() 
-      }); 
-      text.value = ''; 
-      imageInput.value = ''; 
-      status.textContent = 'Published'; 
-    } catch (error) { 
-      status.textContent = error.message || (error.code === 'permission-denied' ? 'Sign in is required to post.' : 'Post failed. Try again.'); 
-    } finally { 
-      postButton.disabled = false; 
+    const hasImage = imageInput.files && imageInput.files[0];
+
+    // Validate content
+    if (!value && !hasImage) {
+      status.textContent = 'Please add text or a photo to post.';
+      return;
+    }
+
+    postButton.disabled = true;
+    status.textContent = 'Publishing...';
+
+    try {
+      let imageData = '';
+
+      if (hasImage) {
+        const image = imageInput.files[0];
+        
+        // Validate image type and size
+        if (!image.type.startsWith('image/')) {
+          throw new Error('Please select a valid image file (JPEG, PNG, WebP, GIF).');
+        }
+        
+        if (image.size > 5 * 1024 * 1024) {
+          throw new Error('Image is too large. Maximum size is 5 MB.');
+        }
+
+        status.textContent = 'Compressing image...';
+        imageData = await compressImage(image);
+
+        if (imageData.length > 700000) {
+          throw new Error('Compressed image is still too large. Try a smaller or simpler image.');
+        }
+      }
+
+      // Post to Firebase
+      await addDoc(collection(db, 'communityPosts'), {
+        text: value.slice(0, 1000),
+        imageData,
+        authorUid: currentUser.uid,
+        authorName: currentUser.displayName || currentUser.email?.split('@')[0] || 'Member',
+        avatarUrl: currentUser.photoURL || '',
+        authorIsAdmin: currentUser.email?.toLowerCase() === 'mdsiamahmmedloselovestroy@gmail.com' && currentUser.emailVerified === true,
+        reactions: {},
+        createdAt: serverTimestamp()
+      });
+
+      // Clear form
+      text.value = '';
+      imageInput.value = '';
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+      previewUrl = '';
+      imagePreview.classList.add('hidden');
+      syncPostButton();
+
+      status.textContent = 'Post published successfully!';
+      setTimeout(() => { status.textContent = ''; }, 3000);
+    } catch (error) {
+      console.error('Post creation error:', error);
+      status.textContent = error.message || (error.code === 'permission-denied' ? 'You do not have permission to post.' : 'Failed to publish post. Please try again.');
+    } finally {
+      postButton.disabled = false;
     }
   });
   feed.addEventListener('click', async event => {

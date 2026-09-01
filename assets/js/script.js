@@ -1,23 +1,30 @@
 /* =========================================================
-   SIAM.DEV — PREMIUM AI PORTFOLIO — SCRIPT
+   SIAM.DEV — PREMIUM AI PORTFOLIO — MAIN SCRIPT
    =========================================================
    NOTE: Real authentication now lives in auth.js / auth-app.js
-   (Firebase Authentication). This file no longer implements any
-   login, registration, OTP, or session logic of its own — the
-   portfolio is public by default, and auth-app.js gates the
-   course dashboard / progress features and drives the header
-   sign-in UI.
+   (Firebase Authentication). This file now orchestrates modular
+   components for better code organization.
+   
+   Modules imported:
+   - ui-effects.js - Visual effects (particles, header, animations)
+   - animations.js - Timed animations (stat counters, etc.)
+   - page-renderers.js - Page rendering (courses, live hub, chat)
    ========================================================= */
 
+// Import all modules
+import { initParticles, initHeader, initTypedText, initRevealOnScroll, initTiltCards, initMobileMenu, initSkillBars, initHero3dParallax, activateSection } from './ui-effects.js';
+import { initStatCounters } from './animations.js';
+import { initCourseDeck, initLiveNotification, initLiveHub, setCurrentSignedInUid, loadCourses, syncCourseRoute, getCurrentCourse, getCourseProgress, getCourseRoute, pushCourseRoute, getCourseStateLabel, getCourseCardMeta, renderPublicCoursePreview, renderPublishedCourseCatalog, renderLanguageExplorer, bindCourseFilters, renderUpcomingCourses, updateHeroMetrics, updateProgressBar } from './page-renderers.js';
 
 /* =========================================================
-   MAIN SITE EFFECTS (init after unlock)
+   MAIN SITE EFFECTS ORCHESTRATOR
    ========================================================= */
 let siteEffectsInitialized = false;
 function initSiteEffects(){
   if(siteEffectsInitialized) return;
   siteEffectsInitialized = true;
 
+  // Initialize all UI effects
   initParticles();
   initHeader();
   initTypedText();
@@ -25,148 +32,19 @@ function initSiteEffects(){
   initStatCounters();
   initSkillBars();
   initTiltCards();
+  initHero3dParallax();
   initMobileMenu();
+  
+  // Initialize page-specific features
   initCourseDeck();
   initLiveNotification();
   initLiveHub();
   initChatToggle();
 }
 
-function initLiveHub() {
-  const current = document.getElementById('liveHubCurrent');
-  const archive = document.getElementById('liveArchiveList');
-  const count = document.getElementById('liveArchiveCount');
-  if (!current || !archive) return;
-  import('./courses-db.js').then(async ({ fetchLiveSettings, fetchLiveSessions, extractYoutubeId }) => {
-    const [settings, sessions] = await Promise.all([fetchLiveSettings().catch(() => ({})), fetchLiveSessions().catch(() => [])]);
-    const liveId = extractYoutubeId(settings.url || '');
-    if (settings.enabled === true && liveId) {
-      current.innerHTML = `<div class="live-hub-empty"><i class="fa-solid fa-lock"></i><strong>Live room is available</strong><span>Sign in to watch and join the conversation.</span><a class="btn btn-primary" href="live.html">Enter Live room</a></div>`;
-    }
-    count.textContent = `${sessions.length} session${sessions.length === 1 ? '' : 's'}`;
-    archive.innerHTML = sessions.length ? sessions.map(session => `<article class="live-archive-card"><div class="live-archive-thumb"><img src="https://i.ytimg.com/vi/${escapeHtml(session.youtubeVideoId || extractYoutubeId(session.videoUrl || ''))}/hqdefault.jpg" alt="${escapeHtml(session.title || 'Live session')}" loading="lazy"><span><i class="fa-solid fa-lock"></i> Members</span></div><div class="live-archive-copy"><time>${formatLiveDate(session.endedAt)}</time><h4>${escapeHtml(session.title || 'Live session')}</h4><p>${escapeHtml(session.description || 'Sign in to watch this CodeWithSiam live replay.')}</p><a href="live.html">Enter Live room <i class="fa-solid fa-arrow-right"></i></a></div></article>`).join('') : '<p class="live-hub-empty">Your completed live sessions will be saved here.</p>';
-  }).catch(() => { archive.innerHTML = '<p class="live-hub-empty">The live archive is unavailable right now.</p>'; });
-}
+/* Live hub rendering moved to page-renderers.js */
 
-function formatLiveDate(value) {
-  if (!value) return 'Date unavailable';
-  const date = value.toDate ? value.toDate() : new Date(value);
-  return Number.isNaN(date.getTime()) ? 'Date unavailable' : date.toLocaleDateString('en-BD', { dateStyle: 'medium' });
-}
-
-function initLiveNotification() {
-  const button = document.getElementById('liveNotificationBtn');
-  const panel = document.getElementById('liveNotificationPanel');
-  const frame = document.getElementById('liveNotificationFrame');
-  const openLink = document.getElementById('liveNotificationOpen');
-  if (!button || !panel || !frame || !openLink) return;
-  import('./courses-db.js').then(async ({ fetchLiveSettings, extractYoutubeId }) => {
-    const settings = await fetchLiveSettings().catch(() => ({}));
-    const videoId = extractYoutubeId(settings.url || '');
-    if (settings.enabled !== true || !videoId) return;
-    button.classList.remove('hidden');
-    frame.src = `https://www.youtube.com/embed/${videoId}?controls=1&rel=0&playsinline=1`;
-    if (settings.chatEnabled !== false) initSiteLiveChat();
-    else document.querySelector('.site-live-chat')?.classList.add('hidden');
-    openLink.href = settings.url;
-    button.addEventListener('click', () => {
-      const open = panel.classList.toggle('hidden') === false;
-      button.setAttribute('aria-expanded', String(open));
-    });
-    document.getElementById('closeLiveNotification')?.addEventListener('click', () => {
-      panel.classList.add('hidden');
-      button.setAttribute('aria-expanded', 'false');
-    });
-  }).catch(() => {});
-}
-
-function initSiteLiveChat() {
-  const messages = document.getElementById('liveChatMessages');
-  const form = document.getElementById('liveChatForm');
-  const nameInput = document.getElementById('liveChatName');
-  const messageInput = document.getElementById('liveChatInput');
-  const status = document.getElementById('liveChatStatus');
-  if (!messages || !form || !messageInput || form.dataset.bound === 'true') return;
-  form.dataset.bound = 'true';
-  const savedName = localStorage.getItem('siam_live_chat_name') || '';
-  nameInput.value = savedName;
-
-  import('./firebase-init.js').then(async ({ db, auth, isFirebaseConfigured }) => {
-    if (!isFirebaseConfigured || !db) throw new Error('Firebase is not configured');
-    const currentUser = auth?.currentUser;
-    if (!currentUser) {
-      nameInput.value = '';
-      nameInput.disabled = true;
-      messageInput.disabled = true;
-      form.querySelector('button[type="submit"]')?.setAttribute('disabled', 'true');
-      status.textContent = 'Sign in to comment';
-    } else {
-      nameInput.value = currentUser.displayName || currentUser.email?.split('@')[0] || 'Member';
-      nameInput.disabled = true;
-    }
-    const { collection, addDoc, deleteDoc, doc, limit, onSnapshot, orderBy, query, serverTimestamp, updateDoc } = await import('https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js');
-    const chatQuery = query(collection(db, 'liveChatMessages'), orderBy('createdAt', 'desc'), limit(50));
-    let replyTo = null;
-    const replyState = document.getElementById('liveChatReplyState');
-    const renderMessages = (items) => {
-      const currentUid = auth?.currentUser?.uid || '';
-      messages.innerHTML = items.length ? items.map(item => {
-        const canManage = Boolean(currentUid && item.authorUid === currentUid);
-        const controls = `<div class="live-chat-message-actions"><button type="button" data-chat-action="reply" data-message-id="${escapeHtml(item.id)}">Reply</button>${canManage ? `<button type="button" data-chat-action="edit" data-message-id="${escapeHtml(item.id)}">Edit</button><button type="button" data-chat-action="delete" data-message-id="${escapeHtml(item.id)}">Delete</button>` : ''}</div>`;
-        const replyLabel = item.parentName ? `<small>Replying to ${escapeHtml(item.parentName)}</small>` : '';
-        return `<article class="live-chat-message ${item.parentId ? 'is-reply' : ''}" data-message-id="${escapeHtml(item.id)}"><div class="live-chat-message-top"><strong>${escapeHtml(item.name || 'Guest')}</strong>${replyLabel}</div><p>${escapeHtml(item.text || '')}</p>${controls}</article>`;
-      }).join('') : '<p class="live-chat-empty">Be the first to say hello.</p>';
-      messages.scrollTop = messages.scrollHeight;
-      status.textContent = `${items.length} recent messages`;
-    };
-    onSnapshot(chatQuery, (snapshot) => {
-      const items = snapshot.docs.map(item => ({ id: item.id, ...item.data() })).reverse();
-      renderMessages(items);
-      messages.dataset.items = JSON.stringify(items);
-    }, () => { status.textContent = 'Chat unavailable'; });
-    form.addEventListener('submit', async (event) => {
-      event.preventDefault();
-      if (!currentUser) return;
-      const name = currentUser.displayName?.trim().slice(0, 32) || currentUser.email?.split('@')[0] || 'Member';
-      const text = messageInput.value.trim().slice(0, 240);
-      if (!text) return;
-      const button = form.querySelector('button');
-      button.disabled = true;
-      try {
-        const parentName = replyTo?.name || '';
-        const authorIsAdmin = currentUser.email?.toLowerCase() === 'mdsiamahmmedloselovestroy@gmail.com';
-        await addDoc(collection(db, 'liveChatMessages'), { name, avatarUrl: currentUser.photoURL || '', text, parentId: replyTo?.id || '', parentName, authorUid: currentUser.uid, authorIsAdmin, likes: [], pinned: false, createdAt: serverTimestamp() });
-        messageInput.value = '';
-        replyTo = null;
-        if (replyState) { replyState.textContent = ''; replyState.classList.add('hidden'); }
-      } catch (error) {
-        status.textContent = 'Could not send message';
-        console.error('Live chat send failed:', error);
-      } finally { button.disabled = false; }
-    });
-    messages.addEventListener('click', async (event) => {
-      const button = event.target.closest('[data-chat-action]');
-      if (!button) return;
-      const items = JSON.parse(messages.dataset.items || '[]');
-      const item = items.find(entry => entry.id === button.dataset.messageId);
-      if (!item) return;
-      const action = button.dataset.chatAction;
-      if (action === 'reply') {
-        replyTo = item;
-        if (replyState) { replyState.textContent = `Replying to ${item.name || 'Guest'} (tap Escape to cancel)`; replyState.classList.remove('hidden'); }
-        messageInput.focus();
-      } else if (action === 'edit') {
-        const text = prompt('Edit your comment:', item.text || '');
-        if (text?.trim()) await updateDoc(doc(db, 'liveChatMessages', item.id), { text: text.trim().slice(0, 240), editedAt: serverTimestamp() });
-      } else if (action === 'delete' && confirm('Delete this comment?')) {
-        await deleteDoc(doc(db, 'liveChatMessages', item.id));
-      }
-    });
-    messageInput.addEventListener('keydown', event => {
-      if (event.key === 'Escape' && replyTo) { replyTo = null; replyState?.classList.add('hidden'); }
-    });
-  }).catch(() => { status.textContent = 'Chat setup required'; });
-}
+/* Live notification moved to page-renderers.js */
 
 const COURSE_PROGRESS_KEY = 'siam_portfolio_course_progress'; // local cache only; source of truth is Firestore progress/{uid}
 let cachedCourses = [];
@@ -183,14 +61,7 @@ let collapsedModules = new Set();
 let currentSignedInUid = null; // set by auth-app.js via window.handleAuthStateChange()
 let lessonPlayerVisible = false;
 
-function getCourseProgress() {
-  try {
-    const parsed = JSON.parse(localStorage.getItem(COURSE_PROGRESS_KEY) || '{}');
-    return parsed && typeof parsed === 'object' ? parsed : {};
-  } catch {
-    return {};
-  }
-}
+// getCourseProgress is now imported from page-renderers.js (see line 17)
 
 function getYoutubeEmbedUrl(url) {
   if (!url) return null;
@@ -228,159 +99,14 @@ function getCoursePercent(course) {
   return total ? Math.round((completed / total) * 100) : 0;
 }
 
-function getCourseRoute(courseId, lessonId = '') {
-  return lessonId
-    ? `/courses/${encodeURIComponent(courseId)}/lesson/${encodeURIComponent(lessonId)}`
-    : `/courses/${encodeURIComponent(courseId)}`;
-}
+// getCourseRoute and pushCourseRoute are now imported from page-renderers.js
 
-function pushCourseRoute(courseId, lessonId = '') {
-  window.history.pushState({}, '', getCourseRoute(courseId, lessonId));
-}
+// getCourseStateLabel and getCourseCardMeta are now imported from page-renderers.js
 
-function getCourseStateLabel(course) {
-  const percent = getCoursePercent(course);
-  if (percent >= 100) return 'Review';
-  if (getCourseProgress()?.[course.id]?.lastLessonId) return 'Continue';
-  return 'Start';
-}
+// renderPublishedCourseCatalog, renderLanguageExplorer, and bindCourseFilters are now imported from page-renderers.js
+// The initialization will be handled after DOM loads
 
-function getCourseCardMeta(course) {
-  const lessons = Array.isArray(course?.lessons) ? course.lessons : [];
-  const totalMinutes = lessons.reduce((sum, lesson) => {
-    const parsed = Number(String(lesson?.duration || '').match(/\d+/)?.[0] || '0');
-    return sum + parsed;
-  }, 0);
-  const level = String(course?.level || course?.category || 'Beginner').trim() || 'Beginner';
-  const durationText = totalMinutes > 0 ? `${totalMinutes} min` : (course?.duration || 'Self-paced');
-  const freePreview = lessons.some(lesson => lesson?.freePreview === true);
-  const description = String(course?.description || 'Learn by building practical projects with clear guidance and hands-on exercises.').trim();
-
-  return {
-    level,
-    durationText,
-    freePreview,
-    description
-  };
-}
-
-function renderPublishedCourseCatalog() {
-  const catalog = document.getElementById('publishedCourseCatalog');
-  if (!catalog) return;
-  const courses = cachedCourses.filter(course => {
-      if (course.status !== 'published') return false;
-  if (courseLanguageFilter !== 'all' && (course.language || '').toLowerCase() !== courseLanguageFilter) return false;
-    if (courseCatalogFilter === 'paid') return Number(course.price) > 0;
-    if (courseCatalogFilter === 'free') return Number(course.price) <= 0;
-    return true;
-  });
-    catalog.innerHTML = courses.map(course => {
-    const progress = getCoursePercent(course);
-    const thumbnail = course.thumbnail || getYoutubeThumbnailUrl(course.videoUrl);
-    const fallbackTitle = escapeHtml(String(course.title || 'Course').slice(0, 24));
-    const { level, durationText, freePreview, description } = getCourseCardMeta(course);
-    const priceBadge = Number(course.price) > 0 ? `৳${Number(course.price).toLocaleString('en-BD')}` : 'Free';
-    const freePreviewBadge = freePreview ? '<span class="lms-course-tag soft">Free Preview</span>' : '';
-    const descriptionText = escapeHtml(description.length > 115 ? `${description.slice(0, 112)}...` : description);
-    const levelText = escapeHtml(level);
-    const durationLabel = escapeHtml(durationText);
-    return `<a class="lms-course-card" data-course-id="${escapeHtml(course.id)}" href="course.html?course=${encodeURIComponent(course.id)}" aria-label="View ${escapeHtml(course.title)} course details">
-          <span class="lms-course-thumbnail ${thumbnail ? 'has-image' : ''}">${thumbnail ? `<img src="${escapeHtml(thumbnail)}" alt="${escapeHtml(course.title)} thumbnail" loading="lazy" decoding="async">` : `<span class="lms-course-fallback"><i class="fa-solid fa-graduation-cap"></i><strong>${fallbackTitle}</strong></span>`}<span class="lms-course-label">${escapeHtml(course.category || 'Course')}</span><span class="lms-course-price-badge">${priceBadge}</span></span>
-      <span class="lms-course-body">
-        <strong class="lms-course-title">${escapeHtml(course.title)}</strong>
-        <span class="lms-course-meta-row">
-          <span class="lms-course-tag">${levelText}</span>
-          <span class="lms-course-tag muted">${durationLabel}</span>
-          ${freePreviewBadge}
-        </span>
-        <span class="lms-course-summary">${descriptionText}</span>
-        <span class="lms-course-progress"><span class="lms-course-progress-track"><span style="width:${progress}%"></span></span><span class="lms-course-percent">${progress}%<small>COMPLETE</small></span></span>
-        <span class="lms-course-view">View Course <i class="fa-solid fa-arrow-right"></i></span>
-      </span>
-    </a>`;
-  }).join('');
-  catalog.querySelectorAll('.lms-course-thumbnail img').forEach(image => {
-    image.addEventListener('error', () => {
-      const thumbnailContainer = image.parentElement;
-      image.remove();
-      thumbnailContainer?.classList.remove('has-image');
-        const title = thumbnailContainer?.closest('.lms-course-card')?.querySelector('.lms-course-title')?.textContent || 'Course';
-      thumbnailContainer?.insertAdjacentHTML('afterbegin', `<span class="lms-course-fallback"><i class="fa-solid fa-graduation-cap"></i><strong>${escapeHtml(title.slice(0, 24))}</strong></span>`);
-    }, { once: true });
-  });
-}
-
-function renderLanguageExplorer() {
-  const explorer = document.getElementById('languageExplorer');
-  if (!explorer) return;
-  const published = cachedCourses.filter(course => course.status === 'published');
-  const languages = [...new Set(published.map(course => String(course.language || '').trim()).filter(Boolean))]
-    .sort((left, right) => left.localeCompare(right));
-  explorer.innerHTML = [
-    `<button type="button" class="language-chip ${courseLanguageFilter === 'all' ? 'active' : ''}" data-language-filter="all"><strong>All</strong><span>${published.length} courses</span></button>`,
-    ...languages.map(language => {
-      const count = published.filter(course => String(course.language || '').toLowerCase() === language.toLowerCase()).length;
-      const slug = language.toLowerCase();
-      return `<button type="button" class="language-chip ${courseLanguageFilter === slug ? 'active' : ''}" data-language-filter="${escapeHtml(slug)}"><strong>${escapeHtml(language)}</strong><span>${count} ${count === 1 ? 'course' : 'courses'}</span></button>`;
-    })
-  ].join('');
-  explorer.querySelectorAll('[data-language-filter]').forEach(button => button.addEventListener('click', () => {
-    courseLanguageFilter = button.dataset.languageFilter || 'all';
-    renderLanguageExplorer();
-    renderPublishedCourseCatalog();
-  }));
-}
-
-document.querySelectorAll('[data-course-filter]').forEach(tab => {
-  tab.addEventListener('click', () => {
-    courseCatalogFilter = tab.dataset.courseFilter || 'all';
-    document.querySelectorAll('[data-course-filter]').forEach(item => item.classList.toggle('active', item === tab));
-    renderPublishedCourseCatalog();
-    renderLanguageExplorer();
-  });
-});
-
-function renderPublicCoursePreview(course) {
-  if (!course) return;
-  activeCourse = course;
-  const platform = document.getElementById('coursePlatform');
-  const gate = document.getElementById('courseSignInGate');
-  const player = document.querySelector('.course-lesson-player');
-  const thumbnail = course.thumbnail || getYoutubeThumbnailUrl(course.videoUrl);
-  const totalDuration = course.lessons.reduce((sum, lesson) => sum + parseInt(String(lesson.duration).match(/\d+/)?.[0] || '0', 10), 0);
-
-  document.getElementById('courseOverviewThumbnail')?.classList.toggle('hidden', !thumbnail);
-  const overviewThumbnail = document.getElementById('courseOverviewThumbnail');
-  if (overviewThumbnail) {
-    overviewThumbnail.src = thumbnail || '';
-    overviewThumbnail.alt = `${course.title} thumbnail`;
-    overviewThumbnail.onerror = () => {
-      overviewThumbnail.removeAttribute('src');
-      overviewThumbnail.classList.add('hidden');
-    };
-  }
-  document.getElementById('courseOverviewTitle').textContent = course.title;
-  document.getElementById('courseOverviewDescription').textContent = course.description;
-  document.getElementById('courseOverviewInstructor').textContent = course.instructor || 'CodeWithSiam';
-  document.getElementById('courseOverviewPrice').textContent = Number(course.price) > 0 ? `৳${Number(course.price).toLocaleString('en-BD')}` : 'Free';
-  const bkash = course.payment?.bkash || '01644171751';
-  const rocket = course.payment?.rocket || '01644171751';
-  const bank = course.payment?.bank || 'Contact for bank details';
-  document.getElementById('courseOverviewBkash').textContent = bkash;
-  document.getElementById('courseOverviewRocket').textContent = rocket;
-  document.getElementById('courseOverviewBank').textContent = bank;
-  document.getElementById('courseOverviewBkashLink').href = `tel:${bkash.replace(/\D/g, '')}`;
-  document.getElementById('courseOverviewRocketLink').href = `tel:${rocket.replace(/\D/g, '')}`;
-  document.getElementById('courseOverviewLessons').textContent = 'Sign in to load lessons';
-  document.getElementById('courseOverviewDuration').textContent = `${totalDuration} min`;
-  document.getElementById('courseOverviewProgressText').textContent = 'Sign in to track progress';
-  document.getElementById('courseOverviewProgressBar').style.width = '0%';
-  document.getElementById('moduleList').innerHTML = '<p class="course-description">Sign in with Google to access the course playlist.</p>';
-  platform?.classList.remove('hidden');
-  gate?.classList.remove('hidden');
-  player?.classList.add('hidden');
-  platform?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-}
+// renderPublicCoursePreview is now imported from page-renderers.js
 
 function saveCourseProgress(progress) {
   localStorage.setItem(COURSE_PROGRESS_KEY, JSON.stringify(progress));
@@ -422,134 +148,8 @@ function normalizeCourse(course) {
   };
 }
 
-/**
- * Loads courses from Firestore (the real, cross-device database).
- * cachedCourses keeps the exact same shape the rendering code already
- * expects (id, title, status, modules[], lessons[] flattened), so
- * renderCoursePlatform / renderModuleList / renderCourseDetail etc.
- * did not need to change at all.
- */
-async function loadCourses() {
-  try {
-    const { fetchAllCourses } = await import('./courses-db.js');
-    const courses = await fetchAllCourses();
-    cachedCourses = courses.map(normalizeCourse);
-  } catch (error) {
-    console.error('loadCourses() failed to load from Firestore:', error);
-    cachedCourses = [];
-    throw error;
-  }
-}
-
-function getCurrentCourse() {
-  if (!cachedCourses.length) return null;
-  const publishedCourses = cachedCourses.filter(course => course.status === 'published');
-  if (!publishedCourses.length) return null;
-  const selected = publishedCourses.find(course => course.id === selectedCourseId) || publishedCourses[0];
-  selectedCourseId = selected.id;
-  return selected;
-}
-
-function getCurrentLesson(course) {
-  if (!course || !Array.isArray(course.lessons) || !course.lessons.length) return null;
-  const lesson = course.lessons.find(item => item.id === selectedLessonId);
-  if (lesson) return lesson;
-  const progress = getCourseProgress();
-  const savedLessonId = progress?.[course.id]?.lastLessonId;
-  if (savedLessonId) {
-    const fromProgress = course.lessons.find(item => item.id === savedLessonId);
-    if (fromProgress) {
-      selectedLessonId = fromProgress.id;
-      return fromProgress;
-    }
-  }
-  selectedLessonId = course.lessons[0].id;
-  return course.lessons[0];
-}
-
-function getCompletedLessons(course) {
-  const progress = getCourseProgress();
-  return new Set(progress?.[course.id]?.completedLessons || []);
-}
-
-function updateProgressBar(course) {
-  const progress = getCourseProgress();
-  const completed = getCompletedLessons(course).size;
-  const total = course.lessons.length;
-  const percent = total ? Math.round((completed / total) * 100) : 0;
-  const bar = document.getElementById('courseOverviewProgressBar');
-  const text = document.getElementById('courseOverviewProgressText');
-  if (bar) bar.style.width = `${percent}%`;
-  if (text) text.textContent = `${percent}% Complete · ${completed} / ${total}`;
-  if (progress?.[course.id]) {
-    progress[course.id].completion = percent;
-    saveCourseProgress(progress);
-  }
-}
-
-function updateHeroMetrics() {
-  const published = cachedCourses.filter(course => course.status === 'published').length;
-  const upcoming = cachedCourses.filter(course => course.status === 'upcoming').length;
-  const lessonCount = cachedCourses.reduce((total, course) => total + (Array.isArray(course.lessons) ? course.lessons.length : 0), 0);
-  document.getElementById('courseCount').textContent = published;
-  document.getElementById('lessonCount').textContent = lessonCount;
-  document.getElementById('upcomingCount').textContent = upcoming;
-}
-
-function renderUpcomingCourses() {
-  const section = document.getElementById('upcomingCoursesSection');
-  const list = document.getElementById('upcomingCourseList');
-  const upcoming = cachedCourses.filter(course => course.status === 'upcoming' && course.showOnIndex === true);
-  if (!section || !list) return;
-  if (!upcoming.length) {
-    section.classList.add('hidden');
-    return;
-  }
-  section.classList.remove('hidden');
-
-  // Category → { gradient, icon } so every course card gets a distinct, colorful thumbnail
-  const THEME_BY_CATEGORY = {
-    'Data Science': { gradient: 'linear-gradient(135deg,#f5576c,#f093fb)', icon: 'fa-chart-line' },
-    'Python':        { gradient: 'linear-gradient(135deg,#4b8bbe,#ffd43b)', icon: 'fa-brands fa-python' },
-    'Web Development': { gradient: 'linear-gradient(135deg,#00c6ff,#0072ff)', icon: 'fa-code' },
-    'Machine Learning': { gradient: 'linear-gradient(135deg,#a18cd1,#fbc2eb)', icon: 'fa-brain' },
-    'default':       { gradient: 'linear-gradient(135deg,#43cea2,#185a9d)', icon: 'fa-graduation-cap' },
-  };
-
-  list.innerHTML = upcoming.map(course => {
-    const theme = THEME_BY_CATEGORY[course.category] || THEME_BY_CATEGORY.default;
-    const lessonCount = Array.isArray(course.lessons) ? course.lessons.length : 0;
-    const videoUrl = course.videoUrl || '';
-    const thumbnail = course.thumbnail || getYoutubeThumbnailUrl(videoUrl);
-    const cardAction = videoUrl ? `data-video-url="${videoUrl}"` : '';
-    const hasThumbnail = !!thumbnail;
-    const safeThumb = hasThumbnail ? thumbnail.replace(/"/g, '&quot;') : '';
-
-    return `
-    <article class="upcoming-card" ${cardAction}>
-          <div class="course-thumbnail upcoming-thumb ${hasThumbnail ? 'has-image' : ''}" style="${hasThumbnail ? '' : `background:${theme.gradient}`}">
-        <span class="upcoming-soon-badge">${Number(course.price) > 0 ? `৳${Number(course.price).toLocaleString('en-BD')}` : 'Free'}</span>
-        ${hasThumbnail ? `<img class="upcoming-thumb-image" src="${safeThumb}" alt="${course.title}" loading="lazy" />` : `<i class="fa-solid ${theme.icon}"></i>`}
-      </div>
-      <div class="upcoming-card-body">
-        <p class="eyebrow">${course.category || 'Coming soon'}</p>
-        <h4>${course.title}</h4>
-        <p>${course.description}</p>
-        <span class="course-badge">${lessonCount} lesson${lessonCount === 1 ? '' : 's'}</span>
-      </div>
-    </article>
-  `;
-  }).join('');
-
-  list.querySelectorAll('.upcoming-card[data-video-url]').forEach(card => {
-    card.style.cursor = 'pointer';
-    card.addEventListener('click', () => {
-      const target = card.getAttribute('data-video-url');
-      if (!target) return;
-      window.open(target, '_blank', 'noopener,noreferrer');
-    });
-  });
-}
+// loadCourses, getCurrentCourse, getCurrentLesson, getCompletedLessons, 
+// updateProgressBar, updateHeroMetrics are now imported from page-renderers.js
 
 function renderModuleList(course) {
   const container = document.getElementById('moduleList');
@@ -1125,22 +725,7 @@ function attachCourseEvents(course) {
   });
 }
 
-function syncCourseRoute() {
-  const parts = window.location.pathname.split('/').filter(Boolean);
-  if (parts[0] !== 'courses' || !cachedCourses.length) return;
-  selectedCourseId = decodeURIComponent(parts[1] || '');
-  selectedLessonId = parts[2] === 'lesson' ? decodeURIComponent(parts[3] || '') : null;
-  const course = getCurrentCourse();
-  if (!course) return;
-  if (currentSignedInUid) {
-    lessonPlayerVisible = Boolean(selectedLessonId);
-    document.getElementById('coursePlatform')?.classList.remove('hidden');
-    renderCourseDetail(course);
-  } else {
-    renderPublicCoursePreview(course);
-  }
-}
-
+// syncCourseRoute is now imported from page-renderers.js (see line 17)
 window.addEventListener('popstate', syncCourseRoute);
 
 async function initCoursePlatform() {
@@ -1221,9 +806,7 @@ async function initCoursePlatform() {
   }
 }
 
-async function initCourseDeck(){
-  await initCoursePlatform();
-}
+// initCourseDeck is now imported from page-renderers.js
 
 /**
  * Called by auth-app.js whenever Firebase's auth state changes
@@ -1233,6 +816,7 @@ async function initCourseDeck(){
  */
 window.handleAuthStateChange = async function handleAuthStateChange(user) {
   currentSignedInUid = user ? user.uid : null;
+  setCurrentSignedInUid(currentSignedInUid); // Update page-renderers state
 
   const gate = document.getElementById('courseSignInGate');
   gate?.classList.toggle('hidden', !!currentSignedInUid);
@@ -1284,214 +868,11 @@ document.addEventListener('DOMContentLoaded', () => {
   initChatToggle();
 });
 
-/* ---------- Ambient background dust (quiet, no connecting lines) ---------- */
-function initParticles(){
-  const canvas = document.getElementById('particles');
-  if(!canvas) return;
-  const ctx = canvas.getContext('2d');
-  let w, h, dots;
+/* Particles and UI effects moved to ui-effects.js */
 
-  function resize(){
-    w = canvas.width = window.innerWidth;
-    h = canvas.height = document.documentElement.scrollHeight;
-  }
-  resize();
-  window.addEventListener('resize', resize);
+/* Header, navigation, and other UI effects moved to ui-effects.js */
 
-  const count = Math.min(36, Math.floor(window.innerWidth/40));
-  dots = Array.from({length: count}, () => ({
-    x: Math.random()*w, y: Math.random()*h,
-    vy: -(Math.random()*0.12 + 0.03),
-    r: Math.random()*1.3+0.5
-  }));
-
-  function draw(){
-    ctx.clearRect(0,0,w,h);
-    ctx.fillStyle = 'rgba(255,212,59,0.28)';
-    dots.forEach(p=>{
-      p.y += p.vy;
-      if(p.y < -10) p.y = h + 10;
-      ctx.beginPath();
-      ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
-      ctx.fill();
-    });
-    requestAnimationFrame(draw);
-  }
-  draw();
-}
-
-/* ---------- Header scroll state + smooth nav ---------- */
-function activateSection(sectionId){
-  const allowed = new Set(['home','about','skills','ml','projects','course','contact']);
-  const target = allowed.has(sectionId) ? sectionId : 'home';
-  const focusTargets = document.querySelectorAll('.hero, .section');
-
-  focusTargets.forEach((node) => {
-    const nodeId = node.id || '';
-    const matches = nodeId === target || (target === 'home' && nodeId === 'contact');
-    node.classList.toggle('is-visible', matches);
-    node.classList.toggle('is-hidden', !matches);
-
-  });
-
-  document.querySelectorAll('#nav a[href^="#"]').forEach((link) => {
-    const href = link.getAttribute('href');
-    link.classList.toggle('is-current', href === `#${target}`);
-  });
-
-  const finalPath = target === 'home' ? '/' : `#${target}`;
-  if (window.location.pathname !== '/' || window.location.hash !== finalPath.replace('/', '')) {
-    window.history.pushState({}, '', finalPath);
-  }
-
-  const targetNode = document.getElementById(target);
-  if (targetNode) {
-    requestAnimationFrame(() => {
-      targetNode.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    });
-  }
-}
-
-function bindSingleSectionNavigation(){
-  document.querySelectorAll('a[href^="#"]').forEach((link) => {
-    const sectionId = link.getAttribute('href')?.replace('#', '');
-    if (!sectionId || !document.getElementById(sectionId)) return;
-
-    link.addEventListener('click', (event) => {
-      const target = link.getAttribute('href')?.replace('#', '');
-      if (!target) return;
-      event.preventDefault();
-      activateSection(target);
-      document.getElementById('nav')?.classList.remove('open');
-    });
-  });
-}
-
-function initHeader(){
-  const header = document.getElementById('header');
-  if(!header) return;
-  window.addEventListener('scroll', () => {
-    header.classList.toggle('scrolled', window.scrollY > 30);
-  });
-
-  document.querySelectorAll('#nav a').forEach(a=>{
-    a.addEventListener('click', () => {
-      document.getElementById('nav')?.classList.remove('open');
-    });
-  });
-  bindSingleSectionNavigation();
-}
-
-function initMobileMenu(){
-  const btn = document.getElementById('menuBtn');
-  const nav = document.getElementById('nav');
-  btn?.addEventListener('click', () => nav?.classList.toggle('open'));
-}
-
-/* ---------- Typed hero text ---------- */
-function initTypedText(){
-  const el = document.getElementById('typed-text');
-  if(!el) return;
-  const phrases = [
-    'AI Engineer', 'Data Scientist', 'Python Developer',
-    'ML Researcher', 'Computer Vision Enthusiast'
-  ];
-  let pIdx = 0, charIdx = 0, deleting = false;
-
-  function tick(){
-    const phrase = phrases[pIdx];
-    if(!deleting){
-      el.textContent = phrase.slice(0, ++charIdx);
-      if(charIdx === phrase.length){
-        deleting = true;
-        setTimeout(tick, 1400);
-        return;
-      }
-    } else {
-      el.textContent = phrase.slice(0, --charIdx);
-      if(charIdx === 0){
-        deleting = false;
-        pIdx = (pIdx+1) % phrases.length;
-      }
-    }
-    setTimeout(tick, deleting ? 45 : 85);
-  }
-  tick();
-}
-
-/* ---------- Scroll reveal ---------- */
-function initRevealOnScroll(){
-  const items = document.querySelectorAll('.reveal');
-  const obs = new IntersectionObserver((entries)=>{
-    entries.forEach(e=>{
-      if(e.isIntersecting){
-        e.target.classList.add('in');
-        obs.unobserve(e.target);
-      }
-    });
-  }, { threshold:0.15 });
-  items.forEach(i=>obs.observe(i));
-}
-
-/* ---------- Animated stat counters ---------- */
-function initStatCounters(){
-  const nums = document.querySelectorAll('.stat-num');
-  const obs = new IntersectionObserver((entries)=>{
-    entries.forEach(e=>{
-      if(e.isIntersecting){
-        animateCount(e.target);
-        obs.unobserve(e.target);
-      }
-    });
-  }, { threshold:0.5 });
-  nums.forEach(n=>obs.observe(n));
-}
-function animateCount(el){
-  const target = parseInt(el.dataset.target, 10) || 0;
-  const dur = 1400;
-  const start = performance.now();
-  function step(now){
-    const p = Math.min((now-start)/dur, 1);
-    const eased = 1 - Math.pow(1-p, 3);
-    el.textContent = Math.round(eased*target);
-    if(p < 1) requestAnimationFrame(step);
-  }
-  requestAnimationFrame(step);
-}
-
-/* Skill tags are static (no fake precision percentages), so no fill
-   animation is needed here anymore — see .skill-tag in style.css. */
-function initSkillBars(){}
-
-/* ---------- 3D tilt on cards ---------- */
-function initTiltCards(){
-  const cards = document.querySelectorAll('.tilt-card');
-  const maxTilt = 7;
-
-  cards.forEach(card=>{
-    card.addEventListener('mousemove', (e)=>{
-      const rect = card.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-      const cx = rect.width/2, cy = rect.height/2;
-      const rotX = ((y-cy)/cy) * -maxTilt;
-      const rotY = ((x-cx)/cx) * maxTilt;
-      card.style.transform = `perspective(800px) rotateX(${rotX}deg) rotateY(${rotY}deg) translateY(-4px)`;
-    });
-    card.addEventListener('mouseleave', ()=>{
-      card.style.transform = 'perspective(800px) rotateX(0) rotateY(0) translateY(0)';
-    });
-  });
-}
-
-/* ---------- Hero 3D parallax (mouse-follow) ---------- */
-document.addEventListener('mousemove', (e)=>{
-  const stage = document.getElementById('hero3d');
-  if(!stage) return;
-  const x = (e.clientX/window.innerWidth - 0.5) * 14;
-  const y = (e.clientY/window.innerHeight - 0.5) * 14;
-  stage.style.transform = `rotateY(${x}deg) rotateX(${-y}deg)`;
-});
+/* Animation effects moved to ui-effects.js and animations.js */
 
 /* =========================================================
    AI CHATBOT — real Claude API + voice in/out
