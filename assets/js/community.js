@@ -374,6 +374,16 @@ async function init() {
     }
   });
   feed.addEventListener('click', async event => {
+    // Handle profile link clicks
+    const profileLink = event.target.closest('.profile-link');
+    if (profileLink) {
+      const uid = profileLink.dataset.profileUid;
+      if (uid) {
+        window.location.href = `user-profile.html?uid=${encodeURIComponent(uid)}`;
+      }
+      return;
+    }
+
     const button = event.target.closest('[data-post-action], [data-comment-action], [data-reaction]');
     const card = button?.closest('[data-post-id]');
     const post = postItems.find(item => item.id === card?.dataset.postId);
