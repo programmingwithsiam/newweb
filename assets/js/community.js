@@ -153,6 +153,7 @@ function showReactionModal(postId, post) {
     }
     
     toShow.forEach(async ([uid, type]) => {
+      const { getDocs, query, collection, where } = await import('https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js');
       const userDoc = await getDocs(query(collection(db, 'users'), where('__name__', '==', uid))).catch(() => null);
       const userData = userDoc?.docs?.[0]?.data();
       const name = userData?.name || (uid === currentUser?.uid ? currentUser.displayName : 'Member');
@@ -262,24 +263,44 @@ async function init() {
   });
   messageForm.addEventListener('submit', async event => { event.preventDefault(); const value = messageText.value.trim(); if (!value || !messageTarget || !currentUser) return; const conversationId = [currentUser.uid, messageTarget.uid].sort().join('_'); messageStatus.textContent = 'Sending...'; await setDoc(doc(db, 'directConversations', conversationId), { participants: [currentUser.uid, messageTarget.uid], participantNames: { [currentUser.uid]: currentUser.displayName || currentUser.email?.split('@')[0] || 'Member', [messageTarget.uid]: messageTarget.name }, participantAvatars: { [currentUser.uid]: currentUser.photoURL || '', [messageTarget.uid]: messageTarget.avatar || '' }, lastMessage: value.slice(0, 1000), updatedAt: serverTimestamp() }, { merge: true }).then(() => addDoc(collection(db, 'directMessages', conversationId, 'messages'), { senderId: currentUser.uid, receiverId: messageTarget.uid, text: value.slice(0, 1000), createdAt: serverTimestamp() })).then(() => { messageText.value = ''; messageStatus.textContent = ''; }).catch(() => { messageStatus.textContent = 'Message failed. Try again.'; }); });
   document.querySelectorAll('[data-close-modal]').forEach(button => button.addEventListener('click', () => { profileModal.classList.add('hidden'); messageModal.classList.add('hidden'); inboxModal.classList.add('hidden'); if (stopMessages) { stopMessages(); stopMessages = null; } if (stopPresence) { stopPresence(); stopPresence = null; } }));
+  
   const postsQuery = query(collection(db, 'communityPosts'), orderBy('createdAt', 'desc'), limit(50));
   let feedLoaded = false;
-  const feedTimeout = setTimeout(() => { if (!feedLoaded) { status.textContent = 'Community is taking too long to load. Check Firebase connection.'; feed.innerHTML = `<div class="feed-empty"><i class="fa-solid fa-triangle-exclamation"></i><p>${escapeHtml(status.textContent)}</p></div>`; } }, 10000);
-  setTimeout(async () => {
-    if (feedLoaded) return;
+  
+  // Immediate fallback load
+  (async () => {
     try {
-      const fallbackSnapshot = await getDocs(query(collection(db, 'communityPosts'), limit(50)));
+      console.log('Loading community posts...');
+      const fallbackSnapshot = await getDocs(postsQuery);
       feedLoaded = true;
-      clearTimeout(feedTimeout);
       postItems = fallbackSnapshot.docs
         .map(item => ({ id: item.id, ...item.data() }))
         .sort((a, b) => timestamp(b.createdAt) - timestamp(a.createdAt));
-      render();
+      if (postItems.length > 0) {
+        render();
+        console.log(`✓ Loaded ${postItems.length} posts`);
+      } else {
+        feed.innerHTML = `<div class="feed-empty"><i class="fa-regular fa-comments"></i><p>No posts yet. Be the first to share!</p></div>`;
+        count.textContent = '0 posts · realtime';
+      }
     } catch (error) {
-      console.error('Community fallback load failed:', error);
+      console.error('Failed to load posts:', error);
+      feedLoaded = true;
+      feed.innerHTML = `<div class="feed-empty"><i class="fa-solid fa-triangle-exclamation"></i><p>Unable to load community. ${error.message || 'Check your connection.'}</p></div>`;
     }
-  }, 5000);
-  onSnapshot(postsQuery, snapshot => { feedLoaded = true; clearTimeout(feedTimeout); postItems = snapshot.docs.map(item => ({ id: item.id, ...item.data() })); render(); }, error => { feedLoaded = true; clearTimeout(feedTimeout); status.textContent = error.code === 'permission-denied' ? 'Community read access is blocked by Firestore rules.' : 'Community is temporarily unavailable.'; feed.innerHTML = `<div class="feed-empty"><i class="fa-solid fa-triangle-exclamation"></i><p>${escapeHtml(status.textContent)}</p></div>`; });
+  })();
+  
+  // Real-time listener (runs after initial load)
+  onSnapshot(postsQuery, snapshot => { 
+    feedLoaded = true; 
+    postItems = snapshot.docs.map(item => ({ id: item.id, ...item.data() })); 
+    render(); 
+  }, error => { 
+    if (!feedLoaded) {
+      console.error('Real-time listener error:', error);
+      feed.innerHTML = `<div class="feed-empty"><i class="fa-solid fa-triangle-exclamation"></i><p>${error.code === 'permission-denied' ? 'Permission denied' : 'Connection error'}</p></div>`;
+    }
+  });
   
   postButton.addEventListener('click', async () => {
     // Validate authentication
@@ -478,4 +499,27 @@ signInButton.addEventListener('click', () => signInWithGoogle().catch(error => {
 themeToggle.addEventListener('click', () => { document.body.classList.toggle('light'); localStorage.setItem('community-theme', document.body.classList.contains('light') ? 'light' : 'dark'); });
 if (localStorage.getItem('community-theme') === 'light') document.body.classList.add('light');
 observeAuthState(updateIdentity);
-init().catch(error => { status.textContent = 'Community is temporarily unavailable.'; feed.innerHTML = `<div class="feed-empty"><i class="fa-solid fa-triangle-exclamation"></i><p>${escapeHtml(status.textContent)}</p></div>`; console.error(error); });
+
+// Check if Firebase is configured
+if (!db) {
+  status.textContent = 'Community database is not configured. Please configure Firebase.';
+  feed.innerHTML = `<div class="feed-empty"><i class="fa-solid fa-triangle-exclamation"></i><p>${escapeHtml(status.textContent)}</p></div>`;
+} else {
+  // Initialize community with timeout
+  const initTimeout = setTimeout(() => {
+    if (feed.innerHTML.includes('Loading')) {
+      status.textContent = 'Firebase connection timeout. Check your internet connection.';
+      feed.innerHTML = `<div class="feed-empty"><i class="fa-solid fa-triangle-exclamation"></i><p>${escapeHtml(status.textContent)}</p></div>`;
+      console.warn('Init timeout - Firebase may not be responding');
+    }
+  }, 12000);
+
+  init().catch(error => { 
+    clearTimeout(initTimeout);
+    console.error('Community init failed:', error);
+    status.textContent = error.message || 'Community is temporarily unavailable.'; 
+    feed.innerHTML = `<div class="feed-empty"><i class="fa-solid fa-triangle-exclamation"></i><p>${escapeHtml(status.textContent)}</p></div>`; 
+  }).finally(() => {
+    clearTimeout(initTimeout);
+  });
+}
