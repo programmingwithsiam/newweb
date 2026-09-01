@@ -191,6 +191,15 @@
   flex-direction: column;
   align-items: center;
   text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 12px;
+  border-radius: 8px;
+}
+
+.stat-item:hover {
+  background: var(--community-panel);
+  transform: translateY(-2px);
 }
 
 .stat-number {
@@ -624,4 +633,83 @@
   .profile-action-btn i {
     font-size: 0.9rem;
   }
+}
+
+/* ============================================================
+   FOLLOWERS & FOLLOWING MODALS
+   ============================================================ */
+
+.followers-modal-card {
+  max-width: 500px;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.followers-list,
+.following-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.follower-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 8px;
+  background: var(--community-panel);
+  transition: background 0.2s ease;
+}
+
+.follower-item:hover {
+  background: var(--community-panel-2);
+}
+
+.follower-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--community-line);
+  flex-shrink: 0;
+}
+
+.follower-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.follower-name {
+  display: block;
+  font-weight: 500;
+  color: var(--community-accent);
+  text-decoration: none;
+  word-break: break-word;
+  transition: color 0.2s ease;
+}
+
+.follower-name:hover {
+  color: var(--community-accent-hover);
+  text-decoration: underline;
+}
+
+.follower-username {
+  font-size: 0.85rem;
+  color: var(--community-muted);
+  margin: 4px 0 0;
+}
+
+.empty-message {
+  text-align: center;
+  color: var(--community-muted);
+  padding: 24px;
+  font-style: italic;
+}
+
+.error-message {
+  text-align: center;
+  color: #ff6b6b;
+  padding: 24px;
 }

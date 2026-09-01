@@ -39,6 +39,65 @@ async function getUserPosts(userId) {
   }
 }
 
+async function isUserFollowing(followerUid, followeeUid) {
+  if (!followerUid || !followeeUid) return false;
+  const { doc, getDoc } = await import('https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js');
+  try {
+    const userRef = doc(db, 'users', followerUid);
+    const userSnap = await getDoc(userRef);
+    if (userSnap.exists()) {
+      const following = userSnap.data().following || [];
+      return following.includes(followeeUid);
+    }
+    return false;
+  } catch (error) {
+    console.error('Error checking follow status:', error);
+    return false;
+  }
+}
+
+async function followUser(followerUid, followeeUid) {
+  if (!followerUid || !followeeUid) return false;
+  const { doc, updateDoc, arrayUnion, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js');
+  try {
+    // Add to follower's following list
+    await updateDoc(doc(db, 'users', followerUid), {
+      following: arrayUnion(followeeUid),
+      updatedAt: serverTimestamp()
+    });
+    // Add to followee's followers list
+    await updateDoc(doc(db, 'users', followeeUid), {
+      followers: arrayUnion(followerUid),
+      updatedAt: serverTimestamp()
+    });
+    return true;
+  } catch (error) {
+    console.error('Error following user:', error);
+    return false;
+  }
+}
+
+async function unfollowUser(followerUid, followeeUid) {
+  if (!followerUid || !followeeUid) return false;
+  const { doc, updateDoc, arrayRemove, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js');
+  try {
+    // Remove from follower's following list
+    await updateDoc(doc(db, 'users', followerUid), {
+      following: arrayRemove(followeeUid),
+      updatedAt: serverTimestamp()
+    });
+    // Remove from followee's followers list
+    await updateDoc(doc(db, 'users', followeeUid), {
+      followers: arrayRemove(followerUid),
+      updatedAt: serverTimestamp()
+    });
+    return true;
+  } catch (error) {
+    console.error('Error unfollowing user:', error);
+    return false;
+  }
+}
+
 async function renderUserProfile() {
   if (!userProfileData) return;
 
@@ -99,13 +158,70 @@ async function renderUserProfile() {
   if (isOwnProfile) {
     editProfileBtn.classList.remove('hidden');
   } else {
-    const messageBtn = document.getElementById('messageProfileBtn');
-    messageBtn.classList.remove('hidden');
-    messageBtn.addEventListener('click', () => {
-      // Navigate back to community and show message modal (or implement here)
-      // For now, redirect to community
-      window.location.href = `community.html?message=${escapeHtml(viewingUserId)}`;
-    });
+    if (!currentUser) {
+      // Show message to sign in
+      const messageBtn = document.getElementById('messageProfileBtn');
+      messageBtn.textContent = 'Sign in to follow';
+      messageBtn.classList.remove('hidden');
+      messageBtn.addEventListener('click', () => {
+        window.location.href = 'community.html#signin';
+      });
+    } else {
+      const followBtn = document.getElementById('followProfileBtn');
+      const messageBtn = document.getElementById('messageProfileBtn');
+      messageBtn.classList.remove('hidden');
+      messageBtn.addEventListener('click', () => {
+        window.location.href = `community.html?message=${escapeHtml(viewingUserId)}`;
+      });
+
+      // Check if already following
+      const isFollowing = await isUserFollowing(currentUser.uid, viewingUserId);
+      followBtn.classList.remove('hidden');
+      
+      // Update follow button text and handler
+      const updateFollowBtn = () => {
+        followBtn.textContent = isFollowing 
+          ? '✓ Following' 
+          : '+ Follow';
+        followBtn.className = isFollowing 
+          ? 'profile-action-btn follow-btn following' 
+          : 'profile-action-btn follow-btn';
+      };
+      
+      updateFollowBtn();
+      
+      followBtn.addEventListener('click', async () => {
+        followBtn.disabled = true;
+        try {
+          if (isFollowing) {
+            await unfollowUser(currentUser.uid, viewingUserId);
+          } else {
+            await followUser(currentUser.uid, viewingUserId);
+          }
+          // Update UI
+          const newFollowStatus = await isUserFollowing(currentUser.uid, viewingUserId);
+          const followers = userProfileData.followers || [];
+          if (newFollowStatus && !followers.includes(currentUser.uid)) {
+            followers.push(currentUser.uid);
+          } else if (!newFollowStatus) {
+            const idx = followers.indexOf(currentUser.uid);
+            if (idx > -1) followers.splice(idx, 1);
+          }
+          document.getElementById('followerCount').textContent = followers.length;
+          followBtn.disabled = false;
+          // Update isFollowing variable and button
+          return isUserFollowing(currentUser.uid, viewingUserId).then(status => {
+            if (status !== isFollowing) {
+              // Refresh the page to update all follow statuses
+              location.reload();
+            }
+          });
+        } catch (error) {
+          console.error('Error toggling follow:', error);
+          followBtn.disabled = false;
+        }
+      });
+    }
   }
 
   // Render posts
@@ -267,21 +383,102 @@ function setupTabs() {
 }
 
 function setupModals() {
+  const editProfileModal = document.getElementById('editProfileModal');
+  const followersModal = document.getElementById('followersModal');
+  const followingModal = document.getElementById('followingModal');
+
   document.querySelectorAll('[data-close-modal]').forEach(btn => {
     btn.addEventListener('click', () => {
-      editProfileModal.classList.add('hidden');
+      editProfileModal?.classList.add('hidden');
+      followersModal?.classList.add('hidden');
+      followingModal?.classList.add('hidden');
     });
   });
 
+  // Edit profile button
   editProfileBtn.addEventListener('click', () => {
     setupEditProfile();
     editProfileModal.classList.remove('hidden');
   });
 
+  // Modal close on background click
   editProfileModal.addEventListener('click', (e) => {
     if (e.target === editProfileModal) {
       editProfileModal.classList.add('hidden');
     }
+  });
+  followersModal?.addEventListener('click', (e) => {
+    if (e.target === followersModal) {
+      followersModal.classList.add('hidden');
+    }
+  });
+  followingModal?.addEventListener('click', (e) => {
+    if (e.target === followingModal) {
+      followingModal.classList.add('hidden');
+    }
+  });
+
+  // Followers/Following stats click handlers
+  document.getElementById('followerCount')?.addEventListener('click', async () => {
+    const followers = userProfileData.followers || [];
+    const followersList = document.getElementById('followersList');
+    
+    if (followers.length === 0) {
+      followersList.innerHTML = '<p class="empty-message">No followers yet</p>';
+    } else {
+      followersList.innerHTML = '<div class="loading"><i class="fa-solid fa-spinner fa-spin"></i> Loading...</div>';
+      try {
+        const userProfiles = [];
+        for (const uid of followers) {
+          const profile = await getUserProfile(uid);
+          if (profile) userProfiles.push(profile);
+        }
+        followersList.innerHTML = userProfiles.map(user => `
+          <div class="follower-item">
+            <img src="${user.profilePicture || `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect fill='%23101722' width='100' height='100'/%3E%3Ctext x='50' y='55' font-size='50' text-anchor='middle' fill='%23c9f35b' font-weight='bold'%3E${initials(user.name)}%3C/text%3E%3C/svg%3E`}" alt="${user.name}" class="follower-avatar">
+            <div class="follower-info">
+              <a href="user-profile.html?uid=${user.id}" class="follower-name">${escapeHtml(user.name || 'Member')}</a>
+              <p class="follower-username">@${escapeHtml(user.username || 'user')}</p>
+            </div>
+          </div>
+        `).join('');
+      } catch (error) {
+        console.error('Error loading followers:', error);
+        followersList.innerHTML = '<p class="error-message">Failed to load followers</p>';
+      }
+    }
+    followersModal.classList.remove('hidden');
+  });
+
+  document.getElementById('followingCount')?.addEventListener('click', async () => {
+    const following = userProfileData.following || [];
+    const followingList = document.getElementById('followingList');
+    
+    if (following.length === 0) {
+      followingList.innerHTML = '<p class="empty-message">Not following anyone yet</p>';
+    } else {
+      followingList.innerHTML = '<div class="loading"><i class="fa-solid fa-spinner fa-spin"></i> Loading...</div>';
+      try {
+        const userProfiles = [];
+        for (const uid of following) {
+          const profile = await getUserProfile(uid);
+          if (profile) userProfiles.push(profile);
+        }
+        followingList.innerHTML = userProfiles.map(user => `
+          <div class="follower-item">
+            <img src="${user.profilePicture || `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect fill='%23101722' width='100' height='100'/%3E%3Ctext x='50' y='55' font-size='50' text-anchor='middle' fill='%23c9f35b' font-weight='bold'%3E${initials(user.name)}%3C/text%3E%3C/svg%3E`}" alt="${user.name}" class="follower-avatar">
+            <div class="follower-info">
+              <a href="user-profile.html?uid=${user.id}" class="follower-name">${escapeHtml(user.name || 'Member')}</a>
+              <p class="follower-username">@${escapeHtml(user.username || 'user')}</p>
+            </div>
+          </div>
+        `).join('');
+      } catch (error) {
+        console.error('Error loading following:', error);
+        followingList.innerHTML = '<p class="error-message">Failed to load following</p>';
+      }
+    }
+    followingModal.classList.remove('hidden');
   });
 }
 
