@@ -1863,14 +1863,14 @@ body, #siteRoot, .section {
 .course-thumbnail { position: relative; display: grid; place-items: center; width: 100%; aspect-ratio: 16 / 9; overflow: hidden; background: linear-gradient(135deg, #164e63, #f59e0b); border-radius: 17px 17px 0 0; }
 .course-thumbnail.has-image { background: #111827; }
 .course-thumbnail::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,.18), transparent 45%, rgba(0,0,0,.7)); pointer-events: none; }
-.course-thumbnail img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center; transition: transform .45s ease, filter .45s ease; }
+.course-thumbnail img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center; transition: transform .45s ease, filter .45s ease; -ms-interpolation-mode: nearest-neighbor; image-rendering: -webkit-optimize-contrast; }
 .course-card-thumb-fallback { position: absolute; inset: 0; display: grid; place-items: center; align-content: center; gap: 8px; padding: 20px; color: #fff; background: linear-gradient(135deg, #123c55, #17202d 52%, #9b6b16); text-align: center; }
 .course-card-thumb-fallback i { font-size: 2rem; color: var(--accent); }
 .course-card-thumb-fallback strong { max-width: 90%; overflow: hidden; font: .82rem var(--font-display); text-overflow: ellipsis; white-space: nowrap; }
 .course-card-thumb-fallback { border-radius: inherit; }
 @media (hover: hover) and (pointer: fine) {
   .course-card:hover .course-thumbnail img,
-  .upcoming-card:hover .course-thumbnail img { transform: scale(1.04); filter: saturate(1.08); }
+  .upcoming-card:hover .course-thumbnail img { transform: scale(1.02); filter: saturate(1.08); }
 }
 .course-card-thumb i { font-size: 2rem; color: #fff; }
 .course-card-play { position: absolute; z-index: 2; display: grid; place-items: center; width: 46px; height: 46px; border: 3px solid rgba(255,255,255,.9); border-radius: 50%; color: #11151d; background: var(--accent); box-shadow: 0 8px 22px rgba(0,0,0,.35); transition: transform .25s ease, background .25s ease; }
@@ -2065,6 +2065,8 @@ body, #siteRoot, .section {
   object-fit: cover;
   object-position: center;
   transition: transform .35s ease, filter .35s ease;
+  -ms-interpolation-mode: nearest-neighbor;
+  image-rendering: -webkit-optimize-contrast;
 }
 .lms-course-fallback {
   position: absolute;
@@ -2173,7 +2175,7 @@ body, #siteRoot, .section {
 .lms-course-view i { font-size: .72rem; }
 @media (hover: hover) and (pointer: fine) {
   .lms-course-card:hover { border-color: rgba(255,212,59,.38); box-shadow: 0 15px 32px rgba(0,0,0,.28); transform: translateY(-2px); }
-  .lms-course-card:hover .lms-course-thumbnail img { filter: saturate(1.08); transform: scale(1.03); }
+  .lms-course-card:hover .lms-course-thumbnail img { filter: saturate(1.08); transform: scale(1.02); }
   .lms-course-card:hover .lms-course-play { background: #b36bff; transform: scale(1.06); }
   .lms-course-card:hover .lms-course-view { background: #fff; transform: translateY(-1px); }
 }
@@ -2305,7 +2307,10 @@ body, #siteRoot, .section {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: center;
   transition: transform .45s ease;
+  -ms-interpolation-mode: nearest-neighbor;
+  image-rendering: -webkit-optimize-contrast;
 }
 #course .course-overview-card:hover .course-overview-thumbnail img {
   transform: scale(1.025);

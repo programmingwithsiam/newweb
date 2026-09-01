@@ -85,19 +85,19 @@ export async function uploadStoryImage(file) {
 }
 
 export async function getActiveStories() {
-  const { collection, query, where, getDocs, orderBy } = await import('https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js');
+  const { collection, query, where, getDocs } = await import('https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js');
 
   const now = new Date();
   const storiesRef = collection(db, 'stories');
   const q = query(
     storiesRef,
-    where('expiresAt', '>', now),
-    orderBy('createdAt', 'desc')
+    where('expiresAt', '>', now)
   );
 
   try {
     const snapshot = await getDocs(q);
-    const stories = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const stories = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+      .sort((left, right) => (right.createdAt?.toMillis?.() || new Date(right.createdAt || 0).getTime()) - (left.createdAt?.toMillis?.() || new Date(left.createdAt || 0).getTime()));
     
     // Remove duplicates (latest story per user)
     const storyMap = new Map();

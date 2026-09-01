@@ -36,6 +36,31 @@
   display: none;
 }
 
+.profile-upload-preview,
+.cover-upload-preview {
+  display: block;
+  margin-top: 10px;
+  border: 1px solid var(--community-line);
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.profile-upload-preview {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+}
+
+.cover-upload-preview {
+  width: min(100%, 320px);
+  height: 100px;
+}
+
+.profile-upload-preview.hidden,
+.cover-upload-preview.hidden {
+  display: none;
+}
+
 /* ============================================================
    PROFILE COVER & HEADER
    ============================================================ */

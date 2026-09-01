@@ -1018,7 +1018,7 @@
    CREATE STORY MODAL
    ============================================================ */
 
-.community-modal {
+#createStoryModal.community-modal {
   position: fixed;
   top: 0;
   left: 0;
@@ -1032,11 +1032,11 @@
   backdrop-filter: blur(4px);
 }
 
-.community-modal.hidden {
+#createStoryModal.community-modal.hidden {
   display: none;
 }
 
-.community-modal-card {
+#createStoryModal .community-modal-card {
   background: #101722;
   border-radius: 16px;
   padding: 24px;
@@ -1052,7 +1052,7 @@
   max-width: 520px;
 }
 
-.modal-close {
+#createStoryModal .modal-close {
   position: absolute;
   top: 16px;
   right: 16px;
@@ -1070,11 +1070,11 @@
   transition: background 0.2s;
 }
 
-.modal-close:hover {
+#createStoryModal .modal-close:hover {
   background: rgba(255, 255, 255, 0.2);
 }
 
-.community-modal-card h2 {
+#createStoryModal .community-modal-card h2 {
   margin: 0 0 24px;
   font-size: 1.5rem;
   font-weight: 700;

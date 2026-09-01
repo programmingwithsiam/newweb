@@ -811,6 +811,107 @@
   }
 }
 
+/* ============================================================
+   REACTION SYSTEM - Support Button Styling
+   ============================================================ */
+
+.post-reactions {
+  padding: 8px 0;
+  color: var(--community-muted);
+  font-size: 0.85rem;
+}
+
+.reaction-count {
+  display: block;
+}
+
+.reaction-btn {
+  transition: all 0.2s ease !important;
+}
+
+.reaction-btn.is-reacted {
+  color: var(--community-accent) !important;
+  background: rgba(201, 243, 91, 0.12) !important;
+}
+
+.reaction-btn.is-reacted:hover {
+  background: rgba(201, 243, 91, 0.2) !important;
+}
+
+.post-reactions.hidden {
+  display: none;
+}
+
+.reaction-icons {
+  margin-right: 5px;
+  letter-spacing: 2px;
+}
+
+.reaction-count {
+  padding: 0;
+  border: 0;
+  color: var(--community-muted);
+  background: transparent;
+  cursor: pointer;
+}
+
+.reaction-count:hover {
+  color: var(--community-accent);
+}
+
+.reaction-wrap .reaction-picker {
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(6px) scale(.96);
+  transition: opacity .16s ease, transform .16s ease, visibility .16s;
+}
+
+.reaction-wrap .reaction-picker.is-open,
+.reaction-wrap:hover .reaction-picker,
+.reaction-wrap:focus-within .reaction-picker {
+  visibility: visible;
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0) scale(1);
+}
+
+.reaction-choice {
+  position: relative;
+}
+
+.reaction-choice.is-selected {
+  background: rgba(201, 243, 91, .16) !important;
+}
+
+.reaction-choice span {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  padding: 4px 7px;
+  border-radius: 5px;
+  color: var(--community-text);
+  background: var(--community-panel-2);
+  font-size: .62rem;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-50%) translateY(3px);
+  transition: opacity .14s ease, transform .14s ease;
+}
+
+.reaction-choice:hover span,
+.reaction-choice:focus-visible span {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+@media (max-width: 750px) {
+  .reaction-wrap .reaction-picker {
+    left: 0;
+    max-width: calc(100vw - 40px);
+  }
+}
 
 .post-head time{display:block;margin-top:3px}.post-avatar{overflow:hidden}.post-avatar img,.composer-avatar img{width:100%;height:100%;object-fit:cover;border-radius:inherit}.admin-badge{margin-left:6px;padding:2px 5px;border-radius:4px;color:#10150b;background:var(--community-accent);font-size:.52rem;font-weight:800}.image-picker{display:inline-flex;align-items:center;gap:5px;padding:8px 10px;border:1px solid var(--community-line);border-radius:6px;color:var(--community-muted);font-size:.72rem;cursor:pointer}.image-picker:hover{color:var(--community-accent);border-color:var(--community-accent)}.post-image{display:block;width:min(100%,520px);max-height:420px;margin:12px 0 0;border-radius:8px;object-fit:cover}
 .profile-link{border:0;padding:0;color:inherit;background:transparent;font:inherit;text-align:left;cursor:pointer}.profile-link:hover{color:var(--community-accent)}.community-modal{position:fixed;inset:0;z-index:20;display:grid;place-items:center;padding:18px;background:rgba(4,6,10,.72)}.community-modal.hidden{display:none}.community-modal-card{position:relative;width:min(100%,420px);max-height:min(80vh,620px);overflow:auto;padding:24px;border:1px solid var(--community-line);border-radius:12px;background:var(--community-panel);box-shadow:0 18px 50px rgba(0,0,0,.3)}.modal-close{position:absolute;top:12px;right:12px;border:0;color:var(--community-muted);background:transparent;cursor:pointer;font-size:1rem}.profile-modal-head{display:flex;align-items:center;gap:12px;padding-right:24px}.profile-modal-avatar{width:58px;height:58px;overflow:hidden;border-radius:50%;background:var(--community-accent)}.profile-modal-avatar img{width:100%;height:100%;object-fit:cover}.profile-modal-head h2{margin:0;font-size:1.15rem}.profile-modal-about{margin:16px 0;color:var(--community-muted);font-size:.82rem;line-height:1.5}.message-card{width:min(100%,540px)}.message-list{display:grid;gap:8px;max-height:360px;overflow:auto;margin:16px 0;padding:4px}.private-message{max-width:80%;padding:9px 11px;border-radius:10px;color:var(--community-text);background:var(--community-panel-2);font-size:.8rem}.private-message.mine{justify-self:end;color:#10150b;background:var(--community-accent)}.message-form{display:flex;gap:8px}.message-form input{min-width:0;flex:1;padding:10px 12px;border:1px solid var(--community-line);border-radius:18px;color:var(--community-text);background:var(--community-bg)}.message-form button{width:40px;border:0;border-radius:50%;color:#10150b;background:var(--community-accent);cursor:pointer}.message-status{min-height:1em;color:var(--community-muted);font-size:.7rem}

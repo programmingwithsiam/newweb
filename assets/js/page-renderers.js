@@ -252,13 +252,31 @@ export function renderPublishedCourseCatalog() {
     </a>`;
   }).join('');
   catalog.querySelectorAll('.lms-course-thumbnail img').forEach(image => {
+    let retryCount = 0;
+    const maxRetries = 2;
     image.addEventListener('error', () => {
+      const src = image.src;
+      // Try fallback YouTube thumbnail qualities if available
+      if (src.includes('img.youtube.com') && retryCount < maxRetries) {
+        retryCount++;
+        if (retryCount === 1 && !src.includes('hqdefault')) {
+          // Try hqdefault (480x360) - more widely available
+          image.src = src.replace(/\/maxresdefault\.jpg/, '/hqdefault.jpg');
+          return;
+        }
+        if (retryCount === 2 && !src.includes('mqdefault')) {
+          // Try mqdefault (320x180) as last resort
+          image.src = src.replace(/\/(maxresdefault|hqdefault)\.jpg/, '/mqdefault.jpg');
+          return;
+        }
+      }
+      // If all retries exhausted, show fallback
       const thumbnailContainer = image.parentElement;
       image.remove();
       thumbnailContainer?.classList.remove('has-image');
-        const title = thumbnailContainer?.closest('.lms-course-card')?.querySelector('.lms-course-title')?.textContent || 'Course';
+      const title = thumbnailContainer?.closest('.lms-course-card')?.querySelector('.lms-course-title')?.textContent || 'Course';
       thumbnailContainer?.insertAdjacentHTML('afterbegin', `<span class="lms-course-fallback"><i class="fa-solid fa-graduation-cap"></i><strong>${escapeHtml(title.slice(0, 24))}</strong></span>`);
-    }, { once: true });
+    }, { once: false });
   });
 }
 

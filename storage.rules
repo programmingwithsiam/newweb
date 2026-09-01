@@ -24,5 +24,12 @@ service firebase.storage {
         request.resource.contentType.matches('image/.*') && request.resource.size <= 5242880;
       allow delete: if isGoogleUser() && request.auth.uid == uid;
     }
+
+    match /profile-pictures/{uid}/{fileName} {
+      allow read: if true;
+      allow write: if isGoogleUser() && request.auth.uid == uid &&
+        request.resource.contentType.matches('image/(jpeg|png|webp)') && request.resource.size <= 5242880;
+      allow delete: if isGoogleUser() && request.auth.uid == uid;
+    }
   }
 }

@@ -12,6 +12,7 @@
   <link rel="stylesheet" href="assets/css/community.css">
   <link rel="stylesheet" href="assets/css/community-overrides.css">
   <link rel="stylesheet" href="assets/css/user-profile.css">
+  <link rel="stylesheet" href="assets/css/mobile-community.css">
 </head>
 <body>
   <header class="community-topbar">
@@ -83,6 +84,7 @@
       <!-- Bio -->
       <div class="profile-bio-section">
         <p id="profileBio" class="profile-bio">Bio goes here...</p>
+        <p id="profileMeta" class="profile-join-date"></p>
         <p id="profileJoinDate" class="profile-join-date">Joined Aug 2026</p>
       </div>
 
@@ -191,6 +193,17 @@
           <div class="form-group">
             <label for="editBio">Bio</label>
             <textarea id="editBio" maxlength="200" placeholder="Tell us about yourself..." rows="3"></textarea>
+            <small><span id="bioCount">0</span>/200 characters</small>
+          </div>
+
+          <div class="form-group">
+            <label for="editLocation">Location</label>
+            <input id="editLocation" type="text" maxlength="80" placeholder="Where are you based?">
+          </div>
+
+          <div class="form-group">
+            <label for="editWebsite">Website</label>
+            <input id="editWebsite" type="url" maxlength="200" placeholder="https://example.com">
           </div>
 
           <div class="form-group">
@@ -222,6 +235,7 @@
                 <i class="fa-solid fa-image"></i> Choose Image
               </button>
               <span id="profilePictureFileName">No file selected</span>
+              <img id="profilePicturePreview" class="profile-upload-preview hidden" alt="Profile picture preview">
             </div>
             <small>Recommended: 400x400px, max 5MB</small>
           </div>
@@ -234,6 +248,7 @@
                 <i class="fa-solid fa-image"></i> Choose Image
               </button>
               <span id="coverPhotoFileName">No file selected</span>
+              <img id="coverPhotoPreview" class="cover-upload-preview hidden" alt="Cover image preview">
             </div>
             <small>Recommended: 1200x400px, max 5MB</small>
           </div>
@@ -249,6 +264,6 @@
     </div>
   </main>
 
-  <script type="module" src="assets/js/user-profile.js?v=20260830-profile-1"></script>
+  <script type="module" src="assets/js/user-profile.js?v=20260901-profile-edit-3"></script>
 </body>
 </html>

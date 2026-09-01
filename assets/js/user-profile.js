@@ -4,6 +4,7 @@ import { observeAuthState } from './auth.js?v=20260829-auth-fix-1';
 let currentUser = null;
 let viewingUserId = null;
 let userProfileData = null;
+let authObserverStarted = false;
 
 const profileContent = document.getElementById('profileContent');
 const profileLoading = document.getElementById('profileLoading');
@@ -108,6 +109,14 @@ async function renderUserProfile() {
   document.getElementById('profileUsername').textContent = '@' + (userProfileData.username || 'user');
   document.getElementById('profileRole').textContent = userProfileData.learningRole || 'Learning Role';
   document.getElementById('profileBio').textContent = userProfileData.bio || 'No bio yet';
+  const profileMeta = document.getElementById('profileMeta');
+  if (profileMeta) {
+    const metadata = [userProfileData.location, userProfileData.website].filter(Boolean);
+    profileMeta.innerHTML = metadata.map(value => value.startsWith('http')
+      ? `<a href="${escapeHtml(value)}" target="_blank" rel="noopener">${escapeHtml(value.replace(/^https?:\/\//, ''))}</a>`
+      : escapeHtml(value)).join(' · ');
+    profileMeta.classList.toggle('hidden', metadata.length === 0);
+  }
   
   // Update timestamps
   const joinDate = userProfileData.createdAt?.toDate?.() || new Date(userProfileData.createdAt || 0);
@@ -115,16 +124,18 @@ async function renderUserProfile() {
   document.getElementById('aboutJoinDate').textContent = joinDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
   // Update profile picture
-  if (userProfileData.profilePicture) {
-    document.getElementById('profilePicture').src = userProfileData.profilePicture;
+  const profileImage = userProfileData.profilePicture || userProfileData.photoURL;
+  if (profileImage) {
+    document.getElementById('profilePicture').src = profileImage;
     document.getElementById('profilePicture').alt = userProfileData.name || 'Profile picture';
   } else {
     document.getElementById('profilePicture').src = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect fill='%23101722' width='100' height='100'/%3E%3Ctext x='50' y='55' font-size='50' text-anchor='middle' fill='%23c9f35b' font-weight='bold'%3E${initials(userProfileData.name)}%3C/text%3E%3C/svg%3E`;
   }
 
   // Update cover photo
-  if (userProfileData.coverPhoto) {
-    document.getElementById('profileCover').src = userProfileData.coverPhoto;
+  const coverImage = userProfileData.coverPhoto || userProfileData.coverURL;
+  if (coverImage) {
+    document.getElementById('profileCover').src = coverImage;
   }
 
   // Update skills
@@ -171,7 +182,7 @@ async function renderUserProfile() {
       const messageBtn = document.getElementById('messageProfileBtn');
       messageBtn.classList.remove('hidden');
       messageBtn.addEventListener('click', () => {
-        window.location.href = `community.html?message=${escapeHtml(viewingUserId)}`;
+        window.location.href = `personal-chat.html?uid=${encodeURIComponent(viewingUserId)}`;
       });
 
       // Check if already following
@@ -252,11 +263,15 @@ async function setupEditProfile() {
   if (!currentUser) return;
 
   // Set current values
-  document.getElementById('editDisplayName').value = currentUser.displayName || '';
-  document.getElementById('editUsername').value = currentUser.username || '';
-  document.getElementById('editBio').value = currentUser.bio || '';
-  document.getElementById('editRole').value = currentUser.learningRole || '';
-  document.getElementById('editSkills').value = (currentUser.skills || []).join(', ');
+  document.getElementById('editDisplayName').value = userProfileData.name || currentUser.displayName || '';
+  document.getElementById('editUsername').value = userProfileData.username || '';
+  document.getElementById('editBio').value = userProfileData.bio || '';
+  document.getElementById('editLocation').value = userProfileData.location || '';
+  document.getElementById('editWebsite').value = userProfileData.website || '';
+  document.getElementById('editRole').value = userProfileData.learningRole || '';
+  document.getElementById('editSkills').value = (userProfileData.skills || []).join(', ');
+  document.getElementById('bioCount').textContent = document.getElementById('editBio').value.length;
+  document.getElementById('editBio').oninput = event => { document.getElementById('bioCount').textContent = event.target.value.length; };
 
   // File input handlers
   document.getElementById('profilePictureBtn').addEventListener('click', (e) => {
@@ -273,6 +288,9 @@ async function setupEditProfile() {
     const file = e.target.files[0];
     if (file) {
       document.getElementById('profilePictureFileName').textContent = file.name;
+      const preview = document.getElementById('profilePicturePreview');
+      preview.src = URL.createObjectURL(file);
+      preview.classList.remove('hidden');
     }
   });
 
@@ -280,6 +298,9 @@ async function setupEditProfile() {
     const file = e.target.files[0];
     if (file) {
       document.getElementById('coverPhotoFileName').textContent = file.name;
+      const preview = document.getElementById('coverPhotoPreview');
+      preview.src = URL.createObjectURL(file);
+      preview.classList.remove('hidden');
     }
   });
 
@@ -291,19 +312,31 @@ async function setupEditProfile() {
 }
 
 async function saveProfileChanges() {
-  const { doc, updateDoc, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js');
-  const { getStorage, ref, uploadBytes, getDownloadURL } = await import('https://www.gstatic.com/firebasejs/10.13.0/firebase-storage.js');
-  
   const status = document.getElementById('editStatus');
+  const saveButton = editProfileForm.querySelector('button[type="submit"]');
   status.textContent = 'Saving...';
   status.className = 'form-status';
+  saveButton.disabled = true;
 
   try {
+    if (!currentUser || currentUser.uid !== viewingUserId) throw new Error('You can only edit your own profile.');
+    const { doc, setDoc, serverTimestamp, collection, query, where, getDocs } = await import('https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js');
+    const { getStorage, ref, uploadBytes, getDownloadURL } = await import('https://www.gstatic.com/firebasejs/10.13.0/firebase-storage.js');
+    const displayName = document.getElementById('editDisplayName').value.trim();
+    const username = document.getElementById('editUsername').value.trim().toLowerCase();
+    const website = document.getElementById('editWebsite').value.trim();
+    if (displayName.length < 2) throw new Error('Display name must be at least 2 characters.');
+    if (!/^[a-z0-9_]{3,30}$/.test(username)) throw new Error('Username must be 3-30 characters: letters, numbers, and underscores only.');
+    if (website && !/^https?:\/\//i.test(website)) throw new Error('Website must start with https:// or http://.');
+    const usernameMatches = await getDocs(query(collection(db, 'users'), where('username', '==', username)));
+    if (usernameMatches.docs.some(profile => profile.id !== currentUser.uid)) throw new Error('That username is already taken.');
     const storage = getStorage();
     const updates = {
-      name: document.getElementById('editDisplayName').value.trim(),
-      username: document.getElementById('editUsername').value.trim().toLowerCase(),
+      name: displayName,
+      username,
       bio: document.getElementById('editBio').value.trim(),
+      location: document.getElementById('editLocation').value.trim(),
+      website,
       learningRole: document.getElementById('editRole').value,
       skills: document.getElementById('editSkills').value
         .split(',')
@@ -322,7 +355,7 @@ async function saveProfileChanges() {
         throw new Error('Profile picture must be an image file');
       }
       
-      const profilePicRef = ref(storage, `profile-pictures/${currentUser.uid}/picture`);
+      const profilePicRef = ref(storage, `profile-pictures/${currentUser.uid}/picture.${profilePictureFile.type.split('/')[1]}`);
       status.textContent = 'Uploading profile picture...';
       await uploadBytes(profilePicRef, profilePictureFile);
       updates.profilePicture = await getDownloadURL(profilePicRef);
@@ -338,7 +371,7 @@ async function saveProfileChanges() {
         throw new Error('Cover photo must be an image file');
       }
       
-      const coverPhotoRef = ref(storage, `profile-pictures/${currentUser.uid}/cover`);
+      const coverPhotoRef = ref(storage, `profile-pictures/${currentUser.uid}/cover.${coverPhotoFile.type.split('/')[1]}`);
       status.textContent = 'Uploading cover photo...';
       await uploadBytes(coverPhotoRef, coverPhotoFile);
       updates.coverPhoto = await getDownloadURL(coverPhotoRef);
@@ -346,7 +379,9 @@ async function saveProfileChanges() {
 
     // Update user profile in Firestore
     const userRef = doc(db, 'users', currentUser.uid);
-    await updateDoc(userRef, updates);
+    await setDoc(userRef, updates, { merge: true });
+    const { updateProfile } = await import('https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js');
+    await updateProfile(currentUser, { displayName, photoURL: updates.profilePicture || currentUser.photoURL || null });
 
     status.textContent = 'Profile updated successfully!';
     status.className = 'form-status success';
@@ -360,6 +395,8 @@ async function saveProfileChanges() {
     console.error('Error saving profile:', error);
     status.textContent = error.message || 'Failed to save profile. Try again.';
     status.className = 'form-status error';
+  } finally {
+    saveButton.disabled = false;
   }
 }
 
@@ -485,11 +522,15 @@ function setupModals() {
 async function init() {
   // Get userId from URL
   const params = new URLSearchParams(window.location.search);
-  viewingUserId = params.get('uid');
+  viewingUserId = params.get('id') || params.get('uid');
 
   if (!viewingUserId) {
-    profileLoading.innerHTML = '<p>User not found</p>';
-    return;
+    if (auth.currentUser) {
+      viewingUserId = auth.currentUser.uid;
+    } else {
+      profileLoading.innerHTML = '<i class="fa-solid fa-user-lock"></i><p>Sign in to view your profile.</p><a class="profile-action-btn edit-btn" href="community.html#signin">Sign in</a>';
+      return;
+    }
   }
 
   userProfileData = await getUserProfile(viewingUserId);
@@ -504,12 +545,13 @@ async function init() {
   setupModals();
 }
 
-observeAuthState(user => {
+if (!authObserverStarted) {
+  authObserverStarted = true;
+  observeAuthState(user => {
   currentUser = user;
-  if (userProfileData && currentUser) {
-    setupEditProfile();
-  }
-});
+    if (user && !viewingUserId) init().catch(error => console.error('Error loading own profile:', error));
+  });
+}
 
 init().catch(error => {
   console.error('Error loading profile:', error);

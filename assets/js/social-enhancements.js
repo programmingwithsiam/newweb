@@ -44,19 +44,20 @@ async function createNotification(uid, type, message, targetId) {
 
 function addNotificationButton() {
   const heading = document.querySelector('.community-heading');
-  if (!heading || document.getElementById('notificationButton')) return;
+  const target = document.querySelector('.community-topbar nav') || heading;
+  if (!target || document.getElementById('notificationButton')) return;
   const button = document.createElement('button');
   button.id = 'notificationButton';
   button.className = 'notification-button';
   button.type = 'button';
   button.setAttribute('aria-label', 'Open notifications');
   button.innerHTML = '<i class="fa-regular fa-bell"></i><span class="notification-count hidden">0</span>';
-  heading.appendChild(button);
+  target.appendChild(button);
   const panel = document.createElement('div');
   panel.id = 'notificationPanel';
   panel.className = 'notification-panel hidden';
   panel.innerHTML = '<strong>Notifications</strong><div class="notification-list"><p class="comments-empty">Sign in to view notifications.</p></div>';
-  heading.appendChild(panel);
+  target.appendChild(panel);
   button.addEventListener('click', () => panel.classList.toggle('hidden'));
 }
 

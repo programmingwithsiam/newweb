@@ -76,7 +76,7 @@ service cloud.firestore {
       allow update: if isAdmin() ||
         (isOwner(uid) &&
           request.resource.data.role == resource.data.role &&
-          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'email', 'photoURL', 'username', 'bio', 'learningRole', 'skills', 'profilePicture', 'coverPhoto', 'followers', 'following', 'totalProjects', 'updatedAt']));
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'email', 'photoURL', 'username', 'bio', 'learningRole', 'skills', 'profilePicture', 'coverPhoto', 'location', 'website', 'followers', 'following', 'totalProjects', 'updatedAt']));
 
       allow delete: if isAdmin();
     }
@@ -129,8 +129,19 @@ service cloud.firestore {
         request.resource.data.reactions is map &&
         request.resource.data.createdAt == request.time;
       allow update: if isAdmin() ||
-        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactions']) &&
-          request.resource.data.reactions is map);
+        (isGoogleUser() &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactions']) &&
+          request.resource.data.reactions is map &&
+          (!('reactions' in resource.data) ||
+            request.resource.data.reactions.diff(resource.data.reactions).affectedKeys().hasOnly([request.auth.uid])) &&
+          (!request.resource.data.reactions.keys().hasAll([request.auth.uid]) ||
+            request.resource.data.reactions[request.auth.uid] is map) &&
+          (!request.resource.data.reactions.keys().hasAll([request.auth.uid]) ||
+            request.resource.data.reactions[request.auth.uid].userId == request.auth.uid) &&
+          (!request.resource.data.reactions.keys().hasAll([request.auth.uid]) ||
+            request.resource.data.reactions[request.auth.uid].postId == postId) &&
+          (!request.resource.data.reactions.keys().hasAll([request.auth.uid]) ||
+            request.resource.data.reactions[request.auth.uid].reactionType in ['like', 'love', 'haha', 'wow', 'celebrate', 'fire', 'helpful']));
       allow delete: if isAdmin() || (isSignedIn() && resource.data.authorUid == request.auth.uid);
 
       match /comments/{commentId} {
