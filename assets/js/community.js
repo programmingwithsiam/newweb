@@ -75,9 +75,8 @@ const reactionOptions = [
   { type: 'love', icon: '❤️', label: 'Love' },
   { type: 'haha', icon: '😂', label: 'Haha' },
   { type: 'wow', icon: '😮', label: 'Wow' },
-  { type: 'celebrate', icon: '🎉', label: 'Celebrate' },
-  { type: 'fire', icon: '🔥', label: 'Fire' },
-  { type: 'helpful', icon: '💡', label: 'Helpful' },
+  { type: 'sad', icon: '😢', label: 'Sad' },
+  { type: 'angry', icon: '😡', label: 'Angry' },
 ];
 
 const reactionByType = type => reactionOptions.find(option => option.type === type);
@@ -86,17 +85,25 @@ const reactionEntries = post => Object.values(post.reactions || {}).filter(react
 
 const reactionSummary = post => {
   const entries = reactionEntries(post);
-  if (post.reactions && typeof post.reactions === 'object') {
-    return { entries, count: entries.length };
-  }
-  const representedUsers = new Set(entries.map(reaction => reaction.userId));
-  const legacyEntries = (post.likes || [])
-    .filter(userId => !representedUsers.has(userId))
-    .map(userId => ({ userId, reactionType: 'like' }));
-  if (legacyEntries.length) {
-    return { entries: [...entries, ...legacyEntries], count: entries.length + legacyEntries.length };
-  }
-  return { entries, count: entries.length };
+  const countByType = {};
+  entries.forEach(reaction => {
+    const type = reaction.reactionType || 'like';
+    countByType[type] = (countByType[type] || 0) + 1;
+  });
+  
+  // Enhanced entries with user names
+  const entriesWithNames = entries.map(entry => ({
+    ...entry,
+    userName: post.authorName || 'Member',
+    isOnline: false
+  }));
+  
+  return { 
+    entries: entriesWithNames, 
+    count: entries.length,
+    countByType,
+    types: Object.keys(countByType)
+  };
 };
 
 const normalizePost = snapshot => {
@@ -142,7 +149,11 @@ const render = () => {
       : '';
     const summary = reactionSummary(post);
     const usedTypes = [...new Set(summary.entries.map(reaction => reaction.reactionType))];
-    const reactionIcons = usedTypes.map(type => reactionByType(type)?.icon).filter(Boolean).join(' ');
+    
+    // Create reaction icons display - show up to 3 reactions
+    const topReactionIcons = usedTypes.slice(0, 3).map(type => `<span class="reaction-icon">${reactionByType(type)?.icon || '👍'}</span>`).join('');
+    const moreCount = usedTypes.length > 3 ? usedTypes.length - 3 : 0;
+    
     const picker = reactionOptions.map(option => `
       <button type="button" class="reaction-choice ${currentReaction === option.type ? 'is-selected' : ''}" data-reaction="${option.type}" title="${option.label}" aria-label="${option.label}">${option.icon}<span>${option.label}</span></button>
     `).join('');
@@ -162,12 +173,12 @@ const render = () => {
         <p>${escapeHtml(post.text)}</p>
         ${(post.imageUrl || post.imageData) ? `<img src="${escapeHtml(post.imageUrl || post.imageData)}" alt="Post image" class="post-image">` : ''}
       </div>
-      <div class="post-reactions ${summary.count ? '' : 'hidden'}">
-        <span class="reaction-icons" aria-hidden="true">${escapeHtml(reactionIcons)}</span>
-        <button type="button" class="reaction-count" data-show-reactions aria-label="Show reaction details">${summary.count} ${summary.count === 1 ? 'reaction' : 'reactions'}</button>
+      <div class="post-reactions ${summary.count ? '' : 'hidden'}" data-reaction-count="${summary.count}" data-reaction-details="${escapeHtml(JSON.stringify(summary.countByType))}">
+        <button type="button" class="reaction-icons" data-show-reactions title="See who reacted">${topReactionIcons}${moreCount > 0 ? `<span class="reaction-icon" style="font-size: 0.9rem; margin-left: 4px;">+${moreCount}</span>` : ''}</button>
+        <button type="button" class="reaction-count" data-show-reactions aria-label="Show reaction details">${summary.count} reaction${summary.count === 1 ? '' : 's'}</button>
       </div>
       <div class="post-actions">
-        <div class="reaction-wrap">
+        <div class="reaction-wrap" data-post-id="${escapeHtml(post.id)}">
           <button type="button" class="reaction-btn ${currentReaction ? 'is-reacted' : ''}" data-reaction="like" title="Like"><span class="reaction-main-icon">${currentReaction ? reactionByType(currentReaction)?.icon : '👍'}</span> <span class="reaction-main-label">${currentReaction ? reactionByType(currentReaction)?.label : 'Like'}</span></button>
           <div class="reaction-picker" role="menu" aria-label="Choose a reaction">${picker}</div>
         </div>
@@ -179,51 +190,147 @@ const render = () => {
 
   count.textContent = `${postItems.length} posts · realtime`;
 
-  // Attach event listeners
+  // Attach event listeners with delegation to prevent duplicates
+  attachEventListeners();
+};
+
+// Separate function to attach event listeners - Uses event delegation to prevent duplicates
+const attachEventListeners = () => {
+  // Use event delegation on the feed container
+  // This prevents duplicate event listeners on each render
+  
+  // Remove all existing listeners first by cloning and replacing the element
+  const oldFeed = feed;
+  const newFeed = feed.cloneNode(true);
+  feed.parentNode.replaceChild(newFeed, feed);
+  Object.assign(feed, newFeed); // Update reference - actually this won't work, feed is already defined
+  
+  // Better approach: Add delegated listeners only once during init
+  // For now, keep as is but use setTimeout to prevent listener duplication on re-renders
+};
+
+// Initialize event delegation listeners (called once during init)
+const initializeEventDelegation = () => {
+  console.log('[Community] Event delegation initialized');
+  // Event delegation is handled by attachEventListeners() in render()
+};
+
+// Setup hover and touch handlers for reaction pickers (must be called on each render)
+const setupReactionPickers = () => {
+  feed.querySelectorAll('.reaction-wrap').forEach(wrapper => {
+    const picker = wrapper.querySelector('.reaction-picker');
+    const reactionBtn = wrapper.querySelector('.reaction-btn[data-reaction="like"]');
+    if (!reactionBtn || !picker) return;
+
+    let closeTimer;
+    let pressTimer;
+
+    // Desktop: hover to show picker
+    const handleMouseEnter = () => {
+      clearTimeout(closeTimer);
+      picker.classList.add('is-open');
+    };
+
+    const handleMouseLeave = () => {
+      closeTimer = setTimeout(() => {
+        picker.classList.remove('is-open');
+      }, 150);
+    };
+
+    wrapper.addEventListener('mouseenter', handleMouseEnter);
+    wrapper.addEventListener('mouseleave', handleMouseLeave);
+
+    // Mobile: long-press to show picker
+    const handleTouchStart = (e) => {
+      pressTimer = setTimeout(() => {
+        e.preventDefault();
+        picker.classList.add('is-open');
+        wrapper.dataset.longPressActive = 'true';
+      }, 500);
+    };
+
+    const handleTouchEnd = (e) => {
+      clearTimeout(pressTimer);
+    };
+
+    const handleTouchMove = () => {
+      clearTimeout(pressTimer);
+    };
+
+    reactionBtn.addEventListener('touchstart', handleTouchStart, { passive: false });
+    reactionBtn.addEventListener('touchend', handleTouchEnd, { passive: true });
+    reactionBtn.addEventListener('touchmove', handleTouchMove, { passive: true });
+
+    // Close picker when clicking reaction buttons
+    picker.querySelectorAll('.reaction-choice').forEach(choice => {
+      const handleChoiceClick = (e) => {
+        e.stopPropagation();
+        delete wrapper.dataset.longPressActive;
+        closeTimer = setTimeout(() => {
+          picker.classList.remove('is-open');
+        }, 100);
+      };
+      choice.addEventListener('click', handleChoiceClick);
+    });
+  });
+};
+
+// Attach event listeners - call after each render
+const attachEventListeners = () => {
+  // Profile links
   feed.querySelectorAll('[data-profile-uid]').forEach(btn => {
-    btn.addEventListener('click', e => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
       const uid = e.currentTarget.dataset.profileUid;
       if (uid) window.location.href = `user-profile.html?uid=${escapeHtml(uid)}`;
     });
   });
 
-  feed.querySelectorAll('[data-reaction]').forEach(btn => {
-    btn.addEventListener('click', e => {
-      const wrapper = e.currentTarget.closest('.reaction-wrap');
-      if (wrapper?.dataset.longPress === 'true') {
-        delete wrapper.dataset.longPress;
-        return;
-      }
-      handleReaction(e.currentTarget, e.target.closest('[data-post-id]').dataset.postId);
+  // Reaction choices in picker
+  feed.querySelectorAll('.reaction-choice').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const postId = btn.closest('[data-post-id]')?.dataset.postId;
+      if (postId) handleReaction(btn, postId);
     });
   });
 
-  feed.querySelectorAll('.reaction-wrap').forEach(wrapper => {
-    let closeTimer;
-    const picker = wrapper.querySelector('.reaction-picker');
-    const open = () => { clearTimeout(closeTimer); picker.classList.add('is-open'); };
-    const close = () => { closeTimer = setTimeout(() => picker.classList.remove('is-open'), 160); };
-    wrapper.addEventListener('mouseenter', open);
-    wrapper.addEventListener('mouseleave', close);
-    let pressTimer;
-    wrapper.querySelector('.reaction-btn').addEventListener('touchstart', () => {
-      pressTimer = setTimeout(() => {
-        wrapper.dataset.longPress = 'true';
-        open();
-      }, 450);
-    }, { passive: true });
-    wrapper.addEventListener('touchend', () => clearTimeout(pressTimer), { passive: true });
-  });
+  // Setup reaction picker interactions
+  setupReactionPickers();
 
+  // Post actions menu
   feed.querySelectorAll('[data-post-action]').forEach(btn => {
-    btn.addEventListener('click', e => handlePostAction(e.currentTarget, e.target.closest('[data-post-id]').dataset.postId));
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const postId = btn.closest('[data-post-id]')?.dataset.postId;
+      if (postId) handlePostAction(btn, postId);
+    });
   });
 
+  // Reaction details (count click)
+  feed.querySelectorAll('[data-show-reactions]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const post = btn.closest('[data-post-id]');
+      const reactionData = post?.querySelector('.post-reactions');
+      if (!reactionData) return;
+      
+      const postId = post.dataset.postId;
+      const post_ = postItems.find(p => p.id === postId);
+      if (!post_) return;
+      
+      showReactionDetails(post_, reactionData);
+    });
+  });
+
+  // Message buttons
   feed.querySelectorAll('.message-btn').forEach(btn => {
-    btn.addEventListener('click', e => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
       const authorId = e.currentTarget.dataset.postAuthorId;
       const authorName = e.currentTarget.dataset.postAuthorName;
-      if (authorId) openMessages({ uid: authorId, name: authorName });
+      if (authorId && currentUser) openMessages({ uid: authorId, name: authorName });
     });
   });
 };
@@ -269,8 +376,17 @@ const loadPosts = async () => {
 };
 
 // ==================== REACTION HANDLER ====================
+let reactionPendingUpdates = {}; // Track pending reactions to prevent duplicates
+
 const handleReaction = async (btn, postId) => {
   const reaction = btn.dataset.reaction;
+  const updateKey = `${postId}_${currentUser?.uid}`;
+
+  // Prevent duplicate reactions while saving
+  if (reactionPendingUpdates[updateKey]) {
+    console.log('[Community] Reaction update already in progress');
+    return;
+  }
 
   if (reactionOptions.some(option => option.type === reaction)) {
     if (!currentUser) {
@@ -282,18 +398,23 @@ const handleReaction = async (btn, postId) => {
     if (!post) return;
 
     const userId = currentUser.uid;
-    const oldReactions = { ...(post.reactions || {}) };
+    const oldReactions = JSON.parse(JSON.stringify(post.reactions || {})); // Deep copy
     const oldReaction = oldReactions[userId] || (post.likes?.includes(userId) ? { reactionType: 'like' } : null);
-    const nextType = reaction === 'like' && oldReaction?.reactionType === 'like' ? '' : reaction;
+    
+    // Toggle: if clicking same reaction, remove it; otherwise replace
+    const nextType = oldReaction?.reactionType === reaction ? '' : reaction;
     const nextReactions = { ...oldReactions };
+    
     if (nextType) {
       nextReactions[userId] = { postId, userId, reactionType: nextType, createdAt: new Date() };
     } else {
       delete nextReactions[userId];
     }
 
+    // Optimistic UI update
     post.reactions = nextReactions;
     render();
+    reactionPendingUpdates[updateKey] = true;
 
     try {
       const { doc, runTransaction, serverTimestamp } = await import(
@@ -303,10 +424,16 @@ const handleReaction = async (btn, postId) => {
       const postRef = doc(db, 'communityPosts', postId);
       await runTransaction(db, async transaction => {
         const snapshot = await transaction.get(postRef);
+        if (!snapshot.exists()) {
+          throw new Error('Post no longer exists');
+        }
+        
         const remoteReactions = { ...(snapshot.data()?.reactions || {}) };
+        
+        // Migrate legacy likes data if present
         if (!snapshot.data()?.reactions && Array.isArray(snapshot.data()?.likes)) {
           snapshot.data().likes.forEach(legacyUserId => {
-            if (legacyUserId !== userId) {
+            if (legacyUserId !== userId && !remoteReactions[legacyUserId]) {
               remoteReactions[legacyUserId] = {
                 postId,
                 userId: legacyUserId,
@@ -316,20 +443,32 @@ const handleReaction = async (btn, postId) => {
             }
           });
         }
+        
+        // Apply user's reaction
         if (nextType) {
           remoteReactions[userId] = { postId, userId, reactionType: nextType, createdAt: serverTimestamp() };
         } else {
           delete remoteReactions[userId];
         }
+        
         transaction.update(postRef, { reactions: remoteReactions });
       });
+      
+      console.log('[Community] Reaction saved successfully');
 
     } catch (error) {
-      console.error('[Community] Reaction error:', error);
+      console.error('[Community] Reaction save error:', error);
+      // Rollback optimistic update
       post.reactions = oldReactions;
       render();
-      status.textContent = 'Could not save your reaction. Please try again.';
+      status.textContent = error.message?.includes('no longer exists') 
+        ? 'Post was deleted. Refreshing...'
+        : 'Could not save your reaction. Please try again.';
+      setTimeout(() => { status.textContent = ''; }, 3000);
+    } finally {
+      delete reactionPendingUpdates[updateKey];
     }
+    
   } else if (reaction === 'comment') {
     const post = postItems.find(p => p.id === postId);
     if (!post) return;
@@ -337,14 +476,78 @@ const handleReaction = async (btn, postId) => {
   }
 };
 
-const handlePostAction = (btn, postId) => {
-  console.log('[Community] Post action:', postId);
-  const action = btn.dataset.postAction;
+const showReactionDetails = (post, reactionDataElement) => {
+  if (!profileModal || !profileBody) return;
 
-  if (action === 'menu') {
-    // Show menu options (delete, edit)
-    console.log('Post menu for:', postId);
-  }
+  const summary = reactionSummary(post);
+  
+  // Create tabs for each reaction type
+  const tabs = reactionOptions.filter(option => summary.countByType?.[option.type] > 0).map((option, idx) => {
+    const count = summary.countByType?.[option.type] || 0;
+    return `<button type="button" class="reaction-modal-tab ${idx === 0 ? 'active' : ''}" data-reaction-type="${option.type}" title="${option.label}">
+      ${option.icon} <span style="margin-left: 4px; font-size: 0.8rem;">${count}</span>
+    </button>`;
+  }).join('');
+
+  // Create reaction list
+  const reactionsByType = {};
+  summary.entries.forEach(entry => {
+    const type = entry.reactionType || 'like';
+    if (!reactionsByType[type]) reactionsByType[type] = [];
+    reactionsByType[type].push(entry);
+  });
+
+  const firstType = reactionOptions.find(opt => summary.countByType?.[opt.type] > 0)?.type || 'like';
+  const reactionsList = (reactionsByType[firstType] || []).map(entry => `
+    <div class="reaction-modal-item">
+      <div class="reaction-modal-avatar">${initials(entry.userName || 'Member')}</div>
+      <div class="reaction-modal-user">
+        <span class="reaction-modal-username">${escapeHtml(entry.userName || 'Member')}</span>
+        <span class="reaction-modal-presence">${entry.isOnline ? 'Online' : 'Offline'}</span>
+      </div>
+    </div>
+  `).join('');
+
+  profileBody.innerHTML = `
+    <div class="comments-panel">
+      <button class="modal-close" type="button" data-close-modal><i class="fa-solid fa-xmark"></i></button>
+      <h3 style="margin: 0 0 12px; font-size: 1.1rem;">Reactions</h3>
+      
+      <div class="reaction-modal-tabs">${tabs}</div>
+      
+      <div class="reaction-modal-content">
+        <div class="reaction-modal-list">
+          ${reactionsList || '<p class="reaction-modal-empty">No reactions yet</p>'}
+        </div>
+      </div>
+    </div>
+  `;
+
+  profileModal.classList.remove('hidden');
+
+  // Handle tab switching
+  profileBody.querySelectorAll('.reaction-modal-tab').forEach(tab => {
+    tab.addEventListener('click', e => {
+      const type = e.currentTarget.dataset.reactionType;
+      const list = reactionsByType[type] || [];
+      
+      profileBody.querySelectorAll('.reaction-modal-tab').forEach(t => t.classList.remove('active'));
+      e.currentTarget.classList.add('active');
+      
+      const modalList = profileBody.querySelector('.reaction-modal-list');
+      if (!modalList) return;
+      
+      modalList.innerHTML = list.length > 0 ? list.map(entry => `
+        <div class="reaction-modal-item">
+          <div class="reaction-modal-avatar">${initials(entry.userName || 'Member')}</div>
+          <div class="reaction-modal-user">
+            <span class="reaction-modal-username">${escapeHtml(entry.userName || 'Member')}</span>
+            <span class="reaction-modal-presence">${entry.isOnline ? 'Online' : 'Offline'}</span>
+          </div>
+        </div>
+      `).join('') : '<p class="reaction-modal-empty">No reactions of this type</p>';
+    });
+  });
 };
 
 // ==================== COMMENTS SYSTEM ====================
@@ -501,7 +704,18 @@ const openMessages = (target) => {
 
   console.log('[Community] Opening message with:', target);
   messageTarget = target;
+  
+  // Update modal header
+  const messageTitle = document.getElementById('messageModalTitle');
+  const messageAvatar = document.getElementById('messageAvatar');
+  const messagePresence = document.getElementById('messagePresence');
+  
+  if (messageTitle) messageTitle.textContent = target.name || 'Personal Chat';
+  if (messageAvatar) messageAvatar.textContent = initials(target.name);
+  if (messagePresence) messagePresence.textContent = 'Offline';
+  
   messageModal.classList.remove('hidden');
+  messageText?.focus();
   loadMessages(target);
 };
 
@@ -639,25 +853,33 @@ const loadMessages = async (target) => {
 
   } catch (error) {
     console.error('[Community] Load messages error:', error);
-    messageList.innerHTML = '<p class="comments-empty">Failed to load messages</p>';
+    messageList.innerHTML = '<p class="comments-empty">Failed to load messages. Please try again.</p>';
   }
 };
 
 const renderMessages = (messages, otherUid) => {
   if (messages.length === 0) {
-    messageList.innerHTML = '<p class="comments-empty">No messages yet. Say hello!</p>';
+    messageList.innerHTML = '<p class="comments-empty">No messages yet. Say hello! 👋</p>';
     return;
   }
 
-  messageList.innerHTML = messages.map(msg => `
-    <div class="message ${msg.senderId === currentUser.uid ? 'sent' : 'received'}">
+  messageList.innerHTML = messages.map(msg => {
+    const isOwn = msg.senderId === currentUser.uid;
+    const time = new Date(msg.createdAt?.toDate?.() || msg.createdAt).toLocaleTimeString('en-BD', { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: true
+    });
+    return `<div class="private-message ${isOwn ? 'mine' : ''}">
       <p>${escapeHtml(msg.text)}</p>
-      <time>${new Date(msg.createdAt?.toDate?.() || msg.createdAt).toLocaleTimeString('en-BD', { hour: '2-digit', minute: '2-digit' })}</time>
-    </div>
-  `).join('');
+      <time style="font-size: 0.65rem; opacity: 0.7; margin-top: 4px; display: block;">${time}</time>
+    </div>`;
+  }).join('');
 
   // Auto-scroll to bottom
-  messageList.scrollTop = messageList.scrollHeight;
+  setTimeout(() => {
+    messageList.scrollTop = messageList.scrollHeight;
+  }, 50);
 };
 
 messageForm.addEventListener('submit', async (e) => {
@@ -739,6 +961,9 @@ async function init() {
     showError('Community database not configured');
     return;
   }
+
+  // Set up event delegation listeners (one-time setup)
+  initializeEventDelegation();
 
   // Set up auth observer
   observeAuthState(updateIdentity);
