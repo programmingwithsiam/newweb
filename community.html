@@ -9,6 +9,8 @@
   <link rel="manifest" href="/manifest.json">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
   <link rel="stylesheet" href="assets/css/community.css">
+  <link rel="stylesheet" href="assets/css/facebook-reactions.css">
+  <link rel="stylesheet" href="assets/css/community-animations.css">
   <link rel="stylesheet" href="assets/css/social-enhancements.css">
   <link rel="stylesheet" href="assets/css/stories.css">
   <link rel="stylesheet" href="assets/css/mobile-community.css">
@@ -16,18 +18,82 @@
   <style>
     /* CodeWithSiam Community Platform - Layout Improvements */
     .community-layout { max-width: 1400px !important; width: min(1400px, calc(100% - 48px)) !important; grid-template-columns: 220px minmax(0, 720px) 280px !important; gap: 32px !important; padding: 34px 24px 80px !important; }
+    .community-brand-wrap { min-width: 170px; }
+    .community-search { display: none; }
+    .community-primary-nav { display: flex; align-items: center; gap: 10px; }
+    .nav-pill { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 9px 14px; border: 1px solid transparent; border-radius: 10px; color: var(--community-muted); transition: all .2s ease; }
+    .nav-pill:hover { color: var(--community-text); background: var(--community-panel); border-color: var(--community-line); }
+    .nav-pill.active { background: rgba(201,243,91,.12); border-color: rgba(201,243,91,.22); color: var(--community-text); }
+    .icon-pill { width: 40px; height: 40px; padding: 0; }
+    .sidebar-profile-card { display: none; }
+    @media (min-width: 980px) {
+      .community-topbar { padding: 0 28px; }
+      .community-search { display: flex; align-items: center; gap: 10px; flex: 1; max-width: 420px; padding: 10px 14px; border: 1px solid var(--community-line); border-radius: 999px; background: rgba(16,23,34,.65); }
+      .community-search i { color: var(--community-muted); }
+      .community-search input { flex: 1; border: 0; outline: none; background: transparent; color: var(--community-text); font: inherit; }
+      .community-search input::placeholder { color: var(--community-muted); }
+      .community-primary-nav { gap: 8px; }
+      .community-layout { grid-template-columns: 260px minmax(0, 1fr) 300px !important; max-width: 1360px !important; gap: 24px !important; padding-top: 24px !important; }
+      .community-sidebar { gap: 12px; }
+      .sidebar-profile-card { display: flex; align-items: center; gap: 12px; padding: 12px 10px; border: 1px solid var(--community-line); border-radius: 12px; background: var(--community-panel); box-shadow: 0 3px 10px rgba(0,0,0,.12); }
+      .sidebar-profile-card.hidden { display: none; }
+      .sidebar-profile-avatar { display: grid; place-items: center; width: 40px; height: 40px; overflow: hidden; border-radius: 50%; background: var(--community-accent); color: #10150b; font-weight: 800; }
+      .sidebar-profile-avatar img { width: 100%; height: 100%; object-fit: cover; }
+      .sidebar-profile-copy { display: grid; gap: 3px; min-width: 0; }
+      .sidebar-profile-copy strong { font-size: .82rem; }
+      .sidebar-profile-copy span { font-size: .68rem; color: var(--community-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .side-link { padding: 12px 14px; border: 1px solid transparent; border-radius: 10px; transition: all .2s ease; }
+      .side-link.active, .side-link:hover { background: var(--community-panel); border-color: var(--community-line); color: var(--community-text); }
+      .community-feed { max-width: 680px; justify-self: center; }
+      .community-heading h1 { font-size: 2.2rem; }
+      .composer { padding: 18px 18px 16px; border-radius: 16px; box-shadow: 0 6px 20px rgba(0,0,0,.12); }
+      .composer textarea { min-height: 80px; border-radius: 12px; }
+      .community-post { padding: 20px; border-radius: 16px; box-shadow: 0 4px 16px rgba(0,0,0,.14); }
+      .community-right { gap: 18px; }
+      .info-panel { padding: 18px; border-radius: 16px; }
+      .info-panel h2 { font-size: 1.1rem; }
+    }
     @media (max-width: 1100px) { .community-layout { grid-template-columns: 200px minmax(0, 1fr); gap: 20px; padding: 34px 20px 80px; } .community-right { display: none; } }
     @media (max-width: 750px) { .community-layout { display: block; width: calc(100% - 24px); padding: 24px 12px 60px; } .community-sidebar { display: flex; overflow-x: auto; gap: 8px; position: static; margin-bottom: 18px; padding-bottom: 8px; } .side-link { white-space: nowrap; flex-shrink: 0; padding: 10px; } .community-heading h1 { font-size: 1.4rem; } .community-right { display: none; } .composer { padding: 12px; flex-direction: column; } .composer-avatar { width: 32px; height: 32px; } .composer textarea { min-height: 50px; font-size: .9rem; } .composer-actions { flex-wrap: wrap; gap: 6px; } .composer-actions span { flex: 1 1 100%; margin-top: 6px; order: 3; } .primary { order: 2; min-width: auto; } .image-picker { order: 1; } .secondary { order: 4; } .post-head { gap: 6px; } .post-avatar { width: 28px; height: 28px; font-size: .6rem; } .post-text { font-size: .85rem; margin: 10px 0; } .post-actions { flex-wrap: wrap; gap: 8px; } .post-actions button { font-size: .7rem; } }
     @media (max-width: 500px) { .community-heading { margin-bottom: 16px; } .community-heading h1 { font-size: 1.2rem; } .post-actions { flex-direction: column; } .post-actions button { width: 100%; } }
   </style>
 </head>
 <body>
-  <header class="community-topbar"><a href="index.html" class="brand">CodeWith<span>Siam</span></a><nav><a href="index.html"><i class="fa-solid fa-house"></i> Home</a><a href="live.html" aria-label="Open Live learning" title="Live learning"><i class="fa-solid fa-tower-broadcast"></i></a><a class="mobile-message-button" href="personal-chat.html" aria-label="Open Personal Chat" title="Personal Chat"><i class="fa-regular fa-message"></i></a><a id="mobileProfileButton" class="mobile-profile-button" href="user-profile.html" aria-label="Open your profile" title="Profile"><i class="fa-solid fa-user"></i></a><button id="themeToggle" type="button" aria-label="Toggle dark mode"><i class="fa-solid fa-sun"></i></button></nav></header>
+  <header class="community-topbar">
+    <div class="community-brand-wrap"><a href="index.html" class="brand">CodeWith<span>Siam</span></a></div>
+    <label class="community-search" aria-label="Search community">
+      <i class="fa-solid fa-magnifying-glass"></i>
+      <input type="search" placeholder="Search community" aria-label="Search community">
+    </label>
+    <nav class="community-primary-nav">
+      <a class="nav-pill" href="index.html"><i class="fa-solid fa-house"></i><span>Home</span></a>
+      <a class="nav-pill active" href="community.html"><i class="fa-solid fa-users"></i><span>Community</span></a>
+      <a class="nav-pill icon-pill" href="personal-chat.html" aria-label="Messages" title="Messages"><i class="fa-regular fa-message"></i></a>
+      <a class="nav-pill icon-pill" href="#" aria-label="Notifications" title="Notifications"><i class="fa-solid fa-bell"></i></a>
+      <a id="desktopProfileLink" class="nav-pill icon-pill" href="user-profile.html" aria-label="Profile" title="Profile"><i class="fa-solid fa-user"></i></a>
+      <button id="themeToggle" type="button" aria-label="Toggle dark mode"><i class="fa-solid fa-sun"></i></button>
+    </nav>
+  </header>
   <main class="community-layout">
-    <aside class="community-sidebar"><a class="side-link active" href="community.html"><i class="fa-solid fa-users"></i> Community</a><a id="myProfileLink" class="side-link" href="user-profile.html"><i class="fa-solid fa-user"></i> My Profile</a><a class="side-link" href="live.html"><i class="fa-solid fa-video"></i> Live learning</a><a class="side-link" href="course.html"><i class="fa-solid fa-graduation-cap"></i> Courses</a></aside>
+    <aside class="community-sidebar">
+      <div class="sidebar-profile-card hidden" id="communityUserCard">
+        <div class="sidebar-profile-avatar" id="communityUserAvatar">S</div>
+        <div class="sidebar-profile-copy">
+          <strong id="communityUserCardName">CodeWithSiam</strong>
+          <span id="communityUserCardMeta">@community</span>
+        </div>
+      </div>
+      <a class="side-link active" href="community.html"><i class="fa-solid fa-users"></i> Community</a>
+      <a id="myProfileLink" class="side-link" href="user-profile.html"><i class="fa-solid fa-user"></i> My Profile</a>
+      <a class="side-link" href="live.html"><i class="fa-solid fa-video"></i> Live learning</a>
+      <a class="side-link" href="course.html"><i class="fa-solid fa-graduation-cap"></i> Courses</a>
+    </aside>
     <section class="community-feed">
       <div class="community-heading"><div><p class="eyebrow">CODEWITHSIAM COMMUNITY</p><h1>Learn together.</h1><p>Share progress, ask questions, and build in public.</p></div><span id="memberStatus" class="member-status">Community</span></div>
-        <section class="composer"><div class="composer-avatar" id="composerAvatar">S</div><div class="composer-main"><p id="composerIdentity">Sign in to share with the community</p><textarea id="postText" rows="3" maxlength="1000" placeholder="What are you learning today?" aria-label="Write a community post"></textarea><div id="imagePreview" class="image-preview hidden"><img id="imagePreviewPhoto" src="" alt="Selected photo preview"><button id="removePostImage" type="button" aria-label="Remove selected photo"><i class="fa-solid fa-xmark"></i></button></div><div class="composer-actions"><span id="postStatus" aria-live="polite"></span><label class="image-picker" for="postImage"><i class="fa-regular fa-image"></i> Add photo</label><input id="postImage" type="file" accept="image/jpeg,image/png,image/webp,image/gif" hidden><button id="signInBtn" class="secondary" type="button"><i class="fa-brands fa-google"></i> Sign in</button><button id="postBtn" class="primary" type="button" disabled><i class="fa-solid fa-paper-plane"></i> Post</button></div></div></section>
+
+      <section id="storiesStrip" class="stories-strip" aria-label="Community stories"></section>
+
+      <section class="composer"><div class="composer-avatar" id="composerAvatar">S</div><div class="composer-main"><p id="composerIdentity">Sign in to share with the community</p><textarea id="postText" rows="3" maxlength="1000" placeholder="What are you learning today?" aria-label="Write a community post"></textarea><div id="imagePreview" class="image-preview hidden"><img id="imagePreviewPhoto" src="" alt="Selected photo preview"><button id="removePostImage" type="button" aria-label="Remove selected photo"><i class="fa-solid fa-xmark"></i></button></div><div class="composer-actions"><span id="postStatus" aria-live="polite"></span><label class="image-picker" for="postImage"><i class="fa-regular fa-image"></i> Add photo</label><input id="postImage" type="file" accept="image/jpeg,image/png,image/webp,image/gif" hidden><button id="signInBtn" class="secondary" type="button"><i class="fa-brands fa-google"></i> Sign in</button><button id="postBtn" class="primary" type="button" disabled><i class="fa-solid fa-paper-plane"></i> Post</button></div></div></section>
       <div class="feed-toolbar"><h2>Recent posts</h2><span id="postCount">Realtime</span></div>
       <section id="postFeed" class="post-feed"><div class="feed-empty"><i class="fa-solid fa-spinner fa-spin"></i><p>Loading community...</p></div></section>
     </section>
@@ -44,7 +110,58 @@
   <div id="messageModal" class="community-modal hidden" role="dialog" aria-modal="true" aria-labelledby="messageModalTitle"><div class="community-modal-card message-card"><div class="message-header"><span id="messageAvatar" class="message-avatar"></span><div><h2 id="messageModalTitle">Personal Chat</h2><small id="messagePresence" class="message-presence">Offline</small></div><button class="modal-close" type="button" data-close-modal aria-label="Close messages"><i class="fa-solid fa-xmark"></i></button></div><div id="messageList" class="message-list"></div><form id="messageForm" class="message-form"><input id="messageText" maxlength="1000" placeholder="Say something..." aria-label="Write a private message" required><button type="submit" aria-label="Send message"><i class="fa-solid fa-paper-plane"></i></button></form><p id="messageStatus" class="message-status"></p></div></div>
   <div id="inboxModal" class="community-modal hidden" role="dialog" aria-modal="true" aria-labelledby="inboxTitle"><div class="community-modal-card inbox-card"><button class="modal-close" type="button" data-close-modal aria-label="Close inbox"><i class="fa-solid fa-xmark"></i></button><p class="eyebrow">PERSONAL CHAT</p><h2 id="inboxTitle">Personal Chat</h2><div id="inboxList" class="inbox-list"><p class="comments-empty">Sign in to view messages.</p></div></div></div>
 
-  <script type="module" src="assets/js/community.js?v=20260901-mobile-community-2"></script>
+  <div id="storyCreatorModal" class="community-modal hidden" role="dialog" aria-modal="true" aria-labelledby="storyCreatorModalTitle">
+    <div class="community-modal-card story-creation-card">
+      <button class="modal-close" type="button" data-close-modal aria-label="Close story creator"><i class="fa-solid fa-xmark"></i></button>
+      <h2 id="storyCreatorModalTitle">Create story</h2>
+      <form id="storyCreateForm" class="story-creation-form">
+        <div class="story-creation-tabs">
+          <button type="button" class="story-tab-btn active" data-story-tab="text"><i class="fa-solid fa-pen"></i> Text</button>
+          <button type="button" class="story-tab-btn" data-story-tab="image"><i class="fa-solid fa-image"></i> Photo</button>
+        </div>
+
+        <div class="story-tab-pane active" data-story-pane="text">
+          <div class="form-group">
+            <label for="storyTextInput">Write your story</label>
+            <textarea id="storyTextInput" rows="4" maxlength="280" placeholder="Share your latest learning update..."></textarea>
+            <small id="storyTextCount">0/280</small>
+          </div>
+        </div>
+
+        <div class="story-tab-pane" data-story-pane="image">
+          <div class="form-group">
+            <label for="storyImageInput">Add photo</label>
+            <div class="file-input-wrapper">
+              <button type="button" id="storyImagePicker" class="file-select-btn"><i class="fa-solid fa-image"></i> Choose photo</button>
+              <input id="storyImageInput" type="file" accept="image/jpeg,image/png,image/webp,image/gif" hidden>
+              <span id="storyImageFileName">No photo selected</span>
+            </div>
+            <div id="storyImagePreview" class="hidden"><img id="storyImagePreviewPhoto" src="" alt="Story preview"></div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="storyCategorySelect">Category</label>
+          <select id="storyCategorySelect">
+            <option value="learning">🚀 Learning Update</option>
+            <option value="project">💻 Project Update</option>
+            <option value="achievement">🎯 Achievement</option>
+            <option value="study">📚 Study Update</option>
+            <option value="idea">💡 Quick Idea</option>
+            <option value="challenge">🔥 Challenge</option>
+          </select>
+        </div>
+
+        <div class="story-creation-actions">
+          <button type="button" class="secondary" data-close-modal>Cancel</button>
+          <button type="submit" class="primary">Post story</button>
+        </div>
+        <p id="storyStatus" class="form-status" aria-live="polite"></p>
+      </form>
+    </div>
+  </div>
+
+  <script type="module" src="assets/js/community.js?v=20260902-story-ui-1"></script>
   <script type="module" src="assets/js/social-enhancements.js?v=20260901-mobile-header-1"></script>
 </body>
 </html>

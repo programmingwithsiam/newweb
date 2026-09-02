@@ -26,7 +26,20 @@
   </style>
 </head>
 <body class="personal-chat-page">
-  <header class="community-topbar"><a href="community.html" class="brand"><i class="fa-solid fa-arrow-left"></i> Community</a><strong class="personal-chat-title">Personal Chat</strong><span></span></header>
+  <header class="community-topbar">
+    <div class="community-brand-wrap"><a href="community.html" class="brand"><i class="fa-solid fa-arrow-left"></i> CodeWith<span>Siam</span></a></div>
+    <label class="community-search" aria-label="Search chats">
+      <i class="fa-solid fa-magnifying-glass"></i>
+      <input type="search" placeholder="Search conversations" aria-label="Search conversations">
+    </label>
+    <nav class="community-primary-nav">
+      <a class="nav-pill" href="index.html"><i class="fa-solid fa-house"></i><span>Home</span></a>
+      <a class="nav-pill" href="community.html"><i class="fa-solid fa-users"></i><span>Community</span></a>
+      <a class="nav-pill icon-pill active" href="personal-chat.html" aria-label="Messages" title="Messages"><i class="fa-regular fa-message"></i></a>
+      <a class="nav-pill icon-pill" href="#" aria-label="Notifications" title="Notifications"><i class="fa-solid fa-bell"></i></a>
+      <button id="themeToggle" type="button" aria-label="Toggle dark mode"><i class="fa-solid fa-sun"></i></button>
+    </nav>
+  </header>
   <main class="personal-chat-layout">
     <aside class="chat-contacts"><div class="chat-contacts-head"><h1>Chats</h1><span id="chatUserState">Sign in</span></div><div id="chatContactsList" class="chat-contacts-list"><p class="comments-empty">Sign in to view your chats.</p></div></aside>
     <section class="chat-window"><div id="chatEmpty" class="chat-window-empty"><i class="fa-regular fa-message"></i><h2>Select a conversation</h2><p>Choose a person from your chats to start messaging.</p></div><div id="chatActive" class="chat-active hidden"><div class="chat-window-head"><span id="chatTargetAvatar" class="message-avatar"></span><div><h2 id="chatTargetName">Personal Chat</h2><small id="chatTargetPresence">Offline</small></div><span class="chat-header-actions"><button type="button" aria-label="Start video call" title="Video call"><i class="fa-solid fa-video"></i></button><button type="button" aria-label="Start voice call" title="Voice call"><i class="fa-solid fa-phone"></i></button><button type="button" aria-label="Search messages" title="Search messages"><i class="fa-solid fa-magnifying-glass"></i></button><button id="editChatNickname" type="button" aria-label="Change nickname" title="Change nickname"><i class="fa-solid fa-pen"></i></button><button type="button" aria-label="More chat options" title="More options"><i class="fa-solid fa-ellipsis-vertical"></i></button></span></div><div id="chatMessages" class="message-list"></div><form id="chatForm" class="message-form"><button type="button" class="message-attach" aria-label="Attach file" title="Attach file"><i class="fa-solid fa-paperclip"></i></button><button type="button" class="message-emoji" aria-label="Add emoji" title="Add emoji"><i class="fa-regular fa-face-smile"></i></button><input id="chatText" maxlength="1000" placeholder="Type a message" aria-label="Write a private message" required><button type="button" class="message-mic" aria-label="Record voice message" title="Voice message"><i class="fa-solid fa-microphone"></i></button><button type="submit" aria-label="Send message" title="Send message"><i class="fa-solid fa-paper-plane"></i></button></form><p id="chatStatus" class="message-status"></p></div></section>

@@ -16,15 +16,28 @@
 </head>
 <body>
   <header class="community-topbar">
-    <a href="community.html" class="brand"><i class="fa-solid fa-arrow-left"></i> CodeWith<span>Siam</span></a>
-    <nav>
-      <a href="index.html"><i class="fa-solid fa-house"></i> Home</a>
-      <a href="community.html"><i class="fa-solid fa-users"></i> Community</a>
+    <div class="community-brand-wrap"><a href="community.html" class="brand"><i class="fa-solid fa-arrow-left"></i> CodeWith<span>Siam</span></a></div>
+    <label class="community-search" aria-label="Search profiles">
+      <i class="fa-solid fa-magnifying-glass"></i>
+      <input type="search" placeholder="Search profiles" aria-label="Search profiles">
+    </label>
+    <nav class="community-primary-nav">
+      <a class="nav-pill" href="index.html"><i class="fa-solid fa-house"></i><span>Home</span></a>
+      <a class="nav-pill" href="community.html"><i class="fa-solid fa-users"></i><span>Community</span></a>
+      <a class="nav-pill icon-pill" href="personal-chat.html" aria-label="Messages" title="Messages"><i class="fa-regular fa-message"></i></a>
+      <a class="nav-pill icon-pill" href="#" aria-label="Notifications" title="Notifications"><i class="fa-solid fa-bell"></i></a>
       <button id="themeToggle" type="button" aria-label="Toggle dark mode"><i class="fa-solid fa-sun"></i></button>
     </nav>
   </header>
 
-  <main class="user-profile-container">
+  <main class=\"user-profile-container community-layout\">
+    <aside class=\"community-sidebar\">
+      <a class=\"side-link\" href=\"community.html\"><i class=\"fa-solid fa-users\"></i> Community</a>
+      <a class=\"side-link active\" href=\"user-profile.html\"><i class=\"fa-solid fa-user\"></i> My Profile</a>
+      <a class=\"side-link\" href=\"live.html\"><i class=\"fa-solid fa-video\"></i> Live learning</a>
+      <a class=\"side-link\" href=\"course.html\"><i class=\"fa-solid fa-graduation-cap\"></i> Courses</a>
+    </aside>
+    <section class=\"profile-main-content\">
     <div id="profileLoading" class="profile-loading">
       <i class="fa-solid fa-spinner fa-spin"></i>
       <p>Loading profile...</p>
@@ -261,8 +274,8 @@
           <p id="editStatus" class="form-status"></p>
         </form>
       </div>
-    </div>
-  </main>
+    </div>    </section>
+    </section>  </main>
 
   <script type="module" src="assets/js/user-profile.js?v=20260901-profile-edit-3"></script>
 </body>

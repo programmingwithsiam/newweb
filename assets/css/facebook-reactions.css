@@ -1,0 +1,536 @@
+/* ============================================================
+   FACEBOOK-STYLE REACTION SYSTEM
+   CodeWithSiam Dark + Purple Theme
+   ============================================================ */
+
+:root {
+  --reaction-like: #c9f35b;
+  --reaction-love: #f02849;
+  --reaction-haha: #f7b731;
+  --reaction-wow: #f7b731;
+  --reaction-sad: #f7b731;
+  --reaction-angry: #ea7317;
+}
+
+/* ============================================================
+   REACTION WRAPPER - Container for picker and main button
+   ============================================================ */
+
+.reaction-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.reaction-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--community-muted);
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  outline: none;
+  line-height: 1;
+  user-select: none;
+}
+
+.reaction-btn:hover {
+  background: rgba(201, 243, 91, 0.08);
+  color: var(--community-text);
+}
+
+.reaction-btn:active {
+  transform: scale(0.95);
+}
+
+.reaction-btn.is-reacted {
+  color: var(--reaction-like);
+  background: rgba(201, 243, 91, 0.12);
+}
+
+.reaction-btn.is-reacted:hover {
+  background: rgba(201, 243, 91, 0.18);
+}
+
+.reaction-btn i {
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.reaction-btn:focus-visible {
+  outline: 2px solid var(--community-accent);
+  outline-offset: 2px;
+}
+
+.reaction-main-icon {
+  font-size: 1.1rem;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+}
+
+.reaction-main-label {
+  display: inline;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.reaction-picker {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 12px);
+  transform: translateX(-50%) translateY(10px) scale(0.88);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  z-index: 9999;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 28px;
+  background: rgba(12, 18, 27, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  box-shadow: 0 18px 38px rgba(0, 0, 0, 0.46), 0 6px 16px rgba(0, 0, 0, 0.28);
+  backdrop-filter: blur(14px);
+  white-space: nowrap;
+  width: fit-content;
+  max-width: calc(100vw - 32px);
+  flex-wrap: nowrap;
+  transition: opacity 0.18s ease, transform 0.18s ease, visibility 0.18s ease;
+  animation: reactionPickerIn 0.2s ease forwards;
+}
+
+.reaction-picker.is-open,
+.reaction-wrap:hover .reaction-picker,
+.reaction-wrap:focus-within .reaction-picker {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateX(-50%) translateY(0) scale(1);
+}
+
+.reaction-picker[data-position="bottom"] {
+  bottom: auto;
+  top: calc(100% + 12px);
+}
+
+.reaction-choice {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  color: inherit;
+  font-size: 1.7rem;
+  cursor: pointer;
+  transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.18s ease, background 0.18s ease;
+  position: relative;
+  outline: none;
+  line-height: 1;
+  animation: reactionChoiceIn 0.22s ease both;
+  animation-delay: var(--delay, 0ms);
+}
+
+.reaction-choice span {
+  display: none !important;
+}
+
+.reaction-choice[data-reaction="like"] { background: rgba(71, 128, 255, 0.28); }
+.reaction-choice[data-reaction="love"] { background: rgba(255, 70, 110, 0.28); }
+.reaction-choice[data-reaction="haha"] { background: rgba(255, 198, 88, 0.26); }
+.reaction-choice[data-reaction="laugh"] { background: rgba(247, 183, 49, 0.28); }
+.reaction-choice[data-reaction="wow"] { background: rgba(255, 182, 62, 0.22); }
+.reaction-choice[data-reaction="sad"] { background: rgba(102, 159, 255, 0.22); }
+.reaction-choice[data-reaction="angry"] { background: rgba(249, 120, 70, 0.2); }
+
+.reaction-choice:hover,
+.reaction-choice:focus-visible {
+  background: rgba(255, 255, 255, 0.12);
+  transform: translateY(-6px) scale(1.18);
+  box-shadow: 0 10px 18px rgba(0, 0, 0, 0.18);
+}
+
+.reaction-choice:active {
+  transform: translateY(-3px) scale(1.08);
+}
+
+.reaction-choice.is-selected {
+  box-shadow: inset 0 0 0 2px rgba(201, 243, 91, 0.9);
+  background: rgba(201, 243, 91, 0.14);
+}
+
+.reaction-choice:focus-visible {
+  outline: 2px solid var(--community-accent);
+  outline-offset: 2px;
+}
+
+@keyframes reactionPickerIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(10px) scale(0.88); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+}
+
+@keyframes reactionChoiceIn {
+  from { opacity: 0; transform: translateY(6px) scale(0.86); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ============================================================
+   REACTION ICONS DISPLAY - Shows reaction count with icons
+   ============================================================ */
+
+.reaction-icons {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 8px;
+  border: none;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--community-muted);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.reaction-icons:hover {
+  background: rgba(201, 243, 91, 0.08);
+  color: var(--community-text);
+}
+
+.reaction-icons:focus-visible {
+  outline: 2px solid var(--community-accent);
+  outline-offset: 2px;
+}
+
+.reaction-icon {
+  font-size: 1rem;
+  line-height: 1;
+  display: inline-block;
+}
+
+/* ============================================================
+   REACTION COUNT - Shows total number of reactions
+   ============================================================ */
+
+.reaction-count {
+  display: inline-block;
+  padding: 4px 8px;
+  border: none;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--community-muted);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.reaction-count:hover {
+  background: rgba(201, 243, 91, 0.08);
+  color: var(--community-text);
+}
+
+.reaction-count:focus-visible {
+  outline: 2px solid var(--community-accent);
+  outline-offset: 2px;
+}
+
+/* ============================================================
+   POST REACTIONS CONTAINER - Shows reaction summary
+   ============================================================ */
+
+.post-reactions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+  margin: 8px 0;
+  font-size: 0.85rem;
+  color: var(--community-muted);
+}
+
+.post-reactions.hidden {
+  display: none;
+}
+
+/* ============================================================
+   REACTION ANIMATIONS
+   ============================================================ */
+
+/* Scale and bounce animation when reaction is added */
+@keyframes reactionPopIn {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) scale(0.6) translateY(-8px);
+    filter: blur(4px);
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(-50%) scale(1) translateY(0);
+    filter: blur(0);
+  }
+}
+
+/* Bounce animation for clicked reaction button */
+@keyframes reactionButtonClick {
+  0%, 100% {
+    transform: scale(1);
+  }
+  25% {
+    transform: scale(1.15);
+  }
+  50% {
+    transform: scale(0.95);
+  }
+  75% {
+    transform: scale(1.1);
+  }
+}
+
+/* Floating emoji particle animation */
+@keyframes floatReactionEmoji {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--tx, 0px), -60px) scale(1.5);
+  }
+}
+
+/* Reaction choice hover animation */
+@keyframes reactionChoiceHover {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.4);
+  }
+  100% {
+    transform: scale(1.3);
+  }
+}
+
+/* ============================================================
+   REACTION ANIMATION CLASSES
+   ============================================================ */
+
+.reaction-btn.clicked {
+  animation: reactionButtonClick 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.reaction-float-emoji {
+  position: fixed;
+  pointer-events: none;
+  font-size: 1.8rem;
+  font-weight: 600;
+  z-index: 9998;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  animation: floatReactionEmoji 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+}
+
+/* ============================================================
+   REACTION SUMMARY DISPLAY - Facebook-style counts row
+   ============================================================ */
+
+.reaction-counts-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--community-line);
+}
+
+.reaction-count-item,
+.comment-count-item,
+.share-count-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--community-muted);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  outline: none;
+  white-space: nowrap;
+}
+
+.reaction-count-item:hover,
+.comment-count-item:hover,
+.share-count-item:hover {
+  background: rgba(201, 243, 91, 0.08);
+  color: var(--community-text);
+}
+
+.reaction-count-item:focus-visible,
+.comment-count-item:focus-visible,
+.share-count-item:focus-visible {
+  outline: 2px solid var(--community-accent);
+  outline-offset: 2px;
+}
+
+.reaction-count-icon {
+  font-size: 0.9rem;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+}
+
+.reaction-icons-summary {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding-top: 8px;
+}
+
+.reaction-icons-summary .reaction-icon {
+  font-size: 0.95rem;
+  line-height: 1;
+  display: inline-block;
+}
+
+/* ============================================================
+   MOBILE RESPONSIVENESS
+   ============================================================ */
+
+@media (max-width: 768px) {
+  .reaction-picker {
+    gap: 0;
+    padding: 6px 8px;
+    bottom: calc(100% + 8px);
+  }
+
+  .reaction-choice {
+    width: 32px;
+    height: 32px;
+    font-size: 1.2rem;
+  }
+
+  .reaction-choice:hover {
+    transform: scale(1.25) translateY(-6px);
+  }
+
+  .reaction-btn {
+    padding: 4px 8px;
+    font-size: 0.85rem;
+  }
+
+  .reaction-main-icon {
+    font-size: 1rem;
+  }
+
+  .reaction-main-label {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .reaction-picker {
+    gap: 0;
+    padding: 5px 6px;
+  }
+
+  .reaction-choice {
+    width: 28px;
+    height: 28px;
+    font-size: 1rem;
+  }
+
+  .reaction-choice:hover {
+    transform: scale(1.2) translateY(-4px);
+  }
+
+  .reaction-btn {
+    padding: 4px 6px;
+    font-size: 0.8rem;
+    gap: 4px;
+  }
+
+  .reaction-main-icon {
+    font-size: 0.95rem;
+  }
+
+  .reaction-icons {
+    padding: 2px 6px;
+  }
+
+  .reaction-count {
+    padding: 2px 6px;
+    font-size: 0.75rem;
+  }
+}
+
+/* ============================================================
+   ACCESSIBILITY
+   ============================================================ */
+
+.reaction-picker:focus-within {
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.5),
+              0 4px 12px rgba(0, 0, 0, 0.3),
+              0 0 0 2px var(--community-accent);
+}
+
+/* Reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .reaction-picker,
+  .reaction-choice,
+  .reaction-btn {
+    transition: none;
+    animation: none;
+  }
+
+  .reaction-picker.is-open {
+    transform: translateX(-50%) scale(1);
+  }
+}
+
+/* ============================================================
+   LIGHT MODE ADJUSTMENTS
+   ============================================================ */
+
+body.light .reaction-picker {
+  background: #ffffff;
+  border-color: #dbe1e8;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15),
+              0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+body.light .reaction-choice:hover {
+  background: rgba(201, 243, 91, 0.15);
+}
+
+body.light .reaction-btn:hover {
+  background: rgba(201, 243, 91, 0.1);
+}
+
+body.light .reaction-icons:hover,
+body.light .reaction-count:hover {
+  background: rgba(201, 243, 91, 0.1);
+}

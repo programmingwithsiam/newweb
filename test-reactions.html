@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reaction UI Test</title>
+  <link rel="stylesheet" href="assets/css/facebook-reactions.css">
+  <style>
+    body {
+      --community-text: #fff;
+      --community-muted: #888;
+      --community-accent: #c9f35b;
+      --community-panel: #0c121b;
+      background: #0c121b;
+      color: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      padding: 40px 20px;
+    }
+    .test-container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: rgba(255,255,255,0.02);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px;
+      padding: 24px;
+    }
+    h1 {
+      margin-top: 0;
+      color: #c9f35b;
+    }
+    .test-section {
+      margin: 32px 0;
+      padding: 16px;
+      background: rgba(201,243,91,0.05);
+      border-radius: 8px;
+    }
+    .test-label {
+      font-size: 0.85rem;
+      color: #888;
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .post-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 16px;
+      border-top: 1px solid rgba(255,255,255,0.1);
+      padding-top: 12px;
+    }
+    .test-output {
+      margin-top: 16px;
+      padding: 12px;
+      background: rgba(0,0,0,0.3);
+      border-radius: 6px;
+      font-family: monospace;
+      font-size: 0.85rem;
+      max-height: 200px;
+      overflow-y: auto;
+      color: #c9f35b;
+    }
+  </style>
+</head>
+<body>
+  <div class="test-container">
+    <h1>🎯 Reaction UI Test</h1>
+    
+    <div class="test-section">
+      <div class="test-label">Test 1: Desktop Hover Behavior</div>
+      <p>Hover over the Like button to see the reaction picker appear above it. Move your mouse into the picker to select a reaction.</p>
+      <div class="post-actions">
+        <div class="reaction-wrap" data-test-id="hover-test">
+          <button type="button" class="reaction-btn" data-reaction="like" title="Like">
+            <span class="reaction-main-icon">👍</span>
+            <span class="reaction-main-label">Like</span>
+          </button>
+          <div class="reaction-picker" role="menu" aria-label="Choose a reaction">
+            <button type="button" class="reaction-choice" data-reaction="love" title="Love" aria-label="Love">❤️<span>Love</span></button>
+            <button type="button" class="reaction-choice" data-reaction="haha" title="Haha" aria-label="Haha">😂<span>Haha</span></button>
+            <button type="button" class="reaction-choice" data-reaction="laugh" title="Laugh" aria-label="Laugh">😆<span>Laugh</span></button>
+            <button type="button" class="reaction-choice" data-reaction="wow" title="Wow" aria-label="Wow">😮<span>Wow</span></button>
+            <button type="button" class="reaction-choice" data-reaction="sad" title="Sad" aria-label="Sad">😢<span>Sad</span></button>
+            <button type="button" class="reaction-choice" data-reaction="angry" title="Angry" aria-label="Angry">😡<span>Angry</span></button>
+          </div>
+        </div>
+        <button type="button" class="reaction-btn"><i>💬</i> Comment</button>
+        <button type="button" class="reaction-btn"><i>↗️</i> Share</button>
+      </div>
+      <div class="test-output" id="test1-output"></div>
+    </div>
+
+    <div class="test-section">
+      <div class="test-label">Test 2: Reaction Selection</div>
+      <p>Hover and click on any reaction. The main Like button should update to show your selection.</p>
+      <div class="post-actions">
+        <div class="reaction-wrap" data-test-id="selection-test">
+          <button type="button" class="reaction-btn" data-reaction="like" title="Like">
+            <span class="reaction-main-icon">👍</span>
+            <span class="reaction-main-label">Like</span>
+          </button>
+          <div class="reaction-picker" role="menu" aria-label="Choose a reaction">
+            <button type="button" class="reaction-choice" data-reaction="love" title="Love" aria-label="Love">❤️<span>Love</span></button>
+            <button type="button" class="reaction-choice" data-reaction="haha" title="Haha" aria-label="Haha">😂<span>Haha</span></button>
+            <button type="button" class="reaction-choice" data-reaction="laugh" title="Laugh" aria-label="Laugh">😆<span>Laugh</span></button>
+            <button type="button" class="reaction-choice" data-reaction="wow" title="Wow" aria-label="Wow">😮<span>Wow</span></button>
+            <button type="button" class="reaction-choice" data-reaction="sad" title="Sad" aria-label="Sad">😢<span>Sad</span></button>
+            <button type="button" class="reaction-choice" data-reaction="angry" title="Angry" aria-label="Angry">😡<span>Angry</span></button>
+          </div>
+        </div>
+        <button type="button" class="reaction-btn"><i>💬</i> Comment</button>
+        <button type="button" class="reaction-btn"><i>↗️</i> Share</button>
+      </div>
+      <div class="test-output" id="test2-output"></div>
+    </div>
+  </div>
+
+  <script>
+    // Simple test for picker behavior
+    document.querySelectorAll('.reaction-wrap').forEach((wrapper, idx) => {
+      const picker = wrapper.querySelector('.reaction-picker');
+      const likeBtn = wrapper.querySelector('.reaction-btn[data-reaction="like"]');
+      const testId = wrapper.dataset.testId;
+      const output = document.getElementById(`test${idx + 1}-output`);
+      
+      if (!picker || !likeBtn || !output) return;
+      
+      const log = (msg) => {
+        const now = new Date().toLocaleTimeString();
+        output.innerHTML += `<div>[${now}] ${msg}</div>`;
+        output.scrollTop = output.scrollHeight;
+      };
+      
+      // Set up picker interactions
+      let hoverTimer = null;
+      
+      const openPicker = () => {
+        clearTimeout(hoverTimer);
+        picker.classList.add('is-open');
+        log(`✓ Picker opened (is-open class added)`);
+      };
+      
+      const closePicker = () => {
+        clearTimeout(hoverTimer);
+        hoverTimer = setTimeout(() => {
+          picker.classList.remove('is-open');
+          log(`✓ Picker closed (is-open class removed)`);
+        }, 120);
+      };
+      
+      const showOnHover = () => {
+        clearTimeout(hoverTimer);
+        hoverTimer = setTimeout(() => {
+          log(`→ Hover detected on button, opening picker...`);
+          openPicker();
+        }, 400);
+      };
+      
+      const hideOnLeave = () => {
+        log(`→ Leave detected, scheduling close...`);
+        closePicker();
+      };
+      
+      likeBtn.addEventListener('mouseenter', () => {
+        log('🖱️ mouseenter: Like button');
+        showOnHover();
+      });
+      
+      likeBtn.addEventListener('mouseleave', () => {
+        log('🖱️ mouseleave: Like button');
+        hideOnLeave();
+      });
+      
+      wrapper.addEventListener('mouseenter', () => {
+        log('🖱️ mouseenter: Wrapper');
+        showOnHover();
+      });
+      
+      wrapper.addEventListener('mouseleave', () => {
+        log('🖱️ mouseleave: Wrapper');
+        hideOnLeave();
+      });
+      
+      picker.addEventListener('mouseenter', () => {
+        log('🖱️ mouseenter: Picker (should keep open)');
+        openPicker();
+      });
+      
+      picker.addEventListener('mouseleave', () => {
+        log('🖱️ mouseleave: Picker');
+        closePicker();
+      });
+      
+      // Reaction choice clicks
+      wrapper.querySelectorAll('.reaction-choice').forEach(choice => {
+        choice.addEventListener('click', (e) => {
+          e.preventDefault();
+          const reaction = choice.dataset.reaction;
+          const icon = choice.textContent.trim().split('\n')[0];
+          const label = choice.getAttribute('title');
+          log(`✓ Reaction clicked: ${label} ${icon}`);
+          
+          // Update main button
+          likeBtn.classList.add('is-reacted');
+          likeBtn.querySelector('.reaction-main-icon').textContent = icon;
+          likeBtn.querySelector('.reaction-main-label').textContent = label;
+          log(`✓ Main button updated to show: ${label} ${icon}`);
+          
+          // Close picker
+          closePicker();
+        });
+      });
+      
+      log(`ℹ️ Test case initialized`);
+    });
+  </script>
+</body>
+</html>
