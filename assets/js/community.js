@@ -34,8 +34,106 @@ const storyImagePicker = document.getElementById('storyImagePicker');
 const storyImageFileName = document.getElementById('storyImageFileName');
 const storyImagePreview = document.getElementById('storyImagePreview');
 const storyImagePreviewPhoto = document.getElementById('storyImagePreviewPhoto');
+const storyAddMusicButton = document.getElementById('storyAddMusicButton');
+const storyMusicSummary = document.getElementById('storyMusicSummary');
+const storyRemoveMusicButton = document.getElementById('storyRemoveMusicButton');
+const storyMusicModal = document.getElementById('storyMusicModal');
+const storyMusicSearchForm = document.getElementById('storyMusicSearchForm');
+const storyMusicQuery = document.getElementById('storyMusicQuery');
+const storyMusicUrlForm = document.getElementById('storyMusicUrlForm');
+const storyMusicUrl = document.getElementById('storyMusicUrl');
+const storyMusicStatus = document.getElementById('storyMusicStatus');
+const storyMusicResults = document.getElementById('storyMusicResults');
+const storyMusicEditorModal = document.getElementById('storyMusicEditorModal');
+const storyMusicEditorSong = document.getElementById('storyMusicEditorSong');
+const storyMusicStart = document.getElementById('storyMusicStart');
+const storyMusicStartLabel = document.getElementById('storyMusicStartLabel');
+const storyMusicPreviewButton = document.getElementById('storyMusicPreviewButton');
+const storyMusicPreview = document.getElementById('storyMusicPreview');
+const storyMusicConfirmButton = document.getElementById('storyMusicConfirmButton');
+const storyMusicRecentButton = document.getElementById('storyMusicRecentButton');
+const storyMusicTrendingButton = document.getElementById('storyMusicTrendingButton');
 let storyDraftImageUrl = '';
 let storyDraftImageFile = null;
+let storyDraftMusic = null;
+let storyMusicSelection = null;
+let editingStory = null;
+
+const extractYoutubeId = value => {
+  try {
+    const url = new URL(String(value).trim());
+    const host = url.hostname.toLowerCase().replace(/^www\./, '');
+    if (host === 'youtu.be') return url.pathname.slice(1).split('/')[0].match(/^[A-Za-z0-9_-]{11}$/)?.[0] || '';
+    if (['youtube.com', 'm.youtube.com', 'music.youtube.com', 'youtube-nocookie.com'].includes(host)) {
+      const id = url.searchParams.get('v') || url.pathname.match(/\/shorts\/([^/]+)/)?.[1] || url.pathname.match(/\/embed\/([^/]+)/)?.[1];
+      return id?.match(/^[A-Za-z0-9_-]{11}$/)?.[0] || '';
+    }
+  } catch { /* Invalid URL */ }
+  return '';
+};
+
+const musicTime = seconds => `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, '0')}`;
+const musicApiKey = () => window.YOUTUBE_API_KEY || '';
+
+const openMusicEditor = async song => {
+  storyMusicSelection = { ...song, videoId: song.videoId || extractYoutubeId(song.url) };
+  if (!storyMusicSelection.videoId) {
+    storyMusicStatus.textContent = 'That is not a valid YouTube link.';
+    return;
+  }
+  storyMusicSelection.duration = Number(song.duration) || 180;
+  if (musicApiKey()) {
+    try {
+      const response = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=contentDetails&id=${storyMusicSelection.videoId}&key=${encodeURIComponent(musicApiKey())}`);
+      const data = await response.json();
+      const match = data.items?.[0]?.contentDetails?.duration?.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+      if (match) storyMusicSelection.duration = Number(match[1] || 0) * 3600 + Number(match[2] || 0) * 60 + Number(match[3] || 0);
+    } catch (error) { console.warn('[Community] Music duration unavailable:', error); }
+  }
+  storyMusicModal?.classList.add('hidden');
+  storyMusicEditorSong.innerHTML = `<img src="${escapeHtml(song.thumbnail || `https://i.ytimg.com/vi/${storyMusicSelection.videoId}/hqdefault.jpg`)}" alt=""><div><strong>${escapeHtml(song.title || 'YouTube music')}</strong><span>${escapeHtml(song.channel || '')}</span></div>`;
+  storyMusicStart.max = String(Math.max(0, Math.floor(storyMusicSelection.duration - 1)));
+  storyMusicStart.value = '0';
+  storyMusicStartLabel.textContent = '0:00';
+  storyMusicPreview.hidden = true;
+  storyMusicPreview.innerHTML = '';
+  storyMusicEditorModal?.classList.remove('hidden');
+};
+
+const renderMusicResults = results => {
+  storyMusicResults.innerHTML = results.length ? results.map(song => `<article class="story-music-result"><img src="${escapeHtml(song.thumbnail)}" alt=""><div><strong>${escapeHtml(song.title)}</strong><span>${escapeHtml(song.channel)}</span></div><button type="button" data-music-json="${escapeHtml(JSON.stringify(song))}">Select</button></article>`).join('') : '<p class="comments-empty">No music found.</p>';
+  storyMusicResults.querySelectorAll('[data-music-json]').forEach(button => button.addEventListener('click', () => openMusicEditor(JSON.parse(button.dataset.musicJson))));
+};
+
+const searchMusic = async queryText => {
+  const key = musicApiKey();
+  if (!key) {
+    storyMusicStatus.textContent = 'Search needs a YouTube Data API key. Paste a YouTube link below to continue.';
+    renderMusicResults([]);
+    return;
+  }
+  storyMusicStatus.textContent = 'Searching...';
+  try {
+    const response = await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoCategoryId=10&maxResults=8&q=${encodeURIComponent(queryText)}&key=${encodeURIComponent(key)}`);
+    if (!response.ok) throw new Error('Music search failed');
+    const data = await response.json();
+    renderMusicResults((data.items || []).map(item => ({ videoId: item.id.videoId, title: item.snippet.title, channel: item.snippet.channelTitle, thumbnail: item.snippet.thumbnails?.medium?.url || item.snippet.thumbnails?.default?.url || '' })));
+    storyMusicStatus.textContent = '';
+  } catch (error) {
+    console.error('[Community] Music search error:', error);
+    storyMusicStatus.textContent = 'Music search is unavailable right now.';
+    renderMusicResults([]);
+  }
+};
+
+const getRecentMusic = () => {
+  try { return JSON.parse(localStorage.getItem('recentMusic') || '[]'); } catch { return []; }
+};
+
+const showMusicCollection = results => {
+  storyMusicStatus.textContent = results.length ? '' : 'Nothing here yet.';
+  renderMusicResults(results);
+};
 
 // ==================== STATE ====================
 let currentUser = null;
@@ -267,6 +365,20 @@ const syncReactionPickerState = (wrapper, isVisible) => {
 const normalizePost = snapshot => {
   const data = snapshot.data();
   return { id: snapshot.id, ...data, authorId: data.authorId || data.authorUid, imageUrl: data.imageUrl || data.imageData };
+};
+
+const hydratePostAvatars = async posts => {
+  const authorIds = [...new Set(posts.map(post => post.authorId).filter(Boolean))];
+  if (!authorIds.length || !db) return posts;
+  try {
+    const { doc, getDoc } = await import('https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js');
+    const profiles = await Promise.all(authorIds.map(async uid => [uid, (await getDoc(doc(db, 'users', uid))).data()]));
+    const avatars = new Map(profiles.map(([uid, profile]) => [uid, profile?.profilePicture || profile?.photoURL || '']));
+    return posts.map(post => ({ ...post, avatarUrl: avatars.get(post.authorId) || (currentUser?.uid === post.authorId ? currentUser.photoURL || '' : post.avatarUrl || '') }));
+  } catch (error) {
+    console.warn('[Community] Could not refresh profile photos:', error);
+    return posts;
+  }
 };
 
 // ==================== RENDER FUNCTIONS ====================
@@ -595,15 +707,17 @@ const loadPosts = async () => {
 
     // Load initial posts
     const snapshot = await getDocs(postsQuery);
-    postItems = snapshot.docs.map(normalizePost);
+    postItems = await hydratePostAvatars(snapshot.docs.map(normalizePost));
     console.log(`[Community] Loaded ${postItems.length} posts`);
     render();
 
     // Set up real-time listener
     onSnapshot(postsQuery, (snapshot) => {
-      postItems = snapshot.docs.map(normalizePost);
-      console.log(`[Community] Real-time update: ${postItems.length} posts`);
-      render();
+      hydratePostAvatars(snapshot.docs.map(normalizePost)).then(updatedPosts => {
+        postItems = updatedPosts;
+        render();
+      });
+      console.log(`[Community] Real-time update: ${snapshot.docs.length} posts`);
     }, (error) => {
       console.error('[Community] Real-time listener error:', error.message);
       if (postItems.length === 0) {
@@ -1297,16 +1411,21 @@ const renderStoryStrip = (storyList) => {
   const storyCards = storyList.map(story => {
     const author = story.authorName || 'Member';
     const avatar = story.avatarUrl || fallbackStoryAvatar(author);
+    const isOwner = currentUser?.uid === story.authorUid;
+    const storyMediaUrl = story.mediaUrl || story.imageData || '';
+    const preview = story.type === 'image' && storyMediaUrl ? `<img src="${escapeHtml(storyMediaUrl)}" alt="" class="story-preview-image">` : `<span class="story-preview-text">${escapeHtml(story.content || 'New update')}</span>`;
     return `
-      <button type="button" class="story-card" data-story-id="${escapeHtml(story.id)}" aria-label="Open story from ${escapeHtml(author)}">
+      <article class="story-card" data-story-id="${escapeHtml(story.id)}" aria-label="Open story from ${escapeHtml(author)}">
         <div class="story-image-wrapper">
-          <img src="${escapeHtml(avatar)}" alt="${escapeHtml(author)} story" class="story-avatar">
+          ${preview}
+          <img src="${escapeHtml(avatar)}" alt="${escapeHtml(author)} story" class="story-avatar story-card-avatar">
         </div>
         <div class="story-info">
           <p class="story-name">${escapeHtml(author)}</p>
           <p class="story-time">${relativeTime(story.createdAt)}</p>
         </div>
-      </button>
+        ${isOwner ? `<div class="story-card-menu"><button type="button" class="story-menu-toggle" aria-label="Story options" title="Story options"><i class="fa-solid fa-ellipsis"></i></button><div class="story-menu"><button type="button" data-story-action="edit"><i class="fa-solid fa-pen"></i> Edit</button><button type="button" data-story-action="delete"><i class="fa-regular fa-trash-can"></i> Delete</button></div></div>` : ''}
+      </article>
     `;
   }).join('');
 
@@ -1318,18 +1437,41 @@ const renderStoryStrip = (storyList) => {
       status.textContent = 'Sign in to create a story.';
       return;
     }
+    resetStoryComposer();
     storyStatus.textContent = '';
     storyStatus.className = 'form-status';
     storyCreatorModal?.classList.remove('hidden');
   });
 
   storiesStrip.querySelectorAll('[data-story-id]').forEach(card => {
-    card.addEventListener('click', () => {
+    card.addEventListener('click', event => {
+      if (event.target.closest('.story-card-menu')) return;
       const storyId = card.getAttribute('data-story-id');
       if (!storyId) return;
       const story = storyList.find(item => item.id === storyId);
       if (!story) return;
       openStoryViewer(storyList, storyList.indexOf(story));
+    });
+    card.querySelector('.story-menu-toggle')?.addEventListener('click', event => {
+      event.stopPropagation();
+      card.classList.toggle('menu-open');
+    });
+    card.querySelector('[data-story-action="edit"]')?.addEventListener('click', event => {
+      event.stopPropagation();
+      const story = storyList.find(item => item.id === card.dataset.storyId);
+      if (story) openStoryEditor(story);
+    });
+    card.querySelector('[data-story-action="delete"]')?.addEventListener('click', async event => {
+      event.stopPropagation();
+      const story = storyList.find(item => item.id === card.dataset.storyId);
+      if (!story || !confirm(`Delete your story? This cannot be undone.`)) return;
+      try {
+        const { deleteStory } = await import('./story-manager.js?v=20260902-story-ui-1');
+        await deleteStory(story.id);
+        await loadStoryStrip();
+      } catch (error) {
+        storyStatus.textContent = error.message || 'Story could not be deleted.';
+      }
     });
   });
 };
@@ -1366,9 +1508,10 @@ const openStoryViewer = (storyList, selectedIndex) => {
           </div>
         </div>
         <div class="story-viewer-body">
-          ${story.type === 'image' && story.mediaUrl
-            ? `<img src="${escapeHtml(story.mediaUrl)}" alt="Story image" class="story-viewer-image">`
+          ${story.type === 'image' && (story.mediaUrl || story.imageData)
+            ? `<img src="${escapeHtml(story.mediaUrl || story.imageData)}" alt="Story image" class="story-viewer-image">`
             : `<div class="story-viewer-text"><span>${escapeHtml(story.category || 'learning')}</span><p>${escapeHtml(story.content || 'A new story update')}</p></div>`}
+          ${story.music?.videoId ? `<a class="story-music-sticker" href="https://www.youtube.com/watch?v=${encodeURIComponent(story.music.videoId)}&t=${Math.max(0, Number(story.music.start) || 0)}" target="_blank" rel="noopener noreferrer"><i class="fa-solid fa-music"></i> ${escapeHtml(story.music.title || 'Music')}</a>` : ''}
         </div>
       </div>
       <button class="story-nav-btn prev" type="button" aria-label="Previous story"><i class="fa-solid fa-chevron-left"></i></button>
@@ -1432,6 +1575,135 @@ if (storyImageInput) {
   });
 }
 
+const resetStoryComposer = () => {
+  editingStory = null;
+  const title = document.getElementById('storyCreatorModalTitle');
+  const submit = storyCreateForm?.querySelector('button[type="submit"]');
+  if (title) title.textContent = 'Create story';
+  if (submit) submit.textContent = 'Post story';
+  storyCreateForm?.reset();
+  storyDraftImageUrl = '';
+  storyDraftImageFile = null;
+  storyDraftMusic = null;
+  storyImagePreview?.classList.add('hidden');
+  storyMusicSummary?.setAttribute('hidden', '');
+  storyRemoveMusicButton?.setAttribute('hidden', '');
+  storyTabButtons.forEach(tab => tab.classList.toggle('active', tab.dataset.storyTab === 'text'));
+  storyTabPanes.forEach(pane => pane.classList.toggle('active', pane.dataset.storyPane === 'text'));
+  if (storyTextCount) storyTextCount.textContent = '0/280';
+};
+
+const openStoryEditor = story => {
+  if (!currentUser || currentUser.uid !== story.authorUid) return;
+  editingStory = story;
+  const title = document.getElementById('storyCreatorModalTitle');
+  const submit = storyCreateForm?.querySelector('button[type="submit"]');
+  if (title) title.textContent = 'Edit story';
+  if (submit) submit.textContent = 'Save changes';
+  storyTextInput.value = story.content || '';
+  storyTextCount.textContent = `${storyTextInput.value.length}/280`;
+  storyCategorySelect.value = story.category || 'learning';
+  storyDraftMusic = story.music || null;
+  if (storyDraftMusic) {
+    storyMusicSummary.textContent = `🎵 ${storyDraftMusic.title || 'Music'}`;
+    storyMusicSummary.hidden = false;
+    storyRemoveMusicButton.hidden = false;
+  }
+  const tab = story.type === 'image' ? 'image' : 'text';
+  storyTabButtons.forEach(button => button.classList.toggle('active', button.dataset.storyTab === tab));
+  storyTabPanes.forEach(pane => pane.classList.toggle('active', pane.dataset.storyPane === tab));
+  const storyMediaUrl = story.mediaUrl || story.imageData || '';
+  if (story.type === 'image' && storyMediaUrl) {
+    storyDraftImageUrl = storyMediaUrl;
+    storyImagePreviewPhoto.src = storyMediaUrl;
+    storyImagePreview.classList.remove('hidden');
+    storyImageFileName.textContent = 'Current photo';
+  }
+  storyStatus.textContent = '';
+  storyCreatorModal?.classList.remove('hidden');
+};
+
+storyAddMusicButton?.addEventListener('click', () => {
+  storyMusicStatus.textContent = '';
+  storyMusicQuery.value = '';
+  storyMusicUrl.value = '';
+  storyMusicResults.innerHTML = '<p class="comments-empty">Search for a song or paste a YouTube link.</p>';
+  storyMusicModal?.classList.remove('hidden');
+  storyMusicQuery.focus();
+});
+
+storyMusicSearchForm?.addEventListener('submit', event => {
+  event.preventDefault();
+  const queryText = storyMusicQuery.value.trim();
+  if (queryText) searchMusic(queryText);
+});
+
+storyMusicUrlForm?.addEventListener('submit', event => {
+  event.preventDefault();
+  const videoId = extractYoutubeId(storyMusicUrl.value);
+  if (!videoId) {
+    storyMusicStatus.textContent = 'Paste a valid YouTube video, Shorts, or youtu.be link.';
+    return;
+  }
+  openMusicEditor({ videoId, url: storyMusicUrl.value.trim(), title: 'YouTube music', channel: '', thumbnail: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` });
+});
+
+storyMusicRecentButton?.addEventListener('click', () => showMusicCollection(getRecentMusic()));
+storyMusicTrendingButton?.addEventListener('click', () => searchMusic('popular music'));
+
+storyMusicStart?.addEventListener('input', () => {
+  storyMusicStartLabel.textContent = musicTime(Number(storyMusicStart.value));
+});
+
+storyMusicPreviewButton?.addEventListener('click', () => {
+  if (!storyMusicSelection) return;
+  const start = Number(storyMusicStart.value);
+  const duration = Math.min(30, Math.max(1, storyMusicSelection.duration - start));
+  storyMusicPreview.innerHTML = `<iframe title="Music preview" src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(storyMusicSelection.videoId)}?start=${start}&end=${start + Math.floor(duration)}&autoplay=1&playsinline=1" allow="autoplay; encrypted-media" allowfullscreen></iframe>`;
+  storyMusicPreview.hidden = false;
+});
+
+storyMusicConfirmButton?.addEventListener('click', () => {
+  if (!storyMusicSelection) return;
+  const start = Number(storyMusicStart.value);
+  storyDraftMusic = {
+    videoId: storyMusicSelection.videoId,
+    url: storyMusicSelection.url || `https://www.youtube.com/watch?v=${storyMusicSelection.videoId}`,
+    title: storyMusicSelection.title || 'YouTube music',
+    channel: storyMusicSelection.channel || '',
+    start,
+    duration: Math.min(30, Math.max(1, storyMusicSelection.duration - start))
+  };
+  const recent = [storyDraftMusic, ...getRecentMusic().filter(item => item.videoId !== storyDraftMusic.videoId)].slice(0, 6);
+  localStorage.setItem('recentMusic', JSON.stringify(recent));
+  storyMusicSummary.textContent = `🎵 ${storyDraftMusic.title}`;
+  storyMusicSummary.hidden = false;
+  storyRemoveMusicButton.hidden = false;
+  storyMusicEditorModal?.classList.add('hidden');
+});
+
+storyRemoveMusicButton?.addEventListener('click', () => {
+  storyDraftMusic = null;
+  storyMusicSummary.hidden = true;
+  storyRemoveMusicButton.hidden = true;
+});
+
+storyMusicSummary?.addEventListener('pointerdown', event => {
+  const startX = event.clientX;
+  const startY = event.clientY;
+  const startLeft = storyMusicSummary.offsetLeft;
+  const startTop = storyMusicSummary.offsetTop;
+  const move = moveEvent => {
+    storyMusicSummary.style.transform = `translate(${moveEvent.clientX - startX + startLeft}px, ${moveEvent.clientY - startY + startTop}px)`;
+  };
+  const stop = () => { document.removeEventListener('pointermove', move); document.removeEventListener('pointerup', stop); };
+  document.addEventListener('pointermove', move);
+  document.addEventListener('pointerup', stop, { once: true });
+});
+
+document.querySelector('[data-close-music-modal]')?.addEventListener('click', () => storyMusicModal?.classList.add('hidden'));
+document.querySelector('[data-close-music-editor]')?.addEventListener('click', () => storyMusicEditorModal?.classList.add('hidden'));
+
 if (storyCreateForm) {
   storyCreateForm.addEventListener('submit', async (event) => {
     event.preventDefault();
@@ -1446,24 +1718,28 @@ if (storyCreateForm) {
     const categoryValue = storyCategorySelect?.value || 'learning';
 
     try {
-      const { createStory, uploadStoryImage } = await import('./story-manager.js?v=20260902-story-ui-1');
+      const { createStory, updateStory, uploadStoryImage } = await import('./story-manager.js?v=20260902-story-ui-1');
       storyStatus.textContent = 'Posting story...';
       storyStatus.className = 'form-status';
 
-      if (activeTab === 'image') {
+      if (editingStory) {
+        let mediaUrl = editingStory.mediaUrl || editingStory.imageData || '';
+        if (storyDraftImageFile) mediaUrl = await uploadStoryImage(storyDraftImageFile);
+        await updateStory(editingStory.id, { type: activeTab === 'image' ? 'image' : 'text', text: storyText || 'New update', content: storyText || 'New update', mediaUrl, imageData: mediaUrl, category: categoryValue, music: storyDraftMusic || editingStory.music });
+      } else if (activeTab === 'image') {
         if (!storyDraftImageFile) {
           throw new Error('Please choose a photo for your story.');
         }
         const mediaUrl = await uploadStoryImage(storyDraftImageFile);
-        await createStory({ type: 'image', text: storyText || 'New update', content: storyText || 'New update', mediaUrl, category: categoryValue });
+        await createStory({ type: 'image', text: storyText || 'New update', content: storyText || 'New update', mediaUrl, imageData: mediaUrl, category: categoryValue, music: storyDraftMusic });
       } else {
         if (!storyText) {
           throw new Error('Write a short story update first.');
         }
-        await createStory({ type: 'text', text: storyText, content: storyText, category: categoryValue });
+        await createStory({ type: 'text', text: storyText, content: storyText, category: categoryValue, music: storyDraftMusic });
       }
 
-      storyStatus.textContent = 'Story posted successfully!';
+      storyStatus.textContent = editingStory ? 'Story updated successfully!' : 'Story posted successfully!';
       storyStatus.className = 'form-status success';
       storyCreateForm.reset();
       storyTextCount.textContent = '0/280';
@@ -1472,8 +1748,12 @@ if (storyCreateForm) {
       storyImageFileName.textContent = 'No photo selected';
       storyImagePreview.classList.add('hidden');
       storyImageInput.value = '';
+      storyDraftMusic = null;
+      storyMusicSummary.hidden = true;
+      storyRemoveMusicButton.hidden = true;
       setTimeout(() => {
         storyCreatorModal?.classList.add('hidden');
+        resetStoryComposer();
         storyStatus.textContent = '';
         storyStatus.className = 'form-status';
         loadStoryStrip();

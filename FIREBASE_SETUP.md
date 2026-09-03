@@ -88,6 +88,14 @@ Use this checklist after deploying:
 - [ ] Click **Courses** — catalog is visible.
 - [ ] Click **Sign In → Continue with Google** — real Google account picker appears.
 - [ ] Sign out, then create an account with email/password.
+
+## 11. Enable Story music search (optional)
+
+The Story music picker uses the official YouTube Data API for in-site search.
+Create a browser API key in Google Cloud, restrict it to the YouTube Data API
+and your deployed domains, then expose it before loading `community.html` as
+`window.YOUTUBE_API_KEY`. Direct YouTube links work without this key. The site
+never downloads or re-uploads YouTube media.
 - [ ] Try opening `/admin.html` while signed in as a non-admin — see "Access Denied", redirected home.
 - [ ] Promote yourself to admin (Step 7), open `/admin.html` — dashboard loads.
 - [ ] Create a course, add a module, add a lesson with a YouTube URL — preview embed appears.

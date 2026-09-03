@@ -96,13 +96,13 @@
   flex-direction: row;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 10px 12px;
-  border-radius: 28px;
-  background: rgba(12, 18, 27, 0.96);
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  box-shadow: 0 18px 38px rgba(0, 0, 0, 0.46), 0 6px 16px rgba(0, 0, 0, 0.28);
-  backdrop-filter: blur(14px);
+  gap: 7px;
+  padding: 8px 11px;
+  border-radius: 26px;
+  background: #111820;
+  border: 1px solid #2a3441;
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.48), 0 3px 8px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(12px);
   white-space: nowrap;
   width: fit-content;
   max-width: calc(100vw - 32px);
@@ -129,14 +129,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 42px;
-  height: 42px;
+  width: 40px;
+  height: 40px;
   padding: 0;
   border: none;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.08);
+  background: #26313e;
   color: inherit;
-  font-size: 1.7rem;
+  font-size: 1.55rem;
   cursor: pointer;
   transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.18s ease, background 0.18s ease;
   position: relative;
@@ -150,19 +150,19 @@
   display: none !important;
 }
 
-.reaction-choice[data-reaction="like"] { background: rgba(71, 128, 255, 0.28); }
-.reaction-choice[data-reaction="love"] { background: rgba(255, 70, 110, 0.28); }
-.reaction-choice[data-reaction="haha"] { background: rgba(255, 198, 88, 0.26); }
-.reaction-choice[data-reaction="laugh"] { background: rgba(247, 183, 49, 0.28); }
-.reaction-choice[data-reaction="wow"] { background: rgba(255, 182, 62, 0.22); }
-.reaction-choice[data-reaction="sad"] { background: rgba(102, 159, 255, 0.22); }
-.reaction-choice[data-reaction="angry"] { background: rgba(249, 120, 70, 0.2); }
+.reaction-choice[data-reaction="like"] { background: #284b7d; }
+.reaction-choice[data-reaction="love"] { background: #612d47; }
+.reaction-choice[data-reaction="haha"] { background: #68522b; }
+.reaction-choice[data-reaction="laugh"] { background: #664927; }
+.reaction-choice[data-reaction="wow"] { background: #5e4826; }
+.reaction-choice[data-reaction="sad"] { background: #29476f; }
+.reaction-choice[data-reaction="angry"] { background: #693b2c; }
 
 .reaction-choice:hover,
 .reaction-choice:focus-visible {
-  background: rgba(255, 255, 255, 0.12);
-  transform: translateY(-6px) scale(1.18);
-  box-shadow: 0 10px 18px rgba(0, 0, 0, 0.18);
+  background: #3a4654;
+  transform: translateY(-5px) scale(1.2);
+  box-shadow: 0 9px 16px rgba(0, 0, 0, 0.28);
 }
 
 .reaction-choice:active {

@@ -120,6 +120,12 @@
           <button type="button" class="story-tab-btn" data-story-tab="image"><i class="fa-solid fa-image"></i> Photo</button>
         </div>
 
+        <div class="story-music-toolbar">
+          <button type="button" id="storyAddMusicButton" class="story-music-button"><i class="fa-solid fa-music"></i> Add Music</button>
+          <span id="storyMusicSummary" class="story-music-summary" hidden></span>
+          <button type="button" id="storyRemoveMusicButton" class="story-music-remove" hidden aria-label="Remove music"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+
         <div class="story-tab-pane active" data-story-pane="text">
           <div class="form-group">
             <label for="storyTextInput">Write your story</label>
@@ -158,6 +164,36 @@
         </div>
         <p id="storyStatus" class="form-status" aria-live="polite"></p>
       </form>
+    </div>
+  </div>
+
+  <div id="storyMusicModal" class="community-modal hidden" role="dialog" aria-modal="true" aria-labelledby="storyMusicTitle">
+    <div class="community-modal-card story-music-card">
+      <button class="modal-close" type="button" data-close-music-modal aria-label="Close music picker"><i class="fa-solid fa-xmark"></i></button>
+      <h2 id="storyMusicTitle">Add music</h2>
+      <form id="storyMusicSearchForm" class="story-music-search">
+        <label for="storyMusicQuery">Search YouTube music</label>
+        <div class="story-music-search-row"><input id="storyMusicQuery" type="search" maxlength="100" placeholder="Song or artist" autocomplete="off"><button type="submit" aria-label="Search music"><i class="fa-solid fa-magnifying-glass"></i></button></div>
+      </form>
+      <p class="story-music-hint">Or paste a YouTube link</p>
+      <form id="storyMusicUrlForm" class="story-music-url-row"><input id="storyMusicUrl" type="url" placeholder="https://youtu.be/..." aria-label="YouTube URL"><button type="submit">Use link</button></form>
+      <div class="story-music-quick-actions"><button type="button" id="storyMusicRecentButton">Recent</button><button type="button" id="storyMusicTrendingButton">Popular</button></div>
+      <p id="storyMusicStatus" class="form-status" aria-live="polite"></p>
+      <div id="storyMusicResults" class="story-music-results"></div>
+    </div>
+  </div>
+
+  <div id="storyMusicEditorModal" class="community-modal hidden" role="dialog" aria-modal="true" aria-labelledby="storyMusicEditorTitle">
+    <div class="community-modal-card story-music-card">
+      <button class="modal-close" type="button" data-close-music-editor aria-label="Close music editor"><i class="fa-solid fa-xmark"></i></button>
+      <h2 id="storyMusicEditorTitle">Edit music</h2>
+      <div id="storyMusicEditorSong" class="story-music-selected"></div>
+      <label for="storyMusicStart">Start at <output id="storyMusicStartLabel">0:00</output></label>
+      <input id="storyMusicStart" type="range" min="0" max="0" value="0" step="1">
+      <p class="story-music-duration">Your story uses the next 30 seconds, or the remaining song.</p>
+      <button type="button" id="storyMusicPreviewButton" class="secondary"><i class="fa-solid fa-play"></i> Play Preview</button>
+      <div id="storyMusicPreview" class="story-music-preview" hidden></div>
+      <button type="button" id="storyMusicConfirmButton" class="primary"><i class="fa-solid fa-check"></i> Add to Story</button>
     </div>
   </div>
 

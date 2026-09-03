@@ -124,7 +124,9 @@ export async function fetchAllCourses() {
         try {
           const lessonsSnap = await getDocs(collection(db, 'courses', course.id, 'modules', moduleDoc.id, 'lessons'));
           lessons = sortByOrder(lessonsSnap.docs.map((d) => ({ id: d.id, moduleId: moduleDoc.id, ...d.data() })));
-          moduleData.lessons = lessons.map((l) => ({ id: l.id, title: l.title, duration: l.duration || '0 min' }));
+          // Keep the complete lesson payload for authorized users. Admin and
+          // course-player views need the original video fields intact.
+          moduleData.lessons = lessons;
         } catch (error) {
           moduleData.lessons = [];
           course.accessDenied = true;

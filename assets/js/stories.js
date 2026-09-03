@@ -10,6 +10,8 @@ const previousButton = document.getElementById('prevStoryBtn');
 const nextButton = document.getElementById('nextStoryBtn');
 const viewerSidebar = document.getElementById('storyViewersSidebar');
 const closeSidebarButton = document.getElementById('closeSidebarBtn');
+const storyReactionWrap = document.getElementById('storyReactionWrap');
+const storyReactionButton = document.getElementById('storyReactionBtn');
 
 function escapeHtml(value) {
   const node = document.createElement('div');
@@ -28,6 +30,71 @@ function initials(value) {
 
 let stories = [];
 let selectedIndex = 0;
+
+const storyReactionOptions = {
+  like: '👍', love: '❤️', haha: '😂', laugh: '😆', wow: '😮', sad: '😢', angry: '😡'
+};
+
+function animateStoryReaction(choice) {
+  storyReactionButton?.classList.remove('clicked');
+  void storyReactionButton?.offsetWidth;
+  storyReactionButton?.classList.add('clicked');
+  setTimeout(() => storyReactionButton?.classList.remove('clicked'), 500);
+
+  const emoji = document.createElement('div');
+  const buttonRect = choice.getBoundingClientRect();
+  emoji.className = 'reaction-float-emoji';
+  emoji.textContent = storyReactionOptions[choice.dataset.reaction] || '👍';
+  emoji.style.left = `${buttonRect.left + buttonRect.width / 2}px`;
+  emoji.style.top = `${buttonRect.top}px`;
+  emoji.style.setProperty('--tx', `${(Math.random() - 0.5) * 80}px`);
+  document.body.appendChild(emoji);
+  setTimeout(() => emoji.remove(), 800);
+}
+
+function setupStoryReactions() {
+  const picker = storyReactionWrap?.querySelector('.reaction-picker');
+  if (!storyReactionWrap || !storyReactionButton || !picker) return;
+
+  let hoverTimer;
+  const openPicker = () => {
+    clearTimeout(hoverTimer);
+    picker.classList.add('is-open');
+  };
+  const closePicker = () => {
+    clearTimeout(hoverTimer);
+    hoverTimer = setTimeout(() => picker.classList.remove('is-open'), 120);
+  };
+
+  storyReactionWrap.addEventListener('mouseenter', () => {
+    if (!window.matchMedia('(pointer: coarse)').matches) hoverTimer = setTimeout(openPicker, 400);
+  });
+  storyReactionWrap.addEventListener('mouseleave', closePicker);
+  picker.addEventListener('mouseenter', openPicker);
+  picker.addEventListener('mouseleave', closePicker);
+  storyReactionButton.addEventListener('click', event => {
+    if (window.matchMedia('(pointer: coarse)').matches) {
+      event.preventDefault();
+      picker.classList.toggle('is-open');
+    }
+  });
+
+  picker.querySelectorAll('.reaction-choice').forEach(choice => {
+    choice.addEventListener('click', event => {
+      event.preventDefault();
+      event.stopPropagation();
+      const icon = storyReactionOptions[choice.dataset.reaction] || '👍';
+      storyReactionButton.classList.add('is-reacted', 'reacted');
+      storyReactionButton.querySelector('.reaction-main-icon').textContent = icon;
+      storyReactionButton.querySelector('.reaction-main-label').textContent = choice.title;
+      storyReactionButton.title = `${choice.title} reaction`;
+      storyReactionButton.setAttribute('aria-label', `${choice.title} reaction`);
+      picker.querySelectorAll('.reaction-choice').forEach(item => item.classList.toggle('is-selected', item === choice));
+      animateStoryReaction(choice);
+      closePicker();
+    });
+  });
+}
 
 function renderSelectedStory() {
   const story = stories[selectedIndex];
@@ -66,6 +133,7 @@ closeButton?.addEventListener('click', () => { window.location.href = 'community
 previousButton?.addEventListener('click', () => { if (selectedIndex > 0) { selectedIndex -= 1; renderSelectedStory(); } });
 nextButton?.addEventListener('click', () => { if (selectedIndex < stories.length - 1) { selectedIndex += 1; renderSelectedStory(); } });
 closeSidebarButton?.addEventListener('click', () => viewerSidebar?.classList.add('hidden'));
+setupStoryReactions();
 document.addEventListener('keydown', event => {
   if (event.key === 'Escape') closeButton?.click();
   if (event.key === 'ArrowLeft') previousButton?.click();

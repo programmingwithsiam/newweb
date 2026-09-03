@@ -10,6 +10,12 @@ let course = null;
 let lessons = [];
 let selectedLessonId = params.get('lesson');
 let progress = {};
+let youtubePlayer = null;
+let youtubeApiPromise = null;
+const workspaceSettingsKey = 'codewithsiam_workspace_settings';
+const workspaceSettings = (() => {
+  try { return { showSidebar: true, autoplay: false, autocomplete: true, ...JSON.parse(localStorage.getItem(workspaceSettingsKey) || '{}') }; } catch { return { showSidebar: true, autoplay: false, autocomplete: true }; }
+})();
 
 const $ = id => document.getElementById(id);
 const getLocalProgress = () => { try { return JSON.parse(localStorage.getItem(progressKey) || '{}'); } catch { return {}; } };
@@ -113,23 +119,29 @@ function setupCustomVideoPlayer(enabled = true) {
   video.removeAttribute('controls');
   const controls = document.createElement('div');
   controls.className = 'custom-video-controls';
-  controls.innerHTML = '<input class="custom-video-progress" type="range" min="0" max="100" value="0" aria-label="Video progress"><div class="custom-video-toolbar"><button type="button" data-video-action="play" aria-label="Play or pause">Play</button><button type="button" data-video-action="mute" aria-label="Mute or unmute">Mute</button><span class="custom-video-time">0:00 / 0:00</span><button type="button" data-video-action="fullscreen" aria-label="Fullscreen">Fullscreen</button></div>';
+  controls.innerHTML = '<input class="custom-video-progress" type="range" min="0" max="100" value="0" aria-label="Video progress"><div class="custom-video-toolbar"><button type="button" data-video-action="play" aria-label="Play or pause"><i class="fa-solid fa-play"></i></button><button type="button" data-video-action="seek-back" aria-label="Rewind 10 seconds"><i class="fa-solid fa-rotate-left"></i><small>10</small></button><button type="button" data-video-action="seek-forward" aria-label="Forward 10 seconds"><i class="fa-solid fa-rotate-right"></i><small>10</small></button><button type="button" data-video-action="mute" aria-label="Mute or unmute"><i class="fa-solid fa-volume-high"></i></button><select data-video-speed aria-label="Playback speed"><option value="0.5">0.5x</option><option value="1" selected>1x</option><option value="1.25">1.25x</option><option value="1.5">1.5x</option><option value="2">2x</option><option value="4">4x</option></select><button type="button" class="video-caption-button" data-video-captions aria-label="Toggle subtitles" disabled>CC</button><span class="custom-video-time">0:00 / 0:00</span><button type="button" data-video-action="fullscreen" aria-label="Fullscreen"><i class="fa-solid fa-expand"></i></button></div>';
   wrap.appendChild(controls);
   const progressInput = controls.querySelector('.custom-video-progress');
   const playButton = controls.querySelector('[data-video-action="play"]');
+  const playIcon = playButton.querySelector('i');
   const muteButton = controls.querySelector('[data-video-action="mute"]');
+  const muteIcon = muteButton.querySelector('i');
   const timeLabel = controls.querySelector('.custom-video-time');
+  const speedSelect = controls.querySelector('[data-video-speed]');
   const formatTime = value => `${Math.floor(value / 60)}:${String(Math.floor(value % 60)).padStart(2, '0')}`;
   const updateTime = () => {
     progressInput.value = video.duration ? (video.currentTime / video.duration) * 100 : 0;
     timeLabel.textContent = `${formatTime(video.currentTime)} / ${formatTime(video.duration || 0)}`;
   };
   playButton.addEventListener('click', () => video.paused ? video.play() : video.pause());
-  muteButton.addEventListener('click', () => { video.muted = !video.muted; muteButton.textContent = video.muted ? 'Unmute' : 'Mute'; });
+  controls.querySelector('[data-video-action="seek-back"]')?.addEventListener('click', () => { video.currentTime = Math.max(0, video.currentTime - 10); });
+  controls.querySelector('[data-video-action="seek-forward"]')?.addEventListener('click', () => { video.currentTime = Math.min(video.duration || video.currentTime + 10, video.currentTime + 10); });
+  muteButton.addEventListener('click', () => { video.muted = !video.muted; muteIcon.className = video.muted ? 'fa-solid fa-volume-xmark' : 'fa-solid fa-volume-high'; });
   controls.querySelector('[data-video-action="fullscreen"]').addEventListener('click', () => wrap.requestFullscreen?.());
   progressInput.addEventListener('input', () => { if (video.duration) video.currentTime = (progressInput.value / 100) * video.duration; });
-  video.addEventListener('play', () => { playButton.textContent = 'Pause'; });
-  video.addEventListener('pause', () => { playButton.textContent = 'Play'; });
+  speedSelect?.addEventListener('change', () => { video.playbackRate = Number(speedSelect.value); });
+  video.addEventListener('play', () => { playIcon.className = 'fa-solid fa-pause'; });
+  video.addEventListener('pause', () => { playIcon.className = 'fa-solid fa-play'; });
   video.addEventListener('timeupdate', updateTime);
   video.addEventListener('loadedmetadata', updateTime);
   video.addEventListener('loadedmetadata', () => {
@@ -137,12 +149,138 @@ function setupCustomVideoPlayer(enabled = true) {
     if (video.volume === 0) video.volume = 1;
   });
 }
+function loadYoutubeApi() {
+  if (window.YT?.Player) return Promise.resolve(window.YT);
+  if (youtubeApiPromise) return youtubeApiPromise;
+  youtubeApiPromise = new Promise(resolve => {
+    const previousReady = window.onYouTubeIframeAPIReady;
+    window.onYouTubeIframeAPIReady = () => {
+      previousReady?.();
+      resolve(window.YT);
+    };
+    const script = document.createElement('script');
+    script.src = 'https://www.youtube.com/iframe_api';
+    script.async = true;
+    script.onerror = () => resolve(null);
+    document.head.appendChild(script);
+  });
+  return youtubeApiPromise;
+}
+function setupYoutubePlayer(videoId, youtubeUrl) {
+  const wrap = $('lessonVideo').closest('.lesson-video-wrap');
+  const controls = wrap?.querySelector('.youtube-video-controls');
+  const brand = wrap?.querySelector('.youtube-video-brand');
+  const progressInput = controls?.querySelector('.youtube-video-progress');
+  const playButton = controls?.querySelector('[data-youtube-action="play"] i');
+  const muteButton = controls?.querySelector('[data-youtube-action="mute"] i');
+  const timeLabel = controls?.querySelector('.youtube-video-time');
+  const speedSelect = controls?.querySelector('[data-video-speed]');
+  const qualitySelect = controls?.querySelector('[data-video-quality]');
+  const captionsButton = controls?.querySelector('[data-video-captions]');
+  const externalButton = controls?.querySelector('#youtubeExternalButton');
+  if (!wrap || !controls || !brand || !progressInput || !timeLabel) return;
+
+  youtubePlayer?.destroy?.();
+  youtubePlayer = null;
+  wrap.classList.add('is-youtube-player');
+  controls.hidden = false;
+  brand.hidden = false;
+  if (externalButton) externalButton.href = youtubeUrl;
+  const formatTime = value => `${Math.floor(value / 60)}:${String(Math.floor(value % 60)).padStart(2, '0')}`;
+  const updateTime = () => {
+    const duration = youtubePlayer?.getDuration?.() || 0;
+    const current = youtubePlayer?.getCurrentTime?.() || 0;
+    progressInput.value = duration ? (current / duration) * 100 : 0;
+    timeLabel.textContent = `${formatTime(current)} / ${formatTime(duration)}`;
+  };
+  const updateIcons = () => {
+    if (playButton) playButton.className = youtubePlayer?.getPlayerState?.() === 1 ? 'fa-solid fa-pause' : 'fa-solid fa-play';
+    if (muteButton) muteButton.className = youtubePlayer?.isMuted?.() ? 'fa-solid fa-volume-xmark' : 'fa-solid fa-volume-high';
+  };
+  controls.querySelector('[data-youtube-action="play"]').onclick = () => {
+    if (youtubePlayer?.getPlayerState?.() === 1) youtubePlayer.pauseVideo();
+    else youtubePlayer?.playVideo();
+  };
+  controls.querySelector('[data-youtube-action="seek-back"]')?.addEventListener('click', () => youtubePlayer?.seekTo?.(Math.max(0, (youtubePlayer.getCurrentTime?.() || 0) - 10), true));
+  controls.querySelector('[data-youtube-action="seek-forward"]')?.addEventListener('click', () => youtubePlayer?.seekTo?.(Math.min(youtubePlayer.getDuration?.() || Infinity, (youtubePlayer.getCurrentTime?.() || 0) + 10), true));
+  controls.querySelector('[data-youtube-action="mute"]').onclick = () => {
+    if (youtubePlayer?.isMuted?.()) youtubePlayer.unMute();
+    else youtubePlayer?.mute();
+    updateIcons();
+  };
+  controls.querySelector('[data-youtube-action="fullscreen"]').onclick = () => wrap.requestFullscreen?.();
+  speedSelect?.addEventListener('change', () => youtubePlayer?.setPlaybackRate?.(Number(speedSelect.value)));
+  qualitySelect?.addEventListener('change', () => youtubePlayer?.setPlaybackQuality?.(qualitySelect.value));
+  captionsButton.onclick = () => {
+    if (!youtubePlayer?.setOption) return;
+    const enabled = captionsButton.dataset.enabled !== 'true';
+    youtubePlayer.setOption('captions', 'track', enabled ? {} : null);
+    captionsButton.dataset.enabled = String(enabled);
+    captionsButton.classList.toggle('is-active', enabled);
+  };
+  progressInput.oninput = () => {
+    const duration = youtubePlayer?.getDuration?.() || 0;
+    if (duration) youtubePlayer.seekTo((Number(progressInput.value) / 100) * duration, true);
+  };
+
+  loadYoutubeApi().then(YT => {
+    if (!YT?.Player || !document.body.contains(wrap)) return;
+    youtubePlayer = new YT.Player('lessonVideo', {
+      videoId,
+      events: {
+        onReady: () => { updateTime(); updateIcons(); },
+        onStateChange: () => { updateTime(); updateIcons(); }
+      },
+        playerVars: { controls: 0, rel: 0, playsinline: 1, modestbranding: 1, cc_load_policy: 0 }
+    });
+    youtubePlayer.addEventListener('onApiChange', () => {
+      const tracks = youtubePlayer.getOption?.('captions', 'tracklist') || [];
+      captionsButton.disabled = tracks.length === 0;
+      qualitySelect.innerHTML = '<option value="auto">Auto</option>' + (youtubePlayer.getAvailableQualityLevels?.() || []).map(level => `<option value="${level}">${level.toUpperCase()}</option>`).join('');
+    });
+    const timer = setInterval(() => {
+      if (!youtubePlayer || !document.body.contains(wrap)) { clearInterval(timer); return; }
+      updateTime();
+    }, 500);
+  });
+}
+function resetYoutubeControls() {
+  youtubePlayer?.destroy?.();
+  youtubePlayer = null;
+  const wrap = $('lessonVideo').closest('.lesson-video-wrap');
+  wrap?.classList.remove('is-youtube-player');
+  wrap?.querySelector('.youtube-video-controls')?.setAttribute('hidden', '');
+  wrap?.querySelector('.youtube-video-brand')?.setAttribute('hidden', '');
+}
 function setProgress() {
   const value = percent();
   ['overviewProgressBar', 'sidebarProgressBar'].forEach(id => { if ($(id)) $(id).style.width = `${value}%`; });
   if ($('overviewProgressText')) $('overviewProgressText').textContent = `${value}% COMPLETE`;
   if ($('sidebarProgressText')) $('sidebarProgressText').textContent = `${value}% COMPLETE`;
   if ($('sidebarProgressCount')) $('sidebarProgressCount').textContent = `${completed().size} / ${lessons.length} lessons`;
+}
+function setupWorkspaceSettings() {
+  const screen = $('lessonPlayer');
+  const settingsButton = $('workspaceSettingsButton');
+  const menu = $('workspaceSettingsMenu');
+  if (!screen || !settingsButton || !menu || settingsButton.dataset.bound) return;
+  settingsButton.dataset.bound = 'true';
+  const sidebarToggle = $('showSidebarToggle');
+  const autoplayToggle = $('autoplayToggle');
+  const autocompleteToggle = $('autocompleteToggle');
+  const save = () => localStorage.setItem(workspaceSettingsKey, JSON.stringify(workspaceSettings));
+  const update = () => {
+    screen.classList.toggle('sidebar-hidden', !workspaceSettings.showSidebar);
+    sidebarToggle.checked = workspaceSettings.showSidebar;
+    autoplayToggle.checked = workspaceSettings.autoplay;
+    autocompleteToggle.checked = workspaceSettings.autocomplete;
+  };
+  settingsButton.addEventListener('click', event => { event.stopPropagation(); menu.hidden = !menu.hidden; settingsButton.setAttribute('aria-expanded', String(!menu.hidden)); });
+  document.addEventListener('click', event => { if (!menu.contains(event.target) && event.target !== settingsButton) { menu.hidden = true; settingsButton.setAttribute('aria-expanded', 'false'); } });
+  sidebarToggle.addEventListener('change', () => { workspaceSettings.showSidebar = sidebarToggle.checked; save(); update(); });
+  autoplayToggle.addEventListener('change', () => { workspaceSettings.autoplay = autoplayToggle.checked; save(); });
+  autocompleteToggle.addEventListener('change', () => { workspaceSettings.autocomplete = autocompleteToggle.checked; save(); });
+  update();
 }
 function playlist(target, compact = false) {
   const groups = new Map();
@@ -271,6 +409,7 @@ function renderPlayer() {
   const lesson = currentLesson();
   if (!lesson) { $('lessonPlayer').classList.add('hidden'); return; }
   $('lessonPlayer').classList.remove('hidden');
+  setupWorkspaceSettings();
   $('lessonTitle').textContent = lesson.title;
   $('lessonDescription').textContent = lesson.description || '';
   $('lessonDuration').textContent = lesson.duration || '0 min';
@@ -284,6 +423,7 @@ function renderPlayer() {
   
   if (isMp4 && lesson.videoUrl) {
     // Display MP4 video
+    resetYoutubeControls();
     $('lessonVideo').classList.add('hidden');
     $('lessonMp4').classList.remove('hidden');
     $('lessonMp4').src = lesson.videoUrl;
@@ -292,10 +432,13 @@ function renderPlayer() {
     // Display YouTube video
     $('lessonVideo').classList.remove('hidden');
     $('lessonMp4').classList.add('hidden');
-    $('lessonVideo').src = `https://www.youtube.com/embed/${id}?controls=1&rel=0&playsinline=1`;
+    // Keep native controls as a fallback if the YouTube API is blocked.
+      $('lessonVideo').src = `https://www.youtube.com/embed/${id}?enablejsapi=1&controls=0&rel=0&playsinline=1&modestbranding=1&autoplay=${workspaceSettings.autoplay ? 1 : 0}`;
     $('lessonMp4').removeAttribute('src');
+    setupYoutubePlayer(id, youtubeUrl);
   } else {
     // No valid video
+    resetYoutubeControls();
     $('lessonVideo').classList.add('hidden');
     $('lessonMp4').classList.add('hidden');
   }
@@ -303,12 +446,22 @@ function renderPlayer() {
   const videoWrap = $('lessonVideo').closest('.lesson-video-wrap');
   if (videoWrap && !videoWrap.dataset.controlsReady) {
     videoWrap.dataset.controlsReady = 'true';
-    videoWrap.addEventListener('dblclick', async () => {
-      if (document.fullscreenElement) await document.exitFullscreen().catch(() => {});
-      else {
-        try { await videoWrap.requestFullscreen?.(); } catch {}
+    const requestFullscreen = async target => {
+      const method = target?.requestFullscreen || target?.webkitRequestFullscreen;
+      if (method) await method.call(target).catch(() => {});
+    };
+    const enterFullscreen = async event => {
+      event?.preventDefault();
+      if (document.fullscreenElement || document.webkitFullscreenElement) {
+        const exit = document.exitFullscreen || document.webkitExitFullscreen;
+        if (exit) await exit.call(document).catch(() => {});
+        return;
       }
-    });
+      await requestFullscreen(videoWrap);
+    };
+    videoWrap.addEventListener('dblclick', enterFullscreen);
+    $('lessonVideo').addEventListener('dblclick', event => enterFullscreen(event));
+    $('lessonMp4').addEventListener('dblclick', event => enterFullscreen(event));
   }
   $('previousLesson').disabled = lessons.indexOf(lesson) === 0;
   $('nextLesson').disabled = lessons.indexOf(lesson) === lessons.length - 1;

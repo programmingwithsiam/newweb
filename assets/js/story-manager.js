@@ -56,8 +56,10 @@ export async function createStory(storyData) {
     avatarUrl: auth.currentUser.photoURL || '',
     type: storyData.type, // 'text' or 'image'
     content: storyData.content || storyData.text || '',
-    mediaUrl: storyData.mediaUrl || '',
+    mediaUrl: storyData.mediaUrl || storyData.imageData || '',
+    imageData: storyData.imageData || storyData.mediaUrl || '',
     category: storyData.category || 'learning',
+    ...(storyData.music ? { music: storyData.music } : {}),
     createdAt,
     expiresAt,
     viewers: []
@@ -73,15 +75,16 @@ export async function createStory(storyData) {
 }
 
 export async function uploadStoryImage(file) {
-  const { ref, uploadBytes, getDownloadURL } = await import('https://www.gstatic.com/firebasejs/10.13.0/firebase-storage.js');
-
   if (!auth.currentUser) throw new Error('Must be signed in');
-  if (!file.type.startsWith('image/')) throw new Error('File must be an image');
+  if (!file || !file.type.startsWith('image/')) throw new Error('File must be an image');
   if (file.size > 5 * 1024 * 1024) throw new Error('Image must be smaller than 5 MB');
 
-  const storageRef = ref(storage, `story-images/${auth.currentUser.uid}/${Date.now()}`);
-  await uploadBytes(storageRef, file);
-  return await getDownloadURL(storageRef);
+  return await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ''));
+    reader.onerror = () => reject(new Error('Failed to read the selected image.'));
+    reader.readAsDataURL(file);
+  });
 }
 
 export async function getActiveStories() {
@@ -148,6 +151,20 @@ export async function deleteStory(storyId) {
   }
 }
 
+export async function updateStory(storyId, storyData) {
+  const { doc, updateDoc } = await import('https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js');
+  if (!auth.currentUser) throw new Error('Must be signed in to edit a story');
+  const updates = {
+    type: storyData.type,
+    content: storyData.content || storyData.text || '',
+    mediaUrl: storyData.mediaUrl || storyData.imageData || '',
+    imageData: storyData.imageData || storyData.mediaUrl || '',
+    category: storyData.category || 'learning',
+    ...(storyData.music ? { music: storyData.music } : {})
+  };
+  await updateDoc(doc(db, 'stories', storyId), updates);
+}
+
 export function getStoryCategory(categoryKey) {
   return storyCategories[categoryKey] || '🚀 Learning Update';
 }
@@ -179,6 +196,7 @@ export function renderStoryCard(story) {
 
 export function renderStoryViewer(story) {
   const categoryLabel = getStoryCategory(story.category);
+  const music = story.music?.videoId ? `<a class="story-music-sticker" href="https://www.youtube.com/watch?v=${encodeURIComponent(story.music.videoId)}" target="_blank" rel="noopener noreferrer"><i class="fa-solid fa-music"></i> ${escapeHtml(story.music.title || 'Music')}</a>` : '';
   
   if (story.type === 'image') {
     return `
@@ -187,6 +205,7 @@ export function renderStoryViewer(story) {
         <div class="story-overlay">
           <p class="story-caption">${escapeHtml(story.content)}</p>
           <span class="story-category">${escapeHtml(categoryLabel)}</span>
+          ${music}
         </div>
       </div>
     `;
@@ -196,6 +215,7 @@ export function renderStoryViewer(story) {
         <div class="text-story-content">
           <span class="story-category">${escapeHtml(categoryLabel)}</span>
           <p class="story-text">${escapeHtml(story.content)}</p>
+          ${music}
         </div>
       </div>
     `;

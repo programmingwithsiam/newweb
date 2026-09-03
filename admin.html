@@ -1370,6 +1370,147 @@
       .module-block-head > .admin-btn-row .btn { flex: 0 1 auto; }
       #coursesSection.is-form-open { width: calc(100vw - 20px); max-height: 92vh; }
     }
+
+    /* Course management layout: presentation only. */
+    #coursesListSection .section-heading,
+    #videoManagerSection .section-heading {
+      align-items: end;
+      gap: 18px;
+    }
+
+    #coursesListSection .section-heading > div:first-child,
+    #videoManagerSection .section-heading > div:first-child {
+      min-width: 0;
+    }
+
+    #coursesListSection .section-heading .admin-btn-row {
+      justify-content: flex-end;
+    }
+
+    #coursesListSection .course-tools,
+    #videoManagerSection .course-tools {
+      padding: 12px;
+      border: 1px solid rgba(238,241,225,.08);
+      border-radius: 8px;
+      background: rgba(4,8,14,.32);
+    }
+
+    #coursesListSection .course-tools input,
+    #videoManagerSection .course-tools input {
+      flex: 1 1 280px;
+      max-width: none;
+    }
+
+    .course-manager-head > div:first-child {
+      min-width: min(100%, 320px);
+      flex: 1 1 360px;
+    }
+
+    .course-manager-head > .admin-btn-row {
+      justify-content: flex-end;
+      max-width: 100%;
+    }
+
+    .course-manager-head > .admin-btn-row .btn {
+      min-height: 36px;
+    }
+
+    .course-manager-meta {
+      align-items: center;
+    }
+
+    .course-manager-meta > span:not(.badge) {
+      padding-right: 8px;
+      border-right: 1px solid rgba(238,241,225,.12);
+    }
+
+    .course-thumbnail-editor {
+      grid-template-columns: minmax(150px, 220px) minmax(0, 1fr);
+      margin: 0 14px 14px;
+      padding: 10px;
+      border-color: rgba(238,241,225,.08);
+    }
+
+    .module-manager {
+      padding-top: 2px;
+    }
+
+    .module-block {
+      box-shadow: inset 3px 0 0 rgba(255,212,59,.14);
+    }
+
+    .module-block.is-collapsed {
+      box-shadow: inset 3px 0 0 rgba(141,152,169,.28);
+    }
+
+    .lesson-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      padding: 12px 8px;
+      border-radius: 7px;
+    }
+
+    .lesson-row:hover {
+      background: rgba(255,255,255,.035);
+    }
+
+    .lesson-video-link a {
+      display: inline-block;
+      max-width: min(100%, 560px);
+    }
+
+    .video-manager-row {
+      padding: 12px;
+      border: 1px solid rgba(238,241,225,.08);
+      border-radius: 8px;
+      background: rgba(4,8,14,.24);
+    }
+
+    .video-manager-row:hover {
+      border-color: rgba(201,243,91,.28);
+      background: rgba(201,243,91,.035);
+    }
+
+    @media (max-width: 640px) {
+      #coursesListSection .section-heading,
+      #videoManagerSection .section-heading {
+        align-items: stretch;
+      }
+
+      #coursesListSection .section-heading .admin-btn-row {
+        justify-content: stretch;
+      }
+
+      #coursesListSection .section-heading .admin-btn-row .btn {
+        flex: 1 1 160px;
+      }
+
+      .course-manager-head > .admin-btn-row {
+        justify-content: flex-start;
+      }
+
+      .course-manager-head > .admin-btn-row .btn {
+        flex: 1 1 135px;
+      }
+
+      .course-thumbnail-editor {
+        grid-template-columns: 1fr;
+      }
+
+      .lesson-row {
+        grid-template-columns: 1fr;
+        gap: 10px;
+      }
+
+      .lesson-row > .admin-btn-row {
+        justify-content: flex-start;
+      }
+
+      .lesson-row > .admin-btn-row .btn {
+        flex: 1 1 120px;
+      }
+    }
   </style>
 </head>
 
@@ -2778,7 +2919,6 @@
 
 
       loadedCourses = courses;
-      await Promise.all(courses.flatMap(course => (course.modules || []).map(module => syncLessonCatalog(course.id, module.id).catch(error => console.warn('Lesson catalog sync skipped:', error.code || error.message)))));
       const accessCoursePicker = document.getElementById('accessCourseChoices');
       if (accessCoursePicker) {
         accessCoursePicker.innerHTML = `

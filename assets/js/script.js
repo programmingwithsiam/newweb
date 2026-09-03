@@ -14,7 +14,7 @@
 // Import all modules
 import { initParticles, initHeader, initTypedText, initRevealOnScroll, initTiltCards, initMobileMenu, initSkillBars, initHero3dParallax, activateSection } from './ui-effects.js';
 import { initStatCounters } from './animations.js';
-import { initCourseDeck, initLiveNotification, initLiveHub, setCurrentSignedInUid, loadCourses, syncCourseRoute, getCurrentCourse, getCourseProgress, getCourseRoute, pushCourseRoute, getCourseStateLabel, getCourseCardMeta, renderPublicCoursePreview, renderPublishedCourseCatalog, renderLanguageExplorer, bindCourseFilters, renderUpcomingCourses, updateHeroMetrics, updateProgressBar } from './page-renderers.js';
+import { initCourseDeck, initLiveNotification, initLiveHub, setCurrentSignedInUid, loadCourses, syncCourseRoute, getCurrentCourse, getCourseProgress, getCourseRoute, pushCourseRoute, getCourseStateLabel, getCourseCardMeta, renderPublicCoursePreview, renderPublishedCourseCatalog, renderLanguageExplorer, bindCourseFilters, renderUpcomingCourses, updateHeroMetrics, updateProgressBar } from './page-renderers.js?v=20260903-course-filters-1';
 
 /* =========================================================
    MAIN SITE EFFECTS ORCHESTRATOR
@@ -532,10 +532,10 @@ function attachCourseEvents(course) {
       document.getElementById('videoPlaceholder')?.replaceChildren(document.createTextNode('Your account is signed in, but you do not have access to this course yet.'));
       return;
     }
-    lessonPlayerVisible = true;
-    pushCourseRoute(getActiveCourse().id, getCurrentLesson(getActiveCourse()).id);
-    renderCourseDetail(getActiveCourse());
-    document.querySelector('.course-lesson-player')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const active = getActiveCourse();
+    const lesson = active && getCurrentLesson(active);
+    if (!active || !lesson) return;
+    window.location.href = `course.html?course=${encodeURIComponent(active.id)}&lesson=${encodeURIComponent(lesson.id)}`;
   });
   restartBtn?.addEventListener('click', () => {
     if (video) {
@@ -864,7 +864,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // (and therefore progress syncing / the admin link) is driven separately
   // by auth-app.js via window.handleAuthStateChange().
   initSiteEffects();
-  activateSection('home');
+  activateSection(new URLSearchParams(window.location.search).has('course') || window.location.hash === '#course' ? 'course' : 'home');
   initChatToggle();
 });
 

@@ -581,6 +581,7 @@ export function initChatToggle(){
 }
 
 export async function initCourseDeck(){
+  bindCourseFilters();
   await initCoursePlatform();
 }
 

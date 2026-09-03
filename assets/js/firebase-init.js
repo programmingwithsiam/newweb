@@ -28,6 +28,7 @@ const firebaseConfig = {
   apiKey: 'AIzaSyC_SzEe95tFFvPrVUWXwpTedeCKhMQOvrE',
   authDomain: 'mylatestweb-fd3d7.firebaseapp.com',
   projectId: 'mylatestweb-fd3d7',
+  storageBucket: 'mylatestweb-fd3d7.appspot.com',
   messagingSenderId: '1079484393919',
   appId: '1:1079484393919:web:798256eeab7f28ecacd90a',
 };

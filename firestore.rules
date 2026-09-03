@@ -224,7 +224,7 @@ service cloud.firestore {
     match /stories/{storyId} {
       allow read: if true;
       allow create: if isGoogleUser() &&
-        request.resource.data.keys().hasOnly(['authorUid', 'authorName', 'avatarUrl', 'type', 'content', 'mediaUrl', 'category', 'createdAt', 'expiresAt', 'viewers']) &&
+        request.resource.data.keys().hasOnly(['authorUid', 'authorName', 'avatarUrl', 'type', 'content', 'mediaUrl', 'imageData', 'category', 'createdAt', 'expiresAt', 'viewers', 'music']) &&
         request.resource.data.authorUid == request.auth.uid &&
         request.resource.data.authorName is string && request.resource.data.authorName.size() > 0 && request.resource.data.authorName.size() <= 80 &&
         request.resource.data.avatarUrl is string && request.resource.data.avatarUrl.size() <= 1000 &&
@@ -234,10 +234,17 @@ service cloud.firestore {
         request.resource.data.category is string &&
         request.resource.data.createdAt == request.time &&
         request.resource.data.expiresAt > request.time &&
-        request.resource.data.viewers is list;
+        request.resource.data.viewers is list &&
+        (!('music' in request.resource.data) || (request.resource.data.music is map && request.resource.data.music.videoId is string && request.resource.data.music.videoId.size() > 0 && request.resource.data.music.videoId.size() <= 20));
       allow update: if isSignedIn() &&
-        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewers']) &&
-         request.resource.data.viewers is list);
+        ((request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewers']) &&
+          request.resource.data.viewers is list) ||
+         (resource.data.authorUid == request.auth.uid &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['type', 'content', 'mediaUrl', 'imageData', 'category', 'music']) &&
+          request.resource.data.type in ['text', 'image'] &&
+          request.resource.data.content is string && request.resource.data.content.size() > 0 && request.resource.data.content.size() <= 1000 &&
+          request.resource.data.mediaUrl is string && request.resource.data.category is string &&
+          request.resource.data.expiresAt == resource.data.expiresAt));
       allow delete: if isSignedIn() && resource.data.authorUid == request.auth.uid;
     }
 

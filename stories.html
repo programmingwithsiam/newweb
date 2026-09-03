@@ -9,6 +9,7 @@
   <link rel="icon" type="image/png" sizes="256x256" href="/assets/images/profile-siam-round.png?v=20260828">
   <link rel="manifest" href="/manifest.json">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+  <link rel="stylesheet" href="assets/css/facebook-reactions.css">
   <link rel="stylesheet" href="assets/css/stories.css">
 </head>
 <body class="story-viewer-body">
@@ -40,9 +41,21 @@
 
       <!-- Story Reactions -->
       <div class="story-reactions">
-        <button id="storyReactionBtn" class="story-reaction-btn" type="button" title="React to story">
-          <i class="fa-regular fa-heart"></i>
-        </button>
+        <div class="reaction-wrap" id="storyReactionWrap">
+          <button id="storyReactionBtn" class="story-reaction-btn reaction-btn" data-reaction="like" type="button" title="Like story" aria-label="Like story">
+            <span class="reaction-main-icon">👍</span>
+            <span class="reaction-main-label">Like</span>
+          </button>
+          <div class="reaction-picker" role="menu" aria-label="Choose a reaction">
+            <button type="button" class="reaction-choice" data-reaction="like" title="Like" aria-label="Like" style="--delay:0ms">👍</button>
+            <button type="button" class="reaction-choice" data-reaction="love" title="Love" aria-label="Love" style="--delay:40ms">❤️</button>
+            <button type="button" class="reaction-choice" data-reaction="haha" title="Haha" aria-label="Haha" style="--delay:80ms">😂</button>
+            <button type="button" class="reaction-choice" data-reaction="laugh" title="Laugh" aria-label="Laugh" style="--delay:120ms">😆</button>
+            <button type="button" class="reaction-choice" data-reaction="wow" title="Wow" aria-label="Wow" style="--delay:160ms">😮</button>
+            <button type="button" class="reaction-choice" data-reaction="sad" title="Sad" aria-label="Sad" style="--delay:200ms">😢</button>
+            <button type="button" class="reaction-choice" data-reaction="angry" title="Angry" aria-label="Angry" style="--delay:240ms">😡</button>
+          </div>
+        </div>
       </div>
 
       <!-- Story Navigation -->
