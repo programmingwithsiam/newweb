@@ -370,6 +370,7 @@
       .lesson-video-wrap.is-custom-player .custom-video-controls { opacity: 1; }
     }
   </style>
+  <link rel="stylesheet" href="assets/css/course-inspired-ui.css?v=20260904-functional-controls-1">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
 </head>
 <body class="course-learning-page">
@@ -512,7 +513,7 @@
 
       <div class="overview-content-grid">
         <section class="playlist-panel">
-          <div class="panel-heading"><div><p class="learning-eyebrow">COURSE CONTENT</p><h2>Playlist</h2></div><span id="playlistCount">0 lessons</span></div>
+          <div class="panel-heading"><div><p class="learning-eyebrow">COURSE CONTENT</p><h2>Course Content</h2></div><span id="playlistCount">0 lessons</span></div>
           <div id="overviewPlaylist" class="overview-playlist"></div>
         </section>
       </div>
@@ -546,7 +547,7 @@
     <section id="lessonPlayer" class="lesson-screen hidden">
       <div class="lesson-main">
         <div class="lesson-workspace-tools"><div class="workspace-settings"><button type="button" class="workspace-settings-button" id="workspaceSettingsButton" aria-expanded="false" aria-controls="workspaceSettingsMenu"><i class="fa-solid fa-sliders"></i> Settings</button><div class="workspace-settings-menu" id="workspaceSettingsMenu" hidden><label class="workspace-setting"><span>Show Sidebar</span><input type="checkbox" id="showSidebarToggle" checked></label><label class="workspace-setting"><span>Autoplay</span><input type="checkbox" id="autoplayToggle"></label><label class="workspace-setting"><span>Autocomplete</span><input type="checkbox" id="autocompleteToggle" checked></label></div></div></div>
-        <div class="lesson-video-wrap"><iframe loading="lazy" id="lessonVideo" title="Course lesson video" tabindex="0" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe><div class="youtube-click-shield left" aria-hidden="true"></div><div class="youtube-click-shield right" aria-hidden="true"></div><video id="lessonMp4" controls playsinline preload="metadata"></video><div class="youtube-video-brand" hidden><i class="fa-solid fa-play"></i><span>CodeWithSiam Player</span></div><div class="youtube-video-controls" hidden><input class="youtube-video-progress" type="range" min="0" max="100" value="0" aria-label="Video progress"><div class="youtube-video-toolbar"><button type="button" data-youtube-action="play" aria-label="Play or pause"><i class="fa-solid fa-play"></i></button><button type="button" data-youtube-action="seek-back" aria-label="Rewind 10 seconds"><i class="fa-solid fa-rotate-left"></i><small>10</small></button><button type="button" data-youtube-action="seek-forward" aria-label="Forward 10 seconds"><i class="fa-solid fa-rotate-right"></i><small>10</small></button><button type="button" data-youtube-action="mute" aria-label="Mute or unmute"><i class="fa-solid fa-volume-high"></i></button><select data-video-speed aria-label="Playback speed"><option value="0.5">0.5x</option><option value="1" selected>1x</option><option value="1.25">1.25x</option><option value="1.5">1.5x</option><option value="2">2x</option><option value="4">4x</option></select><select data-video-quality aria-label="Video quality"><option value="auto">Auto</option></select><button type="button" class="video-caption-button" data-video-captions aria-label="Toggle subtitles">CC</button><span class="youtube-video-time">0:00 / 0:00</span><button type="button" data-youtube-action="fullscreen" aria-label="Fullscreen"><i class="fa-solid fa-expand"></i></button></div></div></div>
+        <div class="lesson-video-wrap"><iframe loading="lazy" id="lessonVideo" title="Course lesson video" tabindex="0" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe><div class="youtube-click-shield left" aria-hidden="true"></div><div class="youtube-click-shield right" aria-hidden="true"></div><video id="lessonMp4" controls playsinline preload="metadata"></video><div class="youtube-video-brand" hidden><i class="fa-solid fa-play"></i><span>CodeWithSiam Player</span></div><div class="youtube-video-controls" hidden><div class="youtube-video-timeline"><span class="youtube-video-current-time">0:00</span><input class="youtube-video-progress" type="range" min="0" max="100" value="0" aria-label="Video progress"><span class="youtube-video-total-time">0:00</span></div><div class="youtube-video-toolbar"><div class="youtube-video-toolbar-left"><button type="button" data-youtube-action="play" aria-label="Play or pause"><i class="fa-solid fa-play"></i></button><button type="button" data-youtube-action="seek-back" aria-label="Rewind 10 seconds"><i class="fa-solid fa-rotate-left"></i><small>10</small></button><button type="button" data-youtube-action="seek-forward" aria-label="Forward 10 seconds"><i class="fa-solid fa-rotate-right"></i><small>10</small></button><button type="button" data-youtube-action="mute" aria-label="Mute or unmute"><i class="fa-solid fa-volume-high"></i></button></div><div class="youtube-video-toolbar-right"><button type="button" class="video-caption-button" data-video-captions aria-label="Toggle subtitles"><i class="fa-solid fa-closed-captioning"></i></button><button type="button" data-youtube-action="pip" aria-label="Picture in picture"><i class="fa-solid fa-clone"></i></button><button type="button" data-youtube-action="fullscreen" aria-label="Fullscreen"><i class="fa-solid fa-expand"></i></button></div></div></div></div>
         <div class="lesson-heading"><div><p class="learning-eyebrow">NOW PLAYING</p><h1 id="lessonTitle">Lesson</h1><p id="lessonDescription"></p><a id="lessonYoutubeLink" class="lesson-youtube-link hidden" href="" target="_blank" rel="noopener noreferrer">Watch on YouTube</a></div><span id="lessonDuration" class="lesson-duration"></span></div>
         <div class="lesson-actions"><button id="previousLesson" class="learning-button" type="button"><i class="fa-solid fa-arrow-left"></i> Previous Lesson</button><button id="completeLesson" class="learning-button primary" type="button">Complete and Continue <i class="fa-solid fa-arrow-right"></i></button><button id="nextLesson" class="learning-button" type="button">Next Lesson <i class="fa-solid fa-arrow-right"></i></button></div>
       </div>
@@ -556,6 +557,6 @@
       </aside>
     </section>
   </main>
-  <script type="module" src="assets/js/course-learning.js?v=20260903-player-controls-1"></script>
+  <script type="module" src="assets/js/course-learning.js?v=20260904-topic-autoplay-1"></script>
 </body>
 </html>

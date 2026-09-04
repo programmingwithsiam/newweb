@@ -3,12 +3,13 @@ import { observeAuthState, signInWithGoogle } from './auth.js';
 
 const progressKey = 'siam_portfolio_course_progress';
 const params = new URLSearchParams(location.search);
-const courseId = params.get('course');
+const prettyCoursePath = location.pathname.match(/^\/courses\/([^/]+)(?:\/lectures\/([^/]+))?\/?$/);
+const courseId = params.get('course') || (prettyCoursePath ? decodeURIComponent(prettyCoursePath[1]) : null);
 const startsEnrollment = params.get('enroll') === '1';
 let user = null;
 let course = null;
 let lessons = [];
-let selectedLessonId = params.get('lesson');
+let selectedLessonId = params.get('lesson') || (prettyCoursePath?.[2] ? decodeURIComponent(prettyCoursePath[2]) : null);
 let progress = {};
 let youtubePlayer = null;
 let youtubeApiPromise = null;
@@ -18,10 +19,38 @@ const workspaceSettings = (() => {
 })();
 
 const $ = id => document.getElementById(id);
+function togglePlayerFullscreen(target) {
+  if (document.fullscreenElement || document.webkitFullscreenElement) {
+    const exit = document.exitFullscreen || document.webkitExitFullscreen;
+    return exit?.call(document);
+  }
+  const enter = target?.requestFullscreen || target?.webkitRequestFullscreen;
+  return enter?.call(target);
+}
+function setupPlayerAutoHide(wrap, controls, isPlaying) {
+  if (!wrap || !controls || wrap.dataset.autoHideReady) return;
+  wrap.dataset.autoHideReady = 'true';
+  let timer = 0;
+  const show = () => {
+    controls.classList.remove('is-auto-hidden');
+    window.clearTimeout(timer);
+    if (isPlaying()) timer = window.setTimeout(() => controls.classList.add('is-auto-hidden'), 2000);
+  };
+  const interact = event => { if (!event.target.closest('button, input, select, a')) show(); };
+  wrap.addEventListener('pointermove', show, { passive: true });
+  wrap.addEventListener('pointerdown', interact);
+  wrap.addEventListener('touchstart', interact, { passive: true });
+  controls.addEventListener('pointerdown', event => { event.stopPropagation(); show(); });
+  controls.addEventListener('click', event => { event.stopPropagation(); show(); });
+  wrap.showPlayerControls = show;
+  show();
+}
 const getLocalProgress = () => { try { return JSON.parse(localStorage.getItem(progressKey) || '{}'); } catch { return {}; } };
 const completed = () => new Set(progress[course?.id]?.completedLessons || []);
 const percent = () => lessons.length ? Math.round((completed().size / lessons.length) * 100) : 0;
-const route = lessonId => `course.html?course=${encodeURIComponent(course.id)}${lessonId ? `&lesson=${encodeURIComponent(lessonId)}` : ''}`;
+const route = lessonId => lessonId
+  ? `course.html?course=${encodeURIComponent(course.id)}&lesson=${encodeURIComponent(lessonId)}&autoplay=1`
+  : `course.html?course=${encodeURIComponent(course.id)}`;
 function go(lessonId = '') {
   if (lessonId && (!user || course?.accessDenied)) {
     showAccessGate({ signedIn: Boolean(user) });
@@ -30,6 +59,7 @@ function go(lessonId = '') {
   history.pushState({}, '', route(lessonId));
   selectedLessonId = lessonId || null;
   render();
+  if (lessonId) window.setTimeout(() => $('lessonVideo')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 0);
 }
 function orderedLessons(data) {
   const fullLessons = new Map((data.lessons || []).map(lesson => [lesson.id, lesson]));
@@ -148,6 +178,7 @@ function setupCustomVideoPlayer(enabled = true) {
     video.muted = false;
     if (video.volume === 0) video.volume = 1;
   });
+  setupPlayerAutoHide(wrap, controls, () => !video.paused && !video.ended);
 }
 function loadYoutubeApi() {
   if (window.YT?.Player) return Promise.resolve(window.YT);
@@ -173,12 +204,13 @@ function setupYoutubePlayer(videoId, youtubeUrl) {
   const progressInput = controls?.querySelector('.youtube-video-progress');
   const playButton = controls?.querySelector('[data-youtube-action="play"] i');
   const muteButton = controls?.querySelector('[data-youtube-action="mute"] i');
-  const timeLabel = controls?.querySelector('.youtube-video-time');
+  const currentTimeLabel = controls?.querySelector('.youtube-video-current-time');
+  const totalTimeLabel = controls?.querySelector('.youtube-video-total-time');
   const speedSelect = controls?.querySelector('[data-video-speed]');
   const qualitySelect = controls?.querySelector('[data-video-quality]');
   const captionsButton = controls?.querySelector('[data-video-captions]');
   const externalButton = controls?.querySelector('#youtubeExternalButton');
-  if (!wrap || !controls || !brand || !progressInput || !timeLabel) return;
+  if (!wrap || !controls || !brand || !progressInput || !currentTimeLabel || !totalTimeLabel) return;
 
   youtubePlayer?.destroy?.();
   youtubePlayer = null;
@@ -191,7 +223,8 @@ function setupYoutubePlayer(videoId, youtubeUrl) {
     const duration = youtubePlayer?.getDuration?.() || 0;
     const current = youtubePlayer?.getCurrentTime?.() || 0;
     progressInput.value = duration ? (current / duration) * 100 : 0;
-    timeLabel.textContent = `${formatTime(current)} / ${formatTime(duration)}`;
+    currentTimeLabel.textContent = formatTime(current);
+    totalTimeLabel.textContent = formatTime(duration);
   };
   const updateIcons = () => {
     if (playButton) playButton.className = youtubePlayer?.getPlayerState?.() === 1 ? 'fa-solid fa-pause' : 'fa-solid fa-play';
@@ -208,11 +241,17 @@ function setupYoutubePlayer(videoId, youtubeUrl) {
     else youtubePlayer?.mute();
     updateIcons();
   };
-  controls.querySelector('[data-youtube-action="fullscreen"]').onclick = () => wrap.requestFullscreen?.();
+  controls.querySelector('[data-youtube-action="fullscreen"]').onclick = () => togglePlayerFullscreen(wrap);
+  controls.querySelector('[data-youtube-action="pip"]')?.addEventListener('click', async () => {
+    const video = $('lessonMp4');
+    if (!video || video.classList.contains('hidden') || !document.pictureInPictureEnabled || !video.requestPictureInPicture) return;
+    if (document.pictureInPictureElement) await document.exitPictureInPicture?.().catch(() => {});
+    else await video.requestPictureInPicture().catch(() => {});
+  });
   speedSelect?.addEventListener('change', () => youtubePlayer?.setPlaybackRate?.(Number(speedSelect.value)));
   qualitySelect?.addEventListener('change', () => youtubePlayer?.setPlaybackQuality?.(qualitySelect.value));
   captionsButton.onclick = () => {
-    if (!youtubePlayer?.setOption) return;
+    if (!youtubePlayer?.setOption || captionsButton.disabled) return;
     const enabled = captionsButton.dataset.enabled !== 'true';
     youtubePlayer.setOption('captions', 'track', enabled ? {} : null);
     captionsButton.dataset.enabled = String(enabled);
@@ -229,19 +268,25 @@ function setupYoutubePlayer(videoId, youtubeUrl) {
       videoId,
       events: {
         onReady: () => { updateTime(); updateIcons(); },
-        onStateChange: () => { updateTime(); updateIcons(); }
+        onStateChange: event => {
+          updateTime();
+          updateIcons();
+          setupPlayerAutoHide(wrap, controls, () => event.data === 1);
+          wrap.showPlayerControls?.();
+        }
       },
-        playerVars: { controls: 0, rel: 0, playsinline: 1, modestbranding: 1, cc_load_policy: 0 }
+      playerVars: { controls: 0, rel: 0, playsinline: 1, modestbranding: 1, iv_load_policy: 3, fs: 0, cc_load_policy: 0 }
     });
     youtubePlayer.addEventListener('onApiChange', () => {
       const tracks = youtubePlayer.getOption?.('captions', 'tracklist') || [];
       captionsButton.disabled = tracks.length === 0;
-      qualitySelect.innerHTML = '<option value="auto">Auto</option>' + (youtubePlayer.getAvailableQualityLevels?.() || []).map(level => `<option value="${level}">${level.toUpperCase()}</option>`).join('');
+      if (qualitySelect) qualitySelect.innerHTML = '<option value="auto">Auto</option>' + (youtubePlayer.getAvailableQualityLevels?.() || []).map(level => `<option value="${level}">${level.toUpperCase()}</option>`).join('');
     });
     const timer = setInterval(() => {
       if (!youtubePlayer || !document.body.contains(wrap)) { clearInterval(timer); return; }
       updateTime();
     }, 500);
+    setupPlayerAutoHide(wrap, controls, () => youtubePlayer?.getPlayerState?.() === 1);
   });
 }
 function resetYoutubeControls() {
@@ -420,6 +465,7 @@ function renderPlayer() {
   
   const isMp4 = lesson.videoType === 'mp4' || (lesson.videoUrl && lesson.videoUrl.toLowerCase().endsWith('.mp4'));
   const id = youtubeId(lesson);
+  const autoplayRequested = new URLSearchParams(location.search).get('autoplay') === '1';
   
   if (isMp4 && lesson.videoUrl) {
     // Display MP4 video
@@ -428,12 +474,13 @@ function renderPlayer() {
     $('lessonMp4').classList.remove('hidden');
     $('lessonMp4').src = lesson.videoUrl;
     setupCustomVideoPlayer(true);
+    if (autoplayRequested || workspaceSettings.autoplay) $('lessonMp4').play().catch(() => {});
   } else if (id) {
     // Display YouTube video
     $('lessonVideo').classList.remove('hidden');
     $('lessonMp4').classList.add('hidden');
     // Keep native controls as a fallback if the YouTube API is blocked.
-      $('lessonVideo').src = `https://www.youtube.com/embed/${id}?enablejsapi=1&controls=0&rel=0&playsinline=1&modestbranding=1&autoplay=${workspaceSettings.autoplay ? 1 : 0}`;
+      $('lessonVideo').src = `https://www.youtube.com/embed/${id}?enablejsapi=1&controls=0&rel=0&playsinline=1&modestbranding=1&iv_load_policy=3&fs=0&disablekb=1&origin=${encodeURIComponent(location.origin)}&autoplay=${autoplayRequested || workspaceSettings.autoplay ? 1 : 0}`;
     $('lessonMp4').removeAttribute('src');
     setupYoutubePlayer(id, youtubeUrl);
   } else {
@@ -585,5 +632,10 @@ async function compressPaymentScreenshot(file) {
     reader.readAsDataURL(file);
   });
 }
-window.addEventListener('popstate', () => { const nextParams = new URLSearchParams(location.search); selectedLessonId = nextParams.get('lesson'); render(); });
+window.addEventListener('popstate', () => {
+  const nextParams = new URLSearchParams(location.search);
+  const nextPrettyPath = location.pathname.match(/^\/courses\/([^/]+)(?:\/lectures\/([^/]+))?\/?$/);
+  selectedLessonId = nextParams.get('lesson') || nextPrettyPath?.[2] || null;
+  render();
+});
 observeAuthState(nextUser => { user = nextUser; load().catch(error => { $('learningLoading').textContent = 'Unable to load this course.'; console.error(error); }); });

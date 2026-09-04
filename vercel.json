@@ -18,6 +18,14 @@
   ],
   "rewrites": [
     {
+      "source": "/courses/:courseId/lectures/:lessonId",
+      "destination": "/course.html?course=:courseId&lesson=:lessonId"
+    },
+    {
+      "source": "/courses/:courseId",
+      "destination": "/course.html?course=:courseId"
+    },
+    {
       "source": "/courses/(.*)",
       "destination": "/index.html"
     }

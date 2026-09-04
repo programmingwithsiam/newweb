@@ -228,6 +228,10 @@ export function renderPublishedCourseCatalog() {
   });
     catalog.innerHTML = courses.map(course => {
     const progress = getCoursePercent(course);
+    const savedLessonId = getCourseProgress()?.[course.id]?.lastLessonId;
+    const courseHref = savedLessonId
+      ? `course.html?course=${encodeURIComponent(course.id)}&lesson=${encodeURIComponent(savedLessonId)}`
+      : `course.html?course=${encodeURIComponent(course.id)}`;
     const thumbnail = course.thumbnail || getYoutubeThumbnailUrl(course.videoUrl);
     const fallbackTitle = escapeHtml(String(course.title || 'Course').slice(0, 24));
     const { level, durationText, freePreview, description } = getCourseCardMeta(course);
@@ -236,7 +240,7 @@ export function renderPublishedCourseCatalog() {
     const descriptionText = escapeHtml(description.length > 115 ? `${description.slice(0, 112)}...` : description);
     const levelText = escapeHtml(level);
     const durationLabel = escapeHtml(durationText);
-    return `<a class="lms-course-card" data-course-id="${escapeHtml(course.id)}" href="course.html?course=${encodeURIComponent(course.id)}" aria-label="View ${escapeHtml(course.title)} course details">
+    return `<a class="lms-course-card" data-course-id="${escapeHtml(course.id)}" href="${courseHref}" aria-label="${savedLessonId ? 'Continue' : 'View'} ${escapeHtml(course.title)} course">
           <span class="lms-course-thumbnail ${thumbnail ? 'has-image' : ''}">${thumbnail ? `<img src="${escapeHtml(thumbnail)}" alt="${escapeHtml(course.title)} thumbnail" loading="lazy" decoding="async">` : `<span class="lms-course-fallback"><i class="fa-solid fa-graduation-cap"></i><strong>${fallbackTitle}</strong></span>`}<span class="lms-course-label">${escapeHtml(course.category || 'Course')}</span><span class="lms-course-price-badge">${priceBadge}</span></span>
       <span class="lms-course-body">
         <strong class="lms-course-title">${escapeHtml(course.title)}</strong>
