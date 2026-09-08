@@ -71,7 +71,12 @@ function orderedLessons(data) {
   })));
 }
 function currentLesson() { return lessons.find(lesson => lesson.id === selectedLessonId) || lessons[0] || null; }
-function youtubeId(lesson) { return lesson?.youtubeVideoId || extractYoutubeId(lesson?.youtubeUrl || lesson?.videoUrl || ''); }
+function youtubeId(lesson) {
+  return extractYoutubeId(lesson?.youtubeVideoId)
+    || extractYoutubeId(lesson?.youtubeUrl)
+    || extractYoutubeId(lesson?.videoUrl)
+    || '';
+}
 function renderPaymentQrPanel(panelId, payment = {}, selectedMethod = 'bkash') {
   const panel = $(panelId);
   if (!panel) return;
@@ -197,8 +202,9 @@ function loadYoutubeApi() {
   });
   return youtubeApiPromise;
 }
-function setupYoutubePlayer(videoId, youtubeUrl) {
-  const wrap = $('lessonVideo').closest('.lesson-video-wrap');
+function setupYoutubePlayer(videoId, youtubeUrl, autoplay = false) {
+  ensureLessonVideoFrame();
+  const wrap = $('lessonVideo')?.closest('.lesson-video-wrap');
   const controls = wrap?.querySelector('.youtube-video-controls');
   const brand = wrap?.querySelector('.youtube-video-brand');
   const progressInput = controls?.querySelector('.youtube-video-progress');
@@ -211,9 +217,18 @@ function setupYoutubePlayer(videoId, youtubeUrl) {
   const captionsButton = controls?.querySelector('[data-video-captions]');
   const externalButton = controls?.querySelector('#youtubeExternalButton');
   if (!wrap || !controls || !brand || !progressInput || !currentTimeLabel || !totalTimeLabel) return;
+  if (captionsButton) {
+    captionsButton.disabled = false;
+    captionsButton.dataset.enabled = 'false';
+    captionsButton.setAttribute('aria-pressed', 'false');
+  }
 
   youtubePlayer?.destroy?.();
   youtubePlayer = null;
+  const frame = ensureLessonVideoFrame();
+  if (frame) {
+    frame.src = `https://www.youtube.com/embed/${videoId}?enablejsapi=1&controls=0&rel=0&playsinline=1&modestbranding=1&iv_load_policy=3&fs=0&disablekb=1&origin=${encodeURIComponent(location.origin)}&autoplay=${autoplay ? 1 : 0}`;
+  }
   wrap.classList.add('is-youtube-player');
   controls.hidden = false;
   brand.hidden = false;
@@ -232,7 +247,11 @@ function setupYoutubePlayer(videoId, youtubeUrl) {
   };
   controls.querySelector('[data-youtube-action="play"]').onclick = () => {
     if (youtubePlayer?.getPlayerState?.() === 1) youtubePlayer.pauseVideo();
-    else youtubePlayer?.playVideo();
+    else {
+      youtubePlayer?.unMute?.();
+      youtubePlayer?.setVolume?.(100);
+      youtubePlayer?.playVideo?.();
+    }
   };
   controls.querySelector('[data-youtube-action="seek-back"]')?.addEventListener('click', () => youtubePlayer?.seekTo?.(Math.max(0, (youtubePlayer.getCurrentTime?.() || 0) - 10), true));
   controls.querySelector('[data-youtube-action="seek-forward"]')?.addEventListener('click', () => youtubePlayer?.seekTo?.(Math.min(youtubePlayer.getDuration?.() || Infinity, (youtubePlayer.getCurrentTime?.() || 0) + 10), true));
@@ -242,20 +261,32 @@ function setupYoutubePlayer(videoId, youtubeUrl) {
     updateIcons();
   };
   controls.querySelector('[data-youtube-action="fullscreen"]').onclick = () => togglePlayerFullscreen(wrap);
+  controls.querySelector('[data-youtube-action="settings"]')?.addEventListener('click', () => $('workspaceSettingsButton')?.click());
   controls.querySelector('[data-youtube-action="pip"]')?.addEventListener('click', async () => {
     const video = $('lessonMp4');
-    if (!video || video.classList.contains('hidden') || !document.pictureInPictureEnabled || !video.requestPictureInPicture) return;
-    if (document.pictureInPictureElement) await document.exitPictureInPicture?.().catch(() => {});
-    else await video.requestPictureInPicture().catch(() => {});
+    const frame = $('lessonVideo');
+    if (video && !video.classList.contains('hidden') && document.pictureInPictureEnabled && video.requestPictureInPicture) {
+      if (document.pictureInPictureElement) await document.exitPictureInPicture?.().catch(() => {});
+      else await video.requestPictureInPicture().catch(() => {});
+      return;
+    }
+    if (frame?.requestPictureInPicture && document.pictureInPictureEnabled) {
+      await frame.requestPictureInPicture().catch(() => {});
+      return;
+    }
+    await togglePlayerFullscreen(wrap);
   });
   speedSelect?.addEventListener('change', () => youtubePlayer?.setPlaybackRate?.(Number(speedSelect.value)));
   qualitySelect?.addEventListener('change', () => youtubePlayer?.setPlaybackQuality?.(qualitySelect.value));
-  captionsButton.onclick = () => {
+  if (captionsButton) captionsButton.onclick = () => {
     if (!youtubePlayer?.setOption || captionsButton.disabled) return;
     const enabled = captionsButton.dataset.enabled !== 'true';
-    youtubePlayer.setOption('captions', 'track', enabled ? {} : null);
+    const languageCode = captionsButton.dataset.captionLanguage || undefined;
+    if (enabled) youtubePlayer.loadModule?.('captions');
+    youtubePlayer.setOption('captions', 'track', enabled ? { languageCode } : null);
     captionsButton.dataset.enabled = String(enabled);
     captionsButton.classList.toggle('is-active', enabled);
+    captionsButton.setAttribute('aria-pressed', String(enabled));
   };
   progressInput.oninput = () => {
     const duration = youtubePlayer?.getDuration?.() || 0;
@@ -267,7 +298,16 @@ function setupYoutubePlayer(videoId, youtubeUrl) {
     youtubePlayer = new YT.Player('lessonVideo', {
       videoId,
       events: {
-        onReady: () => { updateTime(); updateIcons(); },
+        onReady: () => {
+          youtubePlayer.loadVideoById(videoId);
+          updateTime();
+          updateIcons();
+          if (autoplay) {
+            youtubePlayer.unMute();
+            youtubePlayer.setVolume(100);
+            youtubePlayer.playVideo();
+          }
+        },
         onStateChange: event => {
           updateTime();
           updateIcons();
@@ -279,7 +319,11 @@ function setupYoutubePlayer(videoId, youtubeUrl) {
     });
     youtubePlayer.addEventListener('onApiChange', () => {
       const tracks = youtubePlayer.getOption?.('captions', 'tracklist') || [];
-      captionsButton.disabled = tracks.length === 0;
+      if (captionsButton) {
+        captionsButton.disabled = false;
+        captionsButton.setAttribute('aria-disabled', String(tracks.length === 0));
+        captionsButton.dataset.captionLanguage = tracks[0]?.languageCode || '';
+      }
       if (qualitySelect) qualitySelect.innerHTML = '<option value="auto">Auto</option>' + (youtubePlayer.getAvailableQualityLevels?.() || []).map(level => `<option value="${level}">${level.toUpperCase()}</option>`).join('');
     });
     const timer = setInterval(() => {
@@ -292,10 +336,26 @@ function setupYoutubePlayer(videoId, youtubeUrl) {
 function resetYoutubeControls() {
   youtubePlayer?.destroy?.();
   youtubePlayer = null;
+  ensureLessonVideoFrame();
   const wrap = $('lessonVideo').closest('.lesson-video-wrap');
   wrap?.classList.remove('is-youtube-player');
   wrap?.querySelector('.youtube-video-controls')?.setAttribute('hidden', '');
   wrap?.querySelector('.youtube-video-brand')?.setAttribute('hidden', '');
+}
+function ensureLessonVideoFrame() {
+  const existing = $('lessonVideo');
+  if (existing) return existing;
+  const wrap = document.querySelector('.lesson-video-wrap');
+  if (!wrap) return null;
+  const frame = document.createElement('iframe');
+  frame.id = 'lessonVideo';
+  frame.loading = 'lazy';
+  frame.title = 'Course lesson video';
+  frame.tabIndex = 0;
+  frame.allow = 'autoplay; encrypted-media; picture-in-picture';
+  frame.allowFullscreen = true;
+  wrap.prepend(frame);
+  return frame;
 }
 function setProgress() {
   const value = percent();
@@ -453,18 +513,21 @@ function bindCheckout() {
 function renderPlayer() {
   const lesson = currentLesson();
   if (!lesson) { $('lessonPlayer').classList.add('hidden'); return; }
+  ensureLessonVideoFrame();
   $('lessonPlayer').classList.remove('hidden');
   setupWorkspaceSettings();
   $('lessonTitle').textContent = lesson.title;
   $('lessonDescription').textContent = lesson.description || '';
   $('lessonDuration').textContent = lesson.duration || '0 min';
   const youtubeLink = $('lessonYoutubeLink');
-  const youtubeUrl = lesson.youtubeUrl || (youtubeId(lesson) ? `https://www.youtube.com/watch?v=${youtubeId(lesson)}` : '');
+  const id = youtubeId(lesson);
+  const youtubeUrl = extractYoutubeId(lesson.youtubeUrl)
+    ? lesson.youtubeUrl
+    : (id ? `https://www.youtube.com/watch?v=${id}` : '');
   youtubeLink.classList.toggle('hidden', lesson.showYoutubeLink !== true || !youtubeUrl);
   youtubeLink.href = youtubeUrl;
   
   const isMp4 = lesson.videoType === 'mp4' || (lesson.videoUrl && lesson.videoUrl.toLowerCase().endsWith('.mp4'));
-  const id = youtubeId(lesson);
   const autoplayRequested = new URLSearchParams(location.search).get('autoplay') === '1';
   
   if (isMp4 && lesson.videoUrl) {
@@ -482,7 +545,7 @@ function renderPlayer() {
     // Keep native controls as a fallback if the YouTube API is blocked.
       $('lessonVideo').src = `https://www.youtube.com/embed/${id}?enablejsapi=1&controls=0&rel=0&playsinline=1&modestbranding=1&iv_load_policy=3&fs=0&disablekb=1&origin=${encodeURIComponent(location.origin)}&autoplay=${autoplayRequested || workspaceSettings.autoplay ? 1 : 0}`;
     $('lessonMp4').removeAttribute('src');
-    setupYoutubePlayer(id, youtubeUrl);
+    setupYoutubePlayer(id, youtubeUrl, autoplayRequested || workspaceSettings.autoplay);
   } else {
     // No valid video
     resetYoutubeControls();
@@ -523,14 +586,23 @@ function renderPlayer() {
 document.addEventListener('keydown', event => {
   if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return;
   const video = $('lessonMp4');
-  if (!video || video.classList.contains('hidden')) return;
+  const usingMp4 = video && !video.classList.contains('hidden');
+  const usingYoutube = youtubePlayer && video?.classList.contains('hidden');
+  if (!usingMp4 && !usingYoutube) return;
   if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') {
     event.preventDefault();
-    video.currentTime = Math.max(0, Math.min(video.duration || Infinity, video.currentTime + (event.key === 'ArrowRight' ? 5 : -5)));
+    if (usingMp4) {
+      video.currentTime = Math.max(0, Math.min(video.duration || Infinity, video.currentTime + (event.key === 'ArrowRight' ? 5 : -5)));
+    } else {
+      const currentTime = youtubePlayer.getCurrentTime?.() || 0;
+      const duration = youtubePlayer.getDuration?.() || Infinity;
+      youtubePlayer.seekTo(Math.max(0, Math.min(duration, currentTime + (event.key === 'ArrowRight' ? 5 : -5))), true);
+    }
   }
   if (event.key === ' ' || event.key === 'k' || event.key === 'K') {
     event.preventDefault();
-    video.paused ? video.play().catch(() => {}) : video.pause();
+    if (usingMp4) video.paused ? video.play().catch(() => {}) : video.pause();
+    else youtubePlayer.getPlayerState?.() === 1 ? youtubePlayer.pauseVideo() : youtubePlayer.playVideo();
   }
 });
 function render() {

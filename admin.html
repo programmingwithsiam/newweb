@@ -3388,6 +3388,18 @@
       document.getElementById('statCommunityPosts').textContent = stats.communityPosts ?? '—';
     }
 
+    function getLessonVideoUrl(lesson) {
+      const directUrl = lesson?.videoUrl || lesson?.youtubeUrl || '';
+      if (directUrl) return String(directUrl).trim();
+      const videoId = String(lesson?.youtubeVideoId || '').trim();
+      return videoId ? `https://www.youtube.com/watch?v=${videoId}` : '';
+    }
+
+    function hasLessonVideo(lesson) {
+      const url = getLessonVideoUrl(lesson);
+      return Boolean(url && (isValidYoutubeUrl(url) || /\.mp4([?#]|$)/i.test(url)));
+    }
+
     function renderVideoManager(courses) {
       const list = document.getElementById('videoManagerList');
       const search = document.getElementById('videoManagerSearch')?.value.trim().toLowerCase() || '';
@@ -3395,15 +3407,16 @@
       if (!list) return;
       const videos = courses.flatMap(course => (course.modules || []).flatMap(module => (module.lessons || []).map(lesson => ({ course, module, lesson }))));
       const visible = videos.filter(item => {
-        const connected = Boolean(item.lesson.videoUrl && isValidYoutubeUrl(item.lesson.videoUrl));
+        const connected = hasLessonVideo(item.lesson);
         const text = `${item.course.title} ${item.module.title} ${item.lesson.title}`.toLowerCase();
         return (filter === 'all' || (filter === 'connected' ? connected : !connected)) && text.includes(search);
       });
       document.getElementById('videoManagerCount').textContent = `${visible.length} of ${videos.length} lessons`;
       list.innerHTML = visible.length ? visible.map(({ course, module, lesson }) => {
-        const connected = Boolean(lesson.videoUrl && isValidYoutubeUrl(lesson.videoUrl));
+        const connected = hasLessonVideo(lesson);
+        const videoUrl = getLessonVideoUrl(lesson);
         const playerUrl = `course.html?course=${encodeURIComponent(course.id)}&lesson=${encodeURIComponent(lesson.id)}`;
-        return `<article class="video-manager-row"><div><span class="video-manager-context">${escapeHtml(course.title)} / ${escapeHtml(module.title)}</span><strong>${escapeHtml(lesson.title || 'Untitled lesson')}</strong><small>${escapeHtml(lesson.duration || '0 min')}</small></div><span class="video-manager-status ${connected ? 'connected' : 'missing'}">${connected ? 'Connected' : 'Missing'}</span><div class="admin-btn-row"><a class="btn" href="${playerUrl}" target="_blank" rel="noopener noreferrer">Preview</a>${connected ? `<a class="btn" href="${escapeHtml(lesson.videoUrl)}" target="_blank" rel="noopener noreferrer">YouTube</a>` : ''}</div></article>`;
+        return `<article class="video-manager-row"><div><span class="video-manager-context">${escapeHtml(course.title)} / ${escapeHtml(module.title)}</span><strong>${escapeHtml(lesson.title || 'Untitled lesson')}</strong><small>${escapeHtml(lesson.duration || '0 min')}</small></div><span class="video-manager-status ${connected ? 'connected' : 'missing'}">${connected ? 'Connected' : 'Missing'}</span><div class="admin-btn-row"><a class="btn" href="${playerUrl}" target="_blank" rel="noopener noreferrer">Preview</a>${connected ? `<a class="btn" href="${escapeHtml(videoUrl)}" target="_blank" rel="noopener noreferrer">Video</a>` : ''}</div></article>`;
       }).join('') : '<div class="empty-state"><i class="fa-solid fa-video-slash"></i><strong>No matching videos</strong><span>Add a YouTube URL from the lesson editor.</span></div>';
     }
 
@@ -3892,8 +3905,8 @@
                     'lesson-row';
 
 
-                  const hasVideo =
-                    !!lesson.videoUrl;
+                  const videoUrl = getLessonVideoUrl(lesson);
+                  const hasVideo = hasLessonVideo(lesson);
 
 
                   row.innerHTML = `
@@ -3935,8 +3948,8 @@
                         hasVideo
                           ? `
                             <div class="lesson-video-link">
-                              <a href="${escapeHtml(lesson.videoUrl)}" target="_blank" rel="noopener noreferrer">
-                                ${escapeHtml(lesson.videoUrl)}
+                              <a href="${escapeHtml(videoUrl)}" target="_blank" rel="noopener noreferrer">
+                                ${escapeHtml(videoUrl)}
                               </a>
                             </div>
                           `
@@ -4424,7 +4437,7 @@ slot.innerHTML = `
             <input
               id="lf-video"
               type="url"
-              value="${escapeHtml(lesson?.videoUrl || '')}"
+              value="${escapeHtml(getLessonVideoUrl(lesson))}"
               placeholder="https://www.youtube.com/watch?v=..."
             />
             <span class="youtube-valid" id="lf-video-valid">✓ Valid</span>
