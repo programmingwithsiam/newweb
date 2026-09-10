@@ -29,6 +29,9 @@ const signInForm = document.getElementById('signInForm');
 const registerForm = document.getElementById('registerForm');
 const forgotBtn = document.getElementById('forgotPasswordBtn');
 
+const RECAPTCHA_SITE_KEY = '6LfEirQtAAAAAD2bQLLMveIf4pvufTyOcrQ570hO';
+let recaptchaLoadPromise = null;
+
 const navLoggedOut = document.getElementById('navAuthLoggedOut');
 const navLoggedIn = document.getElementById('navAuthLoggedIn');
 const headerSignInBtn = document.getElementById('headerSignInBtn');
@@ -54,6 +57,37 @@ function clearStatus() {
   if (!modalStatus) return;
   modalStatus.textContent = '';
   modalStatus.className = 'auth-status';
+}
+
+function loadRecaptcha() {
+  if (window.grecaptcha) return Promise.resolve(window.grecaptcha);
+  if (recaptchaLoadPromise) return recaptchaLoadPromise;
+
+  recaptchaLoadPromise = new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = `https://www.google.com/recaptcha/api.js?render=${encodeURIComponent(RECAPTCHA_SITE_KEY)}`;
+    script.async = true;
+    script.defer = true;
+    script.onload = () => window.grecaptcha.ready(() => resolve(window.grecaptcha));
+    script.onerror = () => reject(new Error('Security verification could not be loaded. Please try again.'));
+    document.head.appendChild(script);
+  });
+  return recaptchaLoadPromise;
+}
+
+async function getRecaptchaToken(action) {
+  try {
+    const recaptcha = await loadRecaptcha();
+    const token = await recaptcha.execute(RECAPTCHA_SITE_KEY, { action });
+    if (!token) {
+      setStatus('Security verification failed. Please try again.');
+      return false;
+    }
+    return token;
+  } catch (error) {
+    setStatus(error instanceof Error ? error.message : 'Security verification failed. Please try again.');
+    return false;
+  }
 }
 
 function openAuthModal(message) {
@@ -105,6 +139,7 @@ googleBtn?.addEventListener('click', async () => {
     setStatus('Firebase is not configured yet. See FIREBASE_SETUP.md.');
     return;
   }
+  if (!(await getRecaptchaToken('login'))) return;
   googleBtn.disabled = true;
   clearStatus();
   try {
@@ -125,6 +160,7 @@ signInForm?.addEventListener('submit', async (e) => {
     setStatus('Please enter your email and password.');
     return;
   }
+  if (!(await getRecaptchaToken('login'))) return;
   const btn = document.getElementById('signInSubmitBtn');
   btn.disabled = true;
   clearStatus();
@@ -151,6 +187,7 @@ registerForm?.addEventListener('submit', async (e) => {
     setStatus('Password must be at least 6 characters.');
     return;
   }
+  if (!(await getRecaptchaToken('register'))) return;
   const btn = document.getElementById('registerSubmitBtn');
   btn.disabled = true;
   clearStatus();

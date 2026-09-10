@@ -32,7 +32,7 @@
 
 /* Make chat toggle more visible */
 .chat-toggle-btn{ 
-  right: 22px;
+  right: 88px;
   bottom: 22px;
   width: 64px;
   height: 64px;
@@ -47,5 +47,5 @@
 
 @media (max-width: 760px){
   .scroll-cue{ display:none }
-  .chat-toggle-btn{ right: 12px; bottom: 12px; width:56px; height:56px }
+  .chat-toggle-btn{ right: 78px; bottom: 12px; width:56px; height:56px }
 }
