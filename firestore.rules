@@ -54,7 +54,7 @@ service cloud.firestore {
         match /lessons/{lessonId} {
           // Video lesson documents contain protected video URLs.
           // Require users to be signed in to read lesson documents.
-          allow read: if canAccessCourse(courseId);
+          allow read: if get(/databases/$(database)/documents/courses/$(courseId)).data.price == 0 || canAccessCourse(courseId);
           allow write: if isAdmin();
         }
       }

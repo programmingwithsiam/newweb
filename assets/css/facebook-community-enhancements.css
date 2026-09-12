@@ -169,12 +169,6 @@
   box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) !important;
 }
 
-  background: rgba(14, 18, 24, 0.9) !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
-  backdrop-filter: blur(14px) !important;
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) !important;
-}
-
 .community-primary-nav {
   gap: 8px !important;
 }
@@ -239,6 +233,14 @@
   flex-shrink: 0 !important;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2) !important;
   transition: transform 0.2s !important;
+}
+
+.post-avatar img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: contain !important;
+  background: var(--community-panel-2) !important;
+  border-radius: 50%;
 }
 
 .post-avatar:hover {

@@ -3,6 +3,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <script>
+    const adminRoute = new URLSearchParams(location.search).get('route');
+    if (location.pathname.endsWith('/admin.html') && adminRoute !== 'clean') {
+      location.replace('/admin');
+    } else if (adminRoute === 'clean') {
+      history.replaceState({}, '', '/admin');
+    }
+  </script>
 
   <title>Admin Dashboard — CodeWithSiam</title>
   <meta name="robots" content="noindex, nofollow" />

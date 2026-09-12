@@ -7,6 +7,12 @@
       ]
     },
     {
+      "source": "/blog/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800" }
+      ]
+    },
+    {
       "source": "/(.*)",
       "headers": [
         { "key": "X-Content-Type-Options", "value": "nosniff" },
@@ -18,8 +24,20 @@
   ],
   "rewrites": [
     {
+      "source": "/blog",
+      "destination": "/blog/index.html"
+    },
+    {
+      "source": "/blog/:slug",
+      "destination": "/blog/index.html?slug=:slug"
+    },
+    {
       "source": "/courses/:courseId/lectures/:lessonId",
       "destination": "/course.html?course=:courseId&lesson=:lessonId"
+    },
+    {
+      "source": "/course",
+      "destination": "/course.html"
     },
     {
       "source": "/courses/:courseId",
@@ -28,6 +46,18 @@
     {
       "source": "/courses/(.*)",
       "destination": "/index.html"
+    },
+    {
+      "source": "/community",
+      "destination": "/community/index.html"
+    },
+    {
+      "source": "/community/(.*)",
+      "destination": "/community/index.html"
+    },
+    {
+      "source": "/admin",
+      "destination": "/admin.html"
     }
   ]
 }

@@ -52,7 +52,7 @@ const route = lessonId => lessonId
   ? `course.html?course=${encodeURIComponent(course.id)}&lesson=${encodeURIComponent(lessonId)}&autoplay=1`
   : `course.html?course=${encodeURIComponent(course.id)}`;
 function go(lessonId = '') {
-  if (lessonId && (!user || course?.accessDenied)) {
+  if (lessonId && !hasCourseAccess()) {
     showAccessGate({ signedIn: Boolean(user) });
     return;
   }
@@ -71,6 +71,8 @@ function orderedLessons(data) {
   })));
 }
 function currentLesson() { return lessons.find(lesson => lesson.id === selectedLessonId) || lessons[0] || null; }
+function isFreeCourse() { return Number(course?.price || 0) <= 0; }
+function hasCourseAccess() { return isFreeCourse() || Boolean(user && !course?.accessDenied); }
 function youtubeId(lesson) {
   return extractYoutubeId(lesson?.youtubeVideoId)
     || extractYoutubeId(lesson?.youtubeUrl)
@@ -124,6 +126,11 @@ function showAccessGate({ signedIn = false, startEnrollment = false } = {}) {
   $('learningLoading').classList.add('hidden');
   $('courseOverview').classList.add('hidden');
   $('lessonPlayer').classList.add('hidden');
+  if (course) {
+    $('accessIntroTitle').textContent = course.title || 'Course';
+    const price = Number(course.discountPrice) > 0 && Number(course.discountPrice) < Number(course.price) ? Number(course.discountPrice) : Number(course.price) || 0;
+    $('accessIntroPrice').textContent = price > 0 ? `৳${price.toLocaleString('en-BD')}` : 'Free';
+  }
   $('learningGateTitle').textContent = signedIn ? 'Video access required' : 'Sign in to start learning';
   $('learningGateText').textContent = signedIn
     ? `Signed in as ${user?.email || 'your Google account'}. Admin approval is required for this course.`
@@ -390,12 +397,12 @@ function setupWorkspaceSettings() {
 function playlist(target, compact = false) {
   const groups = new Map();
   lessons.forEach(lesson => { if (!groups.has(lesson.moduleId)) groups.set(lesson.moduleId, { title: lesson.moduleTitle, lessons: [] }); groups.get(lesson.moduleId).lessons.push(lesson); });
-  target.innerHTML = [...groups.values()].map(group => `<section class="module-block"><div class="module-title">${group.title || 'Course Content'}</div>${group.lessons.map((lesson, index) => { const isComplete = completed().has(lesson.id); const isCurrent = lesson.id === selectedLessonId; const locked = !user || course?.accessDenied; return `<button class="lesson-row ${isCurrent ? 'current' : ''} ${isComplete ? 'complete' : ''}" data-lesson-id="${lesson.id}" type="button"><span class="lesson-state">${isComplete ? '✓' : isCurrent ? '▶' : '○'}</span><span class="lesson-row-title">${index + 1}. ${lesson.title}</span><span class="lesson-row-meta"><span>${lesson.duration || '0 min'}</span><span class="lesson-row-action">${locked ? 'Locked' : isComplete ? 'Review' : 'Start'}</span></span></button>`; }).join('')}</section>`).join('');
+  target.innerHTML = [...groups.values()].map(group => `<section class="module-block"><div class="module-title">${group.title || 'Course Content'}</div>${group.lessons.map((lesson, index) => { const isComplete = completed().has(lesson.id); const isCurrent = lesson.id === selectedLessonId; const locked = !hasCourseAccess() || course?.accessDenied; return `<button class="lesson-row ${isCurrent ? 'current' : ''} ${isComplete ? 'complete' : ''}" data-lesson-id="${lesson.id}" type="button"><span class="lesson-state">${isComplete ? '✓' : isCurrent ? '▶' : '○'}</span><span class="lesson-row-title">${index + 1}. ${lesson.title}</span><span class="lesson-row-meta"><span>${lesson.duration || '0 min'}</span><span class="lesson-row-action">${locked ? 'Locked' : isComplete ? 'Review' : 'Start'}</span></span></button>`; }).join('')}</section>`).join('');
   target.querySelectorAll('[data-lesson-id]').forEach(button => button.addEventListener('click', () => go(button.dataset.lessonId)));
 }
 function renderOverview() {
   const lesson = currentLesson();
-  const hasAccess = Boolean(user && !course.accessDenied);
+  const hasAccess = hasCourseAccess();
   $('courseTitle').textContent = course.title;
   $('courseDescription').textContent = course.description || '';
   $('courseInstructor').textContent = `Instructor: ${course.instructor || 'CodeWithSiam'}`;
@@ -449,8 +456,16 @@ function renderCheckout(finalPrice, originalPrice, hasAccess) {
   if (course.certificateAvailable === true) benefits.push('Certificate of completion');
   $('checkoutBenefits').innerHTML = benefits.map(item => `<span class="checkout-benefit">✓ ${item}</span>`).join('');
   const method = $('checkoutPaymentMethod').value;
-  const number = course.payment?.[method] || 'Contact admin for payment instructions';
-  $('checkoutPaymentInstruction').textContent = `${method === 'bkash' ? 'bKash' : 'Nagad'}: ${number}`;
+  const instructions = {
+    bkash: `bKash: ${course.payment?.bkash || 'Contact admin for payment instructions'}`,
+    nagad: `Nagad: ${course.payment?.nagad || 'Contact admin for payment instructions'}`,
+    bank: course.payment?.bank || 'Bank transfer details will be provided by the admin.',
+    visa: 'Visa payment details will be provided by the admin.',
+    debit_card: 'Debit card payment details will be provided by the admin.',
+    credit_card: 'Credit card payment details will be provided by the admin.',
+    paypal: 'PayPal payment details will be provided by the admin.'
+  };
+  $('checkoutPaymentInstruction').textContent = instructions[method] || 'Contact admin for payment instructions';
   $('checkoutPayBtn').textContent = `Pay ৳${finalPrice.toLocaleString('en-BD')}`;
 }
 function getCheckoutCountry() {
@@ -515,6 +530,8 @@ function renderPlayer() {
   if (!lesson) { $('lessonPlayer').classList.add('hidden'); return; }
   ensureLessonVideoFrame();
   $('lessonPlayer').classList.remove('hidden');
+  const videoWrap = $('lessonVideo').closest('.lesson-video-wrap');
+  videoWrap?.querySelector('.lesson-video-unavailable')?.remove();
   setupWorkspaceSettings();
   $('lessonTitle').textContent = lesson.title;
   $('lessonDescription').textContent = lesson.description || '';
@@ -551,9 +568,12 @@ function renderPlayer() {
     resetYoutubeControls();
     $('lessonVideo').classList.add('hidden');
     $('lessonMp4').classList.add('hidden');
+    const unavailable = document.createElement('div');
+    unavailable.className = 'lesson-video-unavailable';
+    unavailable.innerHTML = '<i class="fa-solid fa-video-slash" aria-hidden="true"></i><strong>Video is not available yet</strong><span>The lesson is published, but its YouTube or MP4 video URL has not been loaded. Please ask the course admin to publish the lesson video and deploy the Firestore rules.</span>';
+    videoWrap?.appendChild(unavailable);
   }
   
-  const videoWrap = $('lessonVideo').closest('.lesson-video-wrap');
   if (videoWrap && !videoWrap.dataset.controlsReady) {
     videoWrap.dataset.controlsReady = 'true';
     const requestFullscreen = async target => {
@@ -621,19 +641,19 @@ async function complete() {
   const updated = { ...(progress[course.id] || {}), completedLessons: [...completed(), lesson.id], lastLessonId: lesson.id, completion: Math.round(((completed().size + 1) / lessons.length) * 100) };
   progress[course.id] = updated;
   localStorage.setItem(progressKey, JSON.stringify(progress));
-  await saveUserCourseProgress(user.uid, course.id, updated).catch(error => console.error('Progress sync failed:', error));
+  if (user) await saveUserCourseProgress(user.uid, course.id, updated).catch(error => console.error('Progress sync failed:', error));
   const next = lessons[lessons.indexOf(lesson) + 1];
   if (next) go(next.id); else render();
 }
 async function load() {
-  const all = await fetchAllCourses();
+  const all = await fetchAllCourses({ includeLessons: true });
   course = all.find(item => item.id === courseId);
   if (!course) {
     $('learningLoading').innerHTML = '<div class="course-error-card"><i class="fa-solid fa-compass"></i><h1>Course not found</h1><p>Choose a course from the CodeWithSiam course library to continue.</p><a class="learning-button primary" href="index.html">Browse Courses</a></div>';
     return;
   }
   bindCheckout();
-  if (!user) {
+  if (!user && !isFreeCourse()) {
     lessons = orderedLessons(course);
     $('learningLoading').classList.add('hidden');
     selectedLessonId = null;
@@ -649,12 +669,14 @@ async function load() {
   }
   $('learningLogin').classList.add('hidden');
   progress = getLocalProgress();
-  const cloud = (await import('./courses-db.js')).fetchUserProgress;
-  const cloudProgress = await cloud(user.uid).catch(() => ({}));
-  progress = { ...progress, ...cloudProgress };
+  if (user) {
+    const cloud = (await import('./courses-db.js')).fetchUserProgress;
+    const cloudProgress = await cloud(user.uid).catch(() => ({}));
+    progress = { ...progress, ...cloudProgress };
+  }
   localStorage.setItem(progressKey, JSON.stringify(progress));
   lessons = orderedLessons(course);
-  if (!selectedLessonId) selectedLessonId = progress[course.id]?.lastLessonId || lessons.find(lesson => !completed().has(lesson.id))?.id || lessons[0]?.id;
+  if (!selectedLessonId && user) selectedLessonId = progress[course.id]?.lastLessonId || lessons.find(lesson => !completed().has(lesson.id))?.id || lessons[0]?.id;
   $('learningLoading').classList.add('hidden');
   render();
 }
@@ -710,4 +732,14 @@ window.addEventListener('popstate', () => {
   selectedLessonId = nextParams.get('lesson') || nextPrettyPath?.[2] || null;
   render();
 });
-observeAuthState(nextUser => { user = nextUser; load().catch(error => { $('learningLoading').textContent = 'Unable to load this course.'; console.error(error); }); });
+observeAuthState(nextUser => {
+  user = nextUser;
+  load().catch(error => {
+    const isPermissionError = error?.code === 'permission-denied'
+      || /permission|insufficient/i.test(error?.message || '');
+    $('learningLoading').innerHTML = isPermissionError
+      ? '<div class="course-error-card"><i class="fa-solid fa-lock"></i><h1>Video access not approved</h1><p>Sign in with the approved Google account, or ask the course admin to grant access to your email.</p><a class="learning-button primary" href="index.html#course">Back to courses</a></div>'
+      : '<div class="course-error-card"><i class="fa-solid fa-triangle-exclamation"></i><h1>Unable to load this course</h1><p>Please refresh the page and try again.</p><a class="learning-button primary" href="index.html#course">Back to courses</a></div>';
+    console.error(error);
+  });
+});

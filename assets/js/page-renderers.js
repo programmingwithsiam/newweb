@@ -86,6 +86,10 @@ export function getYoutubeThumbnailUrl(url) {
   return id ? `https://img.youtube.com/vi/${id}/maxresdefault.jpg` : '';
 }
 
+function getCourseThumbnail(course, videoUrl = course?.videoUrl) {
+  return course?.thumbnail || getYoutubeThumbnailUrl(videoUrl) || 'assets/images/py.jpg';
+}
+
 /* ---------- Course Data & Rendering ---------- */
 function normalizeCourse(course) {
   const lessons = Array.isArray(course.lessons) ? course.lessons : [];
@@ -112,7 +116,7 @@ function normalizeCourse(course) {
 export async function loadCourses() {
   try {
     const { fetchAllCourses } = await import('./courses-db.js');
-    const courses = await fetchAllCourses();
+    const courses = await fetchAllCourses({ includeLessons: false });
     cachedCourses = courses.map(normalizeCourse);
   } catch (error) {
     console.error('loadCourses() failed:', error);
@@ -208,11 +212,13 @@ export function updateProgressBar(course) {
 
 export function updateHeroMetrics() {
   const published = cachedCourses.filter(course => course.status === 'published').length;
-  const upcoming = cachedCourses.filter(course => course.status === 'upcoming').length;
   const lessonCount = cachedCourses.reduce((total, course) => total + (Array.isArray(course.lessons) ? course.lessons.length : 0), 0);
-  document.getElementById('courseCount').textContent = published;
-  document.getElementById('lessonCount').textContent = lessonCount;
-  document.getElementById('upcomingCount').textContent = upcoming;
+  const courseCount = document.getElementById('courseCount');
+  const lessonCountElement = document.getElementById('lessonCount');
+  const studentsHelpedCount = document.getElementById('studentsHelpedCount');
+  if (courseCount) courseCount.textContent = published;
+  if (lessonCountElement) lessonCountElement.textContent = lessonCount;
+  if (studentsHelpedCount) studentsHelpedCount.textContent = '—';
 }
 
 /* Large rendering function - kept for space but exported */
@@ -232,7 +238,7 @@ export function renderPublishedCourseCatalog() {
     const courseHref = savedLessonId
       ? `course.html?course=${encodeURIComponent(course.id)}&lesson=${encodeURIComponent(savedLessonId)}`
       : `course.html?course=${encodeURIComponent(course.id)}`;
-    const thumbnail = course.thumbnail || getYoutubeThumbnailUrl(course.videoUrl);
+    const thumbnail = getCourseThumbnail(course);
     const fallbackTitle = escapeHtml(String(course.title || 'Course').slice(0, 24));
     const { level, durationText, freePreview, description } = getCourseCardMeta(course);
     const priceBadge = Number(course.price) > 0 ? `৳${Number(course.price).toLocaleString('en-BD')}` : 'Free';
@@ -273,6 +279,10 @@ export function renderPublishedCourseCatalog() {
           image.src = src.replace(/\/(maxresdefault|hqdefault)\.jpg/, '/mqdefault.jpg');
           return;
         }
+      }
+      if (src !== new URL('assets/images/py.jpg', location.href).href) {
+        image.src = 'assets/images/py.jpg';
+        return;
       }
       // If all retries exhausted, show fallback
       const thumbnailContainer = image.parentElement;
@@ -323,7 +333,7 @@ export function renderPublicCoursePreview(course) {
   const platform = document.getElementById('coursePlatform');
   const gate = document.getElementById('courseSignInGate');
   const player = document.querySelector('.course-lesson-player');
-  const thumbnail = course.thumbnail || getYoutubeThumbnailUrl(course.videoUrl);
+  const thumbnail = getCourseThumbnail(course);
   const totalDuration = course.lessons.reduce((sum, lesson) => sum + parseInt(String(lesson.duration).match(/\d+/)?.[0] || '0', 10), 0);
 
   document.getElementById('courseOverviewThumbnail')?.classList.toggle('hidden', !thumbnail);
@@ -385,7 +395,7 @@ export function renderUpcomingCourses() {
     const theme = THEME_BY_CATEGORY[course.category] || THEME_BY_CATEGORY.default;
     const lessonCount = Array.isArray(course.lessons) ? course.lessons.length : 0;
     const videoUrl = course.videoUrl || '';
-    const thumbnail = course.thumbnail || getYoutubeThumbnailUrl(videoUrl);
+    const thumbnail = getCourseThumbnail(course, videoUrl);
     const cardAction = videoUrl ? `data-video-url="${videoUrl}"` : '';
     const hasThumbnail = !!thumbnail;
     const safeThumb = hasThumbnail ? thumbnail.replace(/"/g, '&quot;') : '';
@@ -428,7 +438,7 @@ export function initLiveHub() {
   const archive = document.getElementById('liveArchiveList');
   const count = document.getElementById('liveArchiveCount');
   if (!current || !archive) return;
-  import('./courses-db.js').then(async ({ fetchLiveSettings, fetchLiveSessions, extractYoutubeId }) => {
+  const load = () => import('./courses-db.js').then(async ({ fetchLiveSettings, fetchLiveSessions, extractYoutubeId }) => {
     const [settings, sessions] = await Promise.all([fetchLiveSettings().catch(() => ({})), fetchLiveSessions().catch(() => [])]);
     const liveId = extractYoutubeId(settings.url || '');
     if (settings.enabled === true && liveId) {
@@ -437,6 +447,15 @@ export function initLiveHub() {
     count.textContent = `${sessions.length} session${sessions.length === 1 ? '' : 's'}`;
     archive.innerHTML = sessions.length ? sessions.map(session => `<article class="live-archive-card"><div class="live-archive-thumb"><img src="https://i.ytimg.com/vi/${escapeHtml(session.youtubeVideoId || extractYoutubeId(session.videoUrl || ''))}/hqdefault.jpg" alt="${escapeHtml(session.title || 'Live session')}" loading="lazy"><span><i class="fa-solid fa-lock"></i> Members</span></div><div class="live-archive-copy"><time>${formatLiveDate(session.endedAt)}</time><h4>${escapeHtml(session.title || 'Live session')}</h4><p>${escapeHtml(session.description || 'Sign in to watch this CodeWithSiam live replay.')}</p><a href="live.html">Enter Live room <i class="fa-solid fa-arrow-right"></i></a></div></article>`).join('') : '<p class="live-hub-empty">Your completed live sessions will be saved here.</p>';
   }).catch(() => { archive.innerHTML = '<p class="live-hub-empty">The live archive is unavailable right now.</p>'; });
+  if (!('IntersectionObserver' in window)) load();
+  else {
+    const observer = new IntersectionObserver(entries => {
+      if (!entries.some(entry => entry.isIntersecting)) return;
+      observer.disconnect();
+      load();
+    }, { rootMargin: '500px' });
+    observer.observe(archive);
+  }
 }
 
 export function initLiveNotification() {
@@ -450,13 +469,15 @@ export function initLiveNotification() {
     const videoId = extractYoutubeId(settings.url || '');
     if (settings.enabled !== true || !videoId) return;
     button.classList.remove('hidden');
-    frame.src = `https://www.youtube.com/embed/${videoId}?controls=1&rel=0&playsinline=1`;
-    if (settings.chatEnabled !== false) initSiteLiveChat();
-    else document.querySelector('.site-live-chat')?.classList.add('hidden');
+    frame.dataset.src = `https://www.youtube.com/embed/${videoId}?controls=1&rel=0&playsinline=1`;
+    if (settings.chatEnabled === false) document.querySelector('.site-live-chat')?.classList.add('hidden');
     openLink.href = settings.url;
     button.addEventListener('click', () => {
       const open = panel.classList.toggle('hidden') === false;
       button.setAttribute('aria-expanded', String(open));
+      if (!open) return;
+      if (!frame.src && frame.dataset.src) frame.src = frame.dataset.src;
+      if (settings.chatEnabled !== false) initSiteLiveChat();
     });
     document.getElementById('closeLiveNotification')?.addEventListener('click', () => {
       panel.classList.add('hidden');
@@ -586,7 +607,18 @@ export function initChatToggle(){
 
 export async function initCourseDeck(){
   bindCourseFilters();
-  await initCoursePlatform();
+  const platform = document.getElementById('coursePlatform');
+  const routeRequestsCourse = new URLSearchParams(location.search).has('course') || location.hash === '#course' || location.pathname.includes('/courses/');
+  if (!platform || routeRequestsCourse || !('IntersectionObserver' in window)) {
+    await initCoursePlatform();
+    return;
+  }
+  const observer = new IntersectionObserver(entries => {
+    if (!entries.some(entry => entry.isIntersecting)) return;
+    observer.disconnect();
+    initCoursePlatform();
+  }, { rootMargin: '500px' });
+  observer.observe(platform);
 }
 
 export async function initCoursePlatform() {

@@ -1,0 +1,14 @@
+{
+  "rewrites": [
+    { "source": "/community/login", "destination": "/community/index.html" },
+    { "source": "/community/signup", "destination": "/community/index.html" },
+    { "source": "/community/forgot-password", "destination": "/community/index.html" },
+    { "source": "/community/profile/*", "destination": "/community/index.html" },
+    { "source": "/community/messenger/*", "destination": "/community/index.html" },
+    { "source": "/community/search", "destination": "/community/index.html" },
+    { "source": "/community/notifications", "destination": "/community/index.html" },
+    { "source": "/community/settings", "destination": "/community/index.html" },
+    { "source": "/community/post/*", "destination": "/community/index.html" },
+    { "source": "/community/create", "destination": "/community/index.html" }
+  ]
+}

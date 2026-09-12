@@ -86,7 +86,7 @@ body::before, body::after, .bg-grain, #particles { display: none; }
 .lms-course-progress-track span { display: block; height: 100%; border-radius: inherit; background: #fff; }
 .lms-course-percent { display: flex; min-width: 52px; flex-direction: column; color: #fff; font-size: 1rem; line-height: 1; text-align: right; }
 .lms-course-percent small { margin-top: 4px; color: #707070; font-size: .625rem; letter-spacing: 1px; }
-.lms-course-view { color: #fff; font-size: .75rem; }
+.lms-course-view { color: #090b12; font-size: .75rem; }
 input, select, textarea { border: 1px solid var(--inspired-primary); border-radius: 6px 0 0 6px; padding: 5px 10px 5px 18px; color: var(--inspired-text); background: var(--inspired-bg); }
 input::placeholder, textarea::placeholder { color: var(--inspired-muted); }
 footer { border-top: 1px solid var(--inspired-line); background: var(--inspired-bg); }

@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="refresh" content="0; url=../admin.html?route=clean">
+  <title>Opening admin panel...</title>
+</head>
+<body>
+  <p>Opening the admin panel...</p>
+  <script>
+    window.location.replace(`../admin.html?route=clean${window.location.search ? `&${window.location.search.slice(1)}` : ''}${window.location.hash}`);
+  </script>
+</body>
+</html>

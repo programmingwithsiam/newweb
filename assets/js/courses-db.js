@@ -73,44 +73,95 @@ function sortByOrder(items) {
   });
 }
 
-/* ---------- READ: full course tree (public, no auth required) ---------- */
-export async function fetchAllCourses() {
-  if (!isFirebaseConfigured || !db) return [];
-  const { collection, getDocs } = await loadFirestore();
+const CACHE_TTL_MS = 5 * 60 * 1000;
+const COURSE_CACHE_KEY = 'siam_course_catalog_cache_v1';
+const LIVE_CACHE_KEY = 'siam_live_archive_cache_v1';
+const DEFAULT_COURSE = {
+  id: 'python-for-beginners-bangla',
+  title: 'Python for Beginners (Bangla)',
+  description: 'A beginner-friendly Python course in Bangla, built for students who want to start programming from zero and move toward AI and machine learning.',
+  category: 'Python',
+  language: 'Bangla',
+  instructor: 'CodeWithSiam',
+  status: 'published',
+  price: 0,
+  discountPrice: 0,
+  order: 1,
+  modules: [{
+    id: 'python-foundations',
+    title: 'Python Foundations',
+    lessonCatalog: [
+      'Introduction to Python & Environment Setup',
+      'Variables, Data Types, and Operators',
+      'Conditionals and Loops',
+      'Functions and Modules',
+      'Lists, Tuples, Dictionaries, Sets',
+      'File Handling Basics',
+      'Mini Project: Simple Calculator / To-Do App',
+      'Next Steps: Intro to NumPy & Pandas (bridge to Data Science)'
+    ].map((title, index) => ({ id: `python-foundations-${index + 1}`, title, duration: 'Lesson', order: index + 1 }))
+  }]
+};
 
-  const coursesSnap = await getDocs(collection(db, 'courses'));
+function readSessionCache(key) {
+  try {
+    const cached = JSON.parse(sessionStorage.getItem(key) || 'null');
+    return cached && Date.now() - cached.timestamp < CACHE_TTL_MS ? cached.value : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeSessionCache(key, value) {
+  try {
+    sessionStorage.setItem(key, JSON.stringify({ timestamp: Date.now(), value }));
+  } catch {
+    // Storage is optional; Firestore remains the source of truth.
+  }
+}
+
+function clearSessionCache(...keys) {
+  try { keys.forEach(key => sessionStorage.removeItem(key)); } catch {}
+}
+
+/* ---------- READ: full course tree (public, no auth required) ---------- */
+export async function fetchAllCourses({ includeLessons = true } = {}) {
+  if (!isFirebaseConfigured || !db) return [];
+  if (!includeLessons) {
+    const cached = readSessionCache(COURSE_CACHE_KEY);
+    if (cached) return cached;
+  }
+  const { collection, getDocs, limit, query } = await loadFirestore();
+
+  const coursesSnap = await getDocs(query(collection(db, 'courses'), limit(100)));
+  if (coursesSnap.empty) {
+    const fallbackModules = DEFAULT_COURSE.modules.map(module => ({ ...module, lessons: module.lessonCatalog }));
+    const fallback = [{ ...DEFAULT_COURSE, modules: fallbackModules, lessons: fallbackModules.flatMap(module => module.lessons) }];
+    if (!includeLessons) writeSessionCache(COURSE_CACHE_KEY, fallback);
+    return fallback;
+  }
   const currentUser = auth?.currentUser || null;
-  let userProfile = null;
-  if (currentUser) {
+  const isAdminUser = currentUser?.email?.toLowerCase() === 'mdsiamahmmedloselovestroy@gmail.com';
+  const isGoogleUser = currentUser?.providerData?.some(provider => provider.providerId === 'google.com');
+  let emailAccess = false;
+  if (isGoogleUser && currentUser.email) {
     try {
       const { doc, getDoc } = await loadFirestore();
-      const profileSnap = await getDoc(doc(db, 'users', currentUser.uid));
-      userProfile = profileSnap.exists() ? profileSnap.data() : null;
+      const accessSnap = await getDoc(doc(db, 'authorized_users', currentUser.email.toLowerCase()));
+      emailAccess = accessSnap.exists() && accessSnap.data().access === 'granted';
     } catch (error) {
-      console.warn('User profile unavailable while loading courses:', error.code || error.message);
+      console.warn('Email authorization unavailable:', error.code || error.message);
     }
   }
+  const hasAccess = Number(course.price || 0) <= 0 || !!currentUser && (isAdminUser || (isGoogleUser && emailAccess));
 
   const courses = await Promise.all(sortByOrder(coursesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }))).map(async (course) => {
     // Do not expose course-level videoUrl to unauthenticated visitors.
     if (!currentUser) delete course.videoUrl;
-    const isAdminUser = currentUser?.email?.toLowerCase() === 'mdsiamahmmedloselovestroy@gmail.com';
-    const isGoogleUser = currentUser?.providerData?.some(provider => provider.providerId === 'google.com');
-    let emailAccess = false;
-    if (isGoogleUser && currentUser.email) {
-      try {
-        const { doc, getDoc } = await loadFirestore();
-        const accessSnap = await getDoc(doc(db, 'authorized_users', currentUser.email.toLowerCase()));
-        emailAccess = accessSnap.exists() && accessSnap.data().access === 'granted';
-      } catch (error) {
-        console.warn('Email authorization unavailable:', error.code || error.message);
-      }
-    }
-    const hasAccess = !!currentUser && (isAdminUser || (isGoogleUser && emailAccess));
     course.accessDenied = !!currentUser && !hasAccess;
     if (!hasAccess) delete course.videoUrl;
 
-    const modulesSnap = await getDocs(collection(db, 'courses', course.id, 'modules'));
+    const modulesSnap = await getDocs(query(collection(db, 'courses', course.id, 'modules'), limit(100)));
     const modules = [];
     let allLessons = [];
 
@@ -120,9 +171,9 @@ export async function fetchAllCourses() {
       // when a user is signed in. For anonymous visitors, return an empty
       // lessons array so UI shows sign-in gating without exposing URLs.
       let lessons = [];
-      if (hasAccess) {
+      if (hasAccess && includeLessons) {
         try {
-          const lessonsSnap = await getDocs(collection(db, 'courses', course.id, 'modules', moduleDoc.id, 'lessons'));
+          const lessonsSnap = await getDocs(query(collection(db, 'courses', course.id, 'modules', moduleDoc.id, 'lessons'), limit(200)));
           lessons = sortByOrder(lessonsSnap.docs.map((d) => ({ id: d.id, moduleId: moduleDoc.id, ...d.data() })));
           // Keep the complete lesson payload for authorized users. Admin and
           // course-player views need the original video fields intact.
@@ -148,6 +199,7 @@ export async function fetchAllCourses() {
     return course;
   }));
 
+  if (!includeLessons) writeSessionCache(COURSE_CACHE_KEY, courses);
   return courses;
 }
 
@@ -155,7 +207,7 @@ export async function fetchAllCourses() {
 
 export async function createCourse(courseData) {
   const { collection, addDoc, serverTimestamp } = await loadFirestore();
-  return addDoc(collection(db, 'courses'), {
+  const result = await addDoc(collection(db, 'courses'), {
     title: courseData.title || 'Untitled course',
     description: courseData.description || '',
     category: courseData.category || 'General',
@@ -170,11 +222,15 @@ export async function createCourse(courseData) {
     order: Number(courseData.order) || 0,
     createdAt: serverTimestamp(),
   });
+  clearSessionCache(COURSE_CACHE_KEY);
+  return result;
 }
 
 export async function updateCourse(courseId, courseData) {
   const { doc, updateDoc } = await loadFirestore();
-  return updateDoc(doc(db, 'courses', courseId), courseData);
+  const result = await updateDoc(doc(db, 'courses', courseId), courseData);
+  clearSessionCache(COURSE_CACHE_KEY);
+  return result;
 }
 
 export async function findUserByEmail(email) {
@@ -291,21 +347,31 @@ export async function deletePayment(paymentId) {
 }
 
 export async function fetchLiveSettings() {
+  const cached = readSessionCache(`${LIVE_CACHE_KEY}_settings`);
+  if (cached) return cached;
   const { doc, getDoc } = await loadFirestore();
   const snap = await getDoc(doc(db, 'settings', 'liveStream'));
-  return snap.exists() ? snap.data() : {};
+  const settings = snap.exists() ? snap.data() : {};
+  writeSessionCache(`${LIVE_CACHE_KEY}_settings`, settings);
+  return settings;
 }
 
 export async function updateLiveSettings(data) {
   const { doc, setDoc, serverTimestamp } = await loadFirestore();
-  return setDoc(doc(db, 'settings', 'liveStream'), { ...data, updatedAt: serverTimestamp() }, { merge: true });
+  const result = await setDoc(doc(db, 'settings', 'liveStream'), { ...data, updatedAt: serverTimestamp() }, { merge: true });
+  clearSessionCache(`${LIVE_CACHE_KEY}_settings`);
+  return result;
 }
 
 export async function fetchLiveSessions() {
   if (!isFirebaseConfigured || !db) return [];
-  const { collection, getDocs, orderBy, query } = await loadFirestore();
-  const snapshot = await getDocs(query(collection(db, 'liveSessions'), orderBy('endedAt', 'desc')));
-  return snapshot.docs.map(item => ({ id: item.id, ...item.data() }));
+  const cached = readSessionCache(LIVE_CACHE_KEY);
+  if (cached) return cached;
+  const { collection, getDocs, limit, orderBy, query } = await loadFirestore();
+  const snapshot = await getDocs(query(collection(db, 'liveSessions'), orderBy('endedAt', 'desc'), limit(50)));
+  const sessions = snapshot.docs.map(item => ({ id: item.id, ...item.data() }));
+  writeSessionCache(LIVE_CACHE_KEY, sessions);
+  return sessions;
 }
 
 export async function createLiveSession(sessionData) {
@@ -313,7 +379,7 @@ export async function createLiveSession(sessionData) {
   const videoId = extractYoutubeId(sessionData.videoUrl || '');
   if (!videoId) throw new Error('A valid YouTube replay URL is required.');
   if (!String(sessionData.title || '').trim()) throw new Error('Live topic is required.');
-  return addDoc(collection(db, 'liveSessions'), {
+  const result = await addDoc(collection(db, 'liveSessions'), {
     title: String(sessionData.title).trim(),
     category: String(sessionData.category || 'Live learning').trim(),
     thumbnail: String(sessionData.thumbnail || '').trim(),
@@ -322,12 +388,16 @@ export async function createLiveSession(sessionData) {
     youtubeVideoId: videoId,
     endedAt: serverTimestamp(),
   });
+  clearSessionCache(LIVE_CACHE_KEY);
+  return result;
 }
 
 export async function deleteLiveSession(sessionId) {
   const { doc, deleteDoc } = await loadFirestore();
   if (!sessionId) throw new Error('Replay id is required.');
-  return deleteDoc(doc(db, 'liveSessions', sessionId));
+  const result = await deleteDoc(doc(db, 'liveSessions', sessionId));
+  clearSessionCache(LIVE_CACHE_KEY);
+  return result;
 }
 
 export async function deleteCourse(courseId) {
@@ -480,18 +550,23 @@ export async function uploadLessonVideo(file, courseId, moduleId, onProgress) {
 
 export async function fetchUserProgress(uid) {
   if (!isFirebaseConfigured || !db || !uid) return {};
-  const { collection, getDocs } = await loadFirestore();
-  const snap = await getDocs(collection(db, 'progress', uid, 'courses'));
+  const cacheKey = `siam_progress_cache_${uid}`;
+  const cached = readSessionCache(cacheKey);
+  if (cached) return cached;
+  const { collection, getDocs, limit, query } = await loadFirestore();
+  const snap = await getDocs(query(collection(db, 'progress', uid, 'courses'), limit(100)));
   const progress = {};
   snap.forEach((d) => {
     progress[d.id] = d.data();
   });
+  writeSessionCache(cacheKey, progress);
   return progress;
 }
 
 export async function saveUserCourseProgress(uid, courseId, data) {
   if (!isFirebaseConfigured || !db || !uid) return;
   const { doc, setDoc, serverTimestamp } = await loadFirestore();
+  try { sessionStorage.removeItem(`siam_progress_cache_${uid}`); } catch {}
   return setDoc(
     doc(db, 'progress', uid, 'courses', courseId),
     { ...data, lastUpdated: serverTimestamp() },

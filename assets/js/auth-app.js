@@ -45,7 +45,6 @@ const userDropdown = document.getElementById('userDropdown');
 const userDropdownEmail = document.getElementById('userDropdownEmail');
 const userLogoutBtn = document.getElementById('userLogoutBtn');
 const adminNavLink = document.getElementById('adminNavLink');
-const manageCoursesLink = document.getElementById('manageCoursesLink');
 
 function setStatus(message, type = 'error') {
   if (!modalStatus) return;
@@ -134,6 +133,14 @@ mobileAccountBtn?.addEventListener('click', () => {
 });
 courseGateSignInBtn?.addEventListener('click', () => openAuthModal());
 
+async function finishSignIn() {
+  const admin = await isCurrentUserAdmin();
+  closeAuthModal();
+  if (admin && !location.pathname.endsWith('/admin.html')) {
+    window.location.assign('admin.html');
+  }
+}
+
 googleBtn?.addEventListener('click', async () => {
   if (!isFirebaseConfigured) {
     setStatus('Firebase is not configured yet. See FIREBASE_SETUP.md.');
@@ -144,7 +151,7 @@ googleBtn?.addEventListener('click', async () => {
   clearStatus();
   try {
     await signInWithGoogle();
-    closeAuthModal();
+    await finishSignIn();
   } catch (error) {
     setStatus(error.message);
   } finally {
@@ -166,7 +173,7 @@ signInForm?.addEventListener('submit', async (e) => {
   clearStatus();
   try {
     await signInWithEmail(email, password);
-    closeAuthModal();
+    await finishSignIn();
   } catch (error) {
     setStatus(error.message);
   } finally {
@@ -239,13 +246,14 @@ userLogoutBtn?.addEventListener('click', async () => {
 function renderLoggedOut() {
   navLoggedOut?.classList.remove('hidden');
   navLoggedIn?.classList.add('hidden');
-  adminNavLink?.classList.add('hidden');
-  manageCoursesLink?.classList.add('hidden');
+  mobileAccountBtn?.classList.add('hidden');
 }
 
 function renderLoggedIn(user, isAdmin) {
   navLoggedOut?.classList.add('hidden');
   navLoggedIn?.classList.remove('hidden');
+  adminNavLink?.classList.remove('hidden');
+  mobileAccountBtn?.classList.remove('hidden');
 
   const name = user.displayName || user.email?.split('@')[0] || 'Student';
   userChipName.textContent = 'My Account';
@@ -267,8 +275,6 @@ function renderLoggedIn(user, isAdmin) {
     userChipInitial.textContent = name.charAt(0).toUpperCase();
   }
 
-  adminNavLink?.classList.toggle('hidden', !isAdmin);
-  manageCoursesLink?.classList.toggle('hidden', !isAdmin);
 }
 
 if (!isFirebaseConfigured) {

@@ -5,14 +5,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>CodeWithSiam | Python, ML & AI Learning in Public</title>
-
-<meta
-  name="description"
-  content="CodeWithSiam is Siam's Python, machine learning, and AI portfolio from Bangladesh — learning in public through projects, tutorials, and practical coding education."
-/>
-
-<meta
-  name="keywords"
+  <meta name="keywords"
   content="CodeWithSiam, Siam, Siam Ahmmed, Python developer, Python projects, data science, machine learning, artificial intelligence, Bangladesh"
 />
 
@@ -80,7 +73,7 @@
   <!-- Styles -->
   <link rel="stylesheet" href="assets/css/style.css?v=20260824-course-mobile-2" />
   <link rel="stylesheet" href="assets/css/scroll-and-ui.css" />
-  <link rel="stylesheet" href="assets/css/inspired-ui.css?v=20260904-mobile-2" />
+  <link rel="stylesheet" href="assets/css/inspired-ui.css?v=20260912-course-button-1" />
   <!-- Font Awesome -->
   <link
     rel="stylesheet"
@@ -106,7 +99,7 @@
         "jobTitle": "Python, Data Science & AI Learner",
         "description": "Siam is a Python, Data Science, and AI/ML learner and developer from Bangladesh, sharing coding tutorials and projects.",
         "sameAs": [
-          "https://www.youtube.com/@ProgrammingBySiam",
+          "https://www.youtube.com/@CodeWithSiamBD",
           "https://github.com/programmingwithsiam",
           "https://www.facebook.com/siam.ahmed.772527",
           "https://www.facebook.com/profile.php?id=61584789664848",
@@ -137,7 +130,7 @@
         "logo": "https://codewithsiam.vercel.app/assets/images/profile-siam.jpeg",
         "image": "https://codewithsiam.vercel.app/assets/images/profile-siam.jpeg",
         "sameAs": [
-          "https://www.youtube.com/@ProgrammingBySiam",
+          "https://www.youtube.com/@CodeWithSiamBD",
           "https://github.com/programmingwithsiam"
         ]
       },
@@ -231,7 +224,6 @@
           <a href="#course">Learn</a>
           <a href="community.html">Community</a>
           <a href="#contact">Contact</a>
-          <a href="admin.html" id="adminNavLink" class="hidden">Admin</a>
           <div class="nav-auth" id="navAuthLoggedOut">
             <button type="button" class="btn btn-outline small" id="headerSignInBtn">Sign In</button>
           </div>
@@ -244,6 +236,7 @@
             <div class="user-dropdown hidden" id="userDropdown">
               <p class="user-dropdown-email" id="userDropdownEmail"></p>
               <a href="#course">Course Dashboard</a>
+              <a href="/admin" id="adminNavLink">Admin Panel</a>
               <button type="button" id="userLogoutBtn">Log out</button>
             </div>
           </div>
@@ -267,7 +260,7 @@
             <div class="site-live-chat-compose"><input id="liveChatInput" type="text" maxlength="240" placeholder="Say something..." autocomplete="off" aria-label="Live chat message"><button type="submit" aria-label="Send live chat message"><i class="fa-solid fa-paper-plane"></i></button></div>
           </form>
         </section>
-        <a id="liveNotificationOpen" href="https://www.youtube.com" target="_blank" rel="noopener noreferrer">Open on YouTube</a>
+        <a id="liveNotificationOpen" href="https://www.youtube.com/@CodeWithSiamBD" target="_blank" rel="noopener noreferrer">Open on YouTube</a>
       </aside>
 
       <section class="section section-live" id="live">
@@ -278,7 +271,7 @@
               <h2 class="section-title">Learn live. <span class="accent">Replay anytime.</span></h2>
               <p class="section-sub">Join the next session or revisit practical lessons from the live room.</p>
             </div>
-            <a class="btn btn-outline" href="https://www.youtube.com/@CodeWithSiam" target="_blank" rel="noopener noreferrer"><i class="fa-brands fa-youtube"></i> YouTube channel</a>
+            <a class="btn btn-outline" href="https://www.youtube.com/@CodeWithSiamBD" target="_blank" rel="noopener noreferrer"><i class="fa-brands fa-youtube"></i> YouTube channel</a>
           </div>
           <div id="liveHubCurrent" class="live-hub-current">
             <div class="live-hub-empty"><i class="fa-solid fa-broadcast-tower"></i><strong>No live session right now</strong><span>New sessions will appear here when they begin.</span></div>
@@ -325,6 +318,7 @@
           <h2 class="section-title">About <span class="accent">Me</span></h2>
           <div class="about-grid">
             <div class="about-text">
+              <blockquote class="about-tagline">Still a student. Already building. Always learning.</blockquote>
               <p>
                 I’m a <strong>Data Science and Machine Learning Developer from Bangladesh</strong> with a strong interest in Python, AI, and Web Development. I’m currently a <strong>Class 12 Science student at Narsingdi Government College</strong>, preparing for HSC 2027.
               </p>
@@ -478,7 +472,15 @@
             A few hands-on Python, data science, and machine learning builds from my learning journey.
           </p>
           <div class="projects-grid">
-            <div class="project-card tilt-card">
+            <div
+              class="project-card tilt-card"
+              data-project-url="https://github.com/programmingwithsiam/Advanced-Image-Classifier"
+              onclick="window.open(this.dataset.projectUrl, '_blank', 'noopener,noreferrer')"
+              onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); window.open(this.dataset.projectUrl, '_blank', 'noopener,noreferrer'); }"
+              tabindex="0"
+              role="link"
+              aria-label="Open Advanced Image Classifier project on GitHub"
+            >
               <div
                 class="project-header"
                 style="
@@ -520,7 +522,15 @@
               </div>
             </div>
 
-            <div class="project-card tilt-card">
+            <div
+              class="project-card tilt-card"
+              data-project-url="https://github.com/programmingwithsiam/Advanced-Sentiment-analyzer"
+              onclick="window.open(this.dataset.projectUrl, '_blank', 'noopener,noreferrer')"
+              onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); window.open(this.dataset.projectUrl, '_blank', 'noopener,noreferrer'); }"
+              tabindex="0"
+              role="link"
+              aria-label="Open Advanced Sentiment Analyzer project on GitHub"
+            >
               <div
                 class="project-header"
                 style="
@@ -561,7 +571,15 @@
               </div>
             </div>
 
-            <div class="project-card tilt-card">
+            <div
+              class="project-card tilt-card"
+              data-project-url="https://github.com/programmingwithsiam/Advanced-Data-Dashboard"
+              onclick="window.open(this.dataset.projectUrl, '_blank', 'noopener,noreferrer')"
+              onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); window.open(this.dataset.projectUrl, '_blank', 'noopener,noreferrer'); }"
+              tabindex="0"
+              role="link"
+              aria-label="Open Advanced Data Dashboard project on GitHub"
+            >
               <div
                 class="project-header"
                 style="
@@ -603,7 +621,15 @@
               </div>
             </div>
 
-            <div class="project-card tilt-card">
+            <div
+              class="project-card tilt-card"
+              data-project-url="https://github.com/programmingwithsiam/House-price-predictor-"
+              onclick="window.open(this.dataset.projectUrl, '_blank', 'noopener,noreferrer')"
+              onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); window.open(this.dataset.projectUrl, '_blank', 'noopener,noreferrer'); }"
+              tabindex="0"
+              role="link"
+              aria-label="Open House Price Predictor project on GitHub"
+            >
               <div
                 class="project-header"
                 style="
@@ -645,13 +671,21 @@
               </div>
             </div>
 
-            <div class="project-card tilt-card">
+            <div
+              class="project-card tilt-card"
+              data-project-url="https://github.com/programmingwithsiam/Advanced-Text-generator-"
+              onclick="window.open(this.dataset.projectUrl, '_blank', 'noopener,noreferrer')"
+              onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); window.open(this.dataset.projectUrl, '_blank', 'noopener,noreferrer'); }"
+              tabindex="0"
+              role="link"
+              aria-label="Open Text Generator project on GitHub"
+            >
               <div
                 class="project-header"
                 style="
                   background: linear-gradient(
                     135deg,
-<Bell /><Bell /><Bell color="#8b5cf6" /><Bell color="#8b5cf6" /><Bell color="#8b5cf6" /><Bell color="#8b5cf6" /><Bell color="#8b5cf6" /><Bell color="#8b5cf6" /><Bell color="#8b5cf6" />                    #4a0080,
+                    #4a0080,
                     #9900cc,
                     #cc00ff
                   );
@@ -942,11 +976,11 @@
         </div>
 
         <h3>
-          Courses are currently being prepared.
+          Python for Beginners (Bangla)
         </h3>
 
         <p>
-          I’m organizing the learning roadmap into practical Python, AI, and project-based lessons. New materials will appear here soon.
+          A beginner-friendly Python course in Bangla, built for students who want to start programming from zero and move toward AI and machine learning.
         </p>
 
         <div class="hero-actions">
@@ -958,13 +992,6 @@
             <i class="fa-solid fa-graduation-cap"></i>
             View All Courses
           </button>
-
-          <a
-            href="admin.html"
-            class="btn btn-outline hidden"
-            id="manageCoursesLink">
-            Manage Courses
-          </a>
 
         </div>
 
@@ -980,8 +1007,8 @@
           <span>Lessons</span>
         </div>
         <div class="metric-card">
-          <strong id="upcomingCount">0</strong>
-          <span>Students</span>
+          <strong id="studentsHelpedCount">—</strong>
+          <span>Students helped</span>
         </div>
       </div>
 
@@ -1005,6 +1032,12 @@
     </div>
     <div id="languageExplorer" class="language-explorer" aria-label="Programming languages"></div>
     <div id="publishedCourseCatalog" class="course-catalog" aria-label="Published courses"></div>
+
+    <section class="course-social-proof" aria-label="Student feedback">
+      <p class="eyebrow">STUDENT FEEDBACK</p>
+      <h3>Testimonials coming soon.</h3>
+      <p>Real student reviews will be added here as learners complete the course.</p>
+    </section>
 
 
     <!-- SIGN IN -->
@@ -1644,7 +1677,7 @@
   <a href="https://github.com/programmingwithsiam" target="_blank" rel="noopener noreferrer" class="social-card sc-github">
     <span class="s-icon"><i class="fa-brands fa-github"></i></span><span>GitHub</span>
   </a>
-  <a href="https://www.youtube.com/@ProgrammingBySiam" target="_blank" rel="noopener noreferrer" class="social-card sc-youtube">
+  <a href="https://www.youtube.com/@CodeWithSiamBD" target="_blank" rel="noopener noreferrer" class="social-card sc-youtube">
     <span class="s-icon"><i class="fa-brands fa-youtube"></i></span><span>YouTube</span>
   </a>
   <a href="https://wa.me/8801644171751" target="_blank" rel="noopener noreferrer" class="social-card sc-whatsapp">
@@ -1689,7 +1722,7 @@
 </div>
     <!-- /siteRoot -->
 
-    <script type="module" src="assets/js/script.js?v=20260904-local-course-route-1"></script>
-    <script type="module" src="assets/js/auth-app.js?v=20260829-auth-fix-1"></script>
+    <script type="module" src="assets/js/script.js?v=20260912-course-catalog-fix-1"></script>
+    <script type="module" src="assets/js/auth-app.js?v=20260913-admin-link-4"></script>
   </body>
 </html>

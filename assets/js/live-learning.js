@@ -63,7 +63,8 @@ function renderSession() {
   const session = sessions[selectedIndex];
   if (!session) return;
   const videoId = session.youtubeVideoId || extractYoutubeId(session.videoUrl || '');
-  video.src = videoId ? `https://www.youtube.com/embed/${videoId}?autoplay=1&controls=0&disablekb=1&fs=0&iv_load_policy=3&modestbranding=1&mute=1&playsinline=1&rel=0` : '';
+  video.removeAttribute('src');
+  video.dataset.src = videoId ? `https://www.youtube.com/embed/${videoId}?autoplay=1&controls=0&disablekb=1&fs=0&iv_load_policy=3&modestbranding=1&mute=1&playsinline=1&rel=0` : '';
   title.textContent = session.title || 'Live session';
   description.textContent = session.description || 'Watch this CodeWithSiam live session again.';
   category.textContent = session.category || 'Live learning';
@@ -215,10 +216,20 @@ async function loadLiveRoom(user) {
   sessions = [...current, ...archived];
   const activeSession = current[0];
   commentsPanel?.classList.toggle('hidden', !activeSession);
-  if (activeSession) initComments(user, activeSession.youtubeVideoId).catch(error => {
+  if (activeSession) {
+    const startComments = () => initComments(user, activeSession.youtubeVideoId).catch(error => {
     document.getElementById('liveCommentStatus').textContent = 'Comments unavailable';
     console.error('Live comments failed:', error);
-  });
+    });
+    if ('IntersectionObserver' in window && commentsPanel) {
+      const observer = new IntersectionObserver(entries => {
+        if (!entries.some(entry => entry.isIntersecting)) return;
+        observer.disconnect();
+        startComments();
+      }, { rootMargin: '300px' });
+      observer.observe(commentsPanel);
+    } else startComments();
+  }
   loading.classList.add('hidden');
   if (!sessions.length) empty.classList.remove('hidden');
   else { workspace.classList.remove('hidden'); renderSession(); }
@@ -247,6 +258,9 @@ document.getElementById('livePlaylist').addEventListener('click', event => {
   const item = event.target.closest('[data-live-index]');
   if (item) { selectedIndex = Number(item.dataset.liveIndex); renderSession(); }
 });
+document.querySelector('.lesson-video-wrap')?.addEventListener('click', () => {
+  if (!video.src && video.dataset.src) video.src = video.dataset.src;
+}, { once: false });
 document.getElementById('previousLive').addEventListener('click', () => move(-1));
 document.getElementById('nextLive').addEventListener('click', () => move(1));
 document.getElementById('completeLive').addEventListener('click', () => move(1));

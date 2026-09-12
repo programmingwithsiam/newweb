@@ -432,7 +432,7 @@ const render = () => {
     return `<article class="community-post" data-post-id="${escapeHtml(post.id)}">
       <div class="post-header">
         <div class="post-author-info">
-          <img src="${escapeHtml(post.avatarUrl || '')}" alt="Open ${escapeHtml(post.authorName || 'Member')} profile" data-profile-uid="${escapeHtml(post.authorId || '')}" onerror="this.src='assets/images/profile-siam-round.png'" class="post-avatar">
+          <span class="post-avatar" data-profile-uid="${escapeHtml(post.authorId || '')}">${post.avatarUrl ? `<img src="${escapeHtml(post.avatarUrl)}" alt="Open ${escapeHtml(post.authorName || 'Member')} profile" onerror="this.remove(); this.parentElement.textContent='${escapeHtml(initials(post.authorName || 'Member'))}'">` : escapeHtml(initials(post.authorName || 'Member'))}</span>
           <div>
             <strong class="post-author" data-profile-uid="${escapeHtml(post.authorId || '')}">${escapeHtml(post.authorName || 'Member')}</strong>
             <time class="post-time">${relativeTime(post.createdAt)}</time>
