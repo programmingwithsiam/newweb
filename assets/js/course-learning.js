@@ -615,14 +615,12 @@ function renderPlayer() {
   $('lessonDescription').textContent = lesson.description || '';
   $('lessonDuration').textContent = lesson.duration || '0 min';
   const youtubeLink = $('lessonYoutubeLink');
-  const fallbackYoutubeUrl = 'https://www.youtube.com/watch?v=aqz-KE-bpKQ';
-  const fallbackYoutubeId = extractYoutubeId(fallbackYoutubeUrl);
-  const id = youtubeId(lesson) || fallbackYoutubeId;
+  const id = youtubeId(lesson);
   const youtubeUrl = extractYoutubeId(lesson?.youtubeUrl)
     ? lesson.youtubeUrl
     : (lesson?.videoUrl && extractYoutubeId(lesson.videoUrl)
       ? `https://www.youtube.com/watch?v=${extractYoutubeId(lesson.videoUrl)}`
-      : (id ? `https://www.youtube.com/watch?v=${id}` : fallbackYoutubeUrl));
+      : (id ? `https://www.youtube.com/watch?v=${id}` : ''));
   youtubeLink.classList.toggle('hidden', lesson.showYoutubeLink !== true || !youtubeUrl);
   youtubeLink.href = youtubeUrl;
   
