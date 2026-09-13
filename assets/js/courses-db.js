@@ -184,7 +184,7 @@ export async function fetchAllCourses({ includeLessons = true } = {}) {
     const modulesSnap = await getDocs(query(collection(db, 'courses', course.id, 'modules'), limit(100)));
     const modules = [];
     let allLessons = [];
-    let previewSlots = 2;
+    let previewLessonIndex = 0;
 
     for (const moduleDoc of sortByOrder(modulesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })))) {
       const moduleData = { ...moduleDoc };
@@ -192,9 +192,8 @@ export async function fetchAllCourses({ includeLessons = true } = {}) {
         ? sortByOrder(moduleDoc.lessonCatalog.map(lesson => ({ ...lesson })))
         : [];
       const lessonMetadata = catalog.map(lesson => {
-        const hasExplicitPreview = Object.prototype.hasOwnProperty.call(lesson, 'isFreePreview') || Object.prototype.hasOwnProperty.call(lesson, 'freePreview');
-        const isFreePreview = lesson.isFreePreview === true || lesson.freePreview === true || (!hasExplicitPreview && previewSlots > 0);
-        if (!hasExplicitPreview && previewSlots > 0) previewSlots -= 1;
+        const isFreePreview = previewLessonIndex < 2;
+        previewLessonIndex += 1;
         return { ...lesson, isFreePreview, freePreview: isFreePreview, moduleId: moduleDoc.id, moduleTitle: moduleDoc.title };
       });
       let lessons = lessonMetadata;
