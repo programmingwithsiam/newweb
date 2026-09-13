@@ -47,13 +47,18 @@ service cloud.firestore {
         : '';
     }
 
+    function hasLegacyCourseAccess(courseId) {
+      return isGoogleUser() &&
+        exists(/databases/$(database)/documents/authorized_users/$(request.auth.token.email)) &&
+        get(/databases/$(database)/documents/authorized_users/$(request.auth.token.email)).data.access == 'granted' &&
+        (!('courseIds' in get(/databases/$(database)/documents/authorized_users/$(request.auth.token.email)).data) ||
+          courseId in get(/databases/$(database)/documents/authorized_users/$(request.auth.token.email)).data.courseIds);
+    }
+
     function canAccessCourse(courseId) {
-      return isAdmin() || (isGoogleUser() && enrollmentStatus(courseId) != 'revoked' &&
-        (enrollmentStatus(courseId) == 'approved' ||
-          (exists(/databases/$(database)/documents/authorized_users/$(request.auth.token.email)) &&
-            get(/databases/$(database)/documents/authorized_users/$(request.auth.token.email)).data.access == 'granted' &&
-            (!('courseIds' in get(/databases/$(database)/documents/authorized_users/$(request.auth.token.email)).data) ||
-              courseId in get(/databases/$(database)/documents/authorized_users/$(request.auth.token.email)).data.courseIds)))));
+      return isAdmin() ||
+        (isGoogleUser() && enrollmentStatus(courseId) != 'revoked' &&
+          (enrollmentStatus(courseId) == 'approved' || hasLegacyCourseAccess(courseId)));
     }
 
     // ---------------- Courses (public catalog) ----------------
