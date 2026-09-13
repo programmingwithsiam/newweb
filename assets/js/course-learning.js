@@ -1,4 +1,4 @@
-import { fetchAllCourses, saveUserCourseProgress, createPaymentSubmission, extractYoutubeId, isMp4VideoUrl } from './courses-db.js';
+import { fetchAllCourses, saveUserCourseProgress, createPaymentSubmission, uploadPaymentScreenshot, updatePaymentScreenshot, fetchUserPayments, extractYoutubeId, isMp4VideoUrl } from './courses-db.js';
 import { observeAuthState, signInWithGoogle } from './auth.js';
 
 const progressKey = 'siam_portfolio_course_progress';
@@ -52,8 +52,11 @@ const route = lessonId => lessonId
   ? `course.html?course=${encodeURIComponent(course.id)}&lesson=${encodeURIComponent(lessonId)}&autoplay=1`
   : `course.html?course=${encodeURIComponent(course.id)}`;
 function go(lessonId = '') {
-  if (lessonId && !hasCourseAccess()) {
-    showAccessGate({ signedIn: Boolean(user) });
+  const lesson = lessons.find(item => item.id === lessonId);
+  if (lessonId && lesson && !hasLessonAccess(lesson)) {
+    history.pushState({}, '', route(lessonId));
+    selectedLessonId = lessonId;
+    renderLockedLesson(lesson);
     return;
   }
   history.pushState({}, '', route(lessonId));
@@ -71,8 +74,9 @@ function orderedLessons(data) {
   })));
 }
 function currentLesson() { return lessons.find(lesson => lesson.id === selectedLessonId) || lessons[0] || null; }
-function isFreeCourse() { return Number(course?.price || 0) <= 0; }
-function hasCourseAccess() { return isFreeCourse() || Boolean(user && !course?.accessDenied); }
+function isFreePreviewLesson(lesson) { return lesson?.isFreePreview === true || lesson?.freePreview === true; }
+function hasCourseAccess() { return Boolean(user && (course?.accessStatus === 'approved' || course?.accessStatus === 'admin')); }
+function hasLessonAccess(lesson) { return isFreePreviewLesson(lesson) || hasCourseAccess(); }
 function youtubeId(lesson) {
   return extractYoutubeId(lesson?.youtubeVideoId)
     || extractYoutubeId(lesson?.youtubeUrl)
@@ -371,6 +375,31 @@ function setProgress() {
   if ($('sidebarProgressText')) $('sidebarProgressText').textContent = `${value}% COMPLETE`;
   if ($('sidebarProgressCount')) $('sidebarProgressCount').textContent = `${completed().size} / ${lessons.length} lessons`;
 }
+function renderLockedLesson(lesson = currentLesson()) {
+  $('learningLoading').classList.add('hidden');
+  $('learningLogin').classList.add('hidden');
+  $('courseOverview').classList.add('hidden');
+  $('lessonPlayer').classList.add('hidden');
+  $('lessonLocked').classList.remove('hidden');
+  const pending = course?.accessStatus === 'pending';
+  $('lessonLockedMessage').textContent = pending
+    ? 'Enrollment Pending. You can watch the first 2 classes free while your request is reviewed.'
+    : 'Watch the first 2 classes free before enrolling.';
+  $('lessonEnrollBtn').textContent = pending ? 'Enrollment Pending' : 'Enroll Now';
+  $('lessonEnrollBtn').disabled = pending;
+  $('lessonEnrollBtn').onclick = () => {
+    if (pending) return;
+    if (!user) {
+      showAccessGate({ signedIn: false });
+      return;
+    }
+    selectedLessonId = null;
+    render();
+    $('courseCheckout')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    $('checkoutStudentName')?.focus();
+  };
+  document.title = `${lesson?.title || 'Locked class'} | ${course?.title || 'Course'}`;
+}
 function setupWorkspaceSettings() {
   const screen = $('lessonPlayer');
   const settingsButton = $('workspaceSettingsButton');
@@ -397,7 +426,7 @@ function setupWorkspaceSettings() {
 function playlist(target, compact = false) {
   const groups = new Map();
   lessons.forEach(lesson => { if (!groups.has(lesson.moduleId)) groups.set(lesson.moduleId, { title: lesson.moduleTitle, lessons: [] }); groups.get(lesson.moduleId).lessons.push(lesson); });
-  target.innerHTML = [...groups.values()].map(group => `<section class="module-block"><div class="module-title">${group.title || 'Course Content'}</div>${group.lessons.map((lesson, index) => { const isComplete = completed().has(lesson.id); const isCurrent = lesson.id === selectedLessonId; const locked = !hasCourseAccess() || course?.accessDenied; return `<button class="lesson-row ${isCurrent ? 'current' : ''} ${isComplete ? 'complete' : ''}" data-lesson-id="${lesson.id}" type="button"><span class="lesson-state">${isComplete ? '✓' : isCurrent ? '▶' : '○'}</span><span class="lesson-row-title">${index + 1}. ${lesson.title}</span><span class="lesson-row-meta"><span>${lesson.duration || '0 min'}</span><span class="lesson-row-action">${locked ? 'Locked' : isComplete ? 'Review' : 'Start'}</span></span></button>`; }).join('')}</section>`).join('');
+  target.innerHTML = [...groups.values()].map(group => `<section class="module-block"><div class="module-title">${group.title || 'Course Content'}</div>${group.lessons.map((lesson, index) => { const isComplete = completed().has(lesson.id); const isCurrent = lesson.id === selectedLessonId; const unlocked = hasLessonAccess(lesson); const action = unlocked ? (hasCourseAccess() ? (isComplete ? 'Review' : 'Watch Now') : 'Watch Free') : (course?.accessStatus === 'pending' ? 'Enrollment Pending' : 'Locked'); return `<button class="lesson-row ${isCurrent ? 'current' : ''} ${isComplete ? 'complete' : ''} ${unlocked ? '' : 'is-locked'}" data-lesson-id="${lesson.id}" type="button"><span class="lesson-state">${isComplete ? '✓' : unlocked ? (isCurrent ? '▶' : '○') : '🔒'}</span><span class="lesson-row-title">${index + 1}. ${lesson.title}</span><span class="lesson-row-meta"><span>${lesson.duration || '0 min'}</span><span class="lesson-row-action">${action}</span></span></button>`; }).join('')}</section>`).join('');
   target.querySelectorAll('[data-lesson-id]').forEach(button => button.addEventListener('click', () => go(button.dataset.lessonId)));
 }
 function renderOverview() {
@@ -423,21 +452,23 @@ function renderOverview() {
   $('courseThumbnail').src = course.thumbnail || '';
   $('courseThumbnail').alt = `${course.title} thumbnail`;
   $('overviewLessonTitle').textContent = lesson?.title || 'No lessons published yet';
-  $('overviewStartBtn').textContent = hasAccess && lesson && completed().has(lesson.id) ? 'Review Lesson' : 'Enroll Now';
+  $('overviewStartBtn').textContent = hasAccess && lesson && completed().has(lesson.id) ? 'Review Lesson' : 'Watch First Class';
   $('overviewStartBtn').classList.toggle('hidden', !hasAccess);
   $('overviewStartBtn').disabled = !hasAccess || !lesson;
   $('overviewStartBtn').onclick = () => hasAccess && lesson && go(lesson.id);
+  $('overviewEnrollBtn').textContent = course.accessStatus === 'pending' ? 'Enrollment Pending' : 'Enroll Now';
   $('overviewEnrollBtn').classList.toggle('hidden', hasAccess);
-  $('overviewEnrollBtn').disabled = !lesson;
+  $('overviewEnrollBtn').disabled = !lesson || course.accessStatus === 'pending';
   $('overviewEnrollBtn').onclick = () => {
     if (!user) {
       showAccessGate();
       return;
     }
     $('courseCheckout')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    $('checkoutPhone')?.focus();
+    $('checkoutStudentName')?.focus();
   };
-  $('courseEnrollmentStatus').classList.toggle('hidden', !hasAccess);
+  $('courseEnrollmentStatus').textContent = hasAccess ? "✓ You're enrolled" : course.accessStatus === 'pending' ? 'Enrollment Pending' : 'First 2 classes are free to watch';
+  $('courseEnrollmentStatus').classList.remove('hidden');
   renderCheckout(discountPrice, originalPrice, hasAccess);
   $('playlistCount').textContent = `${lessons.length} lessons`;
   playlist($('overviewPlaylist'));
@@ -450,6 +481,19 @@ function renderCheckout(finalPrice, originalPrice, hasAccess) {
   $('checkoutFinalPrice').textContent = finalPrice > 0 ? `৳${finalPrice.toLocaleString('en-BD')}` : 'Free';
   $('checkoutOriginalPrice').textContent = `৳${originalPrice.toLocaleString('en-BD')}`;
   $('checkoutOriginalPrice').classList.toggle('hidden', originalPrice <= finalPrice);
+  $('checkoutCourseThumbnail').src = course.thumbnail || '';
+  $('checkoutCourseThumbnail').alt = `${course.title} thumbnail`;
+  $('checkoutCourseTitle').textContent = course.title;
+  $('checkoutCourseDescription').textContent = course.description || 'Practical lessons from CodeWithSiam.';
+  $('checkoutCourseInstructor').textContent = `Instructor: ${course.instructor || 'CodeWithSiam'}`;
+  $('checkoutStudentName').value = $('checkoutStudentName').value || user?.displayName || '';
+  $('checkoutStudentEmail').value = user?.email || '';
+  $('checkoutAccountBadge').textContent = user ? `Signed in as ${user.email || 'student'}` : 'Sign in required';
+  $('checkoutAccountHint').textContent = user ? 'Your Firebase account details are filled in. You can edit your name before submitting.' : 'Sign in with Google before submitting your enrollment request.';
+  $('checkoutOriginalSummary').textContent = originalPrice > 0 ? `৳${originalPrice.toLocaleString('en-BD')}` : 'Free';
+  $('checkoutDiscountSummary').textContent = originalPrice > finalPrice ? `-৳${(originalPrice - finalPrice).toLocaleString('en-BD')}` : '-৳0';
+  $('checkoutTotalSummary').textContent = finalPrice > 0 ? `৳${finalPrice.toLocaleString('en-BD')}` : 'Free';
+  $('checkoutOrderTotal').textContent = finalPrice > 0 ? `৳${finalPrice.toLocaleString('en-BD')}` : 'Free';
   const duration = course.duration || `${lessons.reduce((sum, item) => sum + parseInt(String(item.duration).match(/\d+/)?.[0] || '0', 10), 0)} min`;
   const benefits = [`${lessons.length} lectures`, duration];
   if (course.accessDuration) benefits.push(`Access on mobile and desktop (${course.accessDuration})`);
@@ -458,6 +502,7 @@ function renderCheckout(finalPrice, originalPrice, hasAccess) {
   const method = $('checkoutPaymentMethod').value;
   const instructions = {
     bkash: `bKash: ${course.payment?.bkash || 'Contact admin for payment instructions'}`,
+    rocket: `Rocket: ${course.payment?.rocket || 'Contact admin for payment instructions'}`,
     nagad: `Nagad: ${course.payment?.nagad || 'Contact admin for payment instructions'}`,
     bank: course.payment?.bank || 'Bank transfer details will be provided by the admin.',
     visa: 'Visa payment details will be provided by the admin.',
@@ -467,6 +512,7 @@ function renderCheckout(finalPrice, originalPrice, hasAccess) {
   };
   $('checkoutPaymentInstruction').textContent = instructions[method] || 'Contact admin for payment instructions';
   $('checkoutPayBtn').textContent = `Pay ৳${finalPrice.toLocaleString('en-BD')}`;
+  $('checkoutPayBtn').textContent = finalPrice > 0 ? `Confirm Enrollment · ৳${finalPrice.toLocaleString('en-BD')}` : 'Confirm Enrollment';
 }
 function getCheckoutCountry() {
   const select = $('checkoutCountry');
@@ -488,11 +534,21 @@ function bindCheckout() {
   const phone = $('checkoutPhone');
   const transaction = $('checkoutTransactionId');
   const pay = $('checkoutPayBtn');
-  if (!phone || !transaction || !pay || pay.dataset.bound) return;
+  const name = $('checkoutStudentName');
+  const confirmation = $('checkoutPaymentConfirm');
+  if (!phone || !transaction || !pay || !name || !confirmation || pay.dataset.bound) return;
   pay.dataset.bound = 'true';
-  const update = () => { const selected = getCheckoutCountry(); const valid = validCheckoutPhone(phone.value, selected.code); $('checkoutPhoneError').textContent = phone.value && !valid ? `Please enter a valid ${selected.country} phone number` : ''; pay.disabled = !valid || !transaction.value.trim() || Boolean(pay.dataset.processing); };
+  const update = () => {
+    const selected = getCheckoutCountry();
+    const validPhone = validCheckoutPhone(phone.value, selected.code);
+    const validName = name.value.trim().length >= 2;
+    $('checkoutPhoneError').textContent = phone.value && !validPhone ? `Please enter a valid ${selected.country} phone number` : '';
+    pay.disabled = !user || !validName || !validPhone || !transaction.value.trim() || !confirmation.checked || Boolean(pay.dataset.processing);
+  };
+  name.addEventListener('input', update);
   phone.addEventListener('input', update);
   transaction.addEventListener('input', update);
+  confirmation.addEventListener('change', update);
   $('checkoutCountry').addEventListener('change', () => { const selected = getCheckoutCountry(); phone.placeholder = selected.placeholder; phone.value = ''; $('checkoutPhoneError').textContent = ''; update(); });
   $('checkoutPaymentMethod').addEventListener('change', () => renderCheckout(Number(course.discountPrice) || Number(course.price) || 0, Number(course.price) || 0, false));
   pay.addEventListener('click', async () => {
@@ -501,10 +557,21 @@ function bindCheckout() {
     if (!user) { $('checkoutStatus').textContent = 'Login to continue.'; showAccessGate(); return; }
     pay.dataset.processing = 'true'; pay.disabled = true; pay.textContent = 'Processing...';
     try {
-      const screenshotUrl = await compressPaymentScreenshot($('checkoutPaymentScreenshot')?.files?.[0]);
-      await createPaymentSubmission({ userId: user.uid, courseId: course.id, courseTitle: course.title, amount: Number(course.discountPrice) > 0 && Number(course.discountPrice) < Number(course.price) ? Number(course.discountPrice) : Number(course.price), method: $('checkoutPaymentMethod').value, transactionId: transaction.value.trim(), phone: normalizeCheckoutPhone(phone.value, getCheckoutCountry().code), screenshotUrl });
-      $('checkoutStatus').textContent = 'Payment submitted — waiting for verification.';
-      pay.textContent = 'Payment submitted';
+      const amount = Number(course.discountPrice) > 0 && Number(course.discountPrice) < Number(course.price) ? Number(course.discountPrice) : Number(course.price);
+      const payment = await createPaymentSubmission({ userId: user.uid, studentName: name.value.trim(), courseId: course.id, courseTitle: course.title, amount, method: $('checkoutPaymentMethod').value, transactionId: transaction.value.trim(), phone: normalizeCheckoutPhone(phone.value, getCheckoutCountry().code) });
+      const screenshot = await compressPaymentScreenshot($('checkoutPaymentScreenshot')?.files?.[0]);
+      if (screenshot) {
+        const screenshotUrl = await uploadPaymentScreenshot(screenshot, user.uid, payment.id);
+        await updatePaymentScreenshot(payment.id, screenshotUrl);
+      }
+      $('checkoutStatus').textContent = '';
+      $('checkoutRequestId').textContent = payment.id;
+      $('checkoutSuccess').classList.remove('hidden');
+      pay.textContent = 'Enrollment request submitted';
+      $('checkoutStudentName').disabled = true;
+      $('checkoutPhone').disabled = true;
+      $('checkoutTransactionId').disabled = true;
+      $('checkoutPaymentConfirm').disabled = true;
     } catch (error) { $('checkoutStatus').textContent = error.message || 'Payment could not be submitted.'; pay.dataset.processing = ''; pay.textContent = `Pay ৳${(Number(course.discountPrice) > 0 && Number(course.discountPrice) < Number(course.price) ? Number(course.discountPrice) : Number(course.price)).toLocaleString('en-BD')}`; update(); }
   });
   $('checkoutWhatsappBtn')?.addEventListener('click', () => {
@@ -527,6 +594,10 @@ function bindCheckout() {
 }
 function renderPlayer() {
   const lesson = currentLesson();
+  if (!hasLessonAccess(lesson)) {
+    renderLockedLesson(lesson);
+    return;
+  }
   if (!lesson) { $('lessonPlayer').classList.add('hidden'); return; }
   ensureLessonVideoFrame();
   $('lessonPlayer').classList.remove('hidden');
@@ -537,10 +608,14 @@ function renderPlayer() {
   $('lessonDescription').textContent = lesson.description || '';
   $('lessonDuration').textContent = lesson.duration || '0 min';
   const youtubeLink = $('lessonYoutubeLink');
-  const id = youtubeId(lesson);
-  const youtubeUrl = extractYoutubeId(lesson.youtubeUrl)
+  const fallbackYoutubeUrl = 'https://www.youtube.com/watch?v=aqz-KE-bpKQ';
+  const fallbackYoutubeId = extractYoutubeId(fallbackYoutubeUrl);
+  const id = youtubeId(lesson) || fallbackYoutubeId;
+  const youtubeUrl = extractYoutubeId(lesson?.youtubeUrl)
     ? lesson.youtubeUrl
-    : (id ? `https://www.youtube.com/watch?v=${id}` : '');
+    : (lesson?.videoUrl && extractYoutubeId(lesson.videoUrl)
+      ? `https://www.youtube.com/watch?v=${extractYoutubeId(lesson.videoUrl)}`
+      : (id ? `https://www.youtube.com/watch?v=${id}` : fallbackYoutubeUrl));
   youtubeLink.classList.toggle('hidden', lesson.showYoutubeLink !== true || !youtubeUrl);
   youtubeLink.href = youtubeUrl;
   
@@ -560,7 +635,7 @@ function renderPlayer() {
     $('lessonVideo').classList.remove('hidden');
     $('lessonMp4').classList.add('hidden');
     // Keep native controls as a fallback if the YouTube API is blocked.
-      $('lessonVideo').src = `https://www.youtube.com/embed/${id}?enablejsapi=1&controls=0&rel=0&playsinline=1&modestbranding=1&iv_load_policy=3&fs=0&disablekb=1&origin=${encodeURIComponent(location.origin)}&autoplay=${autoplayRequested || workspaceSettings.autoplay ? 1 : 0}`;
+    $('lessonVideo').src = `https://www.youtube.com/embed/${id}?enablejsapi=1&controls=0&rel=0&playsinline=1&modestbranding=1&iv_load_policy=3&fs=0&disablekb=1&origin=${encodeURIComponent(location.origin)}&autoplay=${autoplayRequested || workspaceSettings.autoplay ? 1 : 0}`;
     $('lessonMp4').removeAttribute('src');
     setupYoutubePlayer(id, youtubeUrl, autoplayRequested || workspaceSettings.autoplay);
   } else {
@@ -628,6 +703,12 @@ document.addEventListener('keydown', event => {
 function render() {
   if (!course) return;
   const hasLessonRoute = Boolean(selectedLessonId);
+  const routedLesson = currentLesson();
+  if (hasLessonRoute && routedLesson && !hasLessonAccess(routedLesson)) {
+    renderLockedLesson(routedLesson);
+    return;
+  }
+  $('lessonLocked').classList.add('hidden');
   $('courseOverview').classList.toggle('hidden', hasLessonRoute);
   $('lessonPlayer').classList.toggle('hidden', !hasLessonRoute);
   if (hasLessonRoute) renderPlayer(); else renderOverview();
@@ -647,26 +728,24 @@ async function complete() {
 }
 async function load() {
   const all = await fetchAllCourses({ includeLessons: true });
-  course = all.find(item => item.id === courseId);
+  const requestedCourseId = courseId || null;
+  course = all.find(item => item.id === requestedCourseId)
+    || all.find(item => item.id === 'python-for-beginners-bangla')
+    || all[0] || null;
+
   if (!course) {
     $('learningLoading').innerHTML = '<div class="course-error-card"><i class="fa-solid fa-compass"></i><h1>Course not found</h1><p>Choose a course from the CodeWithSiam course library to continue.</p><a class="learning-button primary" href="index.html">Browse Courses</a></div>';
     return;
   }
+
+  if (requestedCourseId && course.id !== requestedCourseId) {
+    const nextUrl = selectedLessonId
+      ? `course.html?course=${encodeURIComponent(course.id)}&lesson=${encodeURIComponent(selectedLessonId)}`
+      : `course.html?course=${encodeURIComponent(course.id)}`;
+    history.replaceState({}, '', nextUrl);
+  }
+
   bindCheckout();
-  if (!user && !isFreeCourse()) {
-    lessons = orderedLessons(course);
-    $('learningLoading').classList.add('hidden');
-    selectedLessonId = null;
-    render();
-    return;
-  }
-  if (course.accessDenied) {
-    lessons = orderedLessons(course);
-    $('learningLoading').classList.add('hidden');
-    selectedLessonId = null;
-    render();
-    return;
-  }
   $('learningLogin').classList.add('hidden');
   progress = getLocalProgress();
   if (user) {
@@ -676,7 +755,7 @@ async function load() {
   }
   localStorage.setItem(progressKey, JSON.stringify(progress));
   lessons = orderedLessons(course);
-  if (!selectedLessonId && user) selectedLessonId = progress[course.id]?.lastLessonId || lessons.find(lesson => !completed().has(lesson.id))?.id || lessons[0]?.id;
+  if (!selectedLessonId && user && hasCourseAccess()) selectedLessonId = progress[course.id]?.lastLessonId || lessons.find(lesson => !completed().has(lesson.id))?.id || lessons[0]?.id;
   $('learningLoading').classList.add('hidden');
   render();
 }
@@ -715,9 +794,10 @@ async function compressPaymentScreenshot(file) {
         canvas.width = Math.max(1, Math.round(image.width * scale));
         canvas.height = Math.max(1, Math.round(image.height * scale));
         canvas.getContext('2d').drawImage(image, 0, 0, canvas.width, canvas.height);
-        const compressed = canvas.toDataURL('image/jpeg', 0.58);
-        if (compressed.length > 900 * 1024) reject(new Error('Screenshot is too large. Please use a smaller image.'));
-        else resolve(compressed);
+        canvas.toBlob(blob => {
+          if (!blob || blob.size > 900 * 1024) reject(new Error('Screenshot is too large. Please use a smaller image.'));
+          else resolve(blob);
+        }, 'image/jpeg', 0.58);
       };
       image.onerror = () => reject(new Error('Screenshot could not be read.'));
       image.src = reader.result;

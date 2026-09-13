@@ -36,10 +36,24 @@ service cloud.firestore {
         request.auth.token.email == 'mdsiamahmmedloselovestroy@gmail.com';
     }
 
+    function hasEnrollment(courseId) {
+      return isGoogleUser() &&
+        exists(/databases/$(database)/documents/enrollments/$(request.auth.uid)_$(courseId));
+    }
+
+    function enrollmentStatus(courseId) {
+      return hasEnrollment(courseId)
+        ? get(/databases/$(database)/documents/enrollments/$(request.auth.uid)_$(courseId)).data.status
+        : '';
+    }
+
     function canAccessCourse(courseId) {
-      return isAdmin() || (isGoogleUser() &&
-        exists(/databases/$(database)/documents/authorized_users/$(request.auth.token.email)) &&
-        get(/databases/$(database)/documents/authorized_users/$(request.auth.token.email)).data.access == 'granted');
+      return isAdmin() || (isGoogleUser() && enrollmentStatus(courseId) != 'revoked' &&
+        (enrollmentStatus(courseId) == 'approved' ||
+          (exists(/databases/$(database)/documents/authorized_users/$(request.auth.token.email)) &&
+            get(/databases/$(database)/documents/authorized_users/$(request.auth.token.email)).data.access == 'granted' &&
+            (!('courseIds' in get(/databases/$(database)/documents/authorized_users/$(request.auth.token.email)).data) ||
+              courseId in get(/databases/$(database)/documents/authorized_users/$(request.auth.token.email)).data.courseIds)))));
     }
 
     // ---------------- Courses (public catalog) ----------------
@@ -52,12 +66,26 @@ service cloud.firestore {
         allow write: if isAdmin();
 
         match /lessons/{lessonId} {
-          // Video lesson documents contain protected video URLs.
-          // Require users to be signed in to read lesson documents.
-          allow read: if get(/databases/$(database)/documents/courses/$(courseId)).data.price == 0 || canAccessCourse(courseId);
+          // Preview documents are the only lesson documents readable without enrollment.
+          allow read: if isAdmin() || resource.data.isFreePreview == true || resource.data.freePreview == true ||
+            (!('isFreePreview' in resource.data) && !('freePreview' in resource.data) && resource.data.order <= 2) ||
+            canAccessCourse(courseId);
           allow write: if isAdmin();
         }
       }
+    }
+
+    // ---------------- Course enrollments ----------------
+    match /enrollments/{enrollmentId} {
+      allow read: if isAdmin() ||
+        (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow create: if isGoogleUser() &&
+        request.resource.data.keys().hasOnly(['userId', 'courseId', 'status', 'paymentMethod', 'transactionId', 'paymentId', 'requestedAt', 'accessSource']) &&
+        request.resource.data.userId == request.auth.uid &&
+        request.resource.data.status == 'pending' &&
+        request.resource.data.accessSource == 'payment' &&
+        request.resource.data.requestedAt == request.time;
+      allow update, delete: if isAdmin();
     }
 
     // ---------------- User profiles ----------------
@@ -90,7 +118,10 @@ service cloud.firestore {
     // ---------------- Payment submissions ----------------
     match /payments/{paymentId} {
       allow create: if isGoogleUser() &&
+        request.resource.data.keys().hasOnly(['userId', 'studentName', 'studentEmail', 'courseId', 'courseTitle', 'amount', 'method', 'transactionId', 'phone', 'paymentDate', 'screenshotUrl', 'status', 'submittedAt']) &&
         request.resource.data.userId == request.auth.uid &&
+        request.resource.data.courseId is string && request.resource.data.courseId.size() > 0 &&
+        request.resource.data.method in ['bkash', 'rocket', 'nagad', 'bank', 'visa', 'debit_card', 'credit_card', 'paypal'] &&
         request.resource.data.transactionId is string &&
         request.resource.data.transactionId.size() > 0 &&
         request.resource.data.phone is string &&
@@ -98,10 +129,14 @@ service cloud.firestore {
         (request.resource.data.amount == get(/databases/$(database)/documents/courses/$(request.resource.data.courseId)).data.price ||
           (get(/databases/$(database)/documents/courses/$(request.resource.data.courseId)).data.discountPrice > 0 &&
             request.resource.data.amount == get(/databases/$(database)/documents/courses/$(request.resource.data.courseId)).data.discountPrice)) &&
-        request.resource.data.status == 'pending';
+        request.resource.data.status == 'pending' &&
+        request.resource.data.submittedAt == request.time;
       allow read: if isAdmin() ||
         (isSignedIn() && resource.data.userId == request.auth.uid);
-      allow update: if isAdmin();
+      allow update: if isAdmin() ||
+        (isSignedIn() && resource.data.userId == request.auth.uid &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['screenshotUrl']) &&
+          request.resource.data.screenshotUrl is string && request.resource.data.screenshotUrl.size() <= 2000);
       allow delete: if isAdmin();
     }
 

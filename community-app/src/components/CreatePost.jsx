@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { extractHashtags, isValidVideoUrl, getEmbedUrl, getEmbedProvider, isFacebookReelUrl } from '../utils/helpers';
 import FacebookEmbed from './FacebookEmbed';
+import { Image, LockKeyhole, UsersRound } from 'lucide-react';
 
 function withTimeout(promise, message, milliseconds = 12000) {
   let timer;
@@ -132,13 +133,13 @@ export default function CreatePost({ onPosted }) {
 
       <div className="create-post-toolbar">
         <label className="btn btn-ghost btn-sm file-label">
-          🖼️ Photo(s)
+          <Image size={20} strokeWidth={1.5} aria-hidden="true" /> Photo(s)
           <input type="file" accept="image/*" multiple hidden onChange={handleFiles} />
         </label>
         <select value={privacy} onChange={(e) => setPrivacy(e.target.value)}>
-          <option value="public">🌐 Public</option>
-          <option value="friends">👥 Friends</option>
-          <option value="private">🔒 Only Me</option>
+          <option value="public">Public</option>
+          <option value="friends">Friends</option>
+          <option value="private">Only Me</option>
         </select>
         <button className="btn btn-primary" type="submit" disabled={busy}>
           {busy ? 'Posting...' : 'Post'}

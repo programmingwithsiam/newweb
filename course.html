@@ -22,7 +22,7 @@
   <link rel="stylesheet" href="assets/css/course-learning.css">
   <style>
     .access-payment-panel, .payment-submit-panel, .learning-payment-panel, .course-payment-panel { display: none !important; }
-    #courseCheckout { display: grid !important; gap: 14px; margin-top: 18px; padding: 18px; border: 1px solid #273142; border-radius: 8px; background: #101722; }
+    #courseCheckout { display: grid; gap: 14px; margin-top: 18px; padding: 18px; border: 1px solid #273142; border-radius: 8px; background: #101722; }
     .learning-state { width: min(100% - 32px, 560px); min-height: 280px; margin: 8vh auto; padding: 42px 32px; display: grid; place-items: center; align-content: center; gap: 12px; border: 1px solid rgba(255,255,255,.1); border-radius: 16px; background: rgba(14,18,29,.82); box-shadow: 0 24px 70px rgba(0,0,0,.22); text-align: center; }
     .learning-state > i { display: grid; width: 48px; height: 48px; place-items: center; border-radius: 14px; color: #a8c1ff; background: rgba(122,162,255,.14); font-size: 1.2rem; }
     #learningLogin { position: relative; overflow: hidden; width: min(100% - 32px, 560px); padding: 38px 34px 36px; border-color: rgba(142,175,255,.34); border-radius: 20px; background: radial-gradient(circle at 50% 0%, rgba(142,175,255,.14), transparent 44%), linear-gradient(145deg, rgba(20,27,42,.99), rgba(9,13,22,.99)); box-shadow: 0 28px 90px rgba(0,0,0,.38), 0 0 0 1px rgba(255,255,255,.035) inset; }
@@ -45,6 +45,11 @@
     .learning-state p { max-width: 420px; margin: 0; color: var(--learning-muted); line-height: 1.6; }
     .course-error-card { display: grid; place-items: center; gap: 12px; }
     .course-error-card .learning-button { margin-top: 6px; text-decoration: none; }
+    .lesson-locked-state { width: min(100% - 32px, 620px); min-height: 360px; margin: 8vh auto; padding: 42px 32px; border: 1px solid rgba(201,243,91,.24); border-radius: 18px; background: linear-gradient(145deg, rgba(21,28,25,.98), rgba(11,16,15,.98)); box-shadow: 0 24px 70px rgba(0,0,0,.28); }
+    .lesson-locked-state .locked-icon { display: grid; width: 64px; height: 64px; place-items: center; border: 1px solid rgba(201,243,91,.36); border-radius: 18px; color: #c9f35b; background: rgba(201,243,91,.1); font-size: 1.35rem; }
+    .lesson-locked-state h1 { max-width: 480px; margin: 0; color: #f2f3e9; font-size: clamp(1.45rem, 4vw, 2rem); line-height: 1.2; }
+    .lesson-locked-state p:not(.learning-eyebrow) { max-width: 430px; margin: 0; color: #a4ada2; line-height: 1.6; }
+    @media (max-width: 520px) { .lesson-locked-state { width: min(100% - 20px, 620px); padding: 34px 20px 30px; } }
     .payment-submit-panel { width: min(100%, 460px); margin: 22px auto 0; padding: 20px; border: 1px solid rgba(255,255,255,.1); border-radius: 12px; background: rgba(255,255,255,.035); text-align: left; }
     .payment-submit-panel h2 { margin: 0 0 6px; font-size: 1.1rem; }
     .payment-submit-panel p { color: var(--learning-muted); font-size: .8rem; line-height: 1.5; }
@@ -54,11 +59,11 @@
     .payment-choice-title { margin-top: 10px; font-size: .85rem; }
     .payment-course-title { color: var(--learning-text) !important; font-size: 1rem !important; font-weight: 700; }
     .enrollment-success { margin: 10px 0 0; color: #67d99d !important; font-size: .82rem; font-weight: 700; }
-    .payment-method-picker { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-    .payment-method-choice { min-height: 42px; border: 1px solid rgba(255,255,255,.14); border-radius: 8px; color: var(--learning-text); background: rgba(255,255,255,.035); cursor: pointer; transition: .18s ease; }
+    .payment-method-picker { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+    .payment-method-choice { min-height: 38px; padding: 8px 10px; border: 1px solid rgba(255,255,255,.14); border-radius: 8px; color: var(--learning-text); background: rgba(255,255,255,.035); cursor: pointer; transition: .18s ease; }
     .payment-method-choice:hover, .payment-method-choice.active { border-color: #8eafff; color: #c6d5ff; background: rgba(122,162,255,.15); }
-    .payment-method-details { display: grid; gap: 7px; padding: 12px; border: 1px solid rgba(255,255,255,.1); border-radius: 8px; background: rgba(0,0,0,.14); }
-    .payment-method-details p { margin: 0; }
+    .payment-method-details { display: grid; gap: 7px; padding: 12px; border: 1px solid rgba(255,255,255,.1); border-radius: 8px; background: rgba(0,0,0,.14); overflow: hidden; }
+    .payment-method-details p { margin: 0; line-height: 1.45; }
     .payment-method-details b { color: var(--learning-text); }
     .copy-payment-number { justify-self: start; padding: 6px 9px; border: 1px solid rgba(255,255,255,.16); border-radius: 6px; color: var(--learning-text); background: rgba(255,255,255,.06); cursor: pointer; }
     .payment-qr-panel:empty { display: none; }
@@ -322,46 +327,88 @@
     @keyframes learning-dot { 0%, 100% { transform: translateY(0); opacity: .35; } 50% { transform: translateY(-4px); opacity: 1; } }
     @keyframes learning-progress { from { transform: translateX(-100%); } to { transform: translateX(260%); } }
     #learningLoading::after { background: linear-gradient(90deg, transparent, #c9f35b 35%, #7ed6c0 65%, transparent); background-size: 45% 100%; background-repeat: no-repeat; animation: learning-progress 1.8s ease-in-out infinite; }
-    #courseCheckout { color: var(--learning-text); background: linear-gradient(145deg, #151c19, #101614) !important; border-color: rgba(201,243,91,.22); box-shadow: 0 18px 45px rgba(0,0,0,.22); }
-    .checkout-price { display: flex; align-items: baseline; gap: 10px; padding-bottom: 10px; border-bottom: 1px solid rgba(238,241,225,.1); }
-    .checkout-price strong { color: #c9f35b; font-size: 1.65rem; }
-    .checkout-price del { color: #a4ada2; font-size: .82rem; }
-    .checkout-label { display: grid; gap: 8px; color: #e9eee5; font-size: .8rem; font-weight: 600; }
-    .checkout-label input, .checkout-label select { width: 100%; min-height: 44px; padding: 10px 11px; border: 1px solid rgba(238,241,225,.14); border-radius: 8px; color: #f2f3e9; background: #0d1110; font: inherit; }
+    #courseCheckout {
+      display: grid;
+      gap: 16px;
+      margin-top: 18px;
+      padding: 18px 18px 16px;
+      border: 1px solid rgba(15, 23, 42, .12);
+      border-radius: 12px;
+      background: #ffffff;
+      box-shadow: 0 14px 38px rgba(15, 23, 42, .08);
+      color: #0f172a;
+    }
+    .checkout-price { display: flex; align-items: end; gap: 10px; padding-bottom: 10px; border-bottom: 1px solid rgba(15, 23, 42, .08); }
+    .checkout-price strong { color: #111827; font-size: 1.9rem; letter-spacing: -.04em; }
+    .checkout-price del { color: #64748b; font-size: .82rem; }
+    .checkout-label { display: grid; gap: 8px; color: #334155; font-size: .8rem; font-weight: 600; }
+    .checkout-label input, .checkout-label select { width: 100%; min-height: 44px; padding: 10px 11px; border: 1px solid #dfe7ef; border-radius: 8px; color: #0f172a; background: #f8fafc; font: inherit; }
     .checkout-phone-label { gap: 6px; }
     .checkout-phone-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
-    .checkout-phone-heading small { color: #8f9b8f; font-size: .68rem; font-weight: 500; }
-    .checkout-phone-row { display: grid; grid-template-columns: minmax(132px, .78fr) minmax(0, 1.22fr); gap: 0; padding: 4px; border: 1px solid rgba(201,243,91,.18); border-radius: 11px; background: #0a0e0d; transition: border-color .18s ease, box-shadow .18s ease; }
-    .checkout-phone-row:focus-within { border-color: rgba(201,243,91,.72); box-shadow: 0 0 0 3px rgba(201,243,91,.1); }
-    .checkout-phone-row select, .checkout-phone-row input { min-width: 0; min-height: 42px; border: 0; border-radius: 7px; background: transparent; }
-    .checkout-phone-row select { padding-right: 8px; border-right: 1px solid rgba(238,241,225,.12); }
+    .checkout-phone-heading small { color: #64748b; font-size: .68rem; font-weight: 500; }
+    .checkout-phone-row { display: grid; grid-template-columns: minmax(132px, .78fr) minmax(0, 1.22fr); gap: 0; padding: 4px; border: 1px solid #dfe7ef; border-radius: 11px; background: #ffffff; transition: border-color .18s ease, box-shadow .18s ease; }
+    .checkout-phone-row:focus-within { border-color: #f59e0b; box-shadow: 0 0 0 3px rgba(245, 158, 11, .12); }
+    .checkout-phone-row select, .checkout-phone-row input { min-width: 0; min-height: 42px; border: 0; border-radius: 7px; background: transparent; color: #0f172a; }
+    .checkout-phone-row select { padding-right: 8px; border-right: 1px solid #e2e8f0; }
     .checkout-phone-row input { padding-left: 13px; }
     .checkout-phone-row select:focus, .checkout-phone-row input:focus { outline: 0; box-shadow: none; }
-    .checkout-phone-hint { margin: 0; color: #8f9b8f; font-size: .68rem; font-weight: 400; line-height: 1.4; }
-    #checkoutPaymentMethod { border-color: rgba(201,243,91,.26); background: linear-gradient(145deg, #151c19, #0d1110); }
-    #checkoutPaymentMethod, #checkoutCountry { color-scheme: dark; }
-    #checkoutPaymentMethod option, #checkoutCountry option { color: #f2f3e9; background: #101614; }
+    .checkout-phone-hint { margin: 0; color: #64748b; font-size: .68rem; font-weight: 400; line-height: 1.4; }
+    #checkoutPaymentMethod { border-color: #dfe7ef; background: #ffffff; }
+    #checkoutPaymentMethod, #checkoutCountry { color-scheme: light; }
+    #checkoutPaymentMethod option, #checkoutCountry option { color: #0f172a; background: #ffffff; }
     .checkout-payment-select { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; }
     .payment-logo-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
-    .payment-logo-choice { display: grid; align-content: center; justify-items: center; gap: 6px; min-height: 76px; padding: 8px 5px; border: 1px solid rgba(238,241,225,.13); border-radius: 9px; color: #b9c6b8; background: #0d1110; font: inherit; font-size: .65rem; font-weight: 600; cursor: pointer; transition: border-color .18s ease, background .18s ease, transform .18s ease; }
-    .payment-logo-choice:hover { border-color: rgba(201,243,91,.5); background: rgba(201,243,91,.06); transform: translateY(-1px); }
-    .payment-logo-choice.is-selected { border-color: #c9f35b; color: #f2f3e9; background: rgba(201,243,91,.1); box-shadow: 0 0 0 2px rgba(201,243,91,.1); }
-    .payment-logo-choice img, .payment-logo-fallback { display: grid; width: 42px; height: 28px; place-items: center; object-fit: contain; border-radius: 5px; background: #fff; }
+    .payment-logo-choice { display: grid; align-content: center; justify-items: center; gap: 5px; min-height: 64px; padding: 6px 4px; border: 1px solid #dfe7ef; border-radius: 9px; color: #475569; background: #f8fafc; font: inherit; font-size: .65rem; font-weight: 600; cursor: pointer; transition: border-color .18s ease, background .18s ease, transform .18s ease; overflow: hidden; }
+    .payment-logo-choice:hover { border-color: #f59e0b; background: rgba(245, 158, 11, .05); transform: translateY(-1px); }
+    .payment-logo-choice.is-selected { border-color: #f59e0b; color: #0f172a; background: rgba(245, 158, 11, .08); box-shadow: 0 0 0 2px rgba(245, 158, 11, .12); }
+    .payment-logo-choice img, .payment-logo-fallback { display: grid; width: 32px; height: 22px; place-items: center; object-fit: contain; border-radius: 5px; background: #ffffff; }
     .payment-logo-fallback { color: #172019; font-size: .58rem; font-weight: 900; }
-    .payment-logo-choice small { font-size: .62rem; }
+    .payment-logo-choice small { font-size: .62rem; line-height: 1.1; }
     @media (max-width: 420px) { .payment-logo-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-    #checkoutPaymentInstruction { min-height: 1.3em; padding: 8px 10px; border-left: 2px solid rgba(201,243,91,.6); border-radius: 4px; color: #b9c6b8; background: rgba(201,243,91,.05); }
-    .checkout-label input:focus, .checkout-label select:focus { outline: 0; border-color: #c9f35b; box-shadow: 0 0 0 3px rgba(201,243,91,.12); }
+    #checkoutPaymentInstruction { min-height: 1.3em; padding: 8px 10px; border-left: 2px solid #f59e0b; border-radius: 4px; color: #475569; background: rgba(245, 158, 11, .05); }
+    .checkout-label input:focus, .checkout-label select:focus { outline: 0; border-color: #f59e0b; box-shadow: 0 0 0 3px rgba(245, 158, 11, .12); }
     .checkout-label input[type="file"] { padding: 6px; color: #a4ada2; }
     .checkout-label input[type="file"]::file-selector-button { min-height: 29px; margin-right: 8px; padding: 0 9px; border: 1px solid rgba(201,243,91,.25); border-radius: 6px; color: #10150b; background: #c9f35b; cursor: pointer; }
-    .checkout-note, .checkout-error { margin: 0; color: #a4ada2; font-size: .78rem; line-height: 1.5; }
-    .checkout-error { color: #ff9aa6; }
-    .checkout-benefits { display: grid; gap: 7px; padding-top: 8px; color: #e9eee5; font-size: .8rem; }
-    .checkout-benefits > span { color: #a4ada2; }
-    .checkout-share { width: 100%; min-height: 42px; padding: 10px 14px; border: 1px solid rgba(238,241,225,.14); border-radius: 8px; color: #e9eee5; background: rgba(255,255,255,.045); font: inherit; font-weight: 700; cursor: pointer; transition: .18s ease; }
-    .checkout-share:hover { border-color: #c9f35b; color: #c9f35b; background: rgba(201,243,91,.08); transform: translateY(-1px); }
-    #checkoutWhatsappBtn { border-color: rgba(120,223,168,.3); color: #9af0bd; }
-    .checkout-whatsapp-note { margin: 12px 0 0; color: var(--learning-muted); font-size: .78rem; line-height: 1.5; }
+    .checkout-note, .checkout-error { margin: 0; color: #475569; font-size: .78rem; line-height: 1.5; }
+    .checkout-error { color: #dc2626; }
+    .checkout-benefits { display: grid; gap: 7px; padding-top: 8px; color: #0f172a; font-size: .8rem; }
+    .checkout-benefits > span { color: #475569; }
+    .checkout-share { width: 100%; min-height: 42px; padding: 10px 14px; border: 1px solid #dfe7ef; border-radius: 8px; color: #0f172a; background: #f8fafc; font: inherit; font-weight: 700; cursor: pointer; transition: .18s ease; }
+    .checkout-share:hover { border-color: #f59e0b; color: #b45309; background: rgba(245, 158, 11, .05); transform: translateY(-1px); }
+    #checkoutWhatsappBtn { border-color: rgba(22, 163, 74, .25); color: #166534; background: rgba(22, 163, 74, .04); }
+    .checkout-whatsapp-note { margin: 12px 0 0; color: #475569; font-size: .78rem; line-height: 1.5; }
+    #courseCheckout.hidden { display: none !important; }
+    .checkout-header { display: flex; align-items: start; justify-content: space-between; gap: 16px; }
+    .checkout-header h2 { margin: 2px 0 5px; color: #0f172a; font-size: 1.25rem; }
+    .checkout-header p:not(.checkout-kicker) { margin: 0; color: #64748b; font-size: .76rem; line-height: 1.5; }
+    .checkout-kicker { margin: 0 0 5px; color: #b45309; font-size: .63rem; font-weight: 800; letter-spacing: .14em; }
+    .checkout-account-badge { padding: 5px 8px; border: 1px solid #dbeafe; border-radius: 999px; color: #2563eb; background: #eff6ff; font-size: .63rem; font-weight: 700; white-space: nowrap; }
+    .checkout-course-summary { display: grid; grid-template-columns: 100px minmax(0, 1fr); gap: 12px; align-items: center; padding: 10px; border: 1px solid #e2e8f0; border-radius: 9px; background: #f8fafc; }
+    .checkout-course-summary img { width: 100px; aspect-ratio: 16 / 10; border-radius: 6px; object-fit: cover; background: #e2e8f0; }
+    .checkout-course-summary h3 { margin: 0 0 4px; color: #0f172a; font-size: .92rem; line-height: 1.35; }
+    .checkout-course-summary p:not(.checkout-kicker) { margin: 0 0 5px; color: #64748b; font-size: .7rem; line-height: 1.4; }
+    .checkout-course-summary span { color: #475569; font-size: .68rem; }
+    .checkout-order-summary { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; padding: 12px 0; border-top: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; color: #64748b; font-size: .75rem; }
+    .checkout-order-summary strong { color: #334155; font-size: .75rem; text-align: right; }
+    .checkout-order-summary .checkout-total-label, .checkout-order-summary .checkout-total { color: #0f172a; font-size: .9rem; font-weight: 800; }
+    .checkout-section-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-top: 2px; color: #0f172a; font-size: .86rem; font-weight: 800; }
+    .checkout-section-heading small { color: #94a3b8; font-size: .66rem; font-weight: 500; }
+    .checkout-student-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .checkout-label input[readonly] { color: #64748b; background: #eef2f7; }
+    .checkout-confirmation { display: flex; align-items: start; gap: 8px; color: #334155; font-size: .73rem; line-height: 1.45; cursor: pointer; }
+    .checkout-confirmation input { flex: 0 0 auto; width: 17px; height: 17px; margin: 1px 0 0; accent-color: #f59e0b; }
+    .checkout-order-card { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px; border: 1px solid #fde68a; border-radius: 8px; background: #fffbeb; }
+    .checkout-order-card div { display: grid; gap: 3px; }
+    .checkout-order-card span { color: #92400e; font-size: .68rem; line-height: 1.4; }
+    .checkout-order-card strong { color: #78350f; font-size: 1.2rem; }
+    .checkout-order-card > span { max-width: 170px; text-align: right; }
+    .checkout-success { display: flex; align-items: start; gap: 10px; padding: 13px; border: 1px solid #bbf7d0; border-radius: 8px; color: #166534; background: #f0fdf4; }
+    .checkout-success > i { margin-top: 2px; font-size: 1.15rem; }
+    .checkout-success div { display: grid; gap: 4px; }
+    .checkout-success strong { font-size: .84rem; }
+    .checkout-success span, .checkout-success small { font-size: .72rem; line-height: 1.45; }
+    #checkoutPayBtn { min-height: 48px; color: #111827; background: #fbbf24; border-color: #fbbf24; }
+    #checkoutPayBtn:hover:not(:disabled) { color: #111827; background: #f59e0b; border-color: #f59e0b; }
     @media (max-width: 760px) {
       .learning-topbar { height: auto; min-height: 62px; padding: 12px 16px; gap: 12px; }
       .learning-brand { font-size: .9rem; }
@@ -376,6 +423,10 @@
       .overview-details h2 { font-size: 1.05rem; overflow-wrap: anywhere; }
       .overview-meta { display: flex; flex-wrap: wrap; gap: 10px; }
       #courseCheckout { padding: 14px; gap: 12px; }
+      .checkout-header { display: grid; gap: 8px; }
+      .checkout-account-badge { justify-self: start; }
+      .checkout-student-grid { grid-template-columns: 1fr; gap: 12px; }
+      .checkout-order-card { align-items: start; }
       .checkout-price { display: flex; align-items: baseline; gap: 8px; }
       .checkout-phone-row { grid-template-columns: minmax(135px, .9fr) minmax(0, 1.1fr); }
       .checkout-label, .checkout-phone-row { min-width: 0; }
@@ -391,6 +442,13 @@
       #learningLoading .learning-focus { gap: 13px; }
       #learningLoading .loading-spinner { width: 94px; height: 94px; }
       #learningLoading .loading-spinner::before { font-size: 1.8rem; }
+    }
+    @media (max-width: 380px) {
+      #courseCheckout { padding: 12px; }
+      .checkout-phone-row { grid-template-columns: 1fr; gap: 2px; }
+      .checkout-phone-row select { border-right: 0; border-bottom: 1px solid #e2e8f0; }
+      .checkout-order-card { flex-direction: column; }
+      .checkout-order-card > span { max-width: none; text-align: left; }
     }
     @media (prefers-reduced-motion: reduce) {
       #learningLoading::after { animation: none; }
@@ -527,16 +585,26 @@
           <button id="overviewStartBtn" class="learning-button primary" type="button"><i class="fa-solid fa-play"></i> Enroll Now</button>
           <p id="courseEnrollmentStatus" class="enrollment-success">✓ You're enrolled</p>
           <section id="courseCheckout" aria-label="Course checkout">
+            <div class="checkout-header"><div><p class="checkout-kicker">GET STARTED</p><h2>Complete your enrollment</h2><p id="checkoutAccountHint">Already have an account? Your CodeWithSiam details will be used automatically.</p></div><span class="checkout-account-badge" id="checkoutAccountBadge">Secure checkout</span></div>
+            <div class="checkout-course-summary"><img id="checkoutCourseThumbnail" src="" alt="Course thumbnail"><div><p class="checkout-kicker">YOUR COURSE</p><h3 id="checkoutCourseTitle">Course</h3><p id="checkoutCourseDescription"></p><span id="checkoutCourseInstructor"></span></div></div>
+            <div class="checkout-order-summary"><span>Course price</span><strong id="checkoutOriginalSummary">৳0</strong><span>Discount</span><strong id="checkoutDiscountSummary">-৳0</strong><span class="checkout-total-label">Total</span><strong class="checkout-total" id="checkoutTotalSummary">Free</strong></div>
             <div class="checkout-price"><strong id="checkoutFinalPrice">Free</strong><del id="checkoutOriginalPrice" class="hidden">৳0</del></div>
+            <div class="checkout-section-heading"><span>Student information</span><small>Fill in your details</small></div>
+            <div class="checkout-student-grid">
+              <label class="checkout-label">Full name<input id="checkoutStudentName" type="text" autocomplete="name" placeholder="Your full name"></label>
+              <label class="checkout-label">Email<input id="checkoutStudentEmail" type="email" autocomplete="email" placeholder="you@example.com" readonly></label>
+            </div>
             <label class="checkout-label checkout-phone-label"><span class="checkout-phone-heading"><span>Phone number</span><small>Required for enrollment</small></span>
               <span class="checkout-phone-row"><select id="checkoutCountry" aria-label="Country code"><option value="+880" data-placeholder="01XXXXXXXXX" data-country="Bangladesh">🇧🇩 +880</option><option value="+91" data-placeholder="XXXXXXXXXX" data-country="India">🇮🇳 +91</option><option value="+92" data-placeholder="XXXXXXXXXX" data-country="Pakistan">🇵🇰 +92</option><option value="+971" data-placeholder="5XXXXXXXX" data-country="UAE">🇦🇪 +971</option><option value="+966" data-placeholder="5XXXXXXXX" data-country="Saudi Arabia">🇸🇦 +966</option><option value="+60" data-placeholder="1XXXXXXXX" data-country="Malaysia">🇲🇾 +60</option><option value="+44" data-placeholder="7XXXXXXXXX" data-country="United Kingdom">🇬🇧 +44</option><option value="+1" data-placeholder="XXXXXXXXXX" data-country="United States">🇺🇸 +1</option></select><input id="checkoutPhone" type="tel" inputmode="numeric" maxlength="15" placeholder="01XXXXXXXXX" autocomplete="tel" autocorrect="off" spellcheck="false" aria-label="Phone number"></span>
               <small class="checkout-phone-hint">Use the number linked to your payment account.</small>
             </label>
             <p id="checkoutPhoneError" class="checkout-error" role="alert"></p>
-            <label class="checkout-label">Payment method
-              <select id="checkoutPaymentMethod" class="checkout-payment-select"><option value="bkash">bKash</option><option value="nagad">Nagad</option><option value="bank">Bank Transfer</option><option value="visa">Visa</option><option value="debit_card">Debit Card</option><option value="credit_card">Credit Card</option><option value="paypal">PayPal</option></select>
+            <div class="checkout-section-heading"><span>Payment method</span><small>Manual payment verification</small></div>
+            <label class="checkout-label">Choose how you paid
+              <select id="checkoutPaymentMethod" class="checkout-payment-select"><option value="bkash">bKash</option><option value="rocket">Rocket</option><option value="nagad">Nagad</option><option value="bank">Bank Transfer</option><option value="visa">Visa</option><option value="debit_card">Debit Card</option><option value="credit_card">Credit Card</option><option value="paypal">PayPal</option></select>
               <span class="payment-logo-grid" role="group" aria-label="Choose a payment method">
                 <button class="payment-logo-choice is-selected" type="button" data-payment-choice="bkash" aria-pressed="true"><img src="https://cdn.worldvectorlogo.com/logos/bkash.svg" alt="bKash logo"><small>bKash</small></button>
+                <button class="payment-logo-choice" type="button" data-payment-choice="rocket" aria-pressed="false"><span class="payment-logo-fallback">R</span><small>Rocket</small></button>
                 <button class="payment-logo-choice" type="button" data-payment-choice="nagad" aria-pressed="false"><img src="https://cdn.worldvectorlogo.com/logos/nagad-1.svg" alt="Nagad logo"><small>Nagad</small></button>
                 <button class="payment-logo-choice" type="button" data-payment-choice="bank" aria-pressed="false"><span class="payment-logo-fallback">BANK</span><small>Bank</small></button>
                 <button class="payment-logo-choice" type="button" data-payment-choice="visa" aria-pressed="false"><img src="https://cdn.simpleicons.org/visa" alt="Visa logo"><small>Visa</small></button>
@@ -548,8 +616,11 @@
             <p id="checkoutPaymentInstruction" class="checkout-note"></p>
             <label class="checkout-label">Transaction ID<input id="checkoutTransactionId" type="text" maxlength="80" placeholder="Enter transaction ID" autocomplete="off" autocorrect="off" spellcheck="false"></label>
             <label class="checkout-label">Payment screenshot <span>(optional)</span><input id="checkoutPaymentScreenshot" type="file" accept="image/jpeg,image/png,image/webp"></label>
-            <button id="checkoutPayBtn" class="learning-button primary" type="button" disabled>Pay</button>
+            <label class="checkout-confirmation"><input id="checkoutPaymentConfirm" type="checkbox"><span>I confirm that I have completed the payment and entered the correct details.</span></label>
+            <div class="checkout-order-card"><div><span>Total payable</span><strong id="checkoutOrderTotal">Free</strong></div><span id="checkoutOrderNote">Your request will be reviewed by the CodeWithSiam team.</span></div>
+            <button id="checkoutPayBtn" class="learning-button primary" type="button" disabled>Confirm Enrollment</button>
             <p id="checkoutStatus" class="checkout-note" role="status"></p>
+            <div id="checkoutSuccess" class="checkout-success hidden" role="status"><i class="fa-solid fa-circle-check"></i><div><strong>Enrollment request submitted!</strong><span>Your payment is being reviewed. You’ll receive course access after approval.</span><small>Request ID: <b id="checkoutRequestId"></b></small></div></div>
             <div class="checkout-benefits"><strong>This course includes:</strong><span id="checkoutBenefits"></span></div>
               <p class="checkout-whatsapp-note">After submitting, you can send the payment details to WhatsApp and manually attach your screenshot there.</p>
               <button id="checkoutWhatsappBtn" class="checkout-share" type="button"><i class="fa-brands fa-whatsapp"></i> Send Payment Proof via WhatsApp</button>
@@ -612,6 +683,14 @@
       </div>
     </section>
 
+    <section id="lessonLocked" class="learning-state lesson-locked-state hidden" aria-live="polite">
+      <div class="locked-icon" aria-hidden="true"><i class="fa-solid fa-lock"></i></div>
+      <p class="learning-eyebrow">ENROLLMENT ACCESS</p>
+      <h1>This class is available for enrolled students.</h1>
+      <p id="lessonLockedMessage">Watch the first 2 classes free before enrolling.</p>
+      <button id="lessonEnrollBtn" class="learning-button primary" type="button"><i class="fa-solid fa-key"></i> Enroll Now</button>
+    </section>
+
     <section id="lessonPlayer" class="lesson-screen hidden">
       <div class="lesson-main">
         <div class="lesson-workspace-tools"><div class="workspace-settings"><button type="button" class="workspace-settings-button" id="workspaceSettingsButton" aria-expanded="false" aria-controls="workspaceSettingsMenu"><i class="fa-solid fa-sliders"></i> Settings</button><div class="workspace-settings-menu" id="workspaceSettingsMenu" hidden><label class="workspace-setting"><span>Show Sidebar</span><input type="checkbox" id="showSidebarToggle" checked></label><label class="workspace-setting"><span>Autoplay</span><input type="checkbox" id="autoplayToggle"></label><label class="workspace-setting"><span>Autocomplete</span><input type="checkbox" id="autocompleteToggle" checked></label></div></div></div>
@@ -645,6 +724,6 @@
       });
     });
   </script>
-  <script type="module" src="assets/js/course-learning.js?v=20260913-free-course-access-1"></script>
+  <script type="module" src="assets/js/course-learning.js?v=20260913-course-fix-2"></script>
 </body>
 </html>

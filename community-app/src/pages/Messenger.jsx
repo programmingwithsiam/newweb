@@ -7,6 +7,7 @@ import ConversationList from '../components/ConversationList';
 import ChatWindow from '../components/ChatWindow';
 import NewGroupModal from '../components/NewGroupModal';
 import UserSearchPicker from '../components/UserSearchPicker';
+import { MailPlus, UsersRound } from 'lucide-react';
 
 export default function Messenger() {
   const { convId } = useParams();
@@ -40,8 +41,8 @@ export default function Messenger() {
         <div className="messenger-list-header">
           <h3>Chats</h3>
           <div>
-            <button className="icon-btn" onClick={() => setShowNewChat(true)} title="New message">✉️</button>
-            <button className="icon-btn" onClick={() => setShowNewGroup(true)} title="New group">👥</button>
+            <button className="icon-btn" onClick={() => setShowNewChat(true)} title="New message" aria-label="New message"><MailPlus size={20} strokeWidth={1.5} aria-hidden="true" /></button>
+            <button className="icon-btn" onClick={() => setShowNewGroup(true)} title="New group" aria-label="New group"><UsersRound size={20} strokeWidth={1.5} aria-hidden="true" /></button>
           </div>
         </div>
         <ConversationList activeId={convId} onSelect={(id) => navigate(`/messenger/${id}`)} />

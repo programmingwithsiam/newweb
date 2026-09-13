@@ -4,6 +4,7 @@ import { ref, onValue, update, query, orderByChild, limitToLast } from 'firebase
 import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
 import { timeAgo } from '../utils/helpers';
+import { Bell, Heart, MessageCircle, MessageSquare, Reply, UserPlus } from 'lucide-react';
 
 const LABELS = {
   friend_request: (n) => `${n.fromName || 'Someone'} sent you a friend request`,
@@ -14,6 +15,17 @@ const LABELS = {
   reply: (n) => `${n.fromName || 'Someone'} replied to your comment`,
   message: (n) => `${n.fromName || 'Someone'} sent you a message`,
   group_invite: (n) => `${n.fromName || 'Someone'} added you to a group`
+};
+
+const TYPE_ICONS = {
+  friend_request: UserPlus,
+  friend_accept: UserPlus,
+  follow: UserPlus,
+  reaction: Heart,
+  comment: MessageCircle,
+  reply: Reply,
+  message: MessageSquare,
+  group_invite: UserPlus
 };
 
 function NotificationRow({ id, n, onClick }) {
@@ -27,14 +39,17 @@ function NotificationRow({ id, n, onClick }) {
     });
     return unsub;
   }, [n.fromUid]);
+  const TypeIcon = TYPE_ICONS[n.type] || Bell;
 
   return (
     <button className={`notification-row${n.read ? '' : ' unread'}`} onClick={() => onClick(id, n)}>
+      <span className="notification-type-icon" aria-hidden="true"><TypeIcon size={20} strokeWidth={1.5} /></span>
       <img className="avatar-sm" src={fromPhoto || '/default-avatar.png'} alt="" />
-      <div>
-        <p>{LABELS[n.type] ? LABELS[n.type]({ ...n, fromName }) : 'New notification'}</p>
-        <span className="muted small">{timeAgo(n.createdAt)}</span>
-      </div>
+      <span className="notification-copy">
+        <span className="notification-message">{LABELS[n.type] ? LABELS[n.type]({ ...n, fromName }) : 'New notification'}</span>
+        <span className="notification-time">{timeAgo(n.createdAt)}</span>
+      </span>
+      {!n.read && <span className="notification-unread-dot" aria-label="Unread" />}
     </button>
   );
 }
@@ -64,8 +79,15 @@ export default function Notifications({ kind = 'community' }) {
 
   return (
     <div className="notifications-page">
-      <h2>{kind === 'messages' ? 'Message notifications' : 'Community notifications'}</h2>
-      {ordered.length === 0 && <div className="empty-state"><p>No notifications yet.</p></div>}
+      <div className="notifications-heading">
+        <div>
+          <span className="notifications-eyebrow">ACTIVITY CENTER</span>
+          <h2>{kind === 'messages' ? 'Message notifications' : 'Community notifications'}</h2>
+          <p>Stay up to date with what is happening around your community.</p>
+        </div>
+        <span className="notifications-count">{ordered.length} {ordered.length === 1 ? 'update' : 'updates'}</span>
+      </div>
+      {ordered.length === 0 && <div className="empty-state notifications-empty"><span className="empty-state-icon"><Bell size={20} strokeWidth={1.5} /></span><strong>You’re all caught up</strong><p>No new notifications yet.</p></div>}
       {ordered.map(([id, n]) => <NotificationRow key={id} id={id} n={n} onClick={handleClick} />)}
     </div>
   );

@@ -9,8 +9,9 @@ import ReactionBar from './ReactionBar';
 import CommentSection from './CommentSection';
 import ConfirmDialog from './ConfirmDialog';
 import FacebookEmbed from './FacebookEmbed';
+import { Flag, Globe2, Link2, LockKeyhole, MessageCircle, MoreHorizontal, UsersRound } from 'lucide-react';
 
-const PRIVACY_ICON = { public: '🌐', friends: '👥', private: '🔒' };
+const PRIVACY_ICON = { public: Globe2, friends: UsersRound, private: LockKeyhole };
 let youtubeApiPromise;
 
 function loadYoutubeApi() {
@@ -40,6 +41,7 @@ export default function PostCard({ postId, post }) {
   const { showToast } = useToast();
   const navigate = useNavigate();
   const [showComments, setShowComments] = useState(false);
+  const [showShareMenu, setShowShareMenu] = useState(false);
   const [editing, setEditing] = useState(false);
   const [text, setText] = useState(post.text || '');
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -79,6 +81,48 @@ export default function PostCard({ postId, post }) {
     observer.observe(videoRef.current);
     return () => observer.disconnect();
   }, [embedUrl, isYoutubeVideo]);
+
+  useEffect(() => {
+    if (!embedUrl || !isFacebookVideo || !videoRef.current) return undefined;
+    const container = videoRef.current;
+    const stopFacebookVideo = () => {
+      const frame = container.querySelector('.facebook-embed iframe');
+      if (!frame || frame.src === 'about:blank') return;
+      frame.dataset.resumeSrc = frame.src;
+      frame.src = 'about:blank';
+    };
+    const restoreFacebookVideo = () => {
+      const frame = container.querySelector('.facebook-embed iframe');
+      const resumeSrc = frame?.dataset.resumeSrc;
+      if (frame && resumeSrc && frame.src === 'about:blank') frame.src = resumeSrc;
+    };
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0]?.isIntersecting) restoreFacebookVideo();
+      else stopFacebookVideo();
+    }, { threshold: 0.35 });
+    observer.observe(container);
+    return () => {
+      observer.disconnect();
+      restoreFacebookVideo();
+    };
+  }, [embedUrl, isFacebookVideo]);
+
+  useEffect(() => {
+    if (!embedUrl || !isDirectVideo || !videoRef.current) return undefined;
+    const video = videoRef.current.querySelector('video');
+    if (!video) return undefined;
+    video.muted = true;
+    setVideoMuted(true);
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) video.play().catch(() => {});
+      else video.pause();
+    }, { threshold: 0.5 });
+    observer.observe(videoRef.current);
+    return () => {
+      observer.disconnect();
+      video.pause();
+    };
+  }, [embedUrl, isDirectVideo]);
 
   useEffect(() => {
     if (!embedUrl || !isYoutubeVideo || !videoRef.current) return undefined;
@@ -181,6 +225,13 @@ export default function PostCard({ postId, post }) {
     showToast('Post link copied', 'success');
   }
 
+  async function sharePost() {
+    const url = `${window.location.origin}/post/${postId}`;
+    if (navigator.share) await navigator.share({ title: `${post.authorName}'s post`, url }).catch(() => {});
+    else await copyLink();
+    setShowShareMenu(false);
+  }
+
   async function submitReport(reason) {
     await push(ref(db, 'reports'), {
       type: 'post',
@@ -200,13 +251,13 @@ export default function PostCard({ postId, post }) {
         <div className="post-header-text">
           <Link to={`/profile/${post.uid}`} className="post-author">{post.authorName}</Link>
           <div className="muted small">
-            {timeAgo(post.createdAt)} · {PRIVACY_ICON[post.privacy] || '🌐'} {post.privacy}
+            {timeAgo(post.createdAt)} · {(() => { const PrivacyIcon = PRIVACY_ICON[post.privacy] || Globe2; return <PrivacyIcon size={20} strokeWidth={1.5} aria-hidden="true" />; })()} {post.privacy}
           </div>
         </div>
         {isMine && (
           <div className="post-menu">
             <details>
-              <summary>⋯</summary>
+              <summary aria-label="More post options"><MoreHorizontal size={20} strokeWidth={1.5} aria-hidden="true" /></summary>
               <div className="post-menu-list">
                 <button onClick={() => setEditing((e) => !e)}>Edit</button>
                 <button className="danger" onClick={() => setConfirmDelete(true)}>Delete</button>
@@ -325,10 +376,17 @@ export default function PostCard({ postId, post }) {
           ownerUid={post.uid}
           notifyPayload={{ postId }}
         />
-        <button className="btn btn-ghost btn-sm" onClick={() => setShowComments((s) => !s)}>💬 Comment</button>
-        <button className="btn btn-ghost btn-sm" onClick={copyLink}>🔗 Share</button>
+        <button className="btn btn-ghost btn-sm icon-text-btn" onClick={() => setShowComments((s) => !s)}><MessageCircle size={20} strokeWidth={1.5} aria-hidden="true" /> Comment</button>
+        <div className="post-share-wrap">
+          <button className="btn btn-ghost btn-sm icon-text-btn" type="button" onClick={() => setShowShareMenu((open) => !open)}><Link2 size={20} strokeWidth={1.5} aria-hidden="true" /> Share</button>
+          {showShareMenu && <div className="post-share-menu">
+            <button type="button" onClick={sharePost}>Share now</button>
+            <button type="button" onClick={() => { setShowShareMenu(false); showToast('Story sharing is coming soon.', 'info'); }}>Share to story</button>
+            <button type="button" onClick={copyLink}>Copy link</button>
+          </div>}
+        </div>
         {!isMine && (
-          <button className="btn btn-ghost btn-sm" onClick={() => setReportOpen(true)}>🚩 Report</button>
+          <button className="btn btn-ghost btn-sm icon-text-btn" onClick={() => setReportOpen(true)}><Flag size={20} strokeWidth={1.5} aria-hidden="true" /> Report</button>
         )}
       </div>
 

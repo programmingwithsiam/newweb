@@ -35,8 +35,20 @@ export default function FacebookEmbed({ url }) {
 
   useEffect(() => {
     let cancelled = false;
+    const keepEmbedSized = () => {
+      const container = embedRef.current;
+      const frame = container?.querySelector('iframe');
+      if (!container || !frame) return;
+      frame.style.width = '100%';
+      frame.style.height = '100%';
+      frame.style.minHeight = '100%';
+      frame.setAttribute('scrolling', 'no');
+    };
     loadFacebookSdk().then((FB) => {
-      if (!cancelled && embedRef.current) FB.XFBML.parse(embedRef.current);
+      if (cancelled || !embedRef.current) return;
+      FB.XFBML.parse(embedRef.current, keepEmbedSized);
+      window.setTimeout(keepEmbedSized, 250);
+      window.setTimeout(keepEmbedSized, 1000);
     }).catch(() => {
       // The surrounding post still provides the original Facebook link.
     });
@@ -52,9 +64,6 @@ export default function FacebookEmbed({ url }) {
         data-show-text="false"
         data-allowfullscreen="true"
       />
-      <a className="facebook-embed-link" href={url} target="_blank" rel="noreferrer">
-        ↗ Open on Facebook
-      </a>
     </div>
   );
 }

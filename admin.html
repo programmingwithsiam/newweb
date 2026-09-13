@@ -1202,6 +1202,7 @@
     .payment-status-badge.pending { color: #fbbf24; background: rgba(245,158,11,.14); }
     .payment-status-badge.approved { color: var(--admin-success); background: rgba(87,211,145,.12); }
     .payment-status-badge.rejected { color: var(--admin-danger); background: rgba(255,125,141,.12); }
+    .payment-status-badge.revoked { color: var(--admin-danger); background: rgba(255,125,141,.12); }
     .payment-proof { display: flex; align-items: center; gap: 6px; color: var(--admin-accent); font-size: .72rem; text-decoration: none; }
     .payment-proof img { width: 34px; height: 34px; object-fit: cover; border-radius: 5px; }
     .payment-proof-empty { color: var(--admin-muted); font-size: .72rem; }
@@ -2194,6 +2195,8 @@
       grantEmailAccess,
       revokeEmailAccess,
       fetchAllPayments,
+      fetchAllEnrollments,
+      setCourseEnrollmentAccess,
       fetchAdminDashboardStats,
       fetchAdminActivityLog,
       logAdminActivity,
@@ -2239,6 +2242,7 @@
 
     let loadedCourses = [];
     let loadedPayments = [];
+    let loadedEnrollments = [];
 
 
     /* =========================
@@ -2522,7 +2526,13 @@
       try {
         const email = accessEmailInput.value.trim().toLowerCase();
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error('Enter a valid Gmail address.');
-        await grantEmailAccess(email);
+        const selectedCourseIds = getSelectedCourseIds();
+        if (!selectedCourseIds.length) throw new Error('Select at least one course to grant access.');
+        const student = await getAccessUser();
+        await Promise.all(selectedCourseIds.map(async courseId => {
+          await setCourseEnrollmentAccess({ uid: student.id, courseId, status: 'approved', accessSource: 'manual' });
+          await grantEmailAccess(email, courseId);
+        }));
         await logAdminActivity('Student access granted', {
           page: 'students',
           entityType: 'student',
@@ -2530,8 +2540,8 @@
           description: `Granted course access to ${email}.`,
           metadata: { email }
         }).catch(() => {});
-        renderAccessAccountPreview({ email, courseAccess: ['All courses'], blocked: false });
-        setStatus(accessStatus, `Access granted to ${email}.`, true);
+        renderAccessAccountPreview({ ...student, email, courseAccess: selectedCourseIds, blocked: false });
+        setStatus(accessStatus, `Access granted to ${email} for ${selectedCourseIds.length} course(s).`, true);
       } catch (error) {
         setStatus(accessStatus, error.message, false);
       }
@@ -2541,7 +2551,10 @@
       try {
         const email = accessEmailInput.value.trim().toLowerCase();
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error('Enter a valid Gmail address.');
-        await revokeEmailAccess(email);
+        const selectedCourseIds = getSelectedCourseIds();
+        if (!selectedCourseIds.length) throw new Error('Select at least one course to revoke access.');
+        const student = await getAccessUser();
+        await Promise.all(selectedCourseIds.map(courseId => setCourseEnrollmentAccess({ uid: student.id, courseId, status: 'revoked', accessSource: 'manual' })));
         await logAdminActivity('Student access revoked', {
           page: 'students',
           entityType: 'student',
@@ -2549,8 +2562,8 @@
           description: `Revoked course access from ${email}.`,
           metadata: { email }
         }).catch(() => {});
-        renderAccessAccountPreview({ email, courseAccess: [], blocked: false });
-        setStatus(accessStatus, `Access revoked from ${email}.`, true);
+        renderAccessAccountPreview({ ...student, email, courseAccess: [], blocked: false });
+        setStatus(accessStatus, `Access revoked from ${email} for ${selectedCourseIds.length} course(s).`, true);
       } catch (error) {
         setStatus(accessStatus, error.message, false);
       }
@@ -3013,8 +3026,10 @@
         const status = ['pending', 'approved', 'rejected'].includes(payment.status) ? payment.status : 'pending';
         const screenshot = payment.screenshotUrl ? `<a class="payment-proof" href="${escapeHtml(payment.screenshotUrl)}" target="_blank" rel="noopener noreferrer"><i class="fa-solid fa-image"></i> View proof</a>` : '<span class="payment-proof-empty">No screenshot</span>';
         const actions = status === 'pending' ? `<div class="payment-request-actions"><button type="button" class="btn btn-success" data-payment-action="approve" data-payment-id="${escapeHtml(payment.id)}"><i class="fa-solid fa-check"></i> Verify &amp; Give Access</button><button type="button" class="btn btn-danger" data-payment-action="reject" data-payment-id="${escapeHtml(payment.id)}"><i class="fa-solid fa-xmark"></i> Reject</button></div>` : '';
-        const enrollmentTime = payment.enrolledAt || (status === 'approved' ? payment.reviewedAt : null);
-        return `<article class="payment-request-card"><div class="payment-request-main"><div><span class="payment-request-label">Student</span><strong>${escapeHtml(payment.studentName || 'Student')}</strong><span>${escapeHtml(payment.studentEmail || 'Email unavailable')}</span></div><div><span class="payment-request-label">Course</span><strong>${escapeHtml(payment.courseTitle || 'Course')}</strong><span>৳${Number(payment.amount || 0).toLocaleString('en-BD')} · ${escapeHtml(payment.method || 'Payment')}</span></div><div><span class="payment-request-label">Transaction</span><strong>${escapeHtml(payment.transactionId || 'Not provided')}</strong><span>Requested: ${formatAdminDate(payment.submittedAt)}</span><span class="payment-enrolled-time">Enrolled: ${enrollmentTime ? formatAdminDate(enrollmentTime) : 'Not enrolled yet'}</span></div><div><span class="payment-status-badge ${status}">${status}</span>${screenshot}</div></div>${actions}</article>`;
+        const enrollment = loadedEnrollments.find(item => item.userId === payment.userId && item.courseId === payment.courseId);
+        const enrollmentStatus = enrollment?.status || (status === 'approved' ? 'approved' : status === 'rejected' ? 'revoked' : 'pending');
+        const enrollmentTime = payment.enrolledAt || enrollment?.approvedAt || (status === 'approved' ? payment.reviewedAt : null);
+        return `<article class="payment-request-card"><div class="payment-request-main"><div><span class="payment-request-label">Student</span><strong>${escapeHtml(payment.studentName || 'Student')}</strong><span>${escapeHtml(payment.studentEmail || 'Email unavailable')}</span><span>${escapeHtml(payment.phone || 'Phone unavailable')}</span></div><div><span class="payment-request-label">Course</span><strong>${escapeHtml(payment.courseTitle || 'Course')}</strong><span>৳${Number(payment.amount || 0).toLocaleString('en-BD')} · ${escapeHtml(payment.method || 'Payment')}</span></div><div><span class="payment-request-label">Transaction</span><strong>${escapeHtml(payment.transactionId || 'Not provided')}</strong><span>Requested: ${formatAdminDate(payment.submittedAt)}</span><span class="payment-enrolled-time">Access: ${enrollmentStatus}</span><span>Approved: ${enrollmentTime ? formatAdminDate(enrollmentTime) : 'Not yet'}</span></div><div><span class="payment-status-badge ${status}">${status}</span><span class="payment-status-badge ${enrollmentStatus}">Access: ${enrollmentStatus}</span>${screenshot}${status === 'rejected' && payment.rejectionReason ? `<span>${escapeHtml(payment.rejectionReason)}</span>` : ''}</div></div>${actions}</article>`;
       }).join('');
     }
 
@@ -3023,7 +3038,7 @@
       if (!list) return;
       list.innerHTML = '<div class="empty-state"><i class="fa-solid fa-spinner"></i><strong>Loading payment requests</strong></div>';
       try {
-        loadedPayments = await fetchAllPayments();
+        [loadedPayments, loadedEnrollments] = await Promise.all([fetchAllPayments(), fetchAllEnrollments()]);
         renderPaymentResults();
       } catch (error) {
         list.innerHTML = `<div class="empty-state"><i class="fa-solid fa-triangle-exclamation"></i><strong>Payments unavailable</strong><span>${escapeHtml(error.message || 'Could not load payment requests.')}</span></div>`;
@@ -3067,8 +3082,9 @@
       button.disabled = true;
       try {
         if (action === 'approve') {
+          await setCourseEnrollmentAccess({ uid: payment.userId, courseId: payment.courseId, status: 'approved', accessSource: 'payment', paymentMethod: payment.method, transactionId: payment.transactionId });
           await updatePayment(payment.id, { status: 'approved', accessGranted: true, enrolledAt: new Date() });
-          if (payment.studentEmail) await grantEmailAccess(payment.studentEmail);
+          if (payment.studentEmail) await grantEmailAccess(payment.studentEmail, payment.courseId);
           await logAdminActivity('Payment verified', {
             page: 'payments',
             entityType: 'payment',
@@ -3079,6 +3095,7 @@
           setStatus(document.getElementById('paymentAdminStatus'), 'Payment verified and course access granted.', true);
         } else {
           const reason = prompt('Optional rejection reason:', '') || '';
+          await setCourseEnrollmentAccess({ uid: payment.userId, courseId: payment.courseId, status: 'revoked', accessSource: 'payment', paymentMethod: payment.method, transactionId: payment.transactionId });
           await updatePayment(payment.id, { status: 'rejected', rejectionReason: reason });
           await logAdminActivity('Payment rejected', {
             page: 'payments',
@@ -4387,6 +4404,10 @@
 
       const isEdit = !!lesson;
       const videoType = 'youtube';
+      const lessonOrder = Number(lesson?.order ?? module.lessons?.length ?? 0);
+      const defaultFreePreview = lesson
+        ? (Object.prototype.hasOwnProperty.call(lesson, 'isFreePreview') || Object.prototype.hasOwnProperty.call(lesson, 'freePreview') ? lesson.isFreePreview === true || lesson.freePreview === true : lessonOrder <= 2)
+        : lessonOrder < 2;
 
 slot.innerHTML = `
 
@@ -4479,7 +4500,7 @@ slot.innerHTML = `
 
         <div class="form-grid two-col">
           <label class="checkbox-label">
-            <input id="lf-free-preview" type="checkbox" ${lesson?.freePreview === true ? 'checked' : ''}>
+            <input id="lf-free-preview" type="checkbox" ${defaultFreePreview ? 'checked' : ''}>
             Free Preview
           </label>
           <label class="checkbox-label">
@@ -4658,6 +4679,7 @@ slot.innerHTML = `
           videoType,
           subtitleLanguage,
           showYoutubeLink: slot.querySelector('#lf-show-youtube-link').checked,
+          isFreePreview: slot.querySelector('#lf-free-preview').checked,
           freePreview: slot.querySelector('#lf-free-preview').checked,
           published: slot.querySelector('#lf-published').checked,
           resources: [],

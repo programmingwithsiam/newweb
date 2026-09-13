@@ -1,5 +1,6 @@
 import { auth, db } from './firebase-init.js';
 import { observeAuthState } from './auth.js?v=20260829-auth-fix-1';
+import { fetchAllCourses, fetchUserPayments } from './courses-db.js';
 
 let currentUser = null;
 let viewingUserId = null;
@@ -37,6 +38,33 @@ async function getUserPosts(userId) {
   } catch (error) {
     console.error('Error fetching user posts:', error);
     return [];
+  }
+}
+
+async function renderMyCourses(userId) {
+  const section = document.getElementById('myCoursesSection');
+  const list = document.getElementById('myCoursesList');
+  const count = document.getElementById('myCoursesCount');
+  if (!section || !list || currentUser?.uid !== userId) return;
+  section.classList.remove('hidden');
+  try {
+    const [courses, payments] = await Promise.all([fetchAllCourses({ includeLessons: false }), fetchUserPayments(userId)]);
+    const latest = new Map();
+    payments.forEach(payment => { if (!latest.has(payment.courseId)) latest.set(payment.courseId, payment); });
+    const entries = [...latest.values()].map(payment => ({ payment, course: courses.find(item => item.id === payment.courseId) })).filter(item => item.course);
+    count.textContent = `${entries.length} enrollment${entries.length === 1 ? '' : 's'}`;
+    if (!entries.length) {
+      list.innerHTML = '<p class="empty-message">You have not submitted a course enrollment yet.</p>';
+      return;
+    }
+    list.innerHTML = entries.map(({ payment, course }) => {
+      const status = ['approved', 'rejected', 'pending'].includes(payment.status) ? payment.status : 'pending';
+      const statusText = status === 'approved' ? 'Active' : status === 'rejected' ? 'Enrollment rejected' : 'Payment verification pending';
+      const action = status === 'approved' ? `<a class="my-course-action" href="course.html?course=${encodeURIComponent(course.id)}">Continue Course <i class="fa-solid fa-arrow-right"></i></a>` : `<span class="my-course-message">${statusText}</span>`;
+      return `<article class="my-course-card"><img src="${escapeHtml(course.thumbnail || 'assets/images/profile-siam-round.png')}" alt="${escapeHtml(course.title)} thumbnail"><div class="my-course-copy"><span class="my-course-status ${status}">${statusText}</span><h3>${escapeHtml(course.title)}</h3><p>${escapeHtml(course.instructor || 'CodeWithSiam')}</p>${payment.rejectionReason && status === 'rejected' ? `<small>${escapeHtml(payment.rejectionReason)}</small>` : ''}${action}</div></article>`;
+    }).join('');
+  } catch (error) {
+    list.innerHTML = `<p class="error-message">${escapeHtml(error.message || 'Courses could not be loaded.')}</p>`;
   }
 }
 
@@ -164,6 +192,7 @@ async function renderUserProfile() {
   document.getElementById('totalProjects').textContent = userProfileData.totalProjects || 0;
   document.getElementById('followerCount').textContent = userProfileData.followers?.length || 0;
   document.getElementById('followingCount').textContent = userProfileData.following?.length || 0;
+  await renderMyCourses(viewingUserId);
 
   // Update action buttons
   if (isOwnProfile) {

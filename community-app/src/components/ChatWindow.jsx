@@ -10,6 +10,7 @@ import { useToast } from '../context/ToastContext';
 import { timeAgo } from '../utils/helpers';
 import { notifyMessage } from '../utils/notify';
 import GroupInfoPanel from './GroupInfoPanel';
+import { Image } from 'lucide-react';
 
 const CHAT_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '😡', '🎉'];
 
@@ -272,7 +273,7 @@ export default function ChatWindow({ convId }) {
 
       <form className="chat-input" onSubmit={sendMessage}>
         <label className="icon-btn file-label">
-          🖼️
+          <Image size={20} strokeWidth={1.5} aria-hidden="true" />
           <input type="file" accept="image/*" hidden onChange={sendImage} />
         </label>
         <input value={text} onChange={(e) => handleTyping(e.target.value)} placeholder="Type a message..." />

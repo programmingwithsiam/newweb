@@ -1,3 +1,21 @@
+.my-courses-section { margin: 24px 0; padding: 20px; border: 1px solid rgba(148, 163, 184, .18); border-radius: 14px; background: rgba(15, 23, 42, .72); }
+.my-courses-heading { display: flex; align-items: end; justify-content: space-between; gap: 16px; margin-bottom: 14px; }
+.my-courses-kicker { margin: 0 0 4px; color: #c9f35b; font-size: .65rem; font-weight: 800; letter-spacing: .14em; }
+.my-courses-heading h2 { margin: 0; color: #f8fafc; font-size: 1.25rem; }
+.my-courses-heading > span { color: #94a3b8; font-size: .75rem; }
+.my-courses-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+.my-course-card { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 12px; padding: 10px; border: 1px solid rgba(148, 163, 184, .18); border-radius: 10px; background: rgba(2, 6, 23, .5); }
+.my-course-card > img { width: 92px; aspect-ratio: 16 / 10; border-radius: 7px; object-fit: cover; background: #1e293b; }
+.my-course-copy { min-width: 0; }
+.my-course-copy h3 { margin: 5px 0 3px; color: #f8fafc; font-size: .9rem; line-height: 1.35; }
+.my-course-copy p, .my-course-copy small { display: block; margin: 0; color: #94a3b8; font-size: .7rem; line-height: 1.45; }
+.my-course-status { display: inline-flex; padding: 3px 7px; border-radius: 999px; font-size: .62rem; font-weight: 700; }
+.my-course-status.approved { color: #166534; background: #bbf7d0; }
+.my-course-status.pending { color: #92400e; background: #fde68a; }
+.my-course-status.rejected { color: #991b1b; background: #fecaca; }
+.my-course-action { display: inline-flex; align-items: center; gap: 6px; margin-top: 9px; color: #c9f35b; font-size: .72rem; font-weight: 700; text-decoration: none; }
+.my-course-message { display: block; margin-top: 9px; color: #cbd5e1; font-size: .7rem; }
+@media (max-width: 520px) { .my-courses-section { padding: 16px; } .my-courses-list { grid-template-columns: 1fr; } }
 /* ============================================================
    USER PROFILE SYSTEM - CODEWITHSIAM
    ============================================================ */
