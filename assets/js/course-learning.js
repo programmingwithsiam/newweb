@@ -19,6 +19,13 @@ const workspaceSettings = (() => {
 })();
 
 const $ = id => document.getElementById(id);
+function withTimeout(promise, milliseconds = 15000) {
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = window.setTimeout(() => reject(new Error('Course data is taking too long to load. Check your connection and Firestore rules, then try again.')), milliseconds);
+  });
+  return Promise.race([promise, timeout]).finally(() => window.clearTimeout(timer));
+}
 function togglePlayerFullscreen(target) {
   if (document.fullscreenElement || document.webkitFullscreenElement) {
     const exit = document.exitFullscreen || document.webkitExitFullscreen;
@@ -727,7 +734,7 @@ async function complete() {
   if (next) go(next.id); else render();
 }
 async function load() {
-  const all = await fetchAllCourses({ includeLessons: true });
+  const all = await withTimeout(fetchAllCourses({ includeLessons: true }));
   const requestedCourseId = courseId || null;
   course = all.find(item => item.id === requestedCourseId)
     || all.find(item => item.id === 'python-for-beginners-bangla')
@@ -818,8 +825,8 @@ observeAuthState(nextUser => {
     const isPermissionError = error?.code === 'permission-denied'
       || /permission|insufficient/i.test(error?.message || '');
     $('learningLoading').innerHTML = isPermissionError
-      ? '<div class="course-error-card"><i class="fa-solid fa-lock"></i><h1>Video access not approved</h1><p>Sign in with the approved Google account, or ask the course admin to grant access to your email.</p><a class="learning-button primary" href="index.html#course">Back to courses</a></div>'
-      : '<div class="course-error-card"><i class="fa-solid fa-triangle-exclamation"></i><h1>Unable to load this course</h1><p>Please refresh the page and try again.</p><a class="learning-button primary" href="index.html#course">Back to courses</a></div>';
+      ? '<div class="course-error-card"><i class="fa-solid fa-lock"></i><h1>Course access needs approval</h1><p>Sign in with the approved Google account, or ask the course admin to grant access to your email.</p><button class="learning-button primary" type="button" onclick="location.reload()">Try again</button><a class="learning-button" href="index.html#course">Back to courses</a></div>'
+      : `<div class="course-error-card"><i class="fa-solid fa-triangle-exclamation"></i><h1>Unable to load this course</h1><p>${error.message || 'Please refresh the page and try again.'}</p><button class="learning-button primary" type="button" onclick="location.reload()">Try again</button><a class="learning-button" href="index.html#course">Back to courses</a></div>`;
     console.error(error);
   });
 });
