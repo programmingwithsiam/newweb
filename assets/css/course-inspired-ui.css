@@ -95,7 +95,8 @@
 .sales-panel, .faq-panel { padding: 24px; }
 .sales-panel h3, .faq-header h3 { color: #fff; font-size: 1.125rem; }
 .faq-list details { border-color: var(--course-border); border-radius: var(--course-radius); background: var(--course-elevated); }
-.payment-submit-panel, #courseCheckout { border-color: var(--course-border); border-radius: var(--course-radius); background: var(--course-surface); box-shadow: var(--course-shadow); }
+.payment-submit-panel { border-color: var(--course-border); border-radius: var(--course-radius); background: var(--course-surface); box-shadow: var(--course-shadow); }
+#courseCheckout { border-color: #dbe3ec; border-radius: 12px; background: #fff; color: #0f172a; box-shadow: 0 20px 55px rgba(15, 23, 42, .14), 0 2px 8px rgba(15, 23, 42, .06); }
 
 /* Lesson player view: dense, monochrome workspace with the playlist at left. */
 .lesson-screen { display: grid; grid-template-columns: 300px minmax(0, 1fr); align-items: start; gap: 16px; width: 100%; max-width: none; margin: 0; }
