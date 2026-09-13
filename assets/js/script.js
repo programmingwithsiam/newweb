@@ -126,6 +126,22 @@ function saveCourseProgress(progress) {
 }
 
 
+function getCourseLessonTotal(course) {
+  if (!course) return 0;
+  if (Number.isFinite(Number(course.totalLessonCount)) && Number(course.totalLessonCount) > 0) {
+    return Number(course.totalLessonCount);
+  }
+  const moduleTotal = Array.isArray(course.modules)
+    ? course.modules.reduce((sum, module) => {
+        if (Array.isArray(module.lessonCatalog)) return sum + module.lessonCatalog.length;
+        if (Array.isArray(module.lessons)) return sum + module.lessons.length;
+        return sum;
+      }, 0)
+    : 0;
+  if (moduleTotal) return moduleTotal;
+  return Array.isArray(course.lessons) ? course.lessons.length : 0;
+}
+
 function normalizeCourse(course) {
   const lessons = Array.isArray(course.lessons) ? course.lessons : [];
   const modules = Array.isArray(course.modules) && course.modules.length
@@ -140,6 +156,7 @@ function normalizeCourse(course) {
     ...course,
     lessons,
     modules,
+    totalLessonCount: getCourseLessonTotal({ ...course, lessons, modules }),
     description: course.description || 'A premium course designed to help you build real-world skills.',
     status: course.status || 'published',
     category: course.category || 'Python',
@@ -233,6 +250,7 @@ if (!lesson) {
   const lessonResources = document.getElementById('lessonResources');
   const totalLessonsBadge = document.getElementById('totalLessonsBadge');
   const totalDurationBadge = document.getElementById('totalDurationBadge');
+  const totalLessonCount = getCourseLessonTotal(course);
   const sidebarCourseTitle = document.getElementById('sidebarCourseTitle');
   const overviewThumbnail = document.getElementById('courseOverviewThumbnail');
   const overviewTitle = document.getElementById('courseOverviewTitle');
@@ -246,6 +264,7 @@ if (!lesson) {
   if (lessonPlayer) lessonPlayer.classList.toggle('hidden', !lessonPlayerVisible);
 
   const courseThumbnail = course.thumbnail || getYoutubeThumbnailUrl(course.videoUrl);
+  const totalLessonDuration = Array.isArray(course.lessons) ? course.lessons.reduce((sum, item) => sum + parseInt(String(item.duration).match(/\d+/)?.[0] || '0', 10), 0) : 0;
   if (overviewThumbnail) {
     overviewThumbnail.src = courseThumbnail || '';
     overviewThumbnail.alt = `${course.title} thumbnail`;
@@ -254,8 +273,8 @@ if (!lesson) {
   if (overviewTitle) overviewTitle.textContent = course.title;
   if (overviewDescription) overviewDescription.textContent = course.description;
   if (overviewInstructor) overviewInstructor.textContent = course.instructor || 'CodeWithSiam';
-  if (overviewLessons) overviewLessons.textContent = `${course.lessons.length} Lessons`;
-  if (overviewDuration) overviewDuration.textContent = `${course.lessons.reduce((sum, item) => sum + parseInt(String(item.duration).match(/\d+/)?.[0] || '0', 10), 0)} min`;
+  if (overviewLessons) overviewLessons.textContent = `${totalLessonCount} Lessons`;
+  if (overviewDuration) overviewDuration.textContent = `${totalLessonDuration} min`;
   if (overviewNextLesson) overviewNextLesson.textContent = lesson.title;
   if (overviewStartBtn) overviewStartBtn.innerHTML = `<i class="fa-solid fa-play"></i> ${getCompletedLessons(course).has(lesson.id) ? 'Review Lesson' : 'Start Lesson'}`;
 
@@ -266,8 +285,8 @@ if (!lesson) {
   if (nextBtn) nextBtn.disabled = currentIndex < 0 || currentIndex >= course.lessons.length - 1;
 
   if (sidebarCourseTitle) sidebarCourseTitle.textContent = course.title;
-  if (totalLessonsBadge) totalLessonsBadge.textContent = `${course.lessons.length} lessons`;
-  const totalDuration = course.lessons.reduce((sum, item) => sum + (parseInt(String(item.duration).match(/\d+/)?.[0] || '0', 10)), 0);
+  const totalDuration = Array.isArray(course.lessons) ? course.lessons.reduce((sum, item) => sum + (parseInt(String(item.duration).match(/\d+/)?.[0] || '0', 10)), 0) : 0;
+  if (totalLessonsBadge) totalLessonsBadge.textContent = `${totalLessonCount} lessons`;
   if (totalDurationBadge) totalDurationBadge.textContent = `${totalDuration} min`;
 
   if (currentLessonTitle) currentLessonTitle.textContent = lesson.title;

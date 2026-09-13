@@ -428,10 +428,10 @@
   .personal-chat-layout {
     display: grid;
     grid-template-columns: 320px minmax(0, 1fr);
-    max-width: 1360px;
-    width: min(100% - 48px, 1360px);
+    width: 100%;
+    max-width: none;
     height: calc(100vh - 68px);
-    margin: 0 auto;
+    margin: 0;
   }
 
   .chat-contacts {

@@ -33,11 +33,31 @@ const firebaseConfig = {
   appId: '1:1079484393919:web:798256eeab7f28ecacd90a',
 };
 
-// A simple, visible flag so the rest of the app can detect an
+// A strict, visible flag so the rest of the app can detect an
 // unconfigured project and show a helpful message instead of a
-// silent crash.
-export const isFirebaseConfigured =
-  !!firebaseConfig.apiKey && !firebaseConfig.apiKey.startsWith('YOUR_');
+// silent crash. This prevents false-positive startup states when the
+// Firebase config still contains placeholder or incomplete values.
+const requiredConfigFields = [
+  'apiKey',
+  'authDomain',
+  'projectId',
+  'storageBucket',
+  'messagingSenderId',
+  'appId',
+];
+
+export const isFirebaseConfigured = requiredConfigFields.every((field) => {
+  const value = firebaseConfig[field];
+  return (
+    typeof value === 'string' &&
+    value.trim().length > 0 &&
+    !value.startsWith('YOUR_') &&
+    !value.startsWith('your_') &&
+    !value.includes('REPLACE_WITH') &&
+    !value.includes('example') &&
+    !value.includes('your-project')
+  );
+});
 
 let app = null;
 let auth = null;

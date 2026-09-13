@@ -90,6 +90,22 @@ function getCourseThumbnail(course, videoUrl = course?.videoUrl) {
   return course?.thumbnail || getYoutubeThumbnailUrl(videoUrl) || 'assets/images/py.jpg';
 }
 
+function getCourseLessonTotal(course) {
+  if (!course) return 0;
+  if (Number.isFinite(Number(course.totalLessonCount)) && Number(course.totalLessonCount) > 0) {
+    return Number(course.totalLessonCount);
+  }
+  const moduleTotal = Array.isArray(course.modules)
+    ? course.modules.reduce((sum, module) => {
+        if (Array.isArray(module.lessonCatalog)) return sum + module.lessonCatalog.length;
+        if (Array.isArray(module.lessons)) return sum + module.lessons.length;
+        return sum;
+      }, 0)
+    : 0;
+  if (moduleTotal) return moduleTotal;
+  return Array.isArray(course.lessons) ? course.lessons.length : 0;
+}
+
 /* ---------- Course Data & Rendering ---------- */
 function normalizeCourse(course) {
   const lessons = Array.isArray(course.lessons) ? course.lessons : [];
@@ -105,6 +121,7 @@ function normalizeCourse(course) {
     ...course,
     lessons,
     modules,
+    totalLessonCount: getCourseLessonTotal({ ...course, lessons, modules }),
     description: course.description || 'A premium course designed to help you build real-world skills.',
     status: course.status || 'published',
     category: course.category || 'Python',
@@ -128,7 +145,7 @@ export async function loadCourses() {
 export function getCachedCourses() { return cachedCourses; }
 
 export function getCoursePercent(course) {
-  const total = course?.lessons?.length || 0;
+  const total = getCourseLessonTotal(course);
   const completed = getCompletedLessons(course).size;
   return total ? Math.round((completed / total) * 100) : 0;
 }
@@ -198,7 +215,7 @@ export function getCompletedLessons(course) {
 export function updateProgressBar(course) {
   const progress = getCourseProgress();
   const completed = getCompletedLessons(course).size;
-  const total = course.lessons.length;
+  const total = getCourseLessonTotal(course);
   const percent = total ? Math.round((completed / total) * 100) : 0;
   const bar = document.getElementById('courseOverviewProgressBar');
   const text = document.getElementById('courseOverviewProgressText');
@@ -212,7 +229,7 @@ export function updateProgressBar(course) {
 
 export function updateHeroMetrics() {
   const published = cachedCourses.filter(course => course.status === 'published').length;
-  const lessonCount = cachedCourses.reduce((total, course) => total + (Array.isArray(course.lessons) ? course.lessons.length : 0), 0);
+  const lessonCount = cachedCourses.reduce((total, course) => total + getCourseLessonTotal(course), 0);
   const courseCount = document.getElementById('courseCount');
   const lessonCountElement = document.getElementById('lessonCount');
   const studentsHelpedCount = document.getElementById('studentsHelpedCount');
@@ -334,7 +351,8 @@ export function renderPublicCoursePreview(course) {
   const gate = document.getElementById('courseSignInGate');
   const player = document.querySelector('.course-lesson-player');
   const thumbnail = getCourseThumbnail(course);
-  const totalDuration = course.lessons.reduce((sum, lesson) => sum + parseInt(String(lesson.duration).match(/\d+/)?.[0] || '0', 10), 0);
+  const totalLessonCount = getCourseLessonTotal(course);
+  const totalDuration = (Array.isArray(course.lessons) ? course.lessons : []).reduce((sum, lesson) => sum + parseInt(String(lesson.duration).match(/\d+/)?.[0] || '0', 10), 0);
 
   document.getElementById('courseOverviewThumbnail')?.classList.toggle('hidden', !thumbnail);
   const overviewThumbnail = document.getElementById('courseOverviewThumbnail');
@@ -358,7 +376,7 @@ export function renderPublicCoursePreview(course) {
   document.getElementById('courseOverviewBank').textContent = bank;
   document.getElementById('courseOverviewBkashLink').href = `tel:${bkash.replace(/\D/g, '')}`;
   document.getElementById('courseOverviewRocketLink').href = `tel:${rocket.replace(/\D/g, '')}`;
-  document.getElementById('courseOverviewLessons').textContent = 'Sign in to load lessons';
+  document.getElementById('courseOverviewLessons').textContent = `${totalLessonCount} Lessons`;
   document.getElementById('courseOverviewDuration').textContent = `${totalDuration} min`;
   document.getElementById('courseOverviewProgressText').textContent = 'Sign in to track progress';
   document.getElementById('courseOverviewProgressBar').style.width = '0%';
@@ -393,7 +411,7 @@ export function renderUpcomingCourses() {
 
   list.innerHTML = upcoming.map(course => {
     const theme = THEME_BY_CATEGORY[course.category] || THEME_BY_CATEGORY.default;
-    const lessonCount = Array.isArray(course.lessons) ? course.lessons.length : 0;
+    const lessonCount = Number(course.totalLessonCount || (Array.isArray(course.lessons) ? course.lessons.length : 0) || 0);
     const videoUrl = course.videoUrl || '';
     const thumbnail = getCourseThumbnail(course, videoUrl);
     const cardAction = videoUrl ? `data-video-url="${videoUrl}"` : '';

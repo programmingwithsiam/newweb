@@ -185,6 +185,7 @@ export async function fetchAllCourses({ includeLessons = true } = {}) {
     const modules = [];
     let allLessons = [];
     let previewLessonIndex = 0;
+    let totalLessonCount = 0;
 
     for (const moduleDoc of sortByOrder(modulesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })))) {
       const moduleData = { ...moduleDoc };
@@ -196,6 +197,7 @@ export async function fetchAllCourses({ includeLessons = true } = {}) {
         previewLessonIndex += 1;
         return { ...lesson, isFreePreview, freePreview: isFreePreview, moduleId: moduleDoc.id, moduleTitle: moduleDoc.title };
       });
+      totalLessonCount += lessonMetadata.length;
       let lessons = lessonMetadata;
       if (includeLessons && (hasAccess || lessonMetadata.some(lesson => lesson.freePreview))) {
         try {
@@ -230,6 +232,7 @@ export async function fetchAllCourses({ includeLessons = true } = {}) {
 
     course.modules = modules;
     course.lessons = allLessons; // flattened, ordered by module then lesson order
+    course.totalLessonCount = totalLessonCount;
     return course;
   }));
 

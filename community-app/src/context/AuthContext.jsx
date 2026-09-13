@@ -25,12 +25,7 @@ export function AuthProvider({ children }) {
 
   // Track auth state and mirror the user's own profile doc in real time.
   useEffect(() => {
-    let authResolved = false;
-    const fallbackTimer = setTimeout(() => {
-      if (!authResolved) setLoading(false);
-    }, 500);
     const unsub = onAuthStateChanged(auth, (fbUser) => {
-      authResolved = true;
       setUser(fbUser);
       if (!fbUser) {
         setProfile(null);
@@ -38,7 +33,6 @@ export function AuthProvider({ children }) {
       }
     });
     return () => {
-      clearTimeout(fallbackTimer);
       unsub();
     };
   }, []);

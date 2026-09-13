@@ -54,7 +54,10 @@ function setupPlayerAutoHide(wrap, controls, isPlaying) {
 }
 const getLocalProgress = () => { try { return JSON.parse(localStorage.getItem(progressKey) || '{}'); } catch { return {}; } };
 const completed = () => new Set(progress[course?.id]?.completedLessons || []);
-const percent = () => lessons.length ? Math.round((completed().size / lessons.length) * 100) : 0;
+const percent = () => {
+  const total = Number(course?.totalLessonCount || lessons.length || 0);
+  return total ? Math.round((completed().size / total) * 100) : 0;
+};
 const route = lessonId => lessonId
   ? `course.html?course=${encodeURIComponent(course.id)}&lesson=${encodeURIComponent(lessonId)}&autoplay=1`
   : `course.html?course=${encodeURIComponent(course.id)}`;
@@ -72,13 +75,33 @@ function go(lessonId = '') {
   if (lessonId) window.setTimeout(() => $('lessonVideo')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 0);
 }
 function orderedLessons(data) {
-  const fullLessons = new Map((data.lessons || []).map(lesson => [lesson.id, lesson]));
-  return (data.modules || []).flatMap(module => (module.lessons || []).map(lesson => ({
-    ...(fullLessons.get(lesson.id) || {}),
-    ...lesson,
-    moduleId: module.id,
-    moduleTitle: module.title
-  })));
+  const modules = Array.isArray(data?.modules) ? data.modules : [];
+  const visibleById = new Map((data?.lessons || []).map(lesson => [lesson.id, lesson]));
+  const ordered = [];
+
+  modules.forEach(module => {
+    const catalog = Array.isArray(module.lessonCatalog) && module.lessonCatalog.length
+      ? module.lessonCatalog
+      : (Array.isArray(module.lessons) ? module.lessons : []);
+
+    catalog.forEach(lesson => {
+      const visibleLesson = visibleById.get(lesson.id) || {};
+      ordered.push({
+        ...visibleLesson,
+        ...lesson,
+        id: lesson.id || visibleLesson.id,
+        title: lesson.title || visibleLesson.title,
+        duration: lesson.duration || visibleLesson.duration || '0 min',
+        moduleId: module.id,
+        moduleTitle: module.title,
+        isFreePreview: Boolean(lesson.isFreePreview || lesson.freePreview || visibleLesson.isFreePreview || visibleLesson.freePreview),
+        freePreview: Boolean(lesson.isFreePreview || lesson.freePreview || visibleLesson.isFreePreview || visibleLesson.freePreview)
+      });
+    });
+  });
+
+  if (!ordered.length && Array.isArray(data?.lessons)) return [...data.lessons];
+  return ordered;
 }
 function currentLesson() { return lessons.find(lesson => lesson.id === selectedLessonId) || lessons[0] || null; }
 function isFreePreviewLesson(lesson) { return lesson?.isFreePreview === true || lesson?.freePreview === true; }
@@ -376,11 +399,12 @@ function ensureLessonVideoFrame() {
   return frame;
 }
 function setProgress() {
-  const value = percent();
+  const total = Number(course?.totalLessonCount || lessons.length || 0);
+  const value = total ? Math.round((completed().size / total) * 100) : 0;
   ['overviewProgressBar', 'sidebarProgressBar'].forEach(id => { if ($(id)) $(id).style.width = `${value}%`; });
   if ($('overviewProgressText')) $('overviewProgressText').textContent = `${value}% COMPLETE`;
   if ($('sidebarProgressText')) $('sidebarProgressText').textContent = `${value}% COMPLETE`;
-  if ($('sidebarProgressCount')) $('sidebarProgressCount').textContent = `${completed().size} / ${lessons.length} lessons`;
+  if ($('sidebarProgressCount')) $('sidebarProgressCount').textContent = `${completed().size} / ${total} lessons`;
 }
 function renderLockedLesson(lesson = currentLesson()) {
   $('learningLoading').classList.add('hidden');
@@ -439,10 +463,11 @@ function playlist(target, compact = false) {
 function renderOverview() {
   const lesson = currentLesson();
   const hasAccess = hasCourseAccess();
+  const totalLessonCount = Number(course.totalLessonCount || lessons.length || 0);
   $('courseTitle').textContent = course.title;
   $('courseDescription').textContent = course.description || '';
   $('courseInstructor').textContent = `Instructor: ${course.instructor || 'CodeWithSiam'}`;
-  $('courseLessonCount').textContent = `${lessons.length} lessons`;
+  $('courseLessonCount').textContent = `${totalLessonCount} lessons`;
   $('courseDuration').textContent = `${lessons.reduce((sum, item) => sum + parseInt(String(item.duration).match(/\d+/)?.[0] || '0', 10), 0)} min`;
   const bkash = course.payment?.bkash || '01644171751';
   const rocket = course.payment?.rocket || '01644171751';
@@ -477,7 +502,7 @@ function renderOverview() {
   $('courseEnrollmentStatus').textContent = hasAccess ? "✓ You're enrolled" : course.accessStatus === 'pending' ? 'Enrollment Pending' : 'First 2 classes are free to watch';
   $('courseEnrollmentStatus').classList.remove('hidden');
   renderCheckout(discountPrice, originalPrice, hasAccess);
-  $('playlistCount').textContent = `${lessons.length} lessons`;
+  $('playlistCount').textContent = `${Number(course.totalLessonCount || lessons.length || 0)} lessons`;
   playlist($('overviewPlaylist'));
   setProgress();
 }
@@ -502,7 +527,7 @@ function renderCheckout(finalPrice, originalPrice, hasAccess) {
   $('checkoutTotalSummary').textContent = finalPrice > 0 ? `৳${finalPrice.toLocaleString('en-BD')}` : 'Free';
   $('checkoutOrderTotal').textContent = finalPrice > 0 ? `৳${finalPrice.toLocaleString('en-BD')}` : 'Free';
   const duration = course.duration || `${lessons.reduce((sum, item) => sum + parseInt(String(item.duration).match(/\d+/)?.[0] || '0', 10), 0)} min`;
-  const benefits = [`${lessons.length} lectures`, duration];
+  const benefits = [`${Number(course.totalLessonCount || lessons.length || 0)} lectures`, duration];
   if (course.accessDuration) benefits.push(`Access on mobile and desktop (${course.accessDuration})`);
   if (course.certificateAvailable === true) benefits.push('Certificate of completion');
   $('checkoutBenefits').innerHTML = benefits.map(item => `<span class="checkout-benefit">✓ ${item}</span>`).join('');
