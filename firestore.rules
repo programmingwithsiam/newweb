@@ -72,8 +72,11 @@ service cloud.firestore {
 
         match /lessons/{lessonId} {
           // Preview documents are the only lesson documents readable without enrollment.
-          allow read: if isAdmin() || resource.data.isFreePreview == true || resource.data.freePreview == true ||
-            (!('isFreePreview' in resource.data) && !('freePreview' in resource.data) && resource.data.order <= 2) ||
+          allow read: if isAdmin() ||
+            (('isFreePreview' in resource.data) && resource.data.isFreePreview == true) ||
+            (('freePreview' in resource.data) && resource.data.freePreview == true) ||
+            (!('isFreePreview' in resource.data) && !('freePreview' in resource.data) &&
+              ('order' in resource.data) && resource.data.order <= 2) ||
             canAccessCourse(courseId);
           allow write: if isAdmin();
         }

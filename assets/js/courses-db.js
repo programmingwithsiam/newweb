@@ -600,10 +600,15 @@ export async function updateLesson(courseId, moduleId, lessonId, lessonData) {
 export async function syncLessonCatalog(courseId, moduleId) {
   const { collection, doc, getDocs, getDoc, setDoc } = await loadFirestore();
   const lessonsSnap = await getDocs(collection(db, 'courses', courseId, 'modules', moduleId, 'lessons'));
-  const catalog = sortByOrder(lessonsSnap.docs.map(item => {
+  const sortedLessons = sortByOrder(lessonsSnap.docs.map(item => {
     const lesson = item.data();
-    return { id: item.id, title: lesson.title || 'Video', duration: lesson.duration || '0 min', order: Number(lesson.order) || 0, isFreePreview: lesson.isFreePreview === true || lesson.freePreview === true, freePreview: lesson.isFreePreview === true || lesson.freePreview === true };
+    const hasExplicitPreview = Object.prototype.hasOwnProperty.call(lesson, 'isFreePreview') || Object.prototype.hasOwnProperty.call(lesson, 'freePreview');
+    return { id: item.id, title: lesson.title || 'Video', duration: lesson.duration || '0 min', order: Number(lesson.order) || 0, hasExplicitPreview, isFreePreview: lesson.isFreePreview === true || lesson.freePreview === true, freePreview: lesson.isFreePreview === true || lesson.freePreview === true };
   }));
+  const catalog = sortedLessons.map((lesson, index) => {
+    const isFreePreview = lesson.hasExplicitPreview ? lesson.isFreePreview : index < 2;
+    return { id: lesson.id, title: lesson.title, duration: lesson.duration, order: lesson.order, isFreePreview, freePreview: isFreePreview };
+  });
   const moduleRef = doc(db, 'courses', courseId, 'modules', moduleId);
   const moduleSnap = await getDoc(moduleRef);
   if (moduleSnap.exists()) await setDoc(moduleRef, { lessonCatalog: catalog }, { merge: true });
