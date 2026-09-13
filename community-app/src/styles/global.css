@@ -376,48 +376,67 @@ textarea { resize: vertical; }
 }
 @media (max-width: 768px) {
   html, body, #root { max-width: 100%; overflow-x: hidden; }
-  .mobile-menu-btn, .mobile-search-btn { display: inline-flex; flex: 0 0 44px; width: 44px; height: 44px; }
+  .mobile-menu-btn, .mobile-search-btn { display: inline-flex; flex: 0 0 38px; width: 38px; height: 38px; }
   .sidebar-backdrop { position: fixed; inset: 0; z-index: 70; display: block; width: 100%; height: 100%; border: 0; background: rgba(0,0,0,.5); }
   .sidebar { position: fixed; top: 0; bottom: 0; left: 0; z-index: 80; display: flex; width: min(280px, 84vw); height: 100dvh; padding: 16px 12px; background: var(--surface); box-shadow: 12px 0 32px rgba(0,0,0,.28); transform: translateX(-105%); transition: transform .24s ease; }
   .sidebar.is-open { transform: translateX(0); }
   .sidebar-mobile-head { display: flex; align-items: center; justify-content: space-between; min-height: 44px; margin-bottom: 8px; padding: 0 4px 0 12px; }
   .bottom-nav {
-    display: flex; justify-content: space-around; align-items: center; height: 56px;
-    background: var(--surface); border-top: 1px solid var(--border); position: sticky; bottom: 0;
+    position: fixed; right: 0; bottom: 0; left: 0; z-index: 60;
+    display: flex; justify-content: space-around; align-items: center; min-height: 56px;
+    padding: 4px 8px env(safe-area-inset-bottom); background: var(--surface); border-top: 1px solid var(--border);
     font-size: 1.3rem;
   }
-  .bottom-nav a { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; padding: 8px; border-radius: 8px; color: var(--text-muted); }
-  .bottom-nav a.active { color: var(--primary); }
-  .navbar { gap: 8px; padding: 0 10px; }
-  .navbar-brand { flex-shrink: 0; font-size: 1rem; }
+  .bottom-nav a { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; min-width: 40px; padding: 8px; border-radius: 8px; color: var(--text-muted); -webkit-tap-highlight-color: transparent; }
+  .bottom-nav a.active { color: var(--primary); background: color-mix(in srgb, var(--primary) 12%, transparent); }
+  .navbar { gap: 4px; padding: 0 8px; }
+  .navbar-brand { min-width: 0; flex: 1; overflow: hidden; font-size: .86rem; white-space: nowrap; text-overflow: ellipsis; }
   .navbar-search { position: fixed; inset: 0; z-index: 90; display: none; align-items: flex-start; width: 100%; max-width: none; padding: 12px; background: var(--surface); }
   .navbar-search.is-mobile-open { display: flex; }
   .navbar-search input { min-width: 0; min-height: 44px; padding: 9px 12px; }
-  .navbar-actions { flex-shrink: 0; gap: 2px; }
-  .navbar-actions .icon-btn { flex: 0 0 44px; width: 44px; height: 44px; }
+  .navbar-actions { flex: 0 0 auto; gap: 0; }
+  .navbar-actions .icon-btn { flex: 0 0 36px; width: 36px; height: 36px; padding: 7px; }
+  .navbar-actions > .icon-btn:not(.mobile-search-btn) { display: none; }
+  .navbar-actions .notification-trigger { flex: 0 0 36px; }
+  .navbar-actions .notification-trigger .icon-btn { display: inline-flex; }
+  .navbar-avatar { width: 32px; height: 32px; }
   .admin-nav-link { width: 44px; height: 44px; justify-content: center; padding: 0; border-radius: 50%; }
   .admin-nav-link span { display: none; }
   .notification-popover { position: fixed; top: 68px; right: 12px; }
   .navbar-brand span:last-child { display: none; }
-  .app-body { display: block; width: 100%; padding: 8px 10px 72px; }
+  .app-body { display: block; width: 100%; padding: 8px 8px calc(80px + env(safe-area-inset-bottom)); }
   .app-main { width: 100%; }
   .feed { width: 100%; max-width: none; gap: 12px; }
   .app-main, .card, .post-card, .feed { min-width: 0; }
   .trending-rail { display: none; }
-  .card { padding: 12px; }
-  .post-card { padding: 12px; border-radius: 12px; }
-  .post-card .post-images, .post-card .post-video { width: calc(100% + 24px); margin-right: -12px; margin-left: -12px; border-radius: 0; }
+  .card { padding: 11px; }
+  .post-card { padding: 11px; border-radius: 12px; }
+  .create-post-top { gap: 8px; }
+  .create-post-top .avatar-sm { width: 32px; height: 32px; flex: 0 0 32px; }
+  .create-post-top textarea { min-height: 64px; padding: 9px 10px; font-size: .82rem; }
+  .video-input { min-height: 38px; padding: 8px 10px; font-size: .78rem; }
+  .create-post-toolbar { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, .8fr) auto; align-items: center; gap: 6px; }
+  .create-post-toolbar .file-label { min-width: 0; overflow: hidden; padding: 8px 7px; font-size: .7rem; text-overflow: ellipsis; white-space: nowrap; }
+  .create-post-toolbar select { min-width: 0; padding: 8px 6px; font-size: .75rem; }
+  .create-post-toolbar .btn-primary { margin-left: 0; padding: 8px 11px; }
+  .post-card .post-images, .post-card .post-video { width: 100%; max-width: 100%; margin-right: 0; margin-left: 0; border-radius: 8px; }
   .post-card .post-video { margin-top: 10px; margin-bottom: 10px; }
-  .post-actions { gap: 4px; }
-  .post-actions .btn { padding: 8px 5px; font-size: .78rem; }
-  .post-actions .reaction-trigger { padding: 8px 5px; font-size: .78rem; }
+  .post-header { gap: 8px; margin-bottom: 8px; }
+  .post-header .avatar-sm { width: 38px; height: 38px; }
+  .post-header-text { min-width: 0; }
+  .post-author { display: block; overflow: hidden; font-size: .9rem; text-overflow: ellipsis; white-space: nowrap; }
+  .post-header .small { font-size: .7rem; }
+  .post-header .small svg { width: 13px; height: 13px; vertical-align: -2px; }
+  .post-text { margin: 8px 0 11px; font-size: .86rem; line-height: 1.48; }
+  .post-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2px; }
+  .post-actions .btn { min-width: 0; padding: 8px 3px; font-size: .7rem; }
+  .post-actions .reaction-trigger { min-width: 0; padding: 8px 3px; font-size: .7rem; }
   .create-post-top textarea { min-width: 0; }
-  .create-post-toolbar { flex-wrap: wrap; gap: 8px; }
-  .create-post-toolbar .btn-primary { margin-left: auto; }
+  .create-post-toolbar { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, .8fr) auto; gap: 6px; }
+  .create-post-toolbar .btn-primary { margin-left: 0; }
   .spinner-inline { min-height: 72px; }
   .empty-state { padding: 24px 12px 80px; }
-  .bottom-nav { z-index: 60; padding-bottom: env(safe-area-inset-bottom); }
-  .bottom-nav a { min-width: 48px; text-align: center; }
+  .bottom-nav a { min-width: 40px; text-align: center; }
   .messenger { height: calc(100vh - 56px - 56px - 16px); }
   .messenger { min-height: 0; border-radius: 10px; }
   .messenger-list-pane { width: 100%; }
