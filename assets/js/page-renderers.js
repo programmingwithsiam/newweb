@@ -664,7 +664,7 @@ export async function initCoursePlatform() {
 
   if (!currentSignedInUid) {
     loading?.classList.add('hidden');
-    platform?.classList.add('hidden');
+    renderPublicCoursePreview(course);
     return;
   }
 

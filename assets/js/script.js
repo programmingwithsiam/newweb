@@ -844,8 +844,12 @@ window.handleAuthStateChange = async function handleAuthStateChange(user) {
   }
 
   if (!currentSignedInUid) {
-    document.getElementById('coursePlatform')?.classList.add('hidden');
-    document.getElementById('courseSignInGate')?.classList.toggle('hidden', !activeCourse);
+    if (activeCourse) {
+      renderPublicCoursePreview(activeCourse);
+    } else {
+      document.getElementById('coursePlatform')?.classList.remove('hidden');
+    }
+    document.getElementById('courseSignInGate')?.classList.add('hidden');
     document.getElementById('courseYoutubeFrame')?.setAttribute('src', '');
     document.getElementById('courseVideo')?.removeAttribute('src');
   }
