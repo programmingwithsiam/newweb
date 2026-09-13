@@ -38,12 +38,12 @@ service cloud.firestore {
 
     function hasEnrollment(courseId) {
       return isGoogleUser() &&
-        exists(/databases/$(database)/documents/enrollments/$(request.auth.uid)_$(courseId));
+        exists(/databases/$(database)/documents/enrollments/$(request.auth.uid + '_' + courseId));
     }
 
     function enrollmentStatus(courseId) {
       return hasEnrollment(courseId)
-        ? get(/databases/$(database)/documents/enrollments/$(request.auth.uid)_$(courseId)).data.status
+        ? get(/databases/$(database)/documents/enrollments/$(request.auth.uid + '_' + courseId)).data.status
         : '';
     }
 
