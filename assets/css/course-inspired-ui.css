@@ -96,7 +96,13 @@
 .sales-panel h3, .faq-header h3 { color: #fff; font-size: 1.125rem; }
 .faq-list details { border-color: var(--course-border); border-radius: var(--course-radius); background: var(--course-elevated); }
 .payment-submit-panel { border-color: var(--course-border); border-radius: var(--course-radius); background: var(--course-surface); box-shadow: var(--course-shadow); }
-#courseCheckout { border-color: #dbe3ec; border-radius: 12px; background: #fff; color: #0f172a; box-shadow: 0 20px 55px rgba(15, 23, 42, .14), 0 2px 8px rgba(15, 23, 42, .06); }
+#courseCheckout { border-color: #dbe3ec !important; border-radius: 12px; background: #fff !important; color: #0f172a !important; box-shadow: 0 20px 55px rgba(15, 23, 42, .14), 0 2px 8px rgba(15, 23, 42, .06); }
+#courseCheckout h2, #courseCheckout h3, #courseCheckout strong, #courseCheckout label, #courseCheckout .checkout-section-heading, #courseCheckout .checkout-kicker { color: #0f172a !important; }
+#courseCheckout p, #courseCheckout small, #courseCheckout span, #courseCheckout .checkout-note, #courseCheckout .checkout-phone-hint { color: #475569 !important; }
+#courseCheckout .checkout-kicker { color: #b45309 !important; }
+#courseCheckout input, #courseCheckout select, #courseCheckout .checkout-phone-row { color: #0f172a !important; background: #f8fafc !important; border-color: #dbe3ec !important; }
+#courseCheckout .checkout-order-summary, #courseCheckout .checkout-price { border-color: #dbe3ec; }
+#courseCheckout .checkout-order-summary strong, #courseCheckout .checkout-total, #courseCheckout .checkout-total-label, #courseCheckout .checkout-price strong { color: #0f172a !important; }
 
 /* Lesson player view: dense, monochrome workspace with the playlist at left. */
 .lesson-screen { display: grid; grid-template-columns: 300px minmax(0, 1fr); align-items: start; gap: 16px; width: 100%; max-width: none; margin: 0; }
