@@ -173,7 +173,7 @@ export async function fetchAllCourses({ includeLessons = true } = {}) {
   const courses = await Promise.all(sortByOrder(coursesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }))).map(async (course) => {
     const enrollment = currentUser ? await fetchCourseEnrollment(currentUser.uid, course.id).catch(() => null) : null;
     const legacyAccess = isGoogleUser && emailAccess && (!courseAccessIds.length || courseAccessIds.includes(course.id));
-    const hasAccess = isAdminUser || enrollment?.status === 'approved' || (!enrollment && legacyAccess);
+    const hasAccess = isAdminUser || enrollment?.status === 'approved' || (legacyAccess && enrollment?.status !== 'revoked');
     const accessStatus = isAdminUser || hasAccess ? 'approved' : enrollment?.status || 'not_enrolled';
     // Course-level video URLs are legacy fields and must never be sent to learners without access.
     if (!hasAccess) delete course.videoUrl;
