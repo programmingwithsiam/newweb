@@ -1,4 +1,4 @@
-import { fetchAllCourses, saveUserCourseProgress, createPaymentSubmission, extractYoutubeId } from './courses-db.js';
+import { fetchAllCourses, saveUserCourseProgress, createPaymentSubmission, extractYoutubeId, isMp4VideoUrl } from './courses-db.js';
 import { observeAuthState, signInWithGoogle } from './auth.js';
 
 const progressKey = 'siam_portfolio_course_progress';
@@ -544,7 +544,7 @@ function renderPlayer() {
   youtubeLink.classList.toggle('hidden', lesson.showYoutubeLink !== true || !youtubeUrl);
   youtubeLink.href = youtubeUrl;
   
-  const isMp4 = lesson.videoType === 'mp4' || (lesson.videoUrl && lesson.videoUrl.toLowerCase().endsWith('.mp4'));
+  const isMp4 = lesson.videoType === 'mp4' || isMp4VideoUrl(lesson?.videoUrl || '');
   const autoplayRequested = new URLSearchParams(location.search).get('autoplay') === '1';
   
   if (isMp4 && lesson.videoUrl) {

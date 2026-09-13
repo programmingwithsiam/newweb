@@ -32,5 +32,8 @@ out/
 dist/
 .firebase/
 
+# Dependencies
+node_modules/
+
 # Misc
 *.tmp
