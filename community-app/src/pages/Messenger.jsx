@@ -1,13 +1,14 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ref, set, serverTimestamp } from 'firebase/database';
+import { onValue, ref, set, serverTimestamp } from 'firebase/database';
 import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
 import ConversationList from '../components/ConversationList';
 import ChatWindow from '../components/ChatWindow';
 import NewGroupModal from '../components/NewGroupModal';
 import UserSearchPicker from '../components/UserSearchPicker';
-import { MailPlus, UsersRound } from 'lucide-react';
+import { MailPlus, MessageCircle, UsersRound } from 'lucide-react';
+import { messengerSeedConversations } from '../data/messengerSeed';
 
 export default function Messenger() {
   const { convId } = useParams();
@@ -15,6 +16,38 @@ export default function Messenger() {
   const navigate = useNavigate();
   const [showNewGroup, setShowNewGroup] = useState(false);
   const [showNewChat, setShowNewChat] = useState(false);
+
+  useEffect(() => {
+    if (convId) return;
+
+    const fallbackId = messengerSeedConversations[0]?.id;
+
+    if (!user) {
+      if (fallbackId) navigate(`/messenger/${fallbackId}`, { replace: true });
+      return;
+    }
+
+    const unsub = onValue(ref(db, `userConversations/${user.uid}`), (snap) => {
+      if (!snap.exists()) {
+        if (fallbackId) navigate(`/messenger/${fallbackId}`, { replace: true });
+        return;
+      }
+
+      const conversations = Object.entries(snap.val());
+      if (!conversations.length) {
+        if (fallbackId) navigate(`/messenger/${fallbackId}`, { replace: true });
+        return;
+      }
+
+      const sorted = conversations.sort((a, b) => (b[1].lastMessageAt || 0) - (a[1].lastMessageAt || 0));
+      const [[firstId]] = sorted;
+      if (!firstId) return;
+
+      navigate(`/messenger/${firstId}`, { replace: true });
+    });
+
+    return () => unsub();
+  }, [convId, user, navigate]);
 
   async function startChatWith(u) {
     const id = [user.uid, u.uid].sort().join('_');
@@ -51,7 +84,7 @@ export default function Messenger() {
         {convId ? (
           <ChatWindow convId={convId} />
         ) : (
-          <div className="empty-state chat-window"><p>Select a conversation to start chatting</p></div>
+          <div className="chat-empty-state chat-window"><span className="chat-empty-icon"><MessageCircle size={38} /></span><h2>Select a conversation</h2><p>Choose a chat from the left to start messaging.</p><button className="btn btn-primary" type="button" onClick={() => navigate('/search')}>Find people</button></div>
         )}
       </div>
 

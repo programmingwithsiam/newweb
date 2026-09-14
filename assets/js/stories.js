@@ -12,6 +12,23 @@ const viewerSidebar = document.getElementById('storyViewersSidebar');
 const closeSidebarButton = document.getElementById('closeSidebarBtn');
 const storyReactionWrap = document.getElementById('storyReactionWrap');
 const storyReactionButton = document.getElementById('storyReactionBtn');
+const createStoryModal = document.getElementById('createStoryModal');
+const createStoryForm = document.getElementById('createStoryForm');
+const createStoryStatus = document.getElementById('createStoryStatus');
+
+function openStoryCreator() {
+  if (!createStoryModal) return;
+  createStoryModal.classList.remove('hidden');
+  createStoryModal.setAttribute('aria-hidden', 'false');
+  const firstInput = createStoryModal.querySelector('textarea, input, select, button');
+  if (firstInput) firstInput.focus();
+}
+
+function closeStoryCreator() {
+  if (!createStoryModal) return;
+  createStoryModal.classList.add('hidden');
+  createStoryModal.setAttribute('aria-hidden', 'true');
+}
 
 function escapeHtml(value) {
   const node = document.createElement('div');
@@ -133,11 +150,28 @@ closeButton?.addEventListener('click', () => { window.location.href = 'community
 previousButton?.addEventListener('click', () => { if (selectedIndex > 0) { selectedIndex -= 1; renderSelectedStory(); } });
 nextButton?.addEventListener('click', () => { if (selectedIndex < stories.length - 1) { selectedIndex += 1; renderSelectedStory(); } });
 closeSidebarButton?.addEventListener('click', () => viewerSidebar?.classList.add('hidden'));
-setupStoryReactions();
-document.addEventListener('keydown', event => {
-  if (event.key === 'Escape') closeButton?.click();
+document.querySelectorAll('[data-close-modal]').forEach((button) => {
+  button.addEventListener('click', () => closeStoryCreator());
+});
+createStoryModal?.addEventListener('click', (event) => {
+  if (event.target === createStoryModal) closeStoryCreator();
+});
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape') {
+    if (!createStoryModal?.classList.contains('hidden')) {
+      closeStoryCreator();
+      return;
+    }
+    closeButton?.click();
+  }
   if (event.key === 'ArrowLeft') previousButton?.click();
   if (event.key === 'ArrowRight') nextButton?.click();
 });
 
+const shouldOpenCreateMode = new URLSearchParams(window.location.search).get('mode') === 'create';
+if (shouldOpenCreateMode) {
+  openStoryCreator();
+}
+
+setupStoryReactions();
 init();

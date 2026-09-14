@@ -1,6 +1,8 @@
 {
   "cleanUrls": false,
   "rewrites": [
+    { "source": "/community", "destination": "/community/index.html" },
+    { "source": "/community/", "destination": "/community/index.html" },
     { "source": "/community/login", "destination": "/community/index.html" },
     { "source": "/community/signup", "destination": "/community/index.html" },
     { "source": "/community/forgot-password", "destination": "/community/index.html" },

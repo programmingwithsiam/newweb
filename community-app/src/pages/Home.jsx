@@ -1,10 +1,13 @@
 import { useEffect, useState, useCallback } from 'react';
 import { ref, onValue, get, query, orderByChild, limitToLast } from 'firebase/database';
+import { MessageSquareText } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
 import CreatePost from '../components/CreatePost';
 import PostCard from '../components/PostCard';
 import LoadingSpinner from '../components/LoadingSpinner';
+import StoriesStrip from '../components/StoriesStrip';
 
 // NOTE on architecture: Realtime Database can't do a single secure query that
 // mixes "public OR mine OR my-friends'-friends-only" posts, because broad
@@ -16,6 +19,7 @@ import LoadingSpinner from '../components/LoadingSpinner';
 //      anything that isn't public/friends-visible when we fetch the post)
 export default function Home() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [postIds, setPostIds] = useState(new Set());
   const [posts, setPosts] = useState({});
   const [loading, setLoading] = useState(true);
@@ -88,6 +92,7 @@ export default function Home() {
   return (
     <div className="feed">
       <CreatePost />
+      <StoriesStrip />
       {loading && <LoadingSpinner label="Loading your feed..." />}
       {!loading && feedError && (
         <div className="empty-state feed-error">

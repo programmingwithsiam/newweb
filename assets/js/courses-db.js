@@ -99,6 +99,58 @@ export function getLessonVideoSource(lesson) {
   return mp4Url ? { type: 'mp4', url: mp4Url } : null;
 }
 
+function normalizeLessonCatalogEntry(item) {
+  if (!item || typeof item !== 'object') return null;
+
+  const id = String(item.id || item.lessonId || '').trim();
+  const title = String(item.title || '').trim();
+  if (!id && !title) return null;
+
+  return {
+    ...item,
+    id: id || title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
+    title: title || 'Untitled lesson',
+    duration: item.duration || '0 min',
+    order: Number(item.order) || 0,
+    isFreePreview: item.isFreePreview === true || item.freePreview === true,
+    freePreview: item.isFreePreview === true || item.freePreview === true,
+  };
+}
+
+function buildModuleLessonList(moduleDoc, lessonDocs = [], lessonCatalog = []) {
+  const catalogById = new Map(
+    lessonCatalog
+      .map(normalizeLessonCatalogEntry)
+      .filter(Boolean)
+      .map(entry => [entry.id, entry])
+  );
+  const actualById = new Map(
+    lessonDocs.map(item => [String(item.id), item])
+  );
+  const allLessonIds = Array.from(new Set([
+    ...lessonDocs.map(item => String(item.id)),
+    ...lessonCatalog.map(entry => String(normalizeLessonCatalogEntry(entry)?.id || ''))
+  ])).filter(Boolean);
+
+  return sortByOrder(allLessonIds.map((lessonId) => {
+    const actual = actualById.get(lessonId) || {};
+    const catalogEntry = catalogById.get(lessonId) || {};
+    const lesson = {
+      ...catalogEntry,
+      ...actual,
+      id: lessonId,
+      title: actual.title || catalogEntry.title || 'Untitled lesson',
+      duration: actual.duration || catalogEntry.duration || '0 min',
+      order: Number(actual.order ?? catalogEntry.order ?? 0) || 0,
+      moduleId: moduleDoc.id,
+      moduleTitle: moduleDoc.title,
+      isFreePreview: actual.isFreePreview === true || catalogEntry.isFreePreview === true || actual.freePreview === true || catalogEntry.freePreview === true,
+      freePreview: actual.freePreview === true || catalogEntry.freePreview === true || actual.isFreePreview === true || catalogEntry.isFreePreview === true,
+    };
+    return lesson;
+  }));
+}
+
 function sortByOrder(items) {
   return items.sort((left, right) => {
     const leftOrder = Number.isFinite(Number(left.order)) ? Number(left.order) : 0;
@@ -219,7 +271,7 @@ export async function fetchAllCourses({ includeLessons = true } = {}) {
     for (const moduleDoc of sortByOrder(modulesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })))) {
       const moduleData = { ...moduleDoc };
       const catalog = Array.isArray(moduleDoc.lessonCatalog)
-        ? sortByOrder(moduleDoc.lessonCatalog.map(lesson => ({ ...lesson })))
+        ? sortByOrder(moduleDoc.lessonCatalog.map(normalizeLessonCatalogEntry).filter(Boolean))
         : [];
       const lessonMetadata = catalog.map(lesson => {
         const isFreePreview = previewLessonIndex < 2;
@@ -228,26 +280,22 @@ export async function fetchAllCourses({ includeLessons = true } = {}) {
       });
       totalLessonCount += lessonMetadata.length;
       let lessons = lessonMetadata;
-      if (includeLessons && (hasAccess || lessonMetadata.some(lesson => lesson.freePreview))) {
+      if (includeLessons && (hasAccess || lessonMetadata.some(lesson => lesson.freePreview) || catalog.length)) {
         try {
-          if (hasAccess) {
-            const lessonsSnap = await getDocs(query(collection(db, 'courses', course.id, 'modules', moduleDoc.id, 'lessons'), limit(200)));
-            const metadataById = new Map(lessonMetadata.map(lesson => [lesson.id, lesson]));
-            lessons = sortByOrder(lessonsSnap.docs.map(snapshot => ({
-              ...(metadataById.get(snapshot.id) || {}),
-              id: snapshot.id,
-              moduleId: moduleDoc.id,
-              moduleTitle: moduleDoc.title,
-              ...snapshot.data(),
-              isFreePreview: snapshot.data().isFreePreview === true || snapshot.data().freePreview === true || metadataById.get(snapshot.id)?.isFreePreview === true,
-              freePreview: snapshot.data().isFreePreview === true || snapshot.data().freePreview === true || metadataById.get(snapshot.id)?.isFreePreview === true
-            })));
+          const lessonsSnap = await getDocs(query(collection(db, 'courses', course.id, 'modules', moduleDoc.id, 'lessons'), limit(200)));
+          const actualLessons = lessonsSnap.docs.map(snapshot => ({
+            id: snapshot.id,
+            moduleId: moduleDoc.id,
+            moduleTitle: moduleDoc.title,
+            ...snapshot.data(),
+          }));
+
+          if (actualLessons.length) {
+            lessons = buildModuleLessonList(moduleDoc, actualLessons, catalog);
+          } else if (hasAccess) {
+            lessons = lessonMetadata;
           } else {
-            const previewLessons = await Promise.all(lessonMetadata.filter(lesson => lesson.freePreview).map(async lesson => {
-              const snapshot = await getDoc(doc(db, 'courses', course.id, 'modules', moduleDoc.id, 'lessons', lesson.id));
-              return snapshot.exists() ? { ...lesson, ...snapshot.data(), id: snapshot.id, moduleId: moduleDoc.id, moduleTitle: moduleDoc.title, isFreePreview: true, freePreview: true } : null;
-            }));
-            lessons = previewLessons.filter(Boolean);
+            lessons = lessonMetadata.filter(lesson => lesson.freePreview).map(lesson => ({ ...lesson }));
           }
         } catch (error) {
           lessons = lessonMetadata.filter(lesson => lesson.freePreview).map(lesson => ({ ...lesson }));
@@ -255,6 +303,7 @@ export async function fetchAllCourses({ includeLessons = true } = {}) {
         }
       }
       moduleData.lessons = lessons;
+      moduleData.lessonCatalog = lessonMetadata.length ? lessonMetadata : catalog;
       modules.push(moduleData);
       allLessons = allLessons.concat(lessons);
     }
@@ -630,18 +679,24 @@ export async function updateLesson(courseId, moduleId, lessonId, lessonData) {
 
 export async function syncLessonCatalog(courseId, moduleId) {
   const { collection, doc, getDocs, getDoc, setDoc } = await loadFirestore();
+  const moduleRef = doc(db, 'courses', courseId, 'modules', moduleId);
+  const moduleSnap = await getDoc(moduleRef);
+  const existingCatalog = Array.isArray(moduleSnap.data()?.lessonCatalog)
+    ? moduleSnap.data().lessonCatalog.map(normalizeLessonCatalogEntry).filter(Boolean)
+    : [];
   const lessonsSnap = await getDocs(collection(db, 'courses', courseId, 'modules', moduleId, 'lessons'));
   const sortedLessons = sortByOrder(lessonsSnap.docs.map(item => {
     const lesson = item.data();
     const hasExplicitPreview = Object.prototype.hasOwnProperty.call(lesson, 'isFreePreview') || Object.prototype.hasOwnProperty.call(lesson, 'freePreview');
     return { id: item.id, title: lesson.title || 'Video', duration: lesson.duration || '0 min', order: Number(lesson.order) || 0, hasExplicitPreview, isFreePreview: lesson.isFreePreview === true || lesson.freePreview === true, freePreview: lesson.isFreePreview === true || lesson.freePreview === true };
   }));
-  const catalog = sortedLessons.map((lesson, index) => {
-    const isFreePreview = lesson.hasExplicitPreview ? lesson.isFreePreview : index < 2;
-    return { id: lesson.id, title: lesson.title, duration: lesson.duration, order: lesson.order, isFreePreview, freePreview: isFreePreview };
-  });
-  const moduleRef = doc(db, 'courses', courseId, 'modules', moduleId);
-  const moduleSnap = await getDoc(moduleRef);
+  const catalog = sortedLessons.length
+    ? sortedLessons.map((lesson, index) => {
+        const isFreePreview = lesson.hasExplicitPreview ? lesson.isFreePreview : index < 2;
+        return { id: lesson.id, title: lesson.title, duration: lesson.duration, order: lesson.order, isFreePreview, freePreview: isFreePreview };
+      })
+    : existingCatalog;
+
   if (moduleSnap.exists()) await setDoc(moduleRef, { lessonCatalog: catalog }, { merge: true });
 }
 

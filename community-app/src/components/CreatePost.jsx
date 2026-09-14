@@ -6,7 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { extractHashtags, isValidVideoUrl, getEmbedUrl, getEmbedProvider, isFacebookReelUrl } from '../utils/helpers';
 import FacebookEmbed from './FacebookEmbed';
-import { Image, LockKeyhole, UsersRound } from 'lucide-react';
+import { Camera, Image, MessageSquareText, Smile, UsersRound, X } from 'lucide-react';
 
 function withTimeout(promise, message, milliseconds = 12000) {
   let timer;
@@ -24,6 +24,7 @@ export default function CreatePost({ onPosted }) {
   const [videoUrl, setVideoUrl] = useState('');
   const [privacy, setPrivacy] = useState('public');
   const [busy, setBusy] = useState(false);
+  const [expanded, setExpanded] = useState(false);
 
   function handleFiles(e) {
     const list = Array.from(e.target.files || []).slice(0, 10);
@@ -93,16 +94,35 @@ export default function CreatePost({ onPosted }) {
   const embedPreview = videoUrl.trim() ? getEmbedUrl(videoUrl.trim()) : null;
   const embedPreviewProvider = getEmbedProvider(videoUrl.trim());
 
-  return (
-    <form className="create-post card" onSubmit={submit}>
-      <div className="create-post-top">
-        <img className="avatar-sm" src={profile?.photoURL || '/default-avatar.png'} alt="" />
+  const composerBody = (
+    <>
+      <div className="composer-main-row">
+        <div className="composer-avatar-wrap">
+          <img className="avatar-sm composer-avatar" src={profile?.photoURL || '/default-avatar.png'} alt="" />
+        </div>
         <textarea
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder={`What's on your mind, ${profile?.fullName?.split(' ')[0] || ''}?`}
-          rows={3}
+          onFocus={() => setExpanded(true)}
+          onClick={() => setExpanded(true)}
+          placeholder={`What's on your mind, ${profile?.fullName?.split(' ')[0] || 'Siam'}?`}
+          rows={1}
         />
+        <div className="composer-tools">
+          <label className="composer-tool" title="Add photo" aria-label="Add photo">
+            <Image size={17} strokeWidth={1.8} aria-hidden="true" />
+            <input type="file" accept="image/*" multiple hidden onChange={handleFiles} />
+          </label>
+          <button className="composer-tool" type="button" title="Camera" aria-label="Camera">
+            <Camera size={17} strokeWidth={1.8} aria-hidden="true" />
+          </button>
+          <button className="composer-tool messenger-tool" type="button" title="Messenger" aria-label="Messenger">
+            <MessageSquareText size={17} strokeWidth={1.8} aria-hidden="true" />
+          </button>
+          <button className="composer-tool" type="button" title="Feeling" aria-label="Feeling">
+            <Smile size={17} strokeWidth={1.8} aria-hidden="true" />
+          </button>
+        </div>
       </div>
 
       {files.length > 0 && (
@@ -131,20 +151,94 @@ export default function CreatePost({ onPosted }) {
         </div>
       )}
 
-      <div className="create-post-toolbar">
-        <label className="btn btn-ghost btn-sm file-label">
-          <Image size={20} strokeWidth={1.5} aria-hidden="true" /> Photo(s)
-          <input type="file" accept="image/*" multiple hidden onChange={handleFiles} />
-        </label>
-        <select value={privacy} onChange={(e) => setPrivacy(e.target.value)}>
-          <option value="public">Public</option>
-          <option value="friends">Friends</option>
-          <option value="private">Only Me</option>
-        </select>
-        <button className="btn btn-primary" type="submit" disabled={busy}>
+      <div className="composer-bottom-row compact-only-row">
+        <div className="toolbar-privacy-wrap">
+          <UsersRound size={16} strokeWidth={1.7} aria-hidden="true" />
+          <select value={privacy} onChange={(e) => setPrivacy(e.target.value)}>
+            <option value="public">Public</option>
+            <option value="friends">Friends</option>
+            <option value="private">Only Me</option>
+          </select>
+        </div>
+        <button className="btn btn-primary" type="submit" disabled={busy || (!text.trim() && files.length === 0 && !videoUrl.trim())}>
           {busy ? 'Posting...' : 'Post'}
         </button>
       </div>
-    </form>
+    </>
+  );
+
+  return (
+    <>
+      <form className="create-post composer-inline" onSubmit={submit}>
+        {composerBody}
+      </form>
+
+      {expanded && (
+        <div className="composer-modal-overlay" onClick={() => setExpanded(false)}>
+          <div className="composer-modal-card" onClick={(e) => e.stopPropagation()}>
+            <div className="composer-modal-header">
+              <h3>Create post</h3>
+              <button type="button" className="composer-close-btn" aria-label="Close" onClick={() => setExpanded(false)}>
+                <X size={20} strokeWidth={2.1} aria-hidden="true" />
+              </button>
+            </div>
+
+            <div className="composer-modal-user-row">
+              <img className="avatar-sm composer-avatar" src={profile?.photoURL || '/default-avatar.png'} alt="" />
+              <div className="composer-modal-user-meta">
+                <span className="composer-modal-name">{profile?.fullName || 'Siam Ahmed'}</span>
+                <div className="composer-modal-privacy-row">
+                  <button type="button" className="composer-modal-privacy-pill" onClick={() => setPrivacy((prev) => (prev === 'public' ? 'friends' : prev === 'friends' ? 'private' : 'public'))}>
+                    <UsersRound size={14} strokeWidth={1.8} aria-hidden="true" />
+                    {privacy === 'public' ? 'Public' : privacy === 'friends' ? 'Friends' : 'Only me'}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <textarea
+              className="composer-modal-textarea"
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder={`What's on your mind, ${profile?.fullName?.split(' ')[0] || 'Siam'}?`}
+            />
+
+            <div className="composer-modal-action-row">
+              <label type="button" className="composer-modal-mini-btn" aria-label="Add image">
+                <Image size={18} strokeWidth={1.9} aria-hidden="true" />
+                <input type="file" accept="image/*" multiple hidden onChange={handleFiles} />
+              </label>
+              <button type="button" className="composer-modal-mini-btn" aria-label="Add feeling" onClick={() => document.querySelector('.composer-modal-textarea')?.focus()}>
+                <Smile size={18} strokeWidth={1.9} aria-hidden="true" />
+              </button>
+            </div>
+
+            {files.length > 0 && (
+              <div className="create-post-previews modal-preview-grid">
+                {files.map((f, i) => (
+                  <img key={i} src={URL.createObjectURL(f)} alt="" />
+                ))}
+              </div>
+            )}
+
+            <div className="composer-modal-footer">
+              <button type="button" className="composer-modal-add-btn" onClick={() => document.querySelector('.composer-modal-textarea')?.focus()}>Add to your post</button>
+              <div className="composer-modal-icons">
+                <label className="composer-tool" title="Add photo" aria-label="Add photo">
+                  <Image size={17} strokeWidth={1.8} aria-hidden="true" />
+                  <input type="file" accept="image/*" multiple hidden onChange={handleFiles} />
+                </label>
+                <button type="button" className="composer-tool" aria-label="Camera" onClick={() => document.querySelector('.composer-modal-textarea')?.focus()}><Camera size={17} strokeWidth={1.8} aria-hidden="true" /></button>
+                <button type="button" className="composer-tool" aria-label="Feeling" onClick={() => document.querySelector('.composer-modal-textarea')?.focus()}><Smile size={17} strokeWidth={1.8} aria-hidden="true" /></button>
+              </div>
+            </div>
+
+            <button className="composer-modal-submit btn btn-primary" type="button" onClick={(e) => submit(e)} disabled={busy || (!text.trim() && files.length === 0 && !videoUrl.trim())}>
+              {busy ? 'Posting...' : 'Post'}
+            </button>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

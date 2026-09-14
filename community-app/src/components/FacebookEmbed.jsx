@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { getFacebookEmbedSource } from '../utils/helpers';
 
 let facebookSdkPromise;
@@ -32,6 +32,7 @@ function loadFacebookSdk() {
 
 export default function FacebookEmbed({ url }) {
   const embedRef = useRef(null);
+  const [fallback, setFallback] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -46,14 +47,29 @@ export default function FacebookEmbed({ url }) {
     };
     loadFacebookSdk().then((FB) => {
       if (cancelled || !embedRef.current) return;
-      FB.XFBML.parse(embedRef.current, keepEmbedSized);
-      window.setTimeout(keepEmbedSized, 250);
-      window.setTimeout(keepEmbedSized, 1000);
+      try {
+        FB.XFBML.parse(embedRef.current, keepEmbedSized);
+        window.setTimeout(keepEmbedSized, 250);
+        window.setTimeout(keepEmbedSized, 1000);
+      } catch {
+        setFallback(true);
+      }
     }).catch(() => {
-      // The surrounding post still provides the original Facebook link.
+      setFallback(true);
     });
     return () => { cancelled = true; };
   }, [url]);
+
+  if (fallback) {
+    return (
+      <div className="facebook-embed facebook-embed-fallback">
+        <a href={url} target="_blank" rel="noreferrer" className="facebook-video-link" aria-label="Open Facebook video">
+          <span className="facebook-video-play">▶</span>
+          <span className="facebook-video-label">Open Facebook video</span>
+        </a>
+      </div>
+    );
+  }
 
   return (
     <div className="facebook-embed" ref={embedRef}>
