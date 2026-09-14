@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import NotificationBell from './NotificationBell';
@@ -25,8 +25,13 @@ export default function Navbar({ onMenu }) {
       <button className="mobile-menu-btn icon-btn" type="button" onClick={onMenu} aria-label="Open menu"><Menu {...iconProps} /></button>
       <div className="navbar-brand" onClick={() => navigate('/')}>
         <span className="brand-dot" />
-        My Community
+        CodeWithSiam
       </div>
+      <nav className="navbar-links" aria-label="Community navigation">
+        <NavLink to="/" end>Home</NavLink>
+        <NavLink to="/search">Explore</NavLink>
+        <NavLink to="/messenger">Messages</NavLink>
+      </nav>
       <form className={`navbar-search${mobileSearchOpen ? ' is-mobile-open' : ''}`} onSubmit={(e) => { submitSearch(e); setMobileSearchOpen(false); }}>
         <input
           value={q}

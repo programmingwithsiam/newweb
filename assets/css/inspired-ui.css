@@ -110,3 +110,4 @@ footer { border-top: 1px solid var(--inspired-line); background: var(--inspired-
   #course .course-catalog-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; width: 100%; }
   #course .course-catalog-tab { min-width: 0; padding-inline: 8px; font-size: .6875rem; white-space: normal; }
 }
+

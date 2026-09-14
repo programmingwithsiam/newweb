@@ -40,6 +40,10 @@
       "destination": "/course.html"
     },
     {
+      "source": "/course/",
+      "destination": "/course.html"
+    },
+    {
       "source": "/courses/:courseId",
       "destination": "/course.html?course=:courseId"
     },

@@ -1,4 +1,5 @@
 {
+  "cleanUrls": false,
   "rewrites": [
     { "source": "/community/login", "destination": "/community/index.html" },
     { "source": "/community/signup", "destination": "/community/index.html" },

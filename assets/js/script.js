@@ -14,12 +14,14 @@
 // Import all modules
 import { initParticles, initHeader, initTypedText, initRevealOnScroll, initTiltCards, initMobileMenu, initSkillBars, initHero3dParallax, activateSection } from './ui-effects.js';
 import { initStatCounters } from './animations.js';
-import { initCourseDeck, initLiveNotification, initLiveHub, setCurrentSignedInUid, loadCourses, syncCourseRoute, getCurrentCourse, getCourseProgress, getCourseRoute, pushCourseRoute, getCourseStateLabel, getCourseCardMeta, renderPublicCoursePreview, renderPublishedCourseCatalog, renderLanguageExplorer, bindCourseFilters, renderUpcomingCourses, updateHeroMetrics, updateProgressBar } from './page-renderers.js?v=20260912-course-catalog-fix-1';
+import { initCourseDeck, initLiveNotification, initLiveHub, setCurrentSignedInUid, loadCourses, syncCourseRoute, getCurrentCourse, getCourseProgress, getCourseRoute, pushCourseRoute, getCourseStateLabel, getCourseCardMeta, renderPublicCoursePreview, renderPublishedCourseCatalog, renderLanguageExplorer, bindCourseFilters, renderUpcomingCourses, updateHeroMetrics, updateProgressBar } from './page-renderers.js?v=20260914-hide-claude-index-1';
+import { getLessonVideoSource } from './courses-db.js';
 
 /* =========================================================
    MAIN SITE EFFECTS ORCHESTRATOR
    ========================================================= */
 let siteEffectsInitialized = false;
+let chatToggleInitialized = false;
 function initSiteEffects(){
   if(siteEffectsInitialized) return;
   siteEffectsInitialized = true;
@@ -348,72 +350,33 @@ if (!lesson) {
     }
 
   if (video) {
-    const hasApprovedAccess = Boolean(currentSignedInUid && !course.accessDenied);
-    const src = lesson.videoUrl || course.videoUrl || '';
+    const source = getLessonVideoSource(lesson) || getLessonVideoSource(course);
     const ytFrame = document.getElementById('courseYoutubeFrame');
     const videoControls = document.getElementById('videoControls');
-    const ytEmbed = hasApprovedAccess ? getYoutubeEmbedUrl(src) : null;
 
-    if (!hasApprovedAccess) {
-      ytFrame?.setAttribute('src', '');
-      video.removeAttribute('src');
-      video.load();
-      video.classList.add('hidden');
-      videoControls?.classList.add('hidden');
-      skeleton?.classList.add('hidden');
-      placeholder?.classList.remove('hidden');
-      if (placeholder) placeholder.textContent = currentSignedInUid
-        ? 'Your account is signed in, but you do not have access to this course yet.'
-        : 'Please sign in with Google to watch this lesson.';
-    }
+    ytFrame?.classList.add('hidden');
+    ytFrame?.removeAttribute('src');
+    video.pause();
+    video.removeAttribute('src');
+    video.load();
+    video.classList.add('hidden');
+    videoControls?.classList.add('hidden');
+    skeleton?.classList.add('hidden');
+    placeholder?.classList.add('hidden');
 
-    if (hasApprovedAccess && ytEmbed) {
-      video.removeAttribute('src');
-      video.load();
-      video.classList.add('hidden');
-      videoControls?.classList.add('hidden');
-
+    if (source?.type === 'youtube') {
       if (ytFrame) {
-        const separator = ytEmbed.includes('?') ? '&' : '?';
-        ytFrame.src =
-          `${ytEmbed}${separator}rel=0&playsinline=1&controls=1`;
+        ytFrame.src = `https://www.youtube.com/embed/${source.id}?rel=0&playsinline=1&controls=1`;
         ytFrame.classList.remove('hidden');
       }
-
-      skeleton?.classList.add('hidden');
-      placeholder?.classList.add('hidden');
-
-    } else if (hasApprovedAccess && src) {
+    } else if (source?.type === 'mp4') {
+      video.src = source.url;
       video.classList.remove('hidden');
       videoControls?.classList.remove('hidden');
-
-      if (ytFrame) {
-        ytFrame.classList.add('hidden');
-        ytFrame.src = '';
-      }
-
-      video.src = src;
-      video.muted = false;
-      video.volume = 1;
       video.load();
-
-      skeleton?.classList.remove('hidden');
-      placeholder?.classList.add('hidden');
-
-    } else if (hasApprovedAccess) {
-      video.classList.remove('hidden');
-      videoControls?.classList.remove('hidden');
-
-      if (ytFrame) {
-        ytFrame.classList.add('hidden');
-        ytFrame.src = '';
-      }
-
-      video.removeAttribute('src');
-      video.load();
-
-      skeleton?.classList.add('hidden');
+    } else {
       placeholder?.classList.remove('hidden');
+      if (placeholder) placeholder.textContent = 'Video is not available yet';
     }
   }
 
@@ -881,7 +844,7 @@ window.handleAuthStateChange = async function handleAuthStateChange(user) {
   }
 };
 
-document.addEventListener('DOMContentLoaded', () => {
+function initializePortfolio() {
   // Portfolio is public — always initialize the site immediately.
   // Course data loads from Firestore inside initCourseDeck(); auth state
   // (and therefore progress syncing / the admin link) is driven separately
@@ -889,7 +852,13 @@ document.addEventListener('DOMContentLoaded', () => {
   initSiteEffects();
   activateSection(new URLSearchParams(window.location.search).has('course') || window.location.hash === '#course' ? 'course' : 'home');
   initChatToggle();
-});
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initializePortfolio, { once: true });
+} else {
+  initializePortfolio();
+}
 
 /* Particles and UI effects moved to ui-effects.js */
 
@@ -912,7 +881,6 @@ let voiceOutputOn = true;  // bot speaks replies by default
 let recognizing = false;
 let speechRecognizer = null;
 let chatBotInitialized = false;
-let chatToggleInitialized = false;
 let chatRequestInFlight = false;
 
 function initChatbot(){

@@ -1,36 +1,51 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 
 export default function Login() {
-  const { login, loginWithGoogle } = useAuth();
+  const { user, login, loginWithGoogle, authError, clearAuthError } = useAuth();
   const { showToast } = useToast();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
+  const [authMessage, setAuthMessage] = useState('');
+
+  useEffect(() => {
+    if (user) navigate('/', { replace: true });
+  }, [navigate, user]);
+
+  useEffect(() => {
+    if (!authError) return;
+    showToast(friendlyAuthError({ code: authError }), 'error');
+    clearAuthError();
+  }, [authError, clearAuthError, showToast]);
 
   async function submit(e) {
     e.preventDefault();
     setBusy(true);
+    setAuthMessage('Signing in...');
     try {
       await login(email, password);
-      window.location.replace('/community/');
+      navigate('/', { replace: true });
     } catch (err) {
       showToast(friendlyAuthError(err), 'error');
     } finally {
       setBusy(false);
+      setAuthMessage('');
     }
   }
 
   async function google() {
     setBusy(true);
+    setAuthMessage('Connecting to Google...');
     try {
-      await loginWithGoogle();
-      window.location.replace('/community/');
+      const googleUser = await loginWithGoogle();
+      if (googleUser) navigate('/', { replace: true });
     } catch (err) {
       showToast(friendlyAuthError(err), 'error');
+      setAuthMessage('');
     } finally {
       setBusy(false);
     }
@@ -41,13 +56,16 @@ export default function Login() {
       <form className="auth-card" onSubmit={submit}>
         <h1>My Community</h1>
         <p className="muted">Log in to continue</p>
-        <input type="email" placeholder="Email" value={email} required onChange={(e) => setEmail(e.target.value)} />
-        <input type="password" placeholder="Password" value={password} required onChange={(e) => setPassword(e.target.value)} />
+        <label className="auth-field-label" htmlFor="login-user-id">User ID</label>
+        <input id="login-user-id" type="email" placeholder="Enter your email" value={email} required autoComplete="email" onChange={(e) => setEmail(e.target.value)} />
+        <label className="auth-field-label" htmlFor="login-password">Password</label>
+        <input id="login-password" type="password" placeholder="Enter your password" value={password} required autoComplete="current-password" onChange={(e) => setPassword(e.target.value)} />
         <button className="btn btn-primary" type="submit" disabled={busy}>Log In</button>
         <button type="button" className="btn btn-google" onClick={google} disabled={busy}>Continue with Google</button>
-        <div className="auth-links">
+        {authMessage && <p className="muted small auth-status" role="status" aria-live="polite">{authMessage}</p>}
+        <div className="auth-links auth-links-stack">
           <Link to="/forgot-password">Forgot password?</Link>
-          <Link to="/signup">Create an account</Link>
+          <span>Don't have an account? <Link to="/signup">Create an account</Link></span>
         </div>
       </form>
     </div>
@@ -64,7 +82,16 @@ export function friendlyAuthError(err) {
     'auth/too-many-requests': 'Too many attempts. Please wait and try again.',
     'auth/email-already-in-use': 'An account already exists with that email.',
     'auth/weak-password': 'Password should be at least 6 characters.',
-    'auth/popup-closed-by-user': 'Google sign-in was cancelled.'
+    'auth/popup-closed-by-user': 'Google sign-in was cancelled.',
+    'auth/popup-blocked': 'Google sign-in was blocked. Please allow popups and try again.',
+    'auth/cancelled-popup-request': 'Another Google sign-in is already in progress.',
+    'auth/unauthorized-domain': 'Google sign-in is not enabled for this website domain.',
+    'auth/network-request-failed': 'Network connection failed. Check your connection and try again.',
+    'auth/account-exists-with-different-credential': 'An account already exists with this email. Use the original sign-in method.',
+    'auth/operation-not-supported-in-this-environment': 'Google sign-in is unavailable in this browser. Please try again.',
+    'auth/redirect-cancelled-by-user': 'Google sign-in was cancelled.'
   };
-  return map[code] || err.message || 'Something went wrong. Please try again.';
+  if (map[code]) return map[code];
+  if (!code && err?.message === 'Passwords do not match.') return err.message;
+  return 'Something went wrong. Please try again.';
 }

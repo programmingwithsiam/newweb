@@ -1,4 +1,4 @@
-import { fetchAllCourses, saveUserCourseProgress, createPaymentSubmission, uploadPaymentScreenshot, updatePaymentScreenshot, fetchUserPayments, extractYoutubeId, isMp4VideoUrl } from './courses-db.js';
+import { fetchAllCourses, saveUserCourseProgress, createPaymentSubmission, uploadPaymentScreenshot, updatePaymentScreenshot, fetchUserPayments, getLessonVideoSource } from './courses-db.js';
 import { observeAuthState, signInWithGoogle } from './auth.js';
 
 const progressKey = 'siam_portfolio_course_progress';
@@ -13,6 +13,7 @@ let selectedLessonId = params.get('lesson') || (prettyCoursePath?.[2] ? decodeUR
 let progress = {};
 let youtubePlayer = null;
 let youtubeApiPromise = null;
+let youtubeTimer = null;
 const workspaceSettingsKey = 'codewithsiam_workspace_settings';
 const workspaceSettings = (() => {
   try { return { showSidebar: true, autoplay: false, autocomplete: true, ...JSON.parse(localStorage.getItem(workspaceSettingsKey) || '{}') }; } catch { return { showSidebar: true, autoplay: false, autocomplete: true }; }
@@ -107,12 +108,7 @@ function currentLesson() { return lessons.find(lesson => lesson.id === selectedL
 function isFreePreviewLesson(lesson) { return lesson?.isFreePreview === true || lesson?.freePreview === true; }
 function hasCourseAccess() { return Boolean(user && (course?.accessStatus === 'approved' || course?.accessStatus === 'admin')); }
 function hasLessonAccess(lesson) { return isFreePreviewLesson(lesson) || hasCourseAccess(); }
-function youtubeId(lesson) {
-  return extractYoutubeId(lesson?.youtubeVideoId)
-    || extractYoutubeId(lesson?.youtubeUrl)
-    || extractYoutubeId(lesson?.videoUrl)
-    || '';
-}
+function youtubeId(lesson) { return getLessonVideoSource(lesson)?.id || ''; }
 function renderPaymentQrPanel(panelId, payment = {}, selectedMethod = 'bkash') {
   const panel = $(panelId);
   if (!panel) return;
@@ -266,6 +262,8 @@ function setupYoutubePlayer(videoId, youtubeUrl, autoplay = false) {
 
   youtubePlayer?.destroy?.();
   youtubePlayer = null;
+  window.clearInterval(youtubeTimer);
+  youtubeTimer = null;
   const frame = ensureLessonVideoFrame();
   if (frame) {
     frame.src = `https://www.youtube.com/embed/${videoId}?enablejsapi=1&controls=0&rel=0&playsinline=1&modestbranding=1&iv_load_policy=3&fs=0&disablekb=1&origin=${encodeURIComponent(location.origin)}&autoplay=${autoplay ? 1 : 0}`;
@@ -294,8 +292,8 @@ function setupYoutubePlayer(videoId, youtubeUrl, autoplay = false) {
       youtubePlayer?.playVideo?.();
     }
   };
-  controls.querySelector('[data-youtube-action="seek-back"]')?.addEventListener('click', () => youtubePlayer?.seekTo?.(Math.max(0, (youtubePlayer.getCurrentTime?.() || 0) - 10), true));
-  controls.querySelector('[data-youtube-action="seek-forward"]')?.addEventListener('click', () => youtubePlayer?.seekTo?.(Math.min(youtubePlayer.getDuration?.() || Infinity, (youtubePlayer.getCurrentTime?.() || 0) + 10), true));
+  controls.querySelector('[data-youtube-action="seek-back"]').onclick = () => youtubePlayer?.seekTo?.(Math.max(0, (youtubePlayer.getCurrentTime?.() || 0) - 10), true);
+  controls.querySelector('[data-youtube-action="seek-forward"]').onclick = () => youtubePlayer?.seekTo?.(Math.min(youtubePlayer.getDuration?.() || Infinity, (youtubePlayer.getCurrentTime?.() || 0) + 10), true);
   controls.querySelector('[data-youtube-action="mute"]').onclick = () => {
     if (youtubePlayer?.isMuted?.()) youtubePlayer.unMute();
     else youtubePlayer?.mute();
@@ -317,8 +315,8 @@ function setupYoutubePlayer(videoId, youtubeUrl, autoplay = false) {
     }
     await togglePlayerFullscreen(wrap);
   });
-  speedSelect?.addEventListener('change', () => youtubePlayer?.setPlaybackRate?.(Number(speedSelect.value)));
-  qualitySelect?.addEventListener('change', () => youtubePlayer?.setPlaybackQuality?.(qualitySelect.value));
+  if (speedSelect) speedSelect.onchange = () => youtubePlayer?.setPlaybackRate?.(Number(speedSelect.value));
+  if (qualitySelect) qualitySelect.onchange = () => youtubePlayer?.setPlaybackQuality?.(qualitySelect.value);
   if (captionsButton) captionsButton.onclick = () => {
     if (!youtubePlayer?.setOption || captionsButton.disabled) return;
     const enabled = captionsButton.dataset.enabled !== 'true';
@@ -367,8 +365,8 @@ function setupYoutubePlayer(videoId, youtubeUrl, autoplay = false) {
       }
       if (qualitySelect) qualitySelect.innerHTML = '<option value="auto">Auto</option>' + (youtubePlayer.getAvailableQualityLevels?.() || []).map(level => `<option value="${level}">${level.toUpperCase()}</option>`).join('');
     });
-    const timer = setInterval(() => {
-      if (!youtubePlayer || !document.body.contains(wrap)) { clearInterval(timer); return; }
+    youtubeTimer = window.setInterval(() => {
+      if (!youtubePlayer || !document.body.contains(wrap)) { window.clearInterval(youtubeTimer); youtubeTimer = null; return; }
       updateTime();
     }, 500);
     setupPlayerAutoHide(wrap, controls, () => youtubePlayer?.getPlayerState?.() === 1);
@@ -377,11 +375,28 @@ function setupYoutubePlayer(videoId, youtubeUrl, autoplay = false) {
 function resetYoutubeControls() {
   youtubePlayer?.destroy?.();
   youtubePlayer = null;
-  ensureLessonVideoFrame();
-  const wrap = $('lessonVideo').closest('.lesson-video-wrap');
-  wrap?.classList.remove('is-youtube-player');
+  const wrap = $('lessonVideo')?.closest('.lesson-video-wrap');
+  wrap?.classList.remove('is-youtube-player', 'is-custom-player');
   wrap?.querySelector('.youtube-video-controls')?.setAttribute('hidden', '');
   wrap?.querySelector('.youtube-video-brand')?.setAttribute('hidden', '');
+}
+
+function resetLessonVideoSurface() {
+  const frame = $('lessonVideo');
+  const video = $('lessonMp4');
+  const wrap = frame?.closest('.lesson-video-wrap');
+  resetYoutubeControls();
+  wrap?.querySelector('.lesson-video-unavailable')?.remove();
+  if (frame) {
+    frame.classList.add('hidden');
+    frame.removeAttribute('src');
+  }
+  if (video) {
+    video.pause();
+    video.removeAttribute('src');
+    video.load();
+    video.classList.add('hidden');
+  }
 }
 function ensureLessonVideoFrame() {
   const existing = $('lessonVideo');
@@ -502,8 +517,11 @@ function renderOverview() {
   $('courseEnrollmentStatus').textContent = hasAccess ? "✓ You're enrolled" : course.accessStatus === 'pending' ? 'Enrollment Pending' : 'First 2 classes are free to watch';
   $('courseEnrollmentStatus').classList.remove('hidden');
   renderCheckout(discountPrice, originalPrice, hasAccess);
-  $('playlistCount').textContent = `${Number(course.totalLessonCount || lessons.length || 0)} lessons`;
-  playlist($('overviewPlaylist'));
+  const overviewPlaylist = $('overviewPlaylist');
+  if (overviewPlaylist) {
+    $('playlistCount').textContent = `${Number(course.totalLessonCount || lessons.length || 0)} lessons`;
+    playlist(overviewPlaylist);
+  }
   setProgress();
 }
 function renderCheckout(finalPrice, originalPrice, hasAccess) {
@@ -631,48 +649,32 @@ function renderPlayer() {
     return;
   }
   if (!lesson) { $('lessonPlayer').classList.add('hidden'); return; }
-  ensureLessonVideoFrame();
   $('lessonPlayer').classList.remove('hidden');
   const videoWrap = $('lessonVideo').closest('.lesson-video-wrap');
-  videoWrap?.querySelector('.lesson-video-unavailable')?.remove();
+  resetLessonVideoSurface();
   setupWorkspaceSettings();
   $('lessonTitle').textContent = lesson.title;
   $('lessonDescription').textContent = lesson.description || '';
   $('lessonDuration').textContent = lesson.duration || '0 min';
   const youtubeLink = $('lessonYoutubeLink');
-  const id = youtubeId(lesson);
-  const youtubeUrl = extractYoutubeId(lesson?.youtubeUrl)
-    ? lesson.youtubeUrl
-    : (lesson?.videoUrl && extractYoutubeId(lesson.videoUrl)
-      ? `https://www.youtube.com/watch?v=${extractYoutubeId(lesson.videoUrl)}`
-      : (id ? `https://www.youtube.com/watch?v=${id}` : ''));
+  const source = getLessonVideoSource(lesson);
+  const id = source?.type === 'youtube' ? source.id : '';
+  const youtubeUrl = source?.type === 'youtube' ? source.url : '';
   youtubeLink.classList.toggle('hidden', lesson.showYoutubeLink !== true || !youtubeUrl);
   youtubeLink.href = youtubeUrl;
-  
-  const isMp4 = lesson.videoType === 'mp4' || isMp4VideoUrl(lesson?.videoUrl || '');
   const autoplayRequested = new URLSearchParams(location.search).get('autoplay') === '1';
   
-  if (isMp4 && lesson.videoUrl) {
-    // Display MP4 video
-    resetYoutubeControls();
-    $('lessonVideo').classList.add('hidden');
+  if (source?.type === 'mp4') {
     $('lessonMp4').classList.remove('hidden');
-    $('lessonMp4').src = lesson.videoUrl;
+    $('lessonMp4').src = source.url;
     setupCustomVideoPlayer(true);
     if (autoplayRequested || workspaceSettings.autoplay) $('lessonMp4').play().catch(() => {});
-  } else if (id) {
-    // Display YouTube video
+  } else if (source?.type === 'youtube' && id) {
+    ensureLessonVideoFrame();
     $('lessonVideo').classList.remove('hidden');
-    $('lessonMp4').classList.add('hidden');
-    // Keep native controls as a fallback if the YouTube API is blocked.
     $('lessonVideo').src = `https://www.youtube.com/embed/${id}?enablejsapi=1&controls=0&rel=0&playsinline=1&modestbranding=1&iv_load_policy=3&fs=0&disablekb=1&origin=${encodeURIComponent(location.origin)}&autoplay=${autoplayRequested || workspaceSettings.autoplay ? 1 : 0}`;
-    $('lessonMp4').removeAttribute('src');
     setupYoutubePlayer(id, youtubeUrl, autoplayRequested || workspaceSettings.autoplay);
   } else {
-    // No valid video
-    resetYoutubeControls();
-    $('lessonVideo').classList.add('hidden');
-    $('lessonMp4').classList.add('hidden');
     const unavailable = document.createElement('div');
     unavailable.className = 'lesson-video-unavailable';
     unavailable.innerHTML = '<i class="fa-solid fa-video-slash" aria-hidden="true"></i><strong>Video is not available yet</strong><span>The lesson is published, but its YouTube or MP4 video URL has not been loaded. Please ask the course admin to publish the lesson video and deploy the Firestore rules.</span>';

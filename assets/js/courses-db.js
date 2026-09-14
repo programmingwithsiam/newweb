@@ -70,6 +70,35 @@ export function isValidYoutubeUrl(url) {
   return !!extractYoutubeId(url);
 }
 
+const VIDEO_URL_FIELD_NAMES = new Set([
+  'youtubeurl', 'videourl', 'youtube', 'video', 'url', 'youtubevideo'
+]);
+
+function normalizedFieldName(name) {
+  return String(name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+export function getLessonVideoSource(lesson) {
+  if (!lesson || typeof lesson !== 'object') return null;
+
+  const values = Object.entries(lesson)
+    .filter(([, value]) => typeof value === 'string' && value.trim())
+    .map(([key, value]) => ({ key: normalizedFieldName(key), value: value.trim() }));
+  const idValue = values.find(({ key }) => ['youtubevideoid', 'youtubeid', 'videoid'].includes(key))?.value || '';
+  const orderedUrls = [
+    ...values.filter(({ key }) => VIDEO_URL_FIELD_NAMES.has(key)).map(({ value }) => value),
+    ...values.map(({ value }) => value)
+  ];
+  const youtubeUrl = orderedUrls.find(value => extractYoutubeId(value));
+  if (youtubeUrl || idValue.match(/^[\w-]{11}$/)) {
+    const id = extractYoutubeId(youtubeUrl || idValue);
+    return { type: 'youtube', id, url: youtubeUrl || `https://www.youtube.com/watch?v=${id}` };
+  }
+
+  const mp4Url = orderedUrls.find(value => isMp4VideoUrl(value));
+  return mp4Url ? { type: 'mp4', url: mp4Url } : null;
+}
+
 function sortByOrder(items) {
   return items.sort((left, right) => {
     const leftOrder = Number.isFinite(Number(left.order)) ? Number(left.order) : 0;
@@ -79,7 +108,7 @@ function sortByOrder(items) {
 }
 
 const CACHE_TTL_MS = 5 * 60 * 1000;
-const COURSE_CACHE_KEY = 'siam_course_catalog_cache_v1';
+const COURSE_CACHE_KEY = 'siam_course_catalog_cache_v2';
 const LIVE_CACHE_KEY = 'siam_live_archive_cache_v1';
 const DEFAULT_COURSE = {
   id: 'python-for-beginners-bangla',

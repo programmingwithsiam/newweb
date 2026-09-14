@@ -1,0 +1,1 @@
+import{b as s,j as t}from"./index-CIUq1shm.js";import{C as o}from"./CreatePost-BJVHt_BI.js";import"./client-CUjPdE-5.js";import"./FacebookEmbed-oV8hV_sl.js";import"./image-DdyKzumY.js";function p(){const e=s();return t.jsxs("div",{className:"feed",children:[t.jsx("h2",{children:"Create Post"}),t.jsx(o,{onPosted:()=>e("/")})]})}export{p as default};

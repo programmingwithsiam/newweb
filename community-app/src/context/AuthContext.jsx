@@ -4,6 +4,8 @@ import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   signOut,
   sendPasswordResetEmail,
   updateProfile
@@ -22,18 +24,34 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [authError, setAuthError] = useState('');
 
   // Track auth state and mirror the user's own profile doc in real time.
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (fbUser) => {
       setUser(fbUser);
+      setLoading(false);
       if (!fbUser) {
         setProfile(null);
-        setLoading(false);
       }
     });
     return () => {
       unsub();
+    };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    getRedirectResult(auth)
+      .then((result) => {
+        if (active && result?.user) return createProfileIfMissing(result.user);
+        return undefined;
+      })
+      .catch((error) => {
+        if (active) setAuthError(error?.code || 'auth/unknown');
+      });
+    return () => {
+      active = false;
     };
   }, []);
 
@@ -110,7 +128,8 @@ export function AuthProvider({ children }) {
       throw new Error('Username must be 3-20 characters: letters, numbers, "_" or "." only.');
     }
     const cred = await createUserWithEmailAndPassword(auth, email, password);
-    await updateProfile(cred.user, { displayName: fullName });
+    const displayName = fullName?.trim() || email.trim().split('@')[0];
+    await updateProfile(cred.user, { displayName });
     await createProfileIfMissing(cred.user, { fullName, username });
     return cred.user;
   }
@@ -121,8 +140,29 @@ export function AuthProvider({ children }) {
     return cred.user;
   }
 
+  function isMobileBrowser() {
+    return typeof window !== 'undefined' && (
+      window.matchMedia?.('(max-width: 768px)').matches ||
+      /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)
+    );
+  }
+
   async function loginWithGoogle() {
-    const cred = await signInWithPopup(auth, googleProvider);
+    if (isMobileBrowser()) {
+      await signInWithRedirect(auth, googleProvider);
+      return null;
+    }
+
+    let cred;
+    try {
+      cred = await signInWithPopup(auth, googleProvider);
+    } catch (error) {
+      if (error?.code === 'auth/popup-blocked' || error?.code === 'auth/operation-not-supported-in-this-environment') {
+        await signInWithRedirect(auth, googleProvider);
+        return null;
+      }
+      throw error;
+    }
     await createProfileIfMissing(cred.user);
     return cred.user;
   }
@@ -138,6 +178,17 @@ export function AuthProvider({ children }) {
     return signOut(auth);
   }
 
-  const value = { user, profile, loading, signup, login, loginWithGoogle, resetPassword, logout };
+  const value = {
+    user,
+    profile,
+    loading,
+    authError,
+    clearAuthError: () => setAuthError(''),
+    signup,
+    login,
+    loginWithGoogle,
+    resetPassword,
+    logout
+  };
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

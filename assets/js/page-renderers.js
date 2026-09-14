@@ -380,7 +380,7 @@ export function renderPublicCoursePreview(course) {
   document.getElementById('courseOverviewDuration').textContent = `${totalDuration} min`;
   document.getElementById('courseOverviewProgressText').textContent = 'Sign in to track progress';
   document.getElementById('courseOverviewProgressBar').style.width = '0%';
-  document.getElementById('moduleList').innerHTML = '<p class="course-description">Sign in with Google to access the course playlist.</p>';
+  document.getElementById('moduleList')?.replaceChildren();
   platform?.classList.remove('hidden');
   gate?.classList.remove('hidden');
   player?.classList.add('hidden');

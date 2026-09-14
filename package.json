@@ -6,7 +6,7 @@
     "node": ">=18"
   },
   "scripts": {
-    "dev": "npx --yes serve .",
+    "dev": "npx --yes serve . --single",
     "check": "node --check assets/js/auth.js && node --check assets/js/auth-app.js && node --check assets/js/course-learning.js && node --check assets/js/courses-db.js && node --check assets/js/live-learning.js && node --check assets/js/script.js"
   },
   "devDependencies": {
