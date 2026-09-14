@@ -222,10 +222,12 @@ forgotBtn?.addEventListener('click', async () => {
   }
 });
 
-userChipBtn?.addEventListener('click', () => {
-  const isOpen = !userDropdown?.classList.contains('hidden');
-  userDropdown?.classList.toggle('hidden', isOpen);
-  userChipBtn.setAttribute('aria-expanded', String(!isOpen));
+userChipBtn?.addEventListener('click', (event) => {
+  event.stopPropagation();
+  const isCurrentlyHidden = userDropdown?.classList.contains('hidden');
+  const nextOpenState = isCurrentlyHidden === true;
+  userDropdown?.classList.toggle('hidden', !nextOpenState);
+  userChipBtn.setAttribute('aria-expanded', String(nextOpenState));
 });
 document.addEventListener('click', (e) => {
   if (!userChipBtn?.contains(e.target) && !userDropdown?.contains(e.target)) {
