@@ -7,7 +7,7 @@ import ConversationList from '../components/ConversationList';
 import ChatWindow from '../components/ChatWindow';
 import NewGroupModal from '../components/NewGroupModal';
 import UserSearchPicker from '../components/UserSearchPicker';
-import { MailPlus, MessageCircle, UsersRound } from 'lucide-react';
+import { Bell, Bookmark, MailPlus, MessageCircle, Search, Settings, UsersRound, UserRound } from 'lucide-react';
 import { messengerSeedConversations } from '../data/messengerSeed';
 
 export default function Messenger() {
@@ -69,8 +69,58 @@ export default function Messenger() {
   }
 
   return (
-    <div className={`messenger${convId ? ' show-chat' : ''}`}>
-      <div className="messenger-list-pane">
+    <div className={`messenger messenger-shell${convId ? ' show-chat' : ''}`}>
+      <aside className="messenger-sidebar">
+        <div className="messenger-brand">
+          <span className="messenger-brand-mark"><MessageCircle size={22} /></span>
+          <span className="messenger-brand-name">Community</span>
+        </div>
+
+        <div className="messenger-profile">
+          <span className="messenger-profile-avatar">
+            <UserRound size={22} />
+          </span>
+          <span className="messenger-profile-label">{user?.displayName || user?.email || 'Me'}</span>
+        </div>
+
+        <nav className="messenger-nav">
+          <button className="messenger-nav-item active" type="button" aria-label="Chats">
+            <MessageCircle size={20} />
+            <span>Chats</span>
+          </button>
+          <button className="messenger-nav-item" type="button" aria-label="Notifications">
+            <Bell size={20} />
+            <span>Notifications</span>
+          </button>
+          <button className="messenger-nav-item" type="button" aria-label="Friends">
+            <UserRound size={20} />
+            <span>Friends</span>
+          </button>
+          <button className="messenger-nav-item" type="button" aria-label="Groups">
+            <UsersRound size={20} />
+            <span>Groups</span>
+          </button>
+          <button className="messenger-nav-item" type="button" aria-label="Saved">
+            <Bookmark size={20} />
+            <span>Saved</span>
+          </button>
+          <button className="messenger-nav-item" type="button" aria-label="Search">
+            <Search size={20} />
+            <span>Search</span>
+          </button>
+          <button className="messenger-nav-item" type="button" aria-label="Settings">
+            <Settings size={20} />
+            <span>Settings</span>
+          </button>
+        </nav>
+
+        <button className="messenger-new-button" type="button" onClick={() => setShowNewChat(true)}>
+          <MailPlus size={18} />
+          <span>New chat</span>
+        </button>
+      </aside>
+
+      <section className="messenger-list-pane">
         <div className="messenger-list-header">
           <h3>Chats</h3>
           <div>
@@ -79,21 +129,22 @@ export default function Messenger() {
           </div>
         </div>
         <ConversationList activeId={convId} onSelect={(id) => navigate(`/messenger/${id}`)} />
-      </div>
-      <div className="messenger-chat-pane">
+      </section>
+
+      <section className="messenger-chat-pane">
         {convId ? (
           <ChatWindow convId={convId} />
         ) : (
           <div className="chat-empty-state chat-window"><span className="chat-empty-icon"><MessageCircle size={38} /></span><h2>Select a conversation</h2><p>Choose a chat from the left to start messaging.</p><button className="btn btn-primary" type="button" onClick={() => navigate('/search')}>Find people</button></div>
         )}
-      </div>
+      </section>
 
       {showNewGroup && <NewGroupModal onClose={() => setShowNewGroup(false)} onCreated={(id) => { setShowNewGroup(false); navigate(`/messenger/${id}`); }} />}
       {showNewChat && (
         <div className="modal-overlay" onClick={() => setShowNewChat(false)}>
           <div className="modal-card" onClick={(e) => e.stopPropagation()}>
             <h3>New message</h3>
-            <UserSearchPicker onPick={startChatWith} excludeUids={[user.uid]} />
+            <UserSearchPicker onPick={startChatWith} excludeUids={[user?.uid]} />
             <div className="modal-actions">
               <button className="btn btn-ghost" onClick={() => setShowNewChat(false)}>Cancel</button>
             </div>

@@ -826,6 +826,14 @@ window.handleAuthStateChange = async function handleAuthStateChange(user) {
   }
 
   if (!currentSignedInUid) {
+    try {
+      await loadCourses();
+      updateHeroMetrics();
+      renderPublishedCourseCatalog();
+      renderUpcomingCourses();
+    } catch (error) {
+      console.error('Failed to load public course catalog:', error);
+    }
     if (activeCourse) {
       renderPublicCoursePreview(activeCourse);
     } else {

@@ -12,7 +12,9 @@
   --inspired-radius: 6px;
   --inspired-body: "Inter", sans-serif;
 }
-html { scroll-padding-top: 76px; }
+html { scroll-behavior: smooth; scroll-padding-top: 84px; }
+body { overscroll-behavior-y: none; }
+.section, .hero { scroll-margin-top: 84px; }
 body { background: var(--inspired-bg); color: var(--inspired-text); font-family: var(--inspired-body); font-size: 18px; line-height: 1.33; }
 body::before, body::after, .bg-grain, #particles { display: none; }
 #header { position: sticky; top: 0; z-index: 101; min-height: 76px; padding: 12px max(20px, calc((100vw - 1170px) / 2)); border-bottom: 1px solid var(--inspired-line); background: rgba(28, 28, 28, .96); }
@@ -51,6 +53,18 @@ body::before, body::after, .bg-grain, #particles { display: none; }
 .skill-category h3, .box h3, .project-card h3 { color: var(--inspired-text); font-size: 1rem; }
 .skill-tag, .tag, .ptag, .course-pill { border: 1px solid var(--inspired-line); border-radius: var(--inspired-radius); color: var(--inspired-accent); background: var(--inspired-primary); font-size: .6875rem; }
 .box-icon, .cat-icon { color: var(--inspired-lime); }
+.technology-stack { display: grid; grid-template-columns: minmax(180px, .55fr) minmax(0, 1.45fr); align-items: center; gap: 26px; margin-top: 18px; padding: 20px; border: 1px solid var(--inspired-line); border-radius: 12px; background: linear-gradient(135deg, rgba(46,46,46,.96), rgba(28,28,28,.96)); }
+.technology-stack-heading p { margin: 0 0 7px; color: var(--inspired-lime); font-size: .62rem; font-weight: 800; letter-spacing: .14em; }
+.technology-stack-heading h3 { margin: 0; color: var(--inspired-text); font-size: 1.05rem; line-height: 1.35; }
+.technology-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.technology-card { display: grid; grid-template-columns: 38px minmax(0, 1fr) auto; align-items: center; gap: 10px; min-width: 0; padding: 12px; border: 1px solid rgba(255,255,255,.12); border-radius: 9px; background: rgba(0,0,0,.2); transition: transform .18s ease, border-color .18s ease, background-color .18s ease; }
+.technology-card:hover { transform: translateY(-3px); border-color: var(--inspired-lime); background: rgba(230,255,50,.06); }
+.technology-logo { display: grid; width: 38px; height: 38px; place-items: center; border-radius: 9px; background: #111; }
+.technology-logo img { display: block; width: 23px; height: 23px; }
+.technology-copy { display: grid; gap: 3px; min-width: 0; }
+.technology-copy strong { overflow: hidden; color: var(--inspired-text); font-size: .76rem; text-overflow: ellipsis; white-space: nowrap; }
+.technology-copy small { overflow: hidden; color: var(--inspired-muted); font-size: .62rem; text-overflow: ellipsis; white-space: nowrap; }
+.technology-card > i { color: var(--inspired-muted); font-size: .65rem; }
 .project-card { overflow: hidden; }
 .project-header { min-height: 150px; background: var(--inspired-elevated) !important; }
 .project-body { padding: 20px; }
@@ -78,6 +92,12 @@ body::before, body::after, .bg-grain, #particles { display: none; }
 .lms-course-body, .course-card-body { padding: 16px; background: var(--inspired-surface); }
 .lms-course-title, .course-card-body strong { color: var(--inspired-text); }
 .lms-course-body { display: grid; gap: 16px; min-height: 190px; padding: 20px 16px 16px; background: #000; }
+@media (max-width: 860px) {
+  .technology-stack { grid-template-columns: 1fr; gap: 16px; }
+}
+@media (max-width: 560px) {
+  .technology-grid { grid-template-columns: 1fr; }
+}
 .lms-course-title { font-size: 1rem; font-weight: 600; line-height: 1.5; }
 .lms-course-meta-row, .lms-course-summary { color: #9599a3; font-size: .75rem; line-height: 1.5; }
 .lms-course-tag { border-color: #2e2e2e; border-radius: 6px; color: #b0b0b0; background: #141414; }

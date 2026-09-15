@@ -12,7 +12,7 @@ import { timeAgo } from '../utils/helpers';
 import { notifyMessage } from '../utils/notify';
 import GroupInfoPanel from './GroupInfoPanel';
 import { ArrowLeft, Image, Info, MoreHorizontal, Phone, Search, Send, Smile, UserRound, Video, VolumeX } from 'lucide-react';
-import { messengerSeedMessages } from '../data/messengerSeed';
+import { messengerSeedConversations, messengerSeedMessages } from '../data/messengerSeed';
 
 const CHAT_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '😡', '🎉'];
 
@@ -37,19 +37,34 @@ export default function ChatWindow({ convId }) {
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [mediaExpanded, setMediaExpanded] = useState(true);
   const [supportExpanded, setSupportExpanded] = useState(true);
-  const [infoOpen, setInfoOpen] = useState(true);
+  const [infoOpen, setInfoOpen] = useState(false);
+  const [isSending, setIsSending] = useState(false);
   const bottomRef = useRef(null);
   const fileInputRef = useRef(null);
   const typingTimeout = useRef(null);
 
   useEffect(() => {
-    if (!convId) return;
-    const unsub = onValue(ref(db, `conversations/${convId}`), (snap) => setConv(snap.val()));
+    if (!convId) return undefined;
+
+    const seedConv = messengerSeedConversations.find((candidate) => candidate.id === convId);
+    if (seedConv) {
+      setConv(seedConv);
+      return undefined;
+    }
+
+    const unsub = onValue(ref(db, `conversations/${convId}`), (snap) => {
+      if (!snap.exists()) {
+        const fallbackConv = messengerSeedConversations[0];
+        if (fallbackConv) setConv(fallbackConv);
+        return;
+      }
+      setConv(snap.val());
+    });
     return unsub;
   }, [convId]);
 
   useEffect(() => {
-    if (!convId) return;
+    if (!convId) return undefined;
 
     const fallbackMessages = messengerSeedMessages[convId] || {};
     if (Object.prototype.hasOwnProperty.call(messengerSeedMessages, convId)) {
@@ -58,7 +73,10 @@ export default function ChatWindow({ convId }) {
     }
 
     const r = query(ref(db, `messages/${convId}`), orderByChild('createdAt'), limitToLast(100));
-    const unsub = onValue(r, (snap) => setMessages(snap.val() || {}));
+    const unsub = onValue(r, (snap) => {
+      const payload = snap.val() || {};
+      setMessages(payload);
+    });
     return unsub;
   }, [convId]);
 
@@ -75,13 +93,13 @@ export default function ChatWindow({ convId }) {
   }, [convId]);
 
   const isGroup = conv?.type === 'group';
-  const peerUid = conv && !isGroup ? Object.keys(conv.members || {}).find((m) => m !== user?.uid) : null;
+  const peerUid = conv && !isGroup && user?.uid ? Object.keys(conv.members || {}).find((m) => m !== user.uid) : null;
 
   useEffect(() => {
-    if (!peerUid) return;
+    if (!peerUid || !conv || isGroup) return undefined;
     const unsub = onValue(ref(db, `users/${peerUid}`), (snap) => setPeer(snap.val()));
     return unsub;
-  }, [peerUid]);
+  }, [peerUid, conv, isGroup]);
 
   useEffect(() => {
     if (!conv || !user || !convId) return;
@@ -111,14 +129,21 @@ export default function ChatWindow({ convId }) {
 
   async function sendMessage(event) {
     event?.preventDefault();
-    if (!text.trim() || !user || !convId) return;
+    if (!text.trim() || !convId || isSending) return;
+    if (!user) {
+      showToast('Please sign in to send a message.', 'error');
+      return;
+    }
 
     try {
+      setIsSending(true);
       await doSend({ text: text.trim() });
       setText('');
       await set(ref(db, `typing/${convId}/${user.uid}`), null);
     } catch (err) {
       showToast(`Message failed: ${err.message}`, 'error');
+    } finally {
+      setIsSending(false);
     }
   }
 
@@ -244,14 +269,23 @@ export default function ChatWindow({ convId }) {
   }
 
   const othersTyping = Object.entries(typingUsers).some(([uid, value]) => uid !== user?.uid && value);
-  const title = isGroup ? conv?.name : peer?.fullName || 'Conversation';
-  const photo = isGroup ? conv?.photoURL : peer?.photoURL;
+  const title = isGroup ? conv?.name : peer?.fullName || conv?.name || 'Conversation';
+  const photo = isGroup ? conv?.photoURL : peer?.photoURL || conv?.photoURL;
   const openProfile = () => {
     const targetUid = peerUid || user?.uid;
     if (targetUid) navigate(`/profile/${targetUid}`);
   };
 
-  if (!conv) return <div className="chat-window empty-state"><p>Select a conversation</p></div>;
+  if (!conv) {
+    return (
+      <div className="chat-window empty-state">
+        <div className="chat-empty-state">
+          <UserRound size={20} />
+          <span>Select a conversation</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`chat-window${infoOpen ? ' has-info' : ''}`}>
@@ -352,18 +386,22 @@ export default function ChatWindow({ convId }) {
               ))}
             </div>
           )}
-          <input
+          <textarea
+            className="chat-composer-textarea"
             value={text}
             onChange={(event) => handleTyping(event.target.value)}
             onKeyDown={(event) => {
               if (event.key === 'Enter' && !event.shiftKey) {
                 event.preventDefault();
-                sendMessage();
+                sendMessage(event);
               }
             }}
             placeholder="Type a message..."
+            disabled={!user && !convId}
+            aria-label="Message text"
+            rows={1}
           />
-          <button className="chat-send-btn" type="submit" aria-label="Send message"><Send size={18} /></button>
+          <button className="chat-send-btn" type="submit" aria-label="Send message" disabled={!user || isSending}><Send size={18} /></button>
         </form>
       </div>
 

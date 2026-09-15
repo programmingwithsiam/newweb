@@ -137,8 +137,8 @@ export async function loadCourses() {
     cachedCourses = courses.map(normalizeCourse);
   } catch (error) {
     console.error('loadCourses() failed:', error);
-    cachedCourses = [];
-    throw error;
+    const { getDefaultCourses } = await import('./courses-db.js');
+    cachedCourses = getDefaultCourses().map(normalizeCourse);
   }
 }
 

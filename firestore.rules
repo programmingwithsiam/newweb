@@ -72,12 +72,15 @@ service cloud.firestore {
 
         match /lessons/{lessonId} {
           // Preview documents are the only lesson documents readable without enrollment.
-          allow read: if isAdmin() ||
+          // Keep preview reads as document gets so a query over locked lessons
+          // cannot expose or infer the rest of the course content.
+          allow get: if isAdmin() ||
             (('isFreePreview' in resource.data) && resource.data.isFreePreview == true) ||
             (('freePreview' in resource.data) && resource.data.freePreview == true) ||
             (!('isFreePreview' in resource.data) && !('freePreview' in resource.data) &&
               ('order' in resource.data) && resource.data.order <= 2) ||
             canAccessCourse(courseId);
+          allow list: if isAdmin() || canAccessCourse(courseId);
           allow write: if isAdmin();
         }
       }
@@ -88,11 +91,18 @@ service cloud.firestore {
       allow read: if isAdmin() ||
         (isSignedIn() && resource.data.userId == request.auth.uid);
       allow create: if isGoogleUser() &&
-        request.resource.data.keys().hasOnly(['userId', 'courseId', 'status', 'paymentMethod', 'transactionId', 'paymentId', 'requestedAt', 'accessSource']) &&
         request.resource.data.userId == request.auth.uid &&
-        request.resource.data.status == 'pending' &&
-        request.resource.data.accessSource == 'payment' &&
-        request.resource.data.requestedAt == request.time;
+        ((request.resource.data.keys().hasOnly(['userId', 'courseId', 'status', 'paymentMethod', 'transactionId', 'paymentId', 'requestedAt', 'accessSource']) &&
+          request.resource.data.status == 'pending' &&
+          request.resource.data.accessSource == 'payment' &&
+          request.resource.data.requestedAt == request.time) ||
+         (request.resource.data.keys().hasOnly(['userId', 'courseId', 'status', 'paymentMethod', 'transactionId', 'requestedAt', 'approvedAt', 'approvedBy', 'accessSource']) &&
+          request.resource.data.status == 'approved' &&
+          request.resource.data.accessSource == 'free' &&
+          request.resource.data.paymentMethod == 'free' &&
+          request.resource.data.courseId is string &&
+          get(/databases/$(database)/documents/courses/$(request.resource.data.courseId)).data.price <= 0 &&
+          request.resource.data.requestedAt == request.time));
       allow update, delete: if isAdmin();
     }
 

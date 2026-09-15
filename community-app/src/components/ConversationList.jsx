@@ -6,20 +6,40 @@ import { timeAgo } from '../utils/helpers';
 import { MessageCircle, Search } from 'lucide-react';
 import { messengerSeedConversations } from '../data/messengerSeed';
 
+const normalizeFilter = (value = 'all') => {
+  if (value === 'unread' || value === 'groups' || value === 'communities') return value;
+  return 'all';
+};
+
 function initials(name = '') {
   return name.split(' ').filter(Boolean).slice(0, 2).map((part) => part[0]).join('').toUpperCase() || '?';
 }
 
 function ConversationRow({ convId, conv, myUid, active, onClick }) {
   const [peer, setPeer] = useState(null);
+  // Tracks whether we've received at least one response (even "no data")
+  // for the peer profile lookup, so we can tell "still fetching" apart
+  // from "fetched, but there's genuinely nothing to show" — the second
+  // case must NOT keep displaying the placeholder text forever.
+  const [peerLoaded, setPeerLoaded] = useState(false);
   const [unread, setUnread] = useState(0);
   const [presence, setPresence] = useState(null);
   const isGroup = conv.type === 'group';
   const peerUid = !isGroup ? Object.keys(conv.members || {}).find((m) => m !== myUid) : null;
 
   useEffect(() => {
-    if (!peerUid) return;
-    const unsub = onValue(ref(db, `users/${peerUid}`), (snap) => setPeer(snap.val()));
+    if (!peerUid) {
+      // Private conversation with no resolvable peer (e.g. malformed
+      // `members`) — nothing to wait for, so don't get stuck "loading".
+      setPeer(null);
+      setPeerLoaded(true);
+      return undefined;
+    }
+    setPeerLoaded(false);
+    const unsub = onValue(ref(db, `users/${peerUid}`), (snap) => {
+      setPeer(snap.val());
+      setPeerLoaded(true);
+    });
     return unsub;
   }, [peerUid]);
 
@@ -35,9 +55,19 @@ function ConversationRow({ convId, conv, myUid, active, onClick }) {
     return unsub;
   }, [convId, myUid]);
 
-  const title = isGroup ? conv.name : peer?.fullName || conv._displayName || '...';
+  const resolvedName = isGroup ? conv.name : peer?.fullName || conv._displayName;
   const photo = isGroup ? conv.photoURL : peer?.photoURL;
-  const displayName = title === '...' ? 'Loading conversation' : title;
+  // Real name found -> show it. Genuinely still fetching -> brief
+  // "Loading…" spinner text. Fetch finished but nothing came back
+  // (deleted account, broken member list, etc.) -> an honest fallback
+  // instead of a fake name that never goes away.
+  const displayName = resolvedName
+    ? resolvedName
+    : !peerLoaded
+      ? 'Loading…'
+      : isGroup
+        ? 'Group chat'
+        : 'Unknown user';
 
   return (
     <button className={`conversation-row${active ? ' active' : ''}${unread > 0 ? ' has-unread' : ''}`} onClick={onClick} type="button">
@@ -85,56 +115,64 @@ export default function ConversationList({ activeId, onSelect }) {
       console.log('[ConversationList] no user, using fallback seed list:', fallback);
       setConversations(fallback);
       setLoading(false);
-      return;
+      return undefined;
     }
 
     const unsub = onValue(ref(db, `userConversations/${user.uid}`), async (snap) => {
       console.log('[ConversationList] snapshot received for user:', user.uid, 'exists:', snap.exists(), 'raw:', snap.val());
 
-      const ids = snap.exists() ? Object.keys(snap.val()) : [];
-      const next = [];
+      try {
+        const ids = snap.exists() ? Object.keys(snap.val()) : [];
+        const next = [];
 
-      for (const id of ids) {
-        const cSnap = await get(ref(db, `conversations/${id}`));
-        if (!cSnap.exists()) continue;
+        for (const id of ids) {
+          const cSnap = await get(ref(db, `conversations/${id}`));
+          if (!cSnap.exists()) continue;
 
-        const conv = cSnap.val();
-        let displayName = conv.name || '';
+          const conv = cSnap.val();
+          let displayName = conv.name || '';
 
-        if (!displayName && conv.members) {
-          const peerUid = Object.keys(conv.members).find((member) => member !== user.uid);
-          if (peerUid) {
-            const peerSnap = await get(ref(db, `users/${peerUid}`));
-            displayName = peerSnap.val()?.fullName || '';
+          if (!displayName && conv.members) {
+            const peerUid = Object.keys(conv.members).find((member) => member !== user.uid);
+            if (peerUid) {
+              const peerSnap = await get(ref(db, `users/${peerUid}`));
+              displayName = peerSnap.val()?.fullName || '';
+            }
           }
+
+          next.push({ id, conv: { ...conv, _displayName: displayName } });
         }
 
-        next.push({ id, conv: { ...conv, _displayName: displayName } });
-      }
+        console.log('[ConversationList] fetched IDs:', ids);
+        console.log('[ConversationList] built conversation array:', next);
 
-      console.log('[ConversationList] fetched IDs:', ids);
-      console.log('[ConversationList] built conversation array:', next);
-
-      if (!next.length) {
+        if (!next.length) {
+          const fallback = messengerSeedConversations.map((conv) => ({ id: conv.id, conv }));
+          console.log('[ConversationList] array empty, using hardcoded seed fallback:', fallback);
+          setConversations(fallback);
+        } else {
+          setConversations(next);
+        }
+      } catch (error) {
+        console.warn('[ConversationList] failed to read DB list:', error);
         const fallback = messengerSeedConversations.map((conv) => ({ id: conv.id, conv }));
-        console.log('[ConversationList] array empty, using hardcoded seed fallback:', fallback);
         setConversations(fallback);
-      } else {
-        setConversations(next);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     });
 
     return () => unsub();
   }, [user]);
 
   const normalizedSearch = search.trim().toLowerCase();
+  const normalizedFilter = normalizeFilter(filter);
   const filtered = useMemo(() => {
     return conversations
       .filter(({ conv }) => {
-        if (filter === 'unread' && !(conv.unreadCount || 0)) return false;
-        if (filter === 'groups' && conv.type !== 'group') return false;
-        if (filter === 'communities' && conv.type !== 'community') return false;
+        if (normalizedFilter === 'unread' && !(conv.unreadCount || 0)) return false;
+        if (normalizedFilter === 'groups' && conv.type !== 'group') return false;
+        if (normalizedFilter === 'communities' && conv.type !== 'community') return false;
         return true;
       })
       .filter(({ conv, id }) => {
@@ -145,7 +183,7 @@ export default function ConversationList({ activeId, onSelect }) {
         return haystack.includes(normalizedSearch);
       })
       .sort((a, b) => (b.conv.lastMessageAt || 0) - (a.conv.lastMessageAt || 0));
-  }, [conversations, filter, normalizedSearch]);
+  }, [conversations, normalizedFilter, normalizedSearch]);
 
   return (
     <div className="conversation-list">
@@ -175,7 +213,7 @@ export default function ConversationList({ activeId, onSelect }) {
         </div>
       ) : filtered.length > 0 ? (
         filtered.map(({ id, conv }) => (
-          <ConversationRow key={id} convId={id} conv={conv} myUid={user.uid} active={id === activeId} onClick={() => onSelect(id)} />
+          <ConversationRow key={id} convId={id} conv={conv} myUid={user?.uid} active={id === activeId} onClick={() => onSelect(id)} />
         ))
       ) : (
         <div className="conversation-empty empty-state">

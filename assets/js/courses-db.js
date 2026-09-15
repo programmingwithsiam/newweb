@@ -189,6 +189,17 @@ const DEFAULT_COURSE = {
   }]
 };
 
+const PUBLIC_PREVIEW_VIDEO_OVERRIDES = {
+  vpMoUwqh9pGrYovnWVcf: {
+    Hk9tiQAiALEtTgpuGCw9: 'https://www.youtube.com/watch?v=kqtD5dpn9C8'
+  }
+};
+
+export function getDefaultCourses() {
+  const fallbackModules = DEFAULT_COURSE.modules.map(module => ({ ...module, lessons: module.lessonCatalog }));
+  return [{ ...DEFAULT_COURSE, modules: fallbackModules, lessons: fallbackModules.flatMap(module => module.lessons) }];
+}
+
 function readSessionCache(key) {
   try {
     const cached = JSON.parse(sessionStorage.getItem(key) || 'null');
@@ -219,7 +230,7 @@ export async function fetchCourseEnrollment(uid, courseId) {
 
 /* ---------- READ: public course metadata plus authorized lesson videos ---------- */
 export async function fetchAllCourses({ includeLessons = true } = {}) {
-  if (!isFirebaseConfigured || !db) return [];
+  if (!isFirebaseConfigured || !db) return getDefaultCourses();
   if (!includeLessons) {
     const cached = readSessionCache(COURSE_CACHE_KEY);
     if (cached) return cached;
@@ -228,8 +239,7 @@ export async function fetchAllCourses({ includeLessons = true } = {}) {
 
   const coursesSnap = await getDocs(query(collection(db, 'courses'), limit(100)));
   if (coursesSnap.empty) {
-    const fallbackModules = DEFAULT_COURSE.modules.map(module => ({ ...module, lessons: module.lessonCatalog }));
-    const fallback = [{ ...DEFAULT_COURSE, modules: fallbackModules, lessons: fallbackModules.flatMap(module => module.lessons) }];
+    const fallback = getDefaultCourses();
     if (!includeLessons) writeSessionCache(COURSE_CACHE_KEY, fallback);
     return fallback;
   }
@@ -298,7 +308,25 @@ export async function fetchAllCourses({ includeLessons = true } = {}) {
             lessons = lessonMetadata.filter(lesson => lesson.freePreview).map(lesson => ({ ...lesson }));
           }
         } catch (error) {
-          lessons = lessonMetadata.filter(lesson => lesson.freePreview).map(lesson => ({ ...lesson }));
+          const previewLessons = lessonMetadata.filter(lesson => lesson.freePreview);
+          lessons = await Promise.all(previewLessons.map(async (lesson) => {
+            try {
+              const previewSnapshot = await getDoc(doc(
+                db,
+                'courses',
+                course.id,
+                'modules',
+                moduleDoc.id,
+                'lessons',
+                lesson.id
+              ));
+              return previewSnapshot.exists()
+                ? { ...lesson, ...previewSnapshot.data(), id: lesson.id, moduleId: moduleDoc.id, moduleTitle: moduleDoc.title, isFreePreview: true, freePreview: true }
+                : { ...lesson };
+            } catch {
+              return { ...lesson };
+            }
+          }));
           console.warn(`Lessons unavailable for course ${course.id}:`, error.code || error.message);
         }
       }
@@ -310,6 +338,25 @@ export async function fetchAllCourses({ includeLessons = true } = {}) {
 
     course.modules = modules;
     course.lessons = allLessons; // flattened, ordered by module then lesson order
+    const previewOverrides = PUBLIC_PREVIEW_VIDEO_OVERRIDES[course.id] || {};
+    course.lessons = course.lessons.map(lesson => {
+      const videoUrl = previewOverrides[lesson.id];
+      if (!videoUrl || getLessonVideoSource(lesson)) return lesson;
+      return {
+        ...lesson,
+        videoUrl,
+        youtubeUrl: videoUrl,
+        youtubeVideoId: extractYoutubeId(videoUrl)
+      };
+    });
+    course.modules = course.modules.map(module => ({
+      ...module,
+      lessons: (module.lessons || []).map(lesson => {
+        const videoUrl = previewOverrides[lesson.id];
+        if (!videoUrl || getLessonVideoSource(lesson)) return lesson;
+        return { ...lesson, videoUrl, youtubeUrl: videoUrl, youtubeVideoId: extractYoutubeId(videoUrl) };
+      })
+    }));
     course.totalLessonCount = totalLessonCount;
     return course;
   }));
@@ -422,6 +469,28 @@ export async function createPaymentSubmission(paymentData) {
     accessSource: 'payment',
   });
   return payment;
+}
+
+export async function createFreeCourseEnrollment(uid, courseId) {
+  if (!auth?.currentUser || auth.currentUser.uid !== uid) {
+    throw new Error('You must be signed in to enroll.');
+  }
+  const { doc, getDoc, setDoc, serverTimestamp } = await loadFirestore();
+  const enrollmentRef = doc(db, 'enrollments', enrollmentKey(uid, courseId));
+  const existing = await getDoc(enrollmentRef);
+  if (existing.exists()) return { id: existing.id, ...existing.data() };
+  await setDoc(enrollmentRef, {
+    userId: uid,
+    courseId,
+    status: 'approved',
+    paymentMethod: 'free',
+    transactionId: '',
+    requestedAt: serverTimestamp(),
+    approvedAt: serverTimestamp(),
+    approvedBy: 'free-course',
+    accessSource: 'free'
+  });
+  return { id: enrollmentRef.id, userId: uid, courseId, status: 'approved', accessSource: 'free' };
 }
 
 export async function setCourseEnrollmentAccess({ uid, courseId, status, accessSource = 'manual', paymentMethod = '', transactionId = '' }) {

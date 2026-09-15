@@ -1,1 +1,0 @@
-import{e as n,h as t,w as a,n as r}from"./index-nwBgWfWm.js";function o(e,s){if(!e)return;const f=n(t,`notifications/${e}`);return a(f,{...s,createdAt:r(),read:!1})}function c(e,s){if(e)return a(n(t,`messageNotifications/${e}`),{...s,createdAt:r(),read:!1})}export{c as a,o as n};

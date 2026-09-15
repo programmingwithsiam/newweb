@@ -1,6 +1,9 @@
 {
   "cleanUrls": false,
   "rewrites": [
+    { "source": "/admin", "destination": "/admin.html" },
+    { "source": "/admin/", "destination": "/admin.html" },
+    { "source": "/admin.html", "destination": "/admin.html" },
     { "source": "/community", "destination": "/community/index.html" },
     { "source": "/community/", "destination": "/community/index.html" },
     { "source": "/community/login", "destination": "/community/index.html" },

@@ -1,4 +1,4 @@
-import { fetchAllCourses, saveUserCourseProgress, createPaymentSubmission, uploadPaymentScreenshot, updatePaymentScreenshot, fetchUserPayments, getLessonVideoSource } from './courses-db.js';
+import { fetchAllCourses, saveUserCourseProgress, createPaymentSubmission, createFreeCourseEnrollment, uploadPaymentScreenshot, updatePaymentScreenshot, fetchUserPayments, getLessonVideoSource } from './courses-db.js';
 import { observeAuthState, signInWithGoogle } from './auth.js';
 
 const progressKey = 'siam_portfolio_course_progress';
@@ -472,7 +472,7 @@ function setupWorkspaceSettings() {
 function playlist(target, compact = false) {
   const groups = new Map();
   lessons.forEach(lesson => { if (!groups.has(lesson.moduleId)) groups.set(lesson.moduleId, { title: lesson.moduleTitle, lessons: [] }); groups.get(lesson.moduleId).lessons.push(lesson); });
-  target.innerHTML = [...groups.values()].map(group => `<section class="module-block"><div class="module-title">${group.title || 'Course Content'}</div>${group.lessons.map((lesson, index) => { const isComplete = completed().has(lesson.id); const isCurrent = lesson.id === selectedLessonId; const unlocked = hasLessonAccess(lesson); const action = unlocked ? (hasCourseAccess() ? (isComplete ? 'Review' : 'Watch Now') : 'Watch Free') : (course?.accessStatus === 'pending' ? 'Enrollment Pending' : 'Locked'); return `<button class="lesson-row ${isCurrent ? 'current' : ''} ${isComplete ? 'complete' : ''} ${unlocked ? '' : 'is-locked'}" data-lesson-id="${lesson.id}" type="button"><span class="lesson-state">${isComplete ? '✓' : unlocked ? (isCurrent ? '▶' : '○') : '🔒'}</span><span class="lesson-row-title">${index + 1}. ${lesson.title}</span><span class="lesson-row-meta"><span>${lesson.duration || '0 min'}</span><span class="lesson-row-action">${action}</span></span></button>`; }).join('')}</section>`).join('');
+  target.innerHTML = [...groups.values()].map(group => `<section class="module-block"><div class="module-title">${group.title || 'Course Content'}</div>${group.lessons.map((lesson, index) => { const isComplete = completed().has(lesson.id); const isCurrent = lesson.id === selectedLessonId; const unlocked = hasLessonAccess(lesson); const action = unlocked ? (hasCourseAccess() ? (isComplete ? 'Review' : 'Watch Now') : 'Watch Free') : (course?.accessStatus === 'pending' ? 'Enrollment Pending' : 'Locked'); const state = isComplete ? '<i class="fa-solid fa-check" aria-hidden="true"></i>' : unlocked ? (isCurrent ? '<i class="fa-solid fa-play" aria-hidden="true"></i>' : '<i class="fa-regular fa-circle" aria-hidden="true"></i>') : '<i class="fa-solid fa-lock" aria-hidden="true"></i>'; return `<button class="lesson-row ${isCurrent ? 'current' : ''} ${isComplete ? 'complete' : ''} ${unlocked ? '' : 'is-locked'}" data-lesson-id="${lesson.id}" type="button"><span class="lesson-state">${state}</span><span class="lesson-row-title">${index + 1}. ${lesson.title}</span><span class="lesson-row-meta"><span>${lesson.duration || '0 min'}</span><span class="lesson-row-action">${action}</span></span></button>`; }).join('')}</section>`).join('');
   target.querySelectorAll('[data-lesson-id]').forEach(button => button.addEventListener('click', () => go(button.dataset.lessonId)));
 }
 function renderOverview() {
@@ -527,7 +527,9 @@ function renderOverview() {
 function renderCheckout(finalPrice, originalPrice, hasAccess) {
   const checkout = $('courseCheckout');
   if (!checkout) return;
-  checkout.classList.toggle('hidden', hasAccess || finalPrice <= 0);
+  const isFree = finalPrice <= 0;
+  checkout.classList.toggle('hidden', hasAccess);
+  checkout.classList.toggle('free-enrollment', isFree);
   $('checkoutFinalPrice').textContent = finalPrice > 0 ? `৳${finalPrice.toLocaleString('en-BD')}` : 'Free';
   $('checkoutOriginalPrice').textContent = `৳${originalPrice.toLocaleString('en-BD')}`;
   $('checkoutOriginalPrice').classList.toggle('hidden', originalPrice <= finalPrice);
@@ -561,8 +563,11 @@ function renderCheckout(finalPrice, originalPrice, hasAccess) {
     paypal: 'PayPal payment details will be provided by the admin.'
   };
   $('checkoutPaymentInstruction').textContent = instructions[method] || 'Contact admin for payment instructions';
-  $('checkoutPayBtn').textContent = `Pay ৳${finalPrice.toLocaleString('en-BD')}`;
-  $('checkoutPayBtn').textContent = finalPrice > 0 ? `Confirm Enrollment · ৳${finalPrice.toLocaleString('en-BD')}` : 'Confirm Enrollment';
+  $('checkoutPayBtn').textContent = isFree ? 'Enroll Free' : `Confirm Enrollment · ৳${finalPrice.toLocaleString('en-BD')}`;
+  ['checkoutPaymentMethod', 'checkoutTransactionId', 'checkoutPaymentScreenshot', 'checkoutPaymentConfirm'].forEach(id => $(id)?.closest('label')?.classList.toggle('hidden', isFree));
+  $('checkoutPaymentInstruction')?.classList.toggle('hidden', isFree);
+  $('checkoutCheckoutPaymentHeading')?.classList.toggle('hidden', isFree);
+  [...checkout.querySelectorAll('.checkout-section-heading')].find(item => item.textContent.includes('Payment method'))?.classList.toggle('hidden', isFree);
 }
 function getCheckoutCountry() {
   const select = $('checkoutCountry');
@@ -592,8 +597,9 @@ function bindCheckout() {
     const selected = getCheckoutCountry();
     const validPhone = validCheckoutPhone(phone.value, selected.code);
     const validName = name.value.trim().length >= 2;
+    const isFree = Number(course?.price || 0) <= 0;
     $('checkoutPhoneError').textContent = phone.value && !validPhone ? `Please enter a valid ${selected.country} phone number` : '';
-    pay.disabled = !user || !validName || !validPhone || !transaction.value.trim() || !confirmation.checked || Boolean(pay.dataset.processing);
+    pay.disabled = !user || !validName || (!isFree && (!validPhone || !transaction.value.trim() || !confirmation.checked)) || Boolean(pay.dataset.processing);
   };
   name.addEventListener('input', update);
   phone.addEventListener('input', update);
@@ -608,6 +614,17 @@ function bindCheckout() {
     pay.dataset.processing = 'true'; pay.disabled = true; pay.textContent = 'Processing...';
     try {
       const amount = Number(course.discountPrice) > 0 && Number(course.discountPrice) < Number(course.price) ? Number(course.discountPrice) : Number(course.price);
+      if (amount <= 0) {
+        const enrollment = await createFreeCourseEnrollment(user.uid, course.id);
+        course.accessStatus = 'approved';
+        course.accessSource = 'free';
+        $('checkoutRequestId').textContent = enrollment.id;
+        $('checkoutStatus').textContent = '';
+        $('checkoutSuccess').classList.remove('hidden');
+        pay.textContent = 'Enrolled Successfully';
+        render();
+        return;
+      }
       const payment = await createPaymentSubmission({ userId: user.uid, studentName: name.value.trim(), courseId: course.id, courseTitle: course.title, amount, method: $('checkoutPaymentMethod').value, transactionId: transaction.value.trim(), phone: normalizeCheckoutPhone(phone.value, getCheckoutCountry().code) });
       const screenshot = await compressPaymentScreenshot($('checkoutPaymentScreenshot')?.files?.[0]);
       if (screenshot) {
