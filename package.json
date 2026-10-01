@@ -6,9 +6,11 @@
     "node": ">=18"
   },
   "scripts": {
-    "dev": "npx --yes serve -s .",
-    "check": "node --check assets/js/auth.js && node --check assets/js/auth-app.js && node --check assets/js/course-learning.js && node --check assets/js/courses-db.js && node --check assets/js/live-learning.js && node --check assets/js/script.js"
+  "dev": "npx --yes serve -s .",
+  "start": "npx --yes serve -s .",
+  "check": "node --check assets/js/auth.js && node --check assets/js/auth-app.js && node --check assets/js/course-learning.js && node --check assets/js/courses-db.js && node --check assets/js/live-learning.js && node --check assets/js/script.js"
   },
+
   "devDependencies": {
     "playwright": "^1.62.1"
   }
