@@ -13,6 +13,7 @@
   <meta name="robots" content="index, follow, max-image-preview:large" />
   <meta name="theme-color" content="#0f172a" />
   <meta name="googlebot" content="index, follow, max-image-preview:large" />
+  <meta name="auth-api-url" content="" />
   <link rel="icon" type="image/png" sizes="256x256" href="/favicon.ico?v=20260830" />
   <link rel="apple-touch-icon" sizes="180x180" href="/favicon.ico?v=20260830" />
   <link rel="manifest" href="/manifest.json" />
@@ -132,65 +133,109 @@
   <div class="bg-grain" aria-hidden="true"></div>
   <!-- AUTH MODAL (sign-in / create account / reset password) -->
   <div id="authModal" class="auth-modal hidden" role="dialog" aria-modal="true" aria-labelledby="authModalTitle">
-    <div class="auth-modal-card">
+    <div class="auth-modal-card" id="authModalCard">
       <button type="button" class="auth-modal-close" id="authModalClose"
         aria-label="Close sign-in dialog">&times;</button>
-
-      <h2 id="authModalTitle">CodeWithSiam</h2>
-      <p class="auth-modal-tagline">Learn. Build. Become.</p>
-
-      <button type="button" class="social-btn google" id="googleLoginBtn">
-        <i class="fa-brands fa-google"></i>
-        Continue with Google
-      </button>
-
-      <div class="divider"><span>OR</span></div>
-
-      <div class="auth-switch" role="tablist" aria-label="Authentication mode">
-        <button class="auth-tab active" id="authTabSignIn" type="button">Sign In</button>
-        <button class="auth-tab" id="authTabRegister" type="button">Create Account</button>
+      <div class="auth-welcome-panel" aria-live="polite">
+        <span class="auth-welcome-mark"><i class="fa-solid fa-terminal" aria-hidden="true"></i> CODEWITHSIAM</span>
+        <h2 id="authWelcomeTitle">WELCOME BACK!</h2>
+        <p id="authWelcomeCopy">Sign in to continue learning, building, and sharing.</p>
       </div>
-
-      <form id="signInForm" class="auth-panel">
-        <div class="lock-field">
-          <label for="signInEmail">Email</label>
-          <input type="email" id="signInEmail" autocomplete="email" required />
+      <div class="auth-content" id="authContent">
+        <div class="auth-content-head">
+          <h2 id="authModalTitle">My Community</h2>
+          <p class="auth-modal-tagline" id="authModeCaption">Log in to continue</p>
         </div>
-        <div class="lock-field">
-          <label for="signInPassword">Password</label>
-          <input type="password" id="signInPassword" autocomplete="current-password" required />
+        <div id="authFormsView">
+          <button type="button" class="social-btn google" id="googleLoginBtn">
+            <i class="fa-brands fa-google" aria-hidden="true"></i>
+            Continue with Google
+          </button>
+          <div class="divider"><span>OR CONTINUE WITH EMAIL</span></div>
+          <form id="signInForm" class="auth-panel" novalidate>
+            <div class="lock-field">
+              <label for="signInEmail">Email</label>
+              <input type="email" id="signInEmail" autocomplete="email" required aria-describedby="signInEmailError" />
+              <small class="auth-field-error" id="signInEmailError"></small>
+            </div>
+            <div class="lock-field">
+              <label for="signInPassword">Password</label>
+              <div class="auth-password-wrap">
+                <input type="password" id="signInPassword" autocomplete="current-password" required
+                  aria-describedby="signInPasswordError" />
+                <button class="auth-password-toggle" type="button" data-password-target="signInPassword"
+                  aria-label="Show password"><i class="fa-regular fa-eye" aria-hidden="true"></i></button>
+              </div>
+              <small class="auth-field-error" id="signInPasswordError"></small>
+            </div>
+            <div class="auth-form-actions">
+              <button type="button" class="text-link" id="forgotPasswordBtn">Forgot password?</button>
+            </div>
+            <button type="submit" class="btn btn-primary btn-full" id="signInSubmitBtn">Sign In</button>
+            <button type="button" class="text-link hidden" id="loginResendOtpBtn">Resend verification code</button>
+            <p class="auth-mode-switch">Don't have an account? <button type="button" class="text-link"
+                id="switchToRegister">Sign Up</button></p>
+          </form>
+          <form id="registerForm" class="auth-panel hidden" novalidate>
+            <div class="lock-field">
+              <label for="registerNameInput">Full Name</label>
+              <input type="text" id="registerNameInput" autocomplete="name" required maxlength="80"
+                aria-describedby="registerNameError" />
+              <small class="auth-field-error" id="registerNameError"></small>
+            </div>
+            <div class="lock-field">
+              <label for="registerEmailInput">Email</label>
+              <input type="email" id="registerEmailInput" autocomplete="email" required
+                aria-describedby="registerEmailError" />
+              <small class="auth-field-error" id="registerEmailError"></small>
+            </div>
+            <div class="lock-field">
+              <label for="registerPasswordInput">Password</label>
+              <div class="auth-password-wrap">
+                <input type="password" id="registerPasswordInput" autocomplete="new-password" minlength="8" required
+                  aria-describedby="registerPasswordError" />
+                <button class="auth-password-toggle" type="button" data-password-target="registerPasswordInput"
+                  aria-label="Show password"><i class="fa-regular fa-eye" aria-hidden="true"></i></button>
+              </div>
+              <small class="auth-field-error" id="registerPasswordError"></small>
+            </div>
+            <button type="submit" class="btn btn-primary btn-full" id="registerSubmitBtn">Continue</button>
+            <p class="auth-mode-switch">Already have an account? <button type="button" class="text-link"
+                id="switchToLogin">Login</button></p>
+          </form>
         </div>
-        <button type="submit" class="btn btn-primary btn-full" id="signInSubmitBtn">Sign In</button>
-        <p class="register">
-          <button type="button" class="text-link" id="forgotPasswordBtn">Forgot password?</button>
-        </p>
-      </form>
-
-      <form id="registerForm" class="auth-panel hidden">
-        <div class="lock-field">
-          <label for="registerNameInput">Full Name</label>
-          <input type="text" id="registerNameInput" autocomplete="name" required />
-        </div>
-        <div class="lock-field">
-          <label for="registerEmailInput">Email</label>
-          <input type="email" id="registerEmailInput" autocomplete="email" required />
-        </div>
-        <div class="lock-field">
-          <label for="registerPasswordInput">Password</label>
-          <input type="password" id="registerPasswordInput" autocomplete="new-password" minlength="6" required />
-        </div>
-        <button type="submit" class="btn btn-primary btn-full" id="registerSubmitBtn">Create Account</button>
-      </form>
-
-      <p class="auth-status" id="authModalStatus" role="status"></p>
-
-      <p class="lock-hint">
-        Need help?
-        <a href="https://wa.me/8801644171751?text=Hi%20Siam!%20I%20need%20help%20signing%20in." target="_blank"
-          rel="noopener noreferrer">
-          Ask Siam on WhatsApp
-        </a>
-      </p>
+        <section class="auth-otp-view hidden" id="authOtpView" aria-labelledby="otpTitle">
+          <div class="auth-otp-icon"><i class="fa-regular fa-envelope" aria-hidden="true"></i></div>
+          <h2 id="otpTitle">Enter Access Code</h2>
+          <p class="auth-otp-copy">Enter the 6-digit code sent to <strong id="otpEmailLabel"></strong>.</p>
+          <form id="otpForm">
+            <div class="otp-inputs" role="group" aria-label="Six-digit access code">
+              <input class="otp-digit" id="otpDigit0" type="text" inputmode="numeric" autocomplete="one-time-code"
+                maxlength="1" aria-label="Digit 1" />
+              <input class="otp-digit" id="otpDigit1" type="text" inputmode="numeric" maxlength="1"
+                aria-label="Digit 2" />
+              <input class="otp-digit" id="otpDigit2" type="text" inputmode="numeric" maxlength="1"
+                aria-label="Digit 3" />
+              <input class="otp-digit" id="otpDigit3" type="text" inputmode="numeric" maxlength="1"
+                aria-label="Digit 4" />
+              <input class="otp-digit" id="otpDigit4" type="text" inputmode="numeric" maxlength="1"
+                aria-label="Digit 5" />
+              <input class="otp-digit" id="otpDigit5" type="text" inputmode="numeric" maxlength="1"
+                aria-label="Digit 6" />
+            </div>
+            <button type="submit" class="btn btn-primary btn-full" id="verifyOtpBtn">Verify code</button>
+          </form>
+          <div class="auth-otp-links">
+            <button type="button" class="text-link" id="changeOtpEmailBtn">Change email</button>
+            <button type="button" class="text-link" id="resendOtpBtn" disabled>Resend code in <span
+                id="resendCountdown">60</span>s</button>
+          </div>
+        </section>
+        <p class="auth-status" id="authModalStatus" role="status" aria-live="polite"></p>
+        <p class="lock-hint auth-help-hint">Need help? <a
+            href="https://wa.me/8801644171751?text=Hi%20Siam!%20I%20need%20help%20signing%20in." target="_blank"
+            rel="noopener noreferrer">Ask Siam on WhatsApp</a></p>
+      </div>
     </div>
   </div>
 
@@ -199,14 +244,15 @@
 
     <!-- HEADER -->
     <header id="header">
-      <div class="logo">CodeWith<span class="accent">Siam</span></div>
+      <a class="logo" id="siteLogo" href="#home" data-page-link="home" aria-label="CodeWithSiam Home">CodeWith<span
+          class="accent">Siam</span></a>
       <nav id="nav">
-        <a href="#home">Home</a>
-        <a href="#about">About</a>
-        <a href="#projects">Projects</a>
-        <a href="#course">Learn</a>
-        <a href="community.html">Community</a>
-        <a href="#contact">Contact</a>
+        <a href="#home" data-page-link="home">Home</a>
+        <a href="#about" data-page-link="about">About</a>
+        <a href="#projects" data-page-link="projects">Projects</a>
+        <a href="#learn" data-page-link="learn">Learn</a>
+        <a href="#community" data-page-link="community">Community</a>
+        <a href="#contact" data-page-link="contact">Contact</a>
         <div class="nav-auth" id="navAuthLoggedOut">
           <button type="button" class="btn btn-outline small" id="headerSignInBtn">Sign In</button>
         </div>
@@ -218,72 +264,23 @@
           </button>
           <div class="user-dropdown hidden" id="userDropdown">
             <p class="user-dropdown-email" id="userDropdownEmail"></p>
-            <a href="#course">Course Dashboard</a>
+            <a href="#learn">Course Dashboard</a>
             <a href="/admin" id="adminNavLink">Admin Panel</a>
-            <button type="button" id="userLogoutBtn">Log out</button>
+            <button type="button" id="userLogoutBtn" class="animated-logout-btn"><span class="logout-icon"
+                aria-hidden="true"><i class="fa-solid fa-person-walking-arrow-right logout-person"></i><i
+                  class="fa-solid fa-door-open logout-door"></i></span><span>Log Out</span></button>
           </div>
         </div>
       </nav>
       <button type="button" class="mobile-account-btn" id="mobileAccountBtn"><i class="fa-solid fa-user"></i><span>My
           Account</span></button>
-      <button type="button" class="live-notification-btn hidden" id="liveNotificationBtn"
-        aria-label="Live stream available" aria-expanded="false"><span class="live-dot"
-          aria-hidden="true"></span>Live</button>
       <button class="menu-btn" id="menuBtn" aria-label="Toggle menu">
         &#9776;
       </button>
     </header>
-    <aside class="live-notification-panel hidden" id="liveNotificationPanel" aria-live="polite">
-      <div class="live-notification-head"><strong><span class="live-dot"></span> Live now</strong><button type="button"
-          id="closeLiveNotification" aria-label="Close live stream">&times;</button></div>
-      <p id="liveNotificationTitle">CodeWithSiam is live on YouTube.</p>
-      <div class="live-stream-stage"><iframe id="liveNotificationFrame" title="CodeWithSiam live stream"
-          allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe></div>
-      <section class="site-live-chat" aria-label="Live chat">
-        <div class="site-live-chat-head"><span><i class="fa-solid fa-comments"></i> Live chat</span><small
-            id="liveChatStatus">Connecting...</small></div>
-        <div id="liveChatMessages" class="site-live-chat-messages" role="log" aria-live="polite">
-          <p class="live-chat-empty">Join the conversation.</p>
-        </div>
-        <form id="liveChatForm" class="site-live-chat-form">
-          <input id="liveChatName" type="text" maxlength="32" placeholder="Your name" autocomplete="nickname"
-            aria-label="Your name">
-          <p id="liveChatReplyState" class="live-chat-reply-state hidden"></p>
-          <div class="site-live-chat-compose"><input id="liveChatInput" type="text" maxlength="240"
-              placeholder="Say something..." autocomplete="off" aria-label="Live chat message"><button type="submit"
-              aria-label="Send live chat message"><i class="fa-solid fa-paper-plane"></i></button></div>
-        </form>
-      </section>
-      <a id="liveNotificationOpen" href="https://www.youtube.com/@CodeWithSiamBD" target="_blank"
-        rel="noopener noreferrer">Open on YouTube</a>
-    </aside>
-
-    <section class="section section-live" id="live">
-      <div class="container reveal">
-        <div class="live-hub-header">
-          <div>
-            <p class="eyebrow"><span class="live-dot"></span> CODEWITHSIAM LIVE</p>
-            <h2 class="section-title">Learn live. <span class="accent">Replay anytime.</span></h2>
-            <p class="section-sub">Join the next session or revisit practical lessons from the live room.</p>
-          </div>
-          <a class="btn btn-outline" href="https://www.youtube.com/@CodeWithSiamBD" target="_blank"
-            rel="noopener noreferrer"><i class="fa-brands fa-youtube"></i> YouTube channel</a>
-        </div>
-        <div id="liveHubCurrent" class="live-hub-current">
-          <div class="live-hub-empty"><i class="fa-solid fa-broadcast-tower"></i><strong>No live session right
-              now</strong><span>New sessions will appear here when they begin.</span></div>
-        </div>
-        <div class="live-archive-heading">
-          <h3>Past live sessions</h3><span id="liveArchiveCount">0 sessions</span>
-        </div>
-        <div id="liveArchiveList" class="live-archive-grid">
-          <p class="live-hub-empty">Loading session archive...</p>
-        </div>
-      </div>
-    </section>
 
     <!-- HERO -->
-    <section class="hero" id="home">
+    <section class="hero" id="home" data-page="home" data-page-shared>
       <div class="hero-bg-grid"></div>
       <div class="hero-inner">
         <div class="hero-content reveal">
@@ -299,7 +296,7 @@
           </p>
           <div class="hero-btns">
             <a href="#projects" class="btn btn-primary">See My Projects</a>
-            <a href="#course" class="btn btn-outline" id="continueLearningHeroBtn">Explore Courses</a>
+            <a href="#learn" class="btn btn-outline" id="continueLearningHeroBtn">Explore Courses</a>
             <a href="#contact" class="btn btn-outline">Get in Touch</a>
           </div>
         </div>
@@ -316,7 +313,7 @@
     </section>
 
     <!-- ABOUT -->
-    <section class="section" id="about">
+    <section class="section" id="about" data-page="about">
       <div class="container reveal">
         <h2 class="section-title">About <span class="accent">Me</span></h2>
         <div class="about-grid">
@@ -380,7 +377,7 @@
     </section>
 
     <!-- SKILLS -->
-    <section class="section section-alt" id="skills">
+    <section class="section section-alt" id="skills" data-page="about">
       <div class="container reveal">
         <h2 class="section-title">
           Technical <span class="accent">Skills</span>
@@ -461,7 +458,7 @@
     </section>
 
     <!-- LEARNING JOURNEY -->
-    <section class="section" id="ml">
+    <section class="section" id="ml" data-page="about">
       <div class="container reveal">
         <h2 class="section-title">
           Learning <span class="accent">Journey</span>
@@ -499,7 +496,7 @@
     </section>
 
     <!-- PYTHON PROJECTS -->
-    <section class="section section-alt" id="projects">
+    <section class="section section-alt" id="projects" data-page="projects">
       <div class="container reveal">
         <h2 class="section-title">
           Real <span class="accent">Projects</span>
@@ -868,7 +865,7 @@
     </section>
 
     <!-- COURSE PLATFORM -->
-    <section class="section" id="course">
+    <section class="section" id="course" data-page="learn">
       <div class="container reveal">
 
         <!-- COURSE HEADER -->
@@ -1035,8 +1032,8 @@
                   <a id="courseOverviewRocketLink" href="tel:01644171751"><i
                       class="fa-solid fa-mobile-screen-button"></i> Rocket <b
                       id="courseOverviewRocket">01644171751</b></a>
-                  <a id="courseOverviewBankLink" href="#coursePaymentInstructions"><i
-                      class="fa-solid fa-building-columns"></i> Bank <b id="courseOverviewBank">Contact for bank
+                  <a id="courseOverviewBankLink" href="#contact"><i class="fa-solid fa-building-columns"></i> Bank <b
+                      id="courseOverviewBank">Contact for bank
                       details</b></a>
                 </div>
               </div>
@@ -1379,8 +1376,15 @@
       </div>
     </section>
 
+    <!-- COMMUNITY -->
+    <section class="section" id="community" data-page="community">
+      <div class="container reveal">
+        <iframe class="community-page-frame" src="/community/" title="CodeWithSiam Community"></iframe>
+      </div>
+    </section>
+
     <!-- CONTACT -->
-    <section class="section section-alt" id="contact">
+    <section class="section section-alt" id="contact" data-page="contact">
       <div class="container reveal">
         <h2 class="section-title">
           Let’s <span class="accent">Connect</span>
@@ -1487,19 +1491,22 @@
             aria-expanded="false"><span class="chat-icon" aria-hidden="true">💬</span><span class="online-badge-small"
               aria-hidden="true"></span></button>
 
-          <!-- FOOTER -->
-          <footer>
-            <p>
-              Designed & built by
-              <span class="accent">Siam</span> &copy; 2026
-            </p>
-            <p class="footer-sub">Made with Python 🐍 &amp; passion for AI</p>
-          </footer>
         </div>
-        <!-- /siteRoot -->
+    </section>
 
-        <script type="module" src="assets/js/script.js?v=20260915-public-course-render-1"></script>
-        <script type="module" src="assets/js/auth-app.js?v=20260913-admin-link-4"></script>
+    <div class="container reveal">
+      <footer>
+        <p>
+          Designed & built by
+          <span class="accent">Siam</span> &copy; 2026
+        </p>
+        <p class="footer-sub">Made with Python 🐍 &amp; passion for AI</p>
+      </footer>
+    </div>
+    <!-- /siteRoot -->
+
+    <script type="module" src="assets/js/script.js?v=20260915-public-course-render-1"></script>
+    <script type="module" src="assets/js/auth-app.js?v=20260913-admin-link-4"></script>
 </body>
 
 </html>

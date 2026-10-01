@@ -2,10 +2,15 @@
   "rules": {
     ".read": false,
     ".write": false,
-
+    "authRegistrationPending": {
+      ".read": false,
+      ".write": false
+    },
     "users": {
       ".read": "auth != null",
-      ".indexOn": ["usernameLower"],
+      ".indexOn": [
+        "usernameLower"
+      ],
       "$uid": {
         ".write": "auth != null && auth.uid === $uid",
         ".validate": "newData.hasChildren(['fullName','username','usernameLower'])",
@@ -25,17 +30,17 @@
           ".write": "auth != null",
           ".validate": "newData.isNumber() && newData.val() >= 0 && (!data.exists() ? newData.val() === 0 || newData.val() === 1 : (newData.val() === data.val() + 1 || newData.val() === data.val() - 1))"
         },
-        "notifPrefs": { ".write": "auth.uid === $uid" }
+        "notifPrefs": {
+          ".write": "auth.uid === $uid"
+        }
       }
     },
-
     "usernames": {
       ".read": "auth != null",
       "$usernameKey": {
         ".write": "auth != null && newData.val() === auth.uid && (!data.exists() || data.val() === auth.uid)"
       }
     },
-
     "posts": {
       "$postId": {
         ".read": "auth != null && (data.child('privacy').val() === 'public' || data.child('uid').val() === auth.uid || root.child('friends').child(auth.uid).child(data.child('uid').val()).exists())",
@@ -51,29 +56,30 @@
         }
       }
     },
-
     "publicPostsIndex": {
       ".read": "auth != null",
-      ".indexOn": ["createdAt", "uid"],
+      ".indexOn": [
+        "createdAt",
+        "uid"
+      ],
       "$postId": {
         ".write": "auth != null && ((newData.exists() && newData.child('uid').val() === auth.uid && root.child('posts').child($postId).child('privacy').val() === 'public') || (!newData.exists() && data.child('uid').val() === auth.uid))"
       }
     },
-
     "userPosts": {
       "$uid": {
         ".read": "auth != null && (auth.uid === $uid || root.child('friends').child(auth.uid).child($uid).exists())",
         ".write": "auth != null && auth.uid === $uid"
       }
     },
-
     "reactions": {
       "$postId": {
         ".read": "auth != null",
-        "$uid": { ".write": "auth != null && auth.uid === $uid" }
+        "$uid": {
+          ".write": "auth != null && auth.uid === $uid"
+        }
       }
     },
-
     "comments": {
       "$postId": {
         ".read": "auth != null",
@@ -82,14 +88,14 @@
         }
       }
     },
-
     "commentReactions": {
       "$commentId": {
         ".read": "auth != null",
-        "$uid": { ".write": "auth != null && auth.uid === $uid" }
+        "$uid": {
+          ".write": "auth != null && auth.uid === $uid"
+        }
       }
     },
-
     "friendRequests": {
       "$toUid": {
         ".read": "auth != null && (auth.uid === $toUid)",
@@ -100,7 +106,6 @@
         }
       }
     },
-
     "friends": {
       "$uid": {
         ".read": "auth != null && (auth.uid === $uid || root.child('users').child($uid).child('isPrivate').val() != true || root.child('friends').child(auth.uid).child($uid).exists())",
@@ -110,7 +115,6 @@
         }
       }
     },
-
     "followers": {
       "$uid": {
         ".read": "auth != null && auth.uid === $uid",
@@ -120,7 +124,6 @@
         }
       }
     },
-
     "following": {
       "$uid": {
         ".read": "auth != null && auth.uid === $uid",
@@ -130,14 +133,14 @@
         }
       }
     },
-
     "blockedUsers": {
       "$uid": {
         ".read": "auth != null && auth.uid === $uid",
-        "$blockedUid": { ".write": "auth != null && auth.uid === $uid" }
+        "$blockedUid": {
+          ".write": "auth != null && auth.uid === $uid"
+        }
       }
     },
-
     "conversations": {
       "$convId": {
         ".read": "auth != null && data.child('members').child(auth.uid).exists()",
@@ -149,7 +152,6 @@
         }
       }
     },
-
     "userConversations": {
       "$uid": {
         ".read": "auth != null && auth.uid === $uid",
@@ -158,11 +160,12 @@
         }
       }
     },
-
     "messages": {
       "$convId": {
         ".read": "auth != null && root.child('conversations').child($convId).child('members').child(auth.uid).exists()",
-        ".indexOn": ["createdAt"],
+        ".indexOn": [
+          "createdAt"
+        ],
         "$msgId": {
           ".write": "auth != null && root.child('conversations').child($convId).child('members').child(auth.uid).exists() && (!data.exists() ? newData.child('senderId').val() === auth.uid : data.child('senderId').val() === auth.uid)",
           "seenBy": {
@@ -173,7 +176,6 @@
         }
       }
     },
-
     "messageReactions": {
       "$convId": {
         "$msgId": {
@@ -184,7 +186,6 @@
         }
       }
     },
-
     "groupMembers": {
       "$convId": {
         ".read": "auth != null && root.child('conversations').child($convId).child('members').child(auth.uid).exists()",
@@ -193,7 +194,6 @@
         }
       }
     },
-
     "typing": {
       "$convId": {
         ".read": "auth != null && root.child('conversations').child($convId).child('members').child(auth.uid).exists()",
@@ -202,39 +202,42 @@
         }
       }
     },
-
     "presence": {
       ".read": "auth != null",
-      "$uid": { ".write": "auth != null && auth.uid === $uid" }
+      "$uid": {
+        ".write": "auth != null && auth.uid === $uid"
+      }
     },
-
     "notifications": {
       "$uid": {
         ".read": "auth != null && auth.uid === $uid",
-        ".indexOn": ["createdAt", "read"],
+        ".indexOn": [
+          "createdAt",
+          "read"
+        ],
         "$notifId": {
           ".write": "auth != null && ((!data.exists() && newData.child('fromUid').val() === auth.uid) || auth.uid === $uid)"
         }
       }
     },
-
     "messageNotifications": {
       "$uid": {
         ".read": "auth != null && auth.uid === $uid",
-        ".indexOn": ["createdAt", "read"],
+        ".indexOn": [
+          "createdAt",
+          "read"
+        ],
         "$notifId": {
           ".write": "auth != null && ((!data.exists() && newData.child('fromUid').val() === auth.uid) || auth.uid === $uid)"
         }
       }
     },
-
     "reports": {
       "$reportId": {
         ".read": "auth != null && data.child('reporterId').val() === auth.uid",
         ".write": "auth != null && !data.exists() && newData.child('reporterId').val() === auth.uid"
       }
     },
-
     "hashtags": {
       "$tag": {
         ".read": "auth != null",

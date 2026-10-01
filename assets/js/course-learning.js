@@ -305,12 +305,12 @@ function setupYoutubePlayer(videoId, youtubeUrl, autoplay = false) {
     const video = $('lessonMp4');
     const frame = $('lessonVideo');
     if (video && !video.classList.contains('hidden') && document.pictureInPictureEnabled && video.requestPictureInPicture) {
-      if (document.pictureInPictureElement) await document.exitPictureInPicture?.().catch(() => {});
-      else await video.requestPictureInPicture().catch(() => {});
+      if (document.pictureInPictureElement) await document.exitPictureInPicture?.().catch(() => { });
+      else await video.requestPictureInPicture().catch(() => { });
       return;
     }
     if (frame?.requestPictureInPicture && document.pictureInPictureEnabled) {
-      await frame.requestPictureInPicture().catch(() => {});
+      await frame.requestPictureInPicture().catch(() => { });
       return;
     }
     await togglePlayerFullscreen(wrap);
@@ -472,7 +472,7 @@ function setupWorkspaceSettings() {
 function playlist(target, compact = false) {
   const groups = new Map();
   lessons.forEach(lesson => { if (!groups.has(lesson.moduleId)) groups.set(lesson.moduleId, { title: lesson.moduleTitle, lessons: [] }); groups.get(lesson.moduleId).lessons.push(lesson); });
-  target.innerHTML = [...groups.values()].map(group => `<section class="module-block"><div class="module-title">${group.title || 'Course Content'}</div>${group.lessons.map((lesson, index) => { const isComplete = completed().has(lesson.id); const isCurrent = lesson.id === selectedLessonId; const unlocked = hasLessonAccess(lesson); const action = unlocked ? (hasCourseAccess() ? (isComplete ? 'Review' : 'Watch Now') : 'Watch Free') : (course?.accessStatus === 'pending' ? 'Enrollment Pending' : 'Locked'); const state = isComplete ? '<i class="fa-solid fa-check" aria-hidden="true"></i>' : unlocked ? (isCurrent ? '<i class="fa-solid fa-play" aria-hidden="true"></i>' : '<i class="fa-regular fa-circle" aria-hidden="true"></i>') : '<i class="fa-solid fa-lock" aria-hidden="true"></i>'; return `<button class="lesson-row ${isCurrent ? 'current' : ''} ${isComplete ? 'complete' : ''} ${unlocked ? '' : 'is-locked'}" data-lesson-id="${lesson.id}" type="button"><span class="lesson-state">${state}</span><span class="lesson-row-title">${index + 1}. ${lesson.title}</span><span class="lesson-row-meta"><span>${lesson.duration || '0 min'}</span><span class="lesson-row-action">${action}</span></span></button>`; }).join('')}</section>`).join('');
+  target.innerHTML = [...groups.values()].map(group => `<section class="module-block"><div class="module-title">${group.title || 'Course Content'}</div>${group.lessons.map((lesson, index) => { const isComplete = completed().has(lesson.id); const isCurrent = lesson.id === selectedLessonId; const unlocked = hasLessonAccess(lesson); const action = unlocked ? (hasCourseAccess() ? (isComplete ? 'Review' : 'Start') : 'Start') : (course?.accessStatus === 'pending' ? 'Enrollment Pending' : 'Locked'); const state = isComplete ? '<i class="fa-solid fa-check" aria-hidden="true"></i>' : unlocked ? (isCurrent ? '<i class="fa-solid fa-play" aria-hidden="true"></i>' : '<i class="fa-regular fa-circle" aria-hidden="true"></i>') : '<i class="fa-solid fa-lock" aria-hidden="true"></i>'; return `<button class="lesson-row ${isCurrent ? 'current' : ''} ${isComplete ? 'complete' : ''} ${unlocked ? '' : 'is-locked'}" data-lesson-id="${lesson.id}" type="button"><span class="lesson-state">${state}</span><span class="lesson-row-title">${index + 1}. ${lesson.title}</span><span class="lesson-row-meta"><span>${lesson.duration || '0 min'}</span><span class="lesson-row-action">${action}</span></span></button>`; }).join('')}</section>`).join('');
   target.querySelectorAll('[data-lesson-id]').forEach(button => button.addEventListener('click', () => go(button.dataset.lessonId)));
 }
 function renderOverview() {
@@ -657,7 +657,7 @@ function bindCheckout() {
     ].join('\n');
     window.open(`https://wa.me/8801644171751?text=${encodeURIComponent(proofText)}`, '_blank', 'noopener,noreferrer');
   });
-  $('checkoutShareBtn')?.addEventListener('click', async () => { const url = location.href; if (navigator.share) await navigator.share({ title: course.title, url }).catch(() => {}); else { await navigator.clipboard?.writeText(url); $('checkoutStatus').textContent = 'Link copied!'; } });
+  $('checkoutShareBtn')?.addEventListener('click', async () => { const url = location.href; if (navigator.share) await navigator.share({ title: course.title, url }).catch(() => { }); else { await navigator.clipboard?.writeText(url); $('checkoutStatus').textContent = 'Link copied!'; } });
 }
 function renderPlayer() {
   const lesson = currentLesson();
@@ -680,12 +680,12 @@ function renderPlayer() {
   youtubeLink.classList.toggle('hidden', lesson.showYoutubeLink !== true || !youtubeUrl);
   youtubeLink.href = youtubeUrl;
   const autoplayRequested = new URLSearchParams(location.search).get('autoplay') === '1';
-  
+
   if (source?.type === 'mp4') {
     $('lessonMp4').classList.remove('hidden');
     $('lessonMp4').src = source.url;
     setupCustomVideoPlayer(true);
-    if (autoplayRequested || workspaceSettings.autoplay) $('lessonMp4').play().catch(() => {});
+    if (autoplayRequested || workspaceSettings.autoplay) $('lessonMp4').play().catch(() => { });
   } else if (source?.type === 'youtube' && id) {
     ensureLessonVideoFrame();
     $('lessonVideo').classList.remove('hidden');
@@ -697,18 +697,18 @@ function renderPlayer() {
     unavailable.innerHTML = '<i class="fa-solid fa-video-slash" aria-hidden="true"></i><strong>Video is not available yet</strong><span>The lesson is published, but its YouTube or MP4 video URL has not been loaded. Please ask the course admin to publish the lesson video and deploy the Firestore rules.</span>';
     videoWrap?.appendChild(unavailable);
   }
-  
+
   if (videoWrap && !videoWrap.dataset.controlsReady) {
     videoWrap.dataset.controlsReady = 'true';
     const requestFullscreen = async target => {
       const method = target?.requestFullscreen || target?.webkitRequestFullscreen;
-      if (method) await method.call(target).catch(() => {});
+      if (method) await method.call(target).catch(() => { });
     };
     const enterFullscreen = async event => {
       event?.preventDefault();
       if (document.fullscreenElement || document.webkitFullscreenElement) {
         const exit = document.exitFullscreen || document.webkitExitFullscreen;
-        if (exit) await exit.call(document).catch(() => {});
+        if (exit) await exit.call(document).catch(() => { });
         return;
       }
       await requestFullscreen(videoWrap);
@@ -745,7 +745,7 @@ document.addEventListener('keydown', event => {
   }
   if (event.key === ' ' || event.key === 'k' || event.key === 'K') {
     event.preventDefault();
-    if (usingMp4) video.paused ? video.play().catch(() => {}) : video.pause();
+    if (usingMp4) video.paused ? video.play().catch(() => { }) : video.pause();
     else youtubePlayer.getPlayerState?.() === 1 ? youtubePlayer.pauseVideo() : youtubePlayer.playVideo();
   }
 });

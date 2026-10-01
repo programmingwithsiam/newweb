@@ -6,34 +6,34 @@
    ========================================================= */
 
 /* ---------- Ambient background dust (quiet, no connecting lines) ---------- */
-export function initParticles(){
+export function initParticles() {
   const canvas = document.getElementById('particles');
-  if(!canvas) return;
+  if (!canvas) return;
   const ctx = canvas.getContext('2d');
   let w, h, dots;
 
-  function resize(){
+  function resize() {
     w = canvas.width = window.innerWidth;
     h = canvas.height = document.documentElement.scrollHeight;
   }
   resize();
   window.addEventListener('resize', resize);
 
-  const count = Math.min(36, Math.floor(window.innerWidth/40));
-  dots = Array.from({length: count}, () => ({
-    x: Math.random()*w, y: Math.random()*h,
-    vy: -(Math.random()*0.12 + 0.03),
-    r: Math.random()*1.3+0.5
+  const count = Math.min(36, Math.floor(window.innerWidth / 40));
+  dots = Array.from({ length: count }, () => ({
+    x: Math.random() * w, y: Math.random() * h,
+    vy: -(Math.random() * 0.12 + 0.03),
+    r: Math.random() * 1.3 + 0.5
   }));
 
-  function draw(){
-    ctx.clearRect(0,0,w,h);
+  function draw() {
+    ctx.clearRect(0, 0, w, h);
     ctx.fillStyle = 'rgba(255,212,59,0.28)';
-    dots.forEach(p=>{
+    dots.forEach(p => {
       p.y += p.vy;
-      if(p.y < -10) p.y = h + 10;
+      if (p.y < -10) p.y = h + 10;
       ctx.beginPath();
-      ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
       ctx.fill();
     });
     requestAnimationFrame(draw);
@@ -41,61 +41,131 @@ export function initParticles(){
   draw();
 }
 
-/* ---------- Section activation and smooth nav ---------- */
-export function activateSection(sectionId){
-  const allowed = new Set(['home','about','skills','ml','projects','course','contact']);
-  const target = allowed.has(sectionId) ? sectionId : 'home';
-  const focusTargets = document.querySelectorAll('.hero, .section');
+/* ---------- Hash-based portfolio pages ---------- */
+const portfolioPages = new Set(['home', 'about', 'projects', 'learn', 'community', 'contact']);
 
-  focusTargets.forEach((node) => {
-    const nodeId = node.id || '';
-    const matches = nodeId === target || (target === 'home' && nodeId === 'contact');
-    node.classList.toggle('is-visible', matches);
-    node.classList.toggle('is-hidden', !matches);
-  });
-
-  document.querySelectorAll('#nav a[href^="#"]').forEach((link) => {
-    const href = link.getAttribute('href');
-    link.classList.toggle('is-current', href === `#${target}`);
-  });
-
-  const finalPath = target === 'home' ? '/' : `#${target}`;
-  if (window.location.pathname !== '/' || window.location.hash !== finalPath.replace('/', '')) {
-    window.history.pushState({}, '', finalPath);
-  }
-
-  const targetNode = document.getElementById(target);
-  if (targetNode) {
-    requestAnimationFrame(() => {
-      targetNode.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    });
-  }
+function normalizePage(page) {
+  if (page === 'course') return 'learn';
+  return portfolioPages.has(page) ? page : null;
 }
 
-function bindSingleSectionNavigation(){
-  document.querySelectorAll('a[href^="#"]').forEach((link) => {
-    const sectionId = link.getAttribute('href')?.replace('#', '');
-    if (!sectionId || !document.getElementById(sectionId)) return;
+let currentPortfolioPage = 'home';
 
+function renderPortfolioPage(page, { scrollToTop = true } = {}) {
+  currentPortfolioPage = page;
+  document.querySelectorAll('section[data-page]').forEach((section) => {
+    const isShared = section.hasAttribute('data-page-shared');
+    section.classList.toggle('page-hidden', !isShared && section.dataset.page !== page);
+  });
+
+  document.querySelectorAll('#nav a[data-page-link]').forEach((link) => {
+    const isActive = link.dataset.pageLink === page;
+    link.classList.toggle('is-current', isActive);
+    if (isActive) link.setAttribute('aria-current', 'page');
+    else link.removeAttribute('aria-current');
+  });
+
+  if (scrollToTop) window.scrollTo(0, 0);
+}
+
+export function activateSection(sectionId) {
+  const route = String(sectionId || '').replace(/^#/, '');
+  const target = normalizePage(route);
+  if (!target) {
+    const anchor = document.getElementById(route);
+    const owningPage = normalizePage(anchor?.closest('section[data-page]')?.dataset.page);
+    if (!anchor) return;
+    if (owningPage && owningPage !== currentPortfolioPage) {
+      renderPortfolioPage(owningPage, { scrollToTop: false });
+    }
+    requestAnimationFrame(() => anchor.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+    return;
+  }
+  if (window.location.hash !== `#${target}`) window.location.hash = target;
+  renderPortfolioPage(target);
+}
+
+function bindSingleSectionNavigation() {
+  let initialized = false;
+  const updatePage = () => {
+    const route = decodeURIComponent(window.location.hash.slice(1));
+    if (!route) {
+      if (initialized) return;
+      window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}#home`);
+      renderPortfolioPage('home');
+      initialized = true;
+      return;
+    }
+
+    const page = normalizePage(route);
+    if (page) {
+      renderPortfolioPage(page);
+      initialized = true;
+      return;
+    }
+
+    const anchor = document.getElementById(route);
+    if (anchor) {
+      const owningPage = normalizePage(anchor.closest('section[data-page]')?.dataset.page);
+      if (owningPage) renderPortfolioPage(owningPage, { scrollToTop: false });
+      requestAnimationFrame(() => anchor.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+    } else if (!initialized) {
+      renderPortfolioPage('home');
+    }
+    initialized = true;
+  };
+
+  window.addEventListener('hashchange', updatePage);
+  updatePage();
+
+  document.querySelectorAll('a[data-page-link]').forEach((link) => {
     link.addEventListener('click', (event) => {
-      const target = link.getAttribute('href')?.replace('#', '');
-      if (!target) return;
       event.preventDefault();
-      activateSection(target);
+      activateSection(link.dataset.pageLink);
       document.getElementById('nav')?.classList.remove('open');
     });
   });
 }
 
+function bindNavActiveObserver() {
+  const navLinks = [...document.querySelectorAll('#nav a[href^="#"]')];
+  const sections = navLinks
+    .map(link => link.getAttribute('href')?.replace('#', ''))
+    .filter(Boolean)
+    .map(id => document.getElementById(id))
+    .filter(Boolean);
+
+  if (!sections.length) return;
+
+  const observer = new IntersectionObserver((entries) => {
+    const visible = entries
+      .filter(entry => entry.isIntersecting)
+      .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+
+    if (!visible) return;
+
+    const targetId = visible.target.id;
+    navLinks.forEach(link => {
+      const href = link.getAttribute('href');
+      link.classList.toggle('is-current', href === `#${targetId}`);
+    });
+  }, {
+    threshold: [0.2, 0.4, 0.7],
+    rootMargin: '-10% 0px -45% 0px'
+  });
+
+  sections.forEach(section => observer.observe(section));
+}
+
 /* ---------- Header scroll state + smooth nav ---------- */
-export function initHeader(){
+export function initHeader() {
   const header = document.getElementById('header');
-  if(!header) return;
+  if (!header) return;
   window.addEventListener('scroll', () => {
     header.classList.toggle('scrolled', window.scrollY > 30);
   });
 
-  document.querySelectorAll('#nav a').forEach(a=>{
+  document.querySelectorAll('#nav a').forEach(a => {
     a.addEventListener('click', () => {
       document.getElementById('nav')?.classList.remove('open');
     });
@@ -104,36 +174,36 @@ export function initHeader(){
 }
 
 /* ---------- Mobile menu toggle ---------- */
-export function initMobileMenu(){
+export function initMobileMenu() {
   const btn = document.getElementById('menuBtn');
   const nav = document.getElementById('nav');
   btn?.addEventListener('click', () => nav?.classList.toggle('open'));
 }
 
 /* ---------- Typed hero text effect ---------- */
-export function initTypedText(){
+export function initTypedText() {
   const el = document.getElementById('typed-text');
-  if(!el) return;
+  if (!el) return;
   const phrases = [
     'AI Engineer', 'Data Scientist', 'Python Developer',
     'ML Researcher', 'Computer Vision Enthusiast'
   ];
   let pIdx = 0, charIdx = 0, deleting = false;
 
-  function tick(){
+  function tick() {
     const phrase = phrases[pIdx];
-    if(!deleting){
+    if (!deleting) {
       el.textContent = phrase.slice(0, ++charIdx);
-      if(charIdx === phrase.length){
+      if (charIdx === phrase.length) {
         deleting = true;
         setTimeout(tick, 1400);
         return;
       }
     } else {
       el.textContent = phrase.slice(0, --charIdx);
-      if(charIdx === 0){
+      if (charIdx === 0) {
         deleting = false;
-        pIdx = (pIdx+1) % phrases.length;
+        pIdx = (pIdx + 1) % phrases.length;
       }
     }
     setTimeout(tick, deleting ? 45 : 85);
@@ -142,53 +212,53 @@ export function initTypedText(){
 }
 
 /* ---------- Scroll reveal animation ---------- */
-export function initRevealOnScroll(){
+export function initRevealOnScroll() {
   const items = document.querySelectorAll('.reveal');
-  const obs = new IntersectionObserver((entries)=>{
-    entries.forEach(e=>{
-      if(e.isIntersecting){
+  const obs = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
         e.target.classList.add('in');
         obs.unobserve(e.target);
       }
     });
-  }, { threshold:0.15 });
-  items.forEach(i=>obs.observe(i));
+  }, { threshold: 0.15 });
+  items.forEach(i => obs.observe(i));
 }
 
 /* ---------- 3D tilt on cards with mouse move ---------- */
-export function initTiltCards(){
+export function initTiltCards() {
   const cards = document.querySelectorAll('.tilt-card');
   const maxTilt = 7;
 
-  cards.forEach(card=>{
-    card.addEventListener('mousemove', (e)=>{
+  cards.forEach(card => {
+    card.addEventListener('mousemove', (e) => {
       const rect = card.getBoundingClientRect();
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
-      const cx = rect.width/2, cy = rect.height/2;
-      const rotX = ((y-cy)/cy) * -maxTilt;
-      const rotY = ((x-cx)/cx) * maxTilt;
+      const cx = rect.width / 2, cy = rect.height / 2;
+      const rotX = ((y - cy) / cy) * -maxTilt;
+      const rotY = ((x - cx) / cx) * maxTilt;
       card.style.transform = `perspective(800px) rotateX(${rotX}deg) rotateY(${rotY}deg) translateY(-4px)`;
     });
-    card.addEventListener('mouseleave', ()=>{
+    card.addEventListener('mouseleave', () => {
       card.style.transform = 'perspective(800px) rotateX(0) rotateY(0) translateY(0)';
     });
   });
 }
 
 /* ---------- Hero 3D parallax (mouse-follow) ---------- */
-export function initHero3dParallax(){
-  document.addEventListener('mousemove', (e)=>{
+export function initHero3dParallax() {
+  document.addEventListener('mousemove', (e) => {
     const stage = document.getElementById('hero3d');
-    if(!stage) return;
-    const x = (e.clientX/window.innerWidth - 0.5) * 14;
-    const y = (e.clientY/window.innerHeight - 0.5) * 14;
+    if (!stage) return;
+    const x = (e.clientX / window.innerWidth - 0.5) * 14;
+    const y = (e.clientY / window.innerHeight - 0.5) * 14;
     stage.style.transform = `rotateY(${x}deg) rotateX(${-y}deg)`;
   });
 }
 
 /* ---------- Skill bars (static, no animation needed) ---------- */
-export function initSkillBars(){
+export function initSkillBars() {
   // Skill tags are static; no animation needed
   // See .skill-tag in style.css for styling
 }

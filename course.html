@@ -1,5 +1,6 @@
 <!doctype html>
 <html lang="en">
+
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -21,312 +22,2006 @@
   <link rel="stylesheet" href="assets/css/style.css?v=20260824-payment-options-2">
   <link rel="stylesheet" href="assets/css/course-learning.css">
   <style>
-    .access-payment-panel, .payment-submit-panel, .learning-payment-panel, .course-payment-panel { display: none !important; }
-    #courseCheckout { display: grid; gap: 14px; margin-top: 18px; padding: 18px; border: 1px solid #273142; border-radius: 8px; background: #101722; }
-    .learning-state { width: min(100% - 32px, 560px); min-height: 280px; margin: 8vh auto; padding: 42px 32px; display: grid; place-items: center; align-content: center; gap: 12px; border: 1px solid rgba(255,255,255,.1); border-radius: 16px; background: rgba(14,18,29,.82); box-shadow: 0 24px 70px rgba(0,0,0,.22); text-align: center; }
-    .learning-state > i { display: grid; width: 48px; height: 48px; place-items: center; border-radius: 14px; color: #a8c1ff; background: rgba(122,162,255,.14); font-size: 1.2rem; }
-    #learningLogin { position: relative; overflow: hidden; width: min(100% - 32px, 560px); padding: 38px 34px 36px; border-color: rgba(142,175,255,.34); border-radius: 20px; background: radial-gradient(circle at 50% 0%, rgba(142,175,255,.14), transparent 44%), linear-gradient(145deg, rgba(20,27,42,.99), rgba(9,13,22,.99)); box-shadow: 0 28px 90px rgba(0,0,0,.38), 0 0 0 1px rgba(255,255,255,.035) inset; }
-    #learningLogin::before { content: ''; position: absolute; inset: 0 0 auto; height: 3px; background: linear-gradient(90deg, #8eafff, #9347ff); }
-    #learningLogin .access-state-icon { width: 64px; height: 64px; margin-bottom: 4px; border-color: rgba(201,243,91,.45); border-radius: 20px; color: #c9f35b; background: rgba(201,243,91,.1); box-shadow: 0 10px 28px rgba(0,0,0,.24); font-size: 1.45rem; }
-    #learningLogin .access-intro { gap: 9px; }
-    #learningLogin .access-intro .learning-eyebrow { color: #c9f35b; letter-spacing: .16em; font-size: .68rem; font-weight: 800; }
-    #learningLogin .access-intro h1 { max-width: 100%; margin: 0; color: #f5f7fb; font-size: clamp(1.55rem, 4vw, 2.1rem); line-height: 1.15; }
-    #learningLogin .access-intro strong { margin: 2px 0 4px; color: #c9f35b; font-size: 1.7rem; }
-    #learningLogin #learningGateTitle { margin: 22px 0 0; font-size: clamp(1.35rem, 3vw, 1.8rem); }
-    #learningLogin #learningGateText { margin: 0; max-width: 470px; color: #aab5c7; }
-    #learningLogin #accessContinueBtn { min-width: 148px; border-radius: 9px; box-shadow: 0 10px 24px rgba(142,175,255,.16); }
-    @media (max-width: 520px) { #learningLogin { width: min(100% - 20px, 620px); padding: 34px 20px 30px; } }
-    .access-state-icon { display: grid; width: 58px; height: 58px; place-items: center; border: 1px solid rgba(142,175,255,.35); border-radius: 16px; color: #c6d5ff; background: rgba(122,162,255,.12); font-size: 1.35rem; }
-    #learningGateTitle { letter-spacing: -.02em; }
-    #learningGoogleBtn, #refreshAccessBtn { display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-width: 220px; }
-    .loading-spinner { width: 34px; height: 34px; border: 3px solid rgba(255,255,255,.14); border-top-color: #8eafff; border-radius: 50%; animation: course-spin .75s linear infinite; }
-    @keyframes course-spin { to { transform: rotate(360deg); } }
-    .learning-state h1 { margin: 0; font-size: clamp(1.45rem, 4vw, 2rem); }
-    .learning-state p { max-width: 420px; margin: 0; color: var(--learning-muted); line-height: 1.6; }
-    .course-error-card { display: grid; place-items: center; gap: 12px; }
-    .course-error-card .learning-button { margin-top: 6px; text-decoration: none; }
-    .lesson-locked-state { width: min(100% - 32px, 620px); min-height: 360px; margin: 8vh auto; padding: 42px 32px; border: 1px solid rgba(201,243,91,.24); border-radius: 18px; background: linear-gradient(145deg, rgba(21,28,25,.98), rgba(11,16,15,.98)); box-shadow: 0 24px 70px rgba(0,0,0,.28); }
-    .lesson-locked-state .locked-icon { display: grid; width: 64px; height: 64px; place-items: center; border: 1px solid rgba(201,243,91,.36); border-radius: 18px; color: #c9f35b; background: rgba(201,243,91,.1); font-size: 1.35rem; }
-    .lesson-locked-state h1 { max-width: 480px; margin: 0; color: #f2f3e9; font-size: clamp(1.45rem, 4vw, 2rem); line-height: 1.2; }
-    .lesson-locked-state p:not(.learning-eyebrow) { max-width: 430px; margin: 0; color: #a4ada2; line-height: 1.6; }
-    @media (max-width: 520px) { .lesson-locked-state { width: min(100% - 20px, 620px); padding: 34px 20px 30px; } }
-    .payment-submit-panel { width: min(100%, 460px); margin: 22px auto 0; padding: 20px; border: 1px solid rgba(255,255,255,.1); border-radius: 12px; background: rgba(255,255,255,.035); text-align: left; }
-    .payment-submit-panel h2 { margin: 0 0 6px; font-size: 1.1rem; }
-    .payment-submit-panel p { color: var(--learning-muted); font-size: .8rem; line-height: 1.5; }
-    .payment-submit-panel label { display: grid; gap: 7px; margin-top: 12px; color: var(--learning-muted); font-size: .8rem; }
-    .payment-submit-panel input, .payment-submit-panel select { width: 100%; min-height: 42px; padding: 9px 11px; border: 1px solid rgba(255,255,255,.14); border-radius: 8px; color: var(--learning-text); background: rgba(0,0,0,.2); }
-    .payment-submit-panel .learning-button { width: 100%; margin-top: 14px; }
-    .payment-choice-title { margin-top: 10px; font-size: .85rem; }
-    .payment-course-title { color: var(--learning-text) !important; font-size: 1rem !important; font-weight: 700; }
-    .enrollment-success { margin: 10px 0 0; color: #67d99d !important; font-size: .82rem; font-weight: 700; }
-    .payment-method-picker { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
-    .payment-method-choice { min-height: 38px; padding: 8px 10px; border: 1px solid rgba(255,255,255,.14); border-radius: 8px; color: var(--learning-text); background: rgba(255,255,255,.035); cursor: pointer; transition: .18s ease; }
-    .payment-method-choice:hover, .payment-method-choice.active { border-color: #8eafff; color: #c6d5ff; background: rgba(122,162,255,.15); }
-    .payment-method-details { display: grid; gap: 7px; padding: 12px; border: 1px solid rgba(255,255,255,.1); border-radius: 8px; background: rgba(0,0,0,.14); overflow: hidden; }
-    .payment-method-details p { margin: 0; line-height: 1.45; }
-    .payment-method-details b { color: var(--learning-text); }
-    .copy-payment-number { justify-self: start; padding: 6px 9px; border: 1px solid rgba(255,255,255,.16); border-radius: 6px; color: var(--learning-text); background: rgba(255,255,255,.06); cursor: pointer; }
-    .payment-qr-panel:empty { display: none; }
-    .payment-qr-panel img { display: block; width: 120px; aspect-ratio: 1; object-fit: contain; border-radius: 6px; background: #fff; }
-    .checkout-progress { display: flex; justify-content: center; gap: 22px; margin-bottom: 20px; color: var(--learning-muted); }
-    .checkout-progress span { display: grid; width: 26px; height: 26px; place-items: center; border: 1px solid rgba(255,255,255,.16); border-radius: 50%; font-size: .72rem; }
-    .checkout-progress span.active { border-color: #8eafff; color: #c6d5ff; background: rgba(122,162,255,.16); }
-    .access-intro { display: grid; justify-items: center; gap: 10px; }
-    .access-intro > i { color: #a8c1ff; font-size: 1.4rem; }
-    .access-intro h1 { margin: 0; }
-    .access-intro strong { color: #a8c1ff; font-size: 1.8rem; }
-    .lesson-video-wrap video { width: 100%; height: 100%; object-fit: contain; background: #000; }
-    .lesson-video-unavailable { min-height: 260px; display: grid; place-items: center; align-content: center; gap: 10px; padding: 32px; color: #aab5c7; background: #090d15; text-align: center; }
-    .lesson-video-unavailable i { color: #8eafff; font-size: 1.5rem; }
-    .lesson-video-unavailable strong { color: #f2f5fb; font-size: 1.05rem; }
-    .lesson-video-unavailable span { max-width: 500px; font-size: .82rem; line-height: 1.6; }
-    .lesson-video-wrap.is-custom-player, .lesson-video-wrap.is-youtube-player { position: relative; background: #000; }
-    .custom-video-controls, .youtube-video-controls { position: absolute; right: 0; bottom: 0; left: 0; display: grid; gap: 8px; padding: 12px; color: #fff; background: linear-gradient(transparent, rgba(0,0,0,.9)); opacity: 0; transition: opacity .2s ease; }
-    .lesson-video-wrap.is-custom-player:hover .custom-video-controls, .lesson-video-wrap.is-custom-player:focus-within .custom-video-controls, .lesson-video-wrap.is-youtube-player:hover .youtube-video-controls, .lesson-video-wrap.is-youtube-player:focus-within .youtube-video-controls { opacity: 1; }
-    .custom-video-progress { width: 100%; accent-color: #9347ff; cursor: pointer; }
-      .custom-video-toolbar, .youtube-video-toolbar { display: flex; align-items: center; gap: 10px; }
-    .custom-video-toolbar button, .youtube-video-toolbar button { border: 0; padding: 4px 7px; color: #fff; background: transparent; cursor: pointer; }
-    .custom-video-toolbar button:hover, .youtube-video-toolbar button:hover { color: #ffd43b; }
-    .custom-video-toolbar button[data-video-action^="seek-"], .youtube-video-toolbar button[data-youtube-action^="seek-"] { position: relative; }
-    .custom-video-toolbar button[data-video-action^="seek-"] small, .youtube-video-toolbar button[data-youtube-action^="seek-"] small { position: absolute; inset: 0; display: grid; place-items: center; color: inherit; font-size: .48rem; font-weight: 800; pointer-events: none; }
-    .custom-video-toolbar select, .youtube-video-toolbar select { min-height: 28px; padding: 3px 5px; border: 1px solid rgba(255,255,255,.18); border-radius: 5px; color: #fff; background: rgba(0,0,0,.55); font-size: .72rem; }
-    .custom-video-toolbar select:focus, .youtube-video-toolbar select:focus { outline: 1px solid #8eafff; }
-    .video-caption-button { border: 1px solid rgba(255,255,255,.18) !important; border-radius: 5px; }
-    .custom-video-time, .youtube-video-time { margin-right: auto; color: #d7dce7; font-size: .78rem; }
-    .youtube-video-controls { z-index: 2; opacity: 1; background: linear-gradient(transparent, rgba(12,15,20,.96) 34%); }
-    .youtube-video-progress { width: 100%; accent-color: #8eafff; cursor: pointer; }
-    .youtube-video-brand { display: none !important; }
-    .youtube-click-shield { display: none; position: absolute; top: 0; z-index: 3; height: 52px; pointer-events: auto; }
-    .lesson-video-wrap.is-youtube-player .youtube-click-shield { display: block; }
-    .youtube-click-shield.left { left: 0; width: 132px; }
-    .youtube-click-shield.right { right: 0; width: 150px; }
-    .lesson-workspace-tools { display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 8px; }
-    .workspace-settings-button { display: inline-flex; align-items: center; gap: 7px; min-height: 34px; padding: 0 11px; border: 1px solid #334158; border-radius: 6px; color: #d7dce7; background: #111722; cursor: pointer; }
-    .workspace-settings-button:hover { border-color: #8eafff; color: #fff; }
-    .workspace-settings { position: relative; }
-    .workspace-settings-menu { position: absolute; top: calc(100% + 7px); right: 0; z-index: 50; display: grid; min-width: 190px; padding: 5px; border: 1px solid #334158; border-radius: 7px; background: #111722; box-shadow: 0 14px 32px rgba(0,0,0,.4); }
-    .workspace-settings-menu[hidden] { display: none; }
-    .workspace-setting { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 10px; color: #d7dce7; font-size: .78rem; cursor: pointer; }
-    .workspace-setting:hover { background: rgba(142,175,255,.1); }
-    .workspace-setting input { width: 16px; height: 16px; accent-color: #8eafff; }
-    .lesson-screen.sidebar-hidden { grid-template-columns: minmax(0, 1fr); }
-    .lesson-screen.sidebar-hidden .lesson-sidebar { display: none; }
-    .youtube-video-toolbar { min-height: 28px; }
-    .custom-video-toolbar button, .youtube-video-toolbar button { position: relative; display: grid; width: 30px; height: 30px; place-items: center; border-radius: 5px; font-size: .86rem; }
-    .youtube-video-toolbar button, .youtube-external-button { display: grid; width: 30px; height: 30px; place-items: center; border-radius: 5px; }
-    .youtube-video-toolbar button:hover, .youtube-external-button:hover { background: rgba(255,255,255,.12); }
-    .youtube-external-button { color: #fff; text-decoration: none; }
-    .youtube-external-button:hover { color: #ff3347; }
-    .lesson-youtube-link { display: inline-block; margin-top: 10px; color: var(--learning-accent-2); font-size: .8rem; }
-    .lesson-youtube-link.hidden { display: none; }
-    .learning-payment-panel { display: grid; grid-template-columns: 1fr; gap: 14px; margin: 18px 0; padding: 14px; border: 1px solid rgba(147,71,255,.28); border-radius: 8px; background: rgba(147,71,255,.07); }
-    .learning-payment-panel > div { display: grid; gap: 5px; }
-    .learning-payment-panel strong { color: var(--learning-accent-2); font-size: 1.2rem; }
-    .learning-payment-panel span { color: var(--learning-muted); font-size: .75rem; }
-    .learning-payment-panel .course-payment-methods { gap: 8px !important; text-align: left; }
-    .learning-payment-panel .course-payment-methods a { display: flex; align-items: center; gap: 7px; padding: 7px 0; color: var(--learning-text); font-size: .8rem; text-decoration: none; }
-    .learning-payment-panel .course-payment-methods a:hover { color: var(--learning-accent-2); }
-    .learning-payment-panel .course-payment-methods i { width: 18px; color: var(--learning-accent); }
-    .learning-payment-panel .course-payment-methods b { color: var(--learning-muted); font-weight: 500; }
-    .access-payment-panel { width: min(100%, 460px); margin: 22px auto 0; text-align: left; }
-    .access-payment-panel .course-payment-methods { display: grid; gap: 6px; }
-    .access-payment-panel .course-payment-methods a { display: flex; align-items: center; gap: 8px; padding: 7px 0; color: var(--learning-text); text-decoration: none; }
-    .access-payment-panel .course-payment-methods i { width: 18px; color: var(--learning-accent); }
-    .access-payment-panel .course-payment-methods b { margin-left: auto; color: var(--learning-muted); font-weight: 500; }
-    .course-payment-methods a { border: 1px solid rgba(255,255,255,.08); border-radius: 6px; padding: 9px 10px !important; background: rgba(255,255,255,.025); }
-    .course-sales-panels { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; margin-top: 26px; }
-    .sales-panel, .faq-panel { border: 1px solid #273142; border-radius: 12px; background: #111722; box-shadow: 0 18px 50px rgba(0,0,0,.14); }
-    .sales-panel { padding: 20px 22px; }
-    .sales-panel h3, .faq-header h3 { margin: 8px 0 0; font-size: 1.08rem; }
-    .sales-panel ul { margin: 14px 0 0; padding-left: 18px; color: var(--learning-muted); line-height: 1.7; }
-    .faq-panel { margin-top: 20px; padding: 20px 22px; }
-    .faq-header { margin-bottom: 10px; }
-    .faq-list { display: grid; gap: 12px; }
-    .faq-list details { border: 1px solid rgba(255,255,255,.09); border-radius: 10px; background: rgba(255,255,255,.02); }
-    .faq-list summary { list-style: none; cursor: pointer; padding: 14px 16px; font-weight: 600; color: var(--learning-text); }
-    .faq-list summary::-webkit-details-marker { display: none; }
-    .faq-list p { margin: 0; padding: 0 16px 14px; color: var(--learning-muted); line-height: 1.6; }
-    .payment-brand { display: grid; flex: 0 0 34px; width: 34px; height: 34px; place-items: center; overflow: hidden; border-radius: 8px; background: #fff; }
-    .payment-brand img { display: block; width: 26px; height: 26px; object-fit: contain; }
-    .payment-brand-fallback { display: block; font-size: .72rem; font-weight: 900; }
-    .payment-brand.bkash .payment-brand-fallback { color: #e2136e; }
-    .payment-brand.rocket .payment-brand-fallback { color: #6d3fd4; }
-    .payment-action { margin-left: auto; padding: 3px 7px; border: 1px solid rgba(255,255,255,.12); border-radius: 999px; color: var(--learning-muted); font-size: .62rem; white-space: nowrap; }
-    .course-payment-methods a:first-child { border-color: rgba(226,58,116,.28); }
-    .course-payment-methods a:nth-child(2) { border-color: rgba(121,79,214,.32); }
-    .course-payment-methods a:first-child i { color: #e23a74; }
-    .course-payment-methods a:nth-child(2) i { color: #8b5cf6; }
-    .payment-qr-panel { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 12px; }
-    .payment-qr-card { display: grid; gap: 6px; justify-items: center; padding: 8px; border: 1px solid rgba(255,255,255,.1); border-radius: 7px; background: rgba(0,0,0,.16); color: var(--learning-muted); font-size: .68rem; text-align: center; }
-    .payment-qr-card img { display: block; width: 100%; max-width: 112px; aspect-ratio: 1; object-fit: contain; background: #fff; border-radius: 4px; }
-    .payment-qr-card strong { color: var(--learning-text); font-size: .72rem; }
-    .payment-qr-card.is-empty { align-content: center; min-height: 130px; }
-    @media (max-width: 520px) { .payment-qr-panel { grid-template-columns: 1fr; } .payment-qr-card { grid-template-columns: 72px 1fr; align-items: center; justify-items: start; text-align: left; } .payment-qr-card img { width: 72px; } .payment-qr-card.is-empty { min-height: 72px; } }
+    .access-payment-panel,
+    .payment-submit-panel,
+    .learning-payment-panel,
+    .course-payment-panel {
+      display: none !important;
+    }
+
+    #courseCheckout {
+      display: grid;
+      gap: 14px;
+      margin-top: 18px;
+      padding: 18px;
+      border: 1px solid #273142;
+      border-radius: 8px;
+      background: #101722;
+    }
+
+    .learning-state {
+      width: min(100% - 32px, 560px);
+      min-height: 280px;
+      margin: 8vh auto;
+      padding: 42px 32px;
+      display: grid;
+      place-items: center;
+      align-content: center;
+      gap: 12px;
+      border: 1px solid rgba(255, 255, 255, .1);
+      border-radius: 16px;
+      background: rgba(14, 18, 29, .82);
+      box-shadow: 0 24px 70px rgba(0, 0, 0, .22);
+      text-align: center;
+    }
+
+    .learning-state>i {
+      display: grid;
+      width: 48px;
+      height: 48px;
+      place-items: center;
+      border-radius: 14px;
+      color: #a8c1ff;
+      background: rgba(122, 162, 255, .14);
+      font-size: 1.2rem;
+    }
+
+    #learningLogin {
+      position: relative;
+      overflow: hidden;
+      width: min(100% - 32px, 560px);
+      padding: 38px 34px 36px;
+      border-color: rgba(142, 175, 255, .34);
+      border-radius: 20px;
+      background: radial-gradient(circle at 50% 0%, rgba(142, 175, 255, .14), transparent 44%), linear-gradient(145deg, rgba(20, 27, 42, .99), rgba(9, 13, 22, .99));
+      box-shadow: 0 28px 90px rgba(0, 0, 0, .38), 0 0 0 1px rgba(255, 255, 255, .035) inset;
+    }
+
+    #learningLogin::before {
+      content: '';
+      position: absolute;
+      inset: 0 0 auto;
+      height: 3px;
+      background: linear-gradient(90deg, #8eafff, #9347ff);
+    }
+
+    #learningLogin .access-state-icon {
+      width: 64px;
+      height: 64px;
+      margin-bottom: 4px;
+      border-color: rgba(201, 243, 91, .45);
+      border-radius: 20px;
+      color: #c9f35b;
+      background: rgba(201, 243, 91, .1);
+      box-shadow: 0 10px 28px rgba(0, 0, 0, .24);
+      font-size: 1.45rem;
+    }
+
+    #learningLogin .access-intro {
+      gap: 9px;
+    }
+
+    #learningLogin .access-intro .learning-eyebrow {
+      color: #c9f35b;
+      letter-spacing: .16em;
+      font-size: .68rem;
+      font-weight: 800;
+    }
+
+    #learningLogin .access-intro h1 {
+      max-width: 100%;
+      margin: 0;
+      color: #f5f7fb;
+      font-size: clamp(1.55rem, 4vw, 2.1rem);
+      line-height: 1.15;
+    }
+
+    #learningLogin .access-intro strong {
+      margin: 2px 0 4px;
+      color: #c9f35b;
+      font-size: 1.7rem;
+    }
+
+    #learningLogin #learningGateTitle {
+      margin: 22px 0 0;
+      font-size: clamp(1.35rem, 3vw, 1.8rem);
+    }
+
+    #learningLogin #learningGateText {
+      margin: 0;
+      max-width: 470px;
+      color: #aab5c7;
+    }
+
+    #learningLogin #accessContinueBtn {
+      min-width: 148px;
+      border-radius: 9px;
+      box-shadow: 0 10px 24px rgba(142, 175, 255, .16);
+    }
+
+    @media (max-width: 520px) {
+      #learningLogin {
+        width: min(100% - 20px, 620px);
+        padding: 34px 20px 30px;
+      }
+    }
+
+    .access-state-icon {
+      display: grid;
+      width: 58px;
+      height: 58px;
+      place-items: center;
+      border: 1px solid rgba(142, 175, 255, .35);
+      border-radius: 16px;
+      color: #c6d5ff;
+      background: rgba(122, 162, 255, .12);
+      font-size: 1.35rem;
+    }
+
+    #learningGateTitle {
+      letter-spacing: -.02em;
+    }
+
+    #learningGoogleBtn,
+    #refreshAccessBtn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      min-width: 220px;
+    }
+
+    .loading-spinner {
+      width: 34px;
+      height: 34px;
+      border: 3px solid rgba(255, 255, 255, .14);
+      border-top-color: #8eafff;
+      border-radius: 50%;
+      animation: course-spin .75s linear infinite;
+    }
+
+    @keyframes course-spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .learning-state h1 {
+      margin: 0;
+      font-size: clamp(1.45rem, 4vw, 2rem);
+    }
+
+    .learning-state p {
+      max-width: 420px;
+      margin: 0;
+      color: var(--learning-muted);
+      line-height: 1.6;
+    }
+
+    .course-error-card {
+      display: grid;
+      place-items: center;
+      gap: 12px;
+    }
+
+    .course-error-card .learning-button {
+      margin-top: 6px;
+      text-decoration: none;
+    }
+
+    .lesson-locked-state {
+      width: min(100% - 32px, 620px);
+      min-height: 360px;
+      margin: 8vh auto;
+      padding: 42px 32px;
+      border: 1px solid rgba(201, 243, 91, .24);
+      border-radius: 18px;
+      background: linear-gradient(145deg, rgba(21, 28, 25, .98), rgba(11, 16, 15, .98));
+      box-shadow: 0 24px 70px rgba(0, 0, 0, .28);
+    }
+
+    .lesson-locked-state .locked-icon {
+      display: grid;
+      width: 64px;
+      height: 64px;
+      place-items: center;
+      border: 1px solid rgba(201, 243, 91, .36);
+      border-radius: 18px;
+      color: #c9f35b;
+      background: rgba(201, 243, 91, .1);
+      font-size: 1.35rem;
+    }
+
+    .lesson-locked-state h1 {
+      max-width: 480px;
+      margin: 0;
+      color: #f2f3e9;
+      font-size: clamp(1.45rem, 4vw, 2rem);
+      line-height: 1.2;
+    }
+
+    .lesson-locked-state p:not(.learning-eyebrow) {
+      max-width: 430px;
+      margin: 0;
+      color: #a4ada2;
+      line-height: 1.6;
+    }
+
+    @media (max-width: 520px) {
+      .lesson-locked-state {
+        width: min(100% - 20px, 620px);
+        padding: 34px 20px 30px;
+      }
+    }
+
+    .payment-submit-panel {
+      width: min(100%, 460px);
+      margin: 22px auto 0;
+      padding: 20px;
+      border: 1px solid rgba(255, 255, 255, .1);
+      border-radius: 12px;
+      background: rgba(255, 255, 255, .035);
+      text-align: left;
+    }
+
+    .payment-submit-panel h2 {
+      margin: 0 0 6px;
+      font-size: 1.1rem;
+    }
+
+    .payment-submit-panel p {
+      color: var(--learning-muted);
+      font-size: .8rem;
+      line-height: 1.5;
+    }
+
+    .payment-submit-panel label {
+      display: grid;
+      gap: 7px;
+      margin-top: 12px;
+      color: var(--learning-muted);
+      font-size: .8rem;
+    }
+
+    .payment-submit-panel input,
+    .payment-submit-panel select {
+      width: 100%;
+      min-height: 42px;
+      padding: 9px 11px;
+      border: 1px solid rgba(255, 255, 255, .14);
+      border-radius: 8px;
+      color: var(--learning-text);
+      background: rgba(0, 0, 0, .2);
+    }
+
+    .payment-submit-panel .learning-button {
+      width: 100%;
+      margin-top: 14px;
+    }
+
+    .payment-choice-title {
+      margin-top: 10px;
+      font-size: .85rem;
+    }
+
+    .payment-course-title {
+      color: var(--learning-text) !important;
+      font-size: 1rem !important;
+      font-weight: 700;
+    }
+
+    .enrollment-success {
+      margin: 10px 0 0;
+      color: #67d99d !important;
+      font-size: .82rem;
+      font-weight: 700;
+    }
+
+    .payment-method-picker {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .payment-method-choice {
+      min-height: 38px;
+      padding: 8px 10px;
+      border: 1px solid rgba(255, 255, 255, .14);
+      border-radius: 8px;
+      color: var(--learning-text);
+      background: rgba(255, 255, 255, .035);
+      cursor: pointer;
+      transition: .18s ease;
+    }
+
+    .payment-method-choice:hover,
+    .payment-method-choice.active {
+      border-color: #8eafff;
+      color: #c6d5ff;
+      background: rgba(122, 162, 255, .15);
+    }
+
+    .payment-method-details {
+      display: grid;
+      gap: 7px;
+      padding: 12px;
+      border: 1px solid rgba(255, 255, 255, .1);
+      border-radius: 8px;
+      background: rgba(0, 0, 0, .14);
+      overflow: hidden;
+    }
+
+    .payment-method-details p {
+      margin: 0;
+      line-height: 1.45;
+    }
+
+    .payment-method-details b {
+      color: var(--learning-text);
+    }
+
+    .copy-payment-number {
+      justify-self: start;
+      padding: 6px 9px;
+      border: 1px solid rgba(255, 255, 255, .16);
+      border-radius: 6px;
+      color: var(--learning-text);
+      background: rgba(255, 255, 255, .06);
+      cursor: pointer;
+    }
+
+    .payment-qr-panel:empty {
+      display: none;
+    }
+
+    .payment-qr-panel img {
+      display: block;
+      width: 120px;
+      aspect-ratio: 1;
+      object-fit: contain;
+      border-radius: 6px;
+      background: #fff;
+    }
+
+    .checkout-progress {
+      display: flex;
+      justify-content: center;
+      gap: 22px;
+      margin-bottom: 20px;
+      color: var(--learning-muted);
+    }
+
+    .checkout-progress span {
+      display: grid;
+      width: 26px;
+      height: 26px;
+      place-items: center;
+      border: 1px solid rgba(255, 255, 255, .16);
+      border-radius: 50%;
+      font-size: .72rem;
+    }
+
+    .checkout-progress span.active {
+      border-color: #8eafff;
+      color: #c6d5ff;
+      background: rgba(122, 162, 255, .16);
+    }
+
+    .access-intro {
+      display: grid;
+      justify-items: center;
+      gap: 10px;
+    }
+
+    .access-intro>i {
+      color: #a8c1ff;
+      font-size: 1.4rem;
+    }
+
+    .access-intro h1 {
+      margin: 0;
+    }
+
+    .access-intro strong {
+      color: #a8c1ff;
+      font-size: 1.8rem;
+    }
+
+    .lesson-video-wrap video {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      background: #000;
+    }
+
+    .lesson-video-unavailable {
+      min-height: 260px;
+      display: grid;
+      place-items: center;
+      align-content: center;
+      gap: 10px;
+      padding: 32px;
+      color: #aab5c7;
+      background: #090d15;
+      text-align: center;
+    }
+
+    .lesson-video-unavailable i {
+      color: #8eafff;
+      font-size: 1.5rem;
+    }
+
+    .lesson-video-unavailable strong {
+      color: #f2f5fb;
+      font-size: 1.05rem;
+    }
+
+    .lesson-video-unavailable span {
+      max-width: 500px;
+      font-size: .82rem;
+      line-height: 1.6;
+    }
+
+    .lesson-video-wrap.is-custom-player,
+    .lesson-video-wrap.is-youtube-player {
+      position: relative;
+      background: #000;
+    }
+
+    .custom-video-controls,
+    .youtube-video-controls {
+      position: absolute;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      display: grid;
+      gap: 8px;
+      padding: 12px;
+      color: #fff;
+      background: linear-gradient(transparent, rgba(0, 0, 0, .9));
+      opacity: 0;
+      transition: opacity .2s ease;
+    }
+
+    .lesson-video-wrap.is-custom-player:hover .custom-video-controls,
+    .lesson-video-wrap.is-custom-player:focus-within .custom-video-controls,
+    .lesson-video-wrap.is-youtube-player:hover .youtube-video-controls,
+    .lesson-video-wrap.is-youtube-player:focus-within .youtube-video-controls {
+      opacity: 1;
+    }
+
+    .custom-video-progress {
+      width: 100%;
+      accent-color: #9347ff;
+      cursor: pointer;
+    }
+
+    .custom-video-toolbar,
+    .youtube-video-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .custom-video-toolbar button,
+    .youtube-video-toolbar button {
+      border: 0;
+      padding: 4px 7px;
+      color: #fff;
+      background: transparent;
+      cursor: pointer;
+    }
+
+    .custom-video-toolbar button:hover,
+    .youtube-video-toolbar button:hover {
+      color: #ffd43b;
+    }
+
+    .custom-video-toolbar button[data-video-action^="seek-"],
+    .youtube-video-toolbar button[data-youtube-action^="seek-"] {
+      position: relative;
+    }
+
+    .custom-video-toolbar button[data-video-action^="seek-"] small,
+    .youtube-video-toolbar button[data-youtube-action^="seek-"] small {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      color: inherit;
+      font-size: .48rem;
+      font-weight: 800;
+      pointer-events: none;
+    }
+
+    .custom-video-toolbar select,
+    .youtube-video-toolbar select {
+      min-height: 28px;
+      padding: 3px 5px;
+      border: 1px solid rgba(255, 255, 255, .18);
+      border-radius: 5px;
+      color: #fff;
+      background: rgba(0, 0, 0, .55);
+      font-size: .72rem;
+    }
+
+    .custom-video-toolbar select:focus,
+    .youtube-video-toolbar select:focus {
+      outline: 1px solid #8eafff;
+    }
+
+    .video-caption-button {
+      border: 1px solid rgba(255, 255, 255, .18) !important;
+      border-radius: 5px;
+    }
+
+    .custom-video-time,
+    .youtube-video-time {
+      margin-right: auto;
+      color: #d7dce7;
+      font-size: .78rem;
+    }
+
+    .youtube-video-controls {
+      z-index: 2;
+      opacity: 1;
+      background: linear-gradient(transparent, rgba(12, 15, 20, .96) 34%);
+    }
+
+    .youtube-video-progress {
+      width: 100%;
+      accent-color: #8eafff;
+      cursor: pointer;
+    }
+
+    .youtube-video-brand {
+      display: none !important;
+    }
+
+    .youtube-click-shield {
+      display: none;
+      position: absolute;
+      top: 0;
+      z-index: 3;
+      height: 52px;
+      pointer-events: auto;
+    }
+
+    .lesson-video-wrap.is-youtube-player .youtube-click-shield {
+      display: block;
+    }
+
+    .youtube-click-shield.left {
+      left: 0;
+      width: 132px;
+    }
+
+    .youtube-click-shield.right {
+      right: 0;
+      width: 150px;
+    }
+
+    .lesson-workspace-tools {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .workspace-settings-button {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      min-height: 34px;
+      padding: 0 11px;
+      border: 1px solid #334158;
+      border-radius: 6px;
+      color: #d7dce7;
+      background: #111722;
+      cursor: pointer;
+    }
+
+    .workspace-settings-button:hover {
+      border-color: #8eafff;
+      color: #fff;
+    }
+
+    .workspace-settings {
+      position: relative;
+    }
+
+    .workspace-settings-menu {
+      position: absolute;
+      top: calc(100% + 7px);
+      right: 0;
+      z-index: 50;
+      display: grid;
+      min-width: 190px;
+      padding: 5px;
+      border: 1px solid #334158;
+      border-radius: 7px;
+      background: #111722;
+      box-shadow: 0 14px 32px rgba(0, 0, 0, .4);
+    }
+
+    .workspace-settings-menu[hidden] {
+      display: none;
+    }
+
+    .workspace-setting {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 10px;
+      color: #d7dce7;
+      font-size: .78rem;
+      cursor: pointer;
+    }
+
+    .workspace-setting:hover {
+      background: rgba(142, 175, 255, .1);
+    }
+
+    .workspace-setting input {
+      width: 16px;
+      height: 16px;
+      accent-color: #8eafff;
+    }
+
+    .lesson-screen.sidebar-hidden {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .lesson-screen.sidebar-hidden .lesson-sidebar {
+      display: none;
+    }
+
+    .youtube-video-toolbar {
+      min-height: 28px;
+    }
+
+    .custom-video-toolbar button,
+    .youtube-video-toolbar button {
+      position: relative;
+      display: grid;
+      width: 30px;
+      height: 30px;
+      place-items: center;
+      border-radius: 5px;
+      font-size: .86rem;
+    }
+
+    .youtube-video-toolbar button,
+    .youtube-external-button {
+      display: grid;
+      width: 30px;
+      height: 30px;
+      place-items: center;
+      border-radius: 5px;
+    }
+
+    .youtube-video-toolbar button:hover,
+    .youtube-external-button:hover {
+      background: rgba(255, 255, 255, .12);
+    }
+
+    .youtube-external-button {
+      color: #fff;
+      text-decoration: none;
+    }
+
+    .youtube-external-button:hover {
+      color: #ff3347;
+    }
+
+    .lesson-youtube-link {
+      display: inline-block;
+      margin-top: 10px;
+      color: var(--learning-accent-2);
+      font-size: .8rem;
+    }
+
+    .lesson-youtube-link.hidden {
+      display: none;
+    }
+
+    .learning-payment-panel {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 14px;
+      margin: 18px 0;
+      padding: 14px;
+      border: 1px solid rgba(147, 71, 255, .28);
+      border-radius: 8px;
+      background: rgba(147, 71, 255, .07);
+    }
+
+    .learning-payment-panel>div {
+      display: grid;
+      gap: 5px;
+    }
+
+    .learning-payment-panel strong {
+      color: var(--learning-accent-2);
+      font-size: 1.2rem;
+    }
+
+    .learning-payment-panel span {
+      color: var(--learning-muted);
+      font-size: .75rem;
+    }
+
+    .learning-payment-panel .course-payment-methods {
+      gap: 8px !important;
+      text-align: left;
+    }
+
+    .learning-payment-panel .course-payment-methods a {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 7px 0;
+      color: var(--learning-text);
+      font-size: .8rem;
+      text-decoration: none;
+    }
+
+    .learning-payment-panel .course-payment-methods a:hover {
+      color: var(--learning-accent-2);
+    }
+
+    .learning-payment-panel .course-payment-methods i {
+      width: 18px;
+      color: var(--learning-accent);
+    }
+
+    .learning-payment-panel .course-payment-methods b {
+      color: var(--learning-muted);
+      font-weight: 500;
+    }
+
+    .access-payment-panel {
+      width: min(100%, 460px);
+      margin: 22px auto 0;
+      text-align: left;
+    }
+
+    .access-payment-panel .course-payment-methods {
+      display: grid;
+      gap: 6px;
+    }
+
+    .access-payment-panel .course-payment-methods a {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 0;
+      color: var(--learning-text);
+      text-decoration: none;
+    }
+
+    .access-payment-panel .course-payment-methods i {
+      width: 18px;
+      color: var(--learning-accent);
+    }
+
+    .access-payment-panel .course-payment-methods b {
+      margin-left: auto;
+      color: var(--learning-muted);
+      font-weight: 500;
+    }
+
+    .course-payment-methods a {
+      border: 1px solid rgba(255, 255, 255, .08);
+      border-radius: 6px;
+      padding: 9px 10px !important;
+      background: rgba(255, 255, 255, .025);
+    }
+
+    .course-sales-panels {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+      margin-top: 26px;
+    }
+
+    .sales-panel,
+    .faq-panel {
+      border: 1px solid #273142;
+      border-radius: 12px;
+      background: #111722;
+      box-shadow: 0 18px 50px rgba(0, 0, 0, .14);
+    }
+
+    .sales-panel {
+      padding: 20px 22px;
+    }
+
+    .sales-panel h3,
+    .faq-header h3 {
+      margin: 8px 0 0;
+      font-size: 1.08rem;
+    }
+
+    .sales-panel ul {
+      margin: 14px 0 0;
+      padding-left: 18px;
+      color: var(--learning-muted);
+      line-height: 1.7;
+    }
+
+    .faq-panel {
+      margin-top: 20px;
+      padding: 20px 22px;
+    }
+
+    .faq-header {
+      margin-bottom: 10px;
+    }
+
+    .faq-list {
+      display: grid;
+      gap: 12px;
+    }
+
+    .faq-list details {
+      border: 1px solid rgba(255, 255, 255, .09);
+      border-radius: 10px;
+      background: rgba(255, 255, 255, .02);
+    }
+
+    .faq-list summary {
+      list-style: none;
+      cursor: pointer;
+      padding: 14px 16px;
+      font-weight: 600;
+      color: var(--learning-text);
+    }
+
+    .faq-list summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .faq-list p {
+      margin: 0;
+      padding: 0 16px 14px;
+      color: var(--learning-muted);
+      line-height: 1.6;
+    }
+
+    .payment-brand {
+      display: grid;
+      flex: 0 0 34px;
+      width: 34px;
+      height: 34px;
+      place-items: center;
+      overflow: hidden;
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    .payment-brand img {
+      display: block;
+      width: 26px;
+      height: 26px;
+      object-fit: contain;
+    }
+
+    .payment-brand-fallback {
+      display: block;
+      font-size: .72rem;
+      font-weight: 900;
+    }
+
+    .payment-brand.bkash .payment-brand-fallback {
+      color: #e2136e;
+    }
+
+    .payment-brand.rocket .payment-brand-fallback {
+      color: #6d3fd4;
+    }
+
+    .payment-action {
+      margin-left: auto;
+      padding: 3px 7px;
+      border: 1px solid rgba(255, 255, 255, .12);
+      border-radius: 999px;
+      color: var(--learning-muted);
+      font-size: .62rem;
+      white-space: nowrap;
+    }
+
+    .course-payment-methods a:first-child {
+      border-color: rgba(226, 58, 116, .28);
+    }
+
+    .course-payment-methods a:nth-child(2) {
+      border-color: rgba(121, 79, 214, .32);
+    }
+
+    .course-payment-methods a:first-child i {
+      color: #e23a74;
+    }
+
+    .course-payment-methods a:nth-child(2) i {
+      color: #8b5cf6;
+    }
+
+    .payment-qr-panel {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .payment-qr-card {
+      display: grid;
+      gap: 6px;
+      justify-items: center;
+      padding: 8px;
+      border: 1px solid rgba(255, 255, 255, .1);
+      border-radius: 7px;
+      background: rgba(0, 0, 0, .16);
+      color: var(--learning-muted);
+      font-size: .68rem;
+      text-align: center;
+    }
+
+    .payment-qr-card img {
+      display: block;
+      width: 100%;
+      max-width: 112px;
+      aspect-ratio: 1;
+      object-fit: contain;
+      background: #fff;
+      border-radius: 4px;
+    }
+
+    .payment-qr-card strong {
+      color: var(--learning-text);
+      font-size: .72rem;
+    }
+
+    .payment-qr-card.is-empty {
+      align-content: center;
+      min-height: 130px;
+    }
+
+    @media (max-width: 520px) {
+      .payment-qr-panel {
+        grid-template-columns: 1fr;
+      }
+
+      .payment-qr-card {
+        grid-template-columns: 72px 1fr;
+        align-items: center;
+        justify-items: start;
+        text-align: left;
+      }
+
+      .payment-qr-card img {
+        width: 72px;
+      }
+
+      .payment-qr-card.is-empty {
+        min-height: 72px;
+      }
+    }
 
     /* Learner page polish */
-    .course-learning-page { background: #080b12; font-family: Inter, ui-sans-serif, system-ui, -apple-system, sans-serif; }
-    .learning-topbar { position: sticky; top: 0; z-index: 20; height: 68px; padding: 0 max(20px, 5vw); border-color: #273142; background: rgba(10, 14, 22, .94); backdrop-filter: blur(14px); }
-    .learning-brand { display: inline-flex; align-items: center; gap: 10px; letter-spacing: -.01em; }
-    .learning-brand-logo { display: block; width: 34px; height: 34px; border: 1px solid rgba(201,243,91,.45); border-radius: 10px; object-fit: cover; box-shadow: 0 0 0 3px rgba(201,243,91,.08); }
-    .learning-brand-name { color: #f2f3e9; }
-    .learning-back { padding: 8px 10px; border-radius: 7px; transition: .18s ease; }
-    .learning-back:hover { color: #c6d5ff; background: rgba(122,162,255,.1); }
-    .learning-app { width: min(1400px, calc(100% - 60px)); margin: 0 auto; padding: 54px 30px 90px; }
-    .learning-state { min-height: 54vh; }
-    .course-overview-screen, .lesson-screen { animation: course-enter .2s ease-out; }
-    @keyframes course-enter { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-    .overview-heading { margin-bottom: 32px; }
-    .overview-heading h1 { font-size: clamp(2rem, 4vw, 3.1rem); letter-spacing: -.03em; }
-    .overview-heading p:not(.learning-eyebrow) { max-width: 700px; font-size: .95rem; }
-    .overview-summary { display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 1fr); gap: 28px; padding: 0; background: transparent; border: 0; }
-    .overview-summary > img, .overview-summary > .overview-thumbnail { width: 100%; max-width: 100%; aspect-ratio: 16/9; border: 1px solid #273142; border-radius: 12px; background: #111722; box-shadow: 0 18px 50px rgba(0,0,0,.22); object-fit: cover; }
-    .overview-details { padding: 26px; border: 1px solid #273142; border-radius: 12px; background: #111722; box-shadow: 0 18px 50px rgba(0,0,0,.18); }
-    .overview-details h2 { margin-top: 4px; font-size: 1.25rem; }
-    .overview-meta { color: #aab5c7; }
-    .progress-line { height: 7px; border-radius: 99px; background: #242d3c; }
-    .progress-line span { border-radius: inherit; background: #7aa2ff; }
-    .overview-content-grid { display: block; margin-top: 34px; }
-    .playlist-panel, .lesson-sidebar { border: 1px solid #273142; border-radius: 12px; background: #111722; box-shadow: 0 18px 50px rgba(0,0,0,.16); }
-    .playlist-panel { padding: 22px; }
-    .panel-heading { padding-bottom: 16px; border-bottom: 1px solid #273142; }
-    .panel-heading h2 { margin: 0; font-size: 1.15rem; }
-    .module-block { border-color: #273142; border-radius: 8px; background: #0d131d; }
-    .lesson-row { min-height: 58px; border-color: #222d3d; transition: background .18s ease, border-color .18s ease; }
-    .lesson-row:hover, .lesson-row.current { border-color: #4b6595; background: #172237; }
-    .lesson-screen { gap: 24px; grid-template-columns: 310px minmax(0, 1fr); align-items: start; }
-    .lesson-main { min-width: 0; grid-column: 2; grid-row: 1; }
-    .lesson-sidebar { grid-column: 1; grid-row: 1; }
-    .lesson-video-wrap { overflow: hidden; border: 1px solid #3a4c70; border-radius: 14px; background: #05070d; box-shadow: 0 22px 60px rgba(0,0,0,.32); }
-    .lesson-heading { padding: 24px 0; }
-    .lesson-heading h1 { margin: 0 0 8px; font-size: clamp(1.5rem, 3vw, 2.2rem); letter-spacing: -.02em; }
-    .lesson-actions { display: flex; flex-wrap: wrap; gap: 10px; }
-    .lesson-actions .learning-button { min-width: 140px; }
-    .learning-button { min-height: 42px; border-radius: 8px; border-color: #334158; transition: .18s ease; }
-    .learning-button:hover:not(:disabled) { transform: translateY(-1px); border-color: #6d8fd7; }
-    .learning-button.primary { color: #07101f; background: #8eafff; border-color: #8eafff; }
-    .learning-button.primary:hover:not(:disabled) { background: #b0c5ff; }
+    .course-learning-page {
+      background: #080b12;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
+    }
+
+    .learning-topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      height: 68px;
+      padding: 0 max(20px, 5vw);
+      border-color: #273142;
+      background: rgba(10, 14, 22, .94);
+      backdrop-filter: blur(14px);
+    }
+
+    .learning-brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      letter-spacing: -.01em;
+    }
+
+    .learning-brand-logo {
+      display: block;
+      width: 34px;
+      height: 34px;
+      border: 1px solid rgba(201, 243, 91, .45);
+      border-radius: 10px;
+      object-fit: cover;
+      box-shadow: 0 0 0 3px rgba(201, 243, 91, .08);
+    }
+
+    .learning-brand-name {
+      color: #f2f3e9;
+    }
+
+    .learning-back {
+      padding: 8px 10px;
+      border-radius: 7px;
+      transition: .18s ease;
+    }
+
+    .learning-back:hover {
+      color: #c6d5ff;
+      background: rgba(122, 162, 255, .1);
+    }
+
+    .learning-app {
+      width: min(1400px, calc(100% - 60px));
+      margin: 0 auto;
+      padding: 54px 30px 90px;
+    }
+
+    .learning-state {
+      min-height: 54vh;
+    }
+
+    .course-overview-screen,
+    .lesson-screen {
+      animation: course-enter .2s ease-out;
+    }
+
+    @keyframes course-enter {
+      from {
+        opacity: 0;
+        transform: translateY(5px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .overview-heading {
+      margin-bottom: 32px;
+    }
+
+    .overview-heading h1 {
+      font-size: clamp(2rem, 4vw, 3.1rem);
+      letter-spacing: -.03em;
+    }
+
+    .overview-heading p:not(.learning-eyebrow) {
+      max-width: 700px;
+      font-size: .95rem;
+    }
+
+    .overview-summary {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(300px, 1fr);
+      gap: 28px;
+      padding: 0;
+      background: transparent;
+      border: 0;
+    }
+
+    .overview-summary>img,
+    .overview-summary>.overview-thumbnail {
+      width: 100%;
+      max-width: 100%;
+      aspect-ratio: 16/9;
+      border: 1px solid #273142;
+      border-radius: 12px;
+      background: #111722;
+      box-shadow: 0 18px 50px rgba(0, 0, 0, .22);
+      object-fit: cover;
+    }
+
+    .overview-details {
+      padding: 26px;
+      border: 1px solid #273142;
+      border-radius: 12px;
+      background: #111722;
+      box-shadow: 0 18px 50px rgba(0, 0, 0, .18);
+    }
+
+    .overview-details h2 {
+      margin-top: 4px;
+      font-size: 1.25rem;
+    }
+
+    .overview-meta {
+      color: #aab5c7;
+    }
+
+    .progress-line {
+      height: 7px;
+      border-radius: 99px;
+      background: #242d3c;
+    }
+
+    .progress-line span {
+      border-radius: inherit;
+      background: #7aa2ff;
+    }
+
+    .overview-content-grid {
+      display: block;
+      margin-top: 34px;
+    }
+
+    .playlist-panel,
+    .lesson-sidebar {
+      border: 1px solid #273142;
+      border-radius: 12px;
+      background: #111722;
+      box-shadow: 0 18px 50px rgba(0, 0, 0, .16);
+    }
+
+    .playlist-panel {
+      padding: 22px;
+    }
+
+    .panel-heading {
+      padding-bottom: 16px;
+      border-bottom: 1px solid #273142;
+    }
+
+    .panel-heading h2 {
+      margin: 0;
+      font-size: 1.15rem;
+    }
+
+    .module-block {
+      border-color: #273142;
+      border-radius: 8px;
+      background: #0d131d;
+    }
+
+    .lesson-row {
+      min-height: 58px;
+      border-color: #222d3d;
+      transition: background .18s ease, border-color .18s ease;
+    }
+
+    .lesson-row:hover,
+    .lesson-row.current {
+      border-color: #4b6595;
+      background: #172237;
+    }
+
+    .lesson-screen {
+      gap: 24px;
+      grid-template-columns: 310px minmax(0, 1fr);
+      align-items: start;
+    }
+
+    .lesson-main {
+      min-width: 0;
+      grid-column: 2;
+      grid-row: 1;
+    }
+
+    .lesson-sidebar {
+      grid-column: 1;
+      grid-row: 1;
+    }
+
+    .lesson-video-wrap {
+      overflow: hidden;
+      border: 1px solid #3a4c70;
+      border-radius: 14px;
+      background: #05070d;
+      box-shadow: 0 22px 60px rgba(0, 0, 0, .32);
+    }
+
+    .lesson-heading {
+      padding: 24px 0;
+    }
+
+    .lesson-heading h1 {
+      margin: 0 0 8px;
+      font-size: clamp(1.5rem, 3vw, 2.2rem);
+      letter-spacing: -.02em;
+    }
+
+    .lesson-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .lesson-actions .learning-button {
+      min-width: 140px;
+    }
+
+    .learning-button {
+      min-height: 42px;
+      border-radius: 8px;
+      border-color: #334158;
+      transition: .18s ease;
+    }
+
+    .learning-button:hover:not(:disabled) {
+      transform: translateY(-1px);
+      border-color: #6d8fd7;
+    }
+
+    .learning-button.primary {
+      color: #07101f;
+      background: #8eafff;
+      border-color: #8eafff;
+    }
+
+    .learning-button.primary:hover:not(:disabled) {
+      background: #b0c5ff;
+    }
+
     /* Full course overview: compact, structured learning dashboard. */
-    .course-overview-screen { width: 100%; margin: 0; }
-    .overview-heading { align-items: end; max-width: 100%; margin: 0 0 24px; }
-    .overview-heading h1 { font-size: clamp(1.8rem, 4vw, 2.65rem); }
-    .overview-heading p:not(.learning-eyebrow) { font-size: .86rem; }
-    .overview-summary { display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 1fr); gap: 28px; padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
-    .overview-summary > img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border: 1px solid #273142; border-radius: 12px; background: #111722; box-shadow: 0 18px 50px rgba(0,0,0,.22); }
-    .overview-details { display: flex; flex-direction: column; align-items: stretch; justify-content: flex-start; padding: 26px; border: 1px solid #273142; border-radius: 12px; background: #111722; box-shadow: 0 18px 50px rgba(0,0,0,.18); }
-    .overview-details h2 { font-size: 1.15rem; }
-    .overview-details .overview-meta { width: 100%; margin: 5px 0 14px; padding: 10px 0; border-top: 1px solid #273142; border-bottom: 1px solid #273142; }
-    .overview-details .progress-line { width: 100%; }
-    .overview-details .learning-button { width: 100%; margin-top: 16px; }
-    .overview-content-grid { margin-top: 18px; }
-    .playlist-panel { padding: 16px; border-radius: 8px; }
-    .panel-heading { padding-bottom: 12px; }
-    .overview-playlist { display: grid; gap: 8px; margin-top: 10px; }
-    .overview-playlist .module-block { margin: 0; }
-    .overview-playlist .lesson-row { min-height: 48px; }
-    .overview-playlist .lesson-row-action { display: inline-flex; align-items: center; min-height: 24px; padding: 3px 8px; border: 1px solid rgba(142,175,255,.55); border-radius: 4px; color: #c6d5ff; background: rgba(122,162,255,.13); font-size: .68rem; font-weight: 700; }
-    .overview-playlist .lesson-row.complete .lesson-row-action { border-color: rgba(87,211,145,.45); color: #8be6b4; background: rgba(87,211,145,.1); }
-    .course-sales-panels { margin-top: 18px; }
-    .faq-panel { margin-top: 18px; }
+    .course-overview-screen {
+      width: 100%;
+      margin: 0;
+    }
+
+    .overview-heading {
+      align-items: end;
+      max-width: 100%;
+      margin: 0 0 24px;
+    }
+
+    .overview-heading h1 {
+      font-size: clamp(1.8rem, 4vw, 2.65rem);
+    }
+
+    .overview-heading p:not(.learning-eyebrow) {
+      font-size: .86rem;
+    }
+
+    .overview-summary {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(300px, 1fr);
+      gap: 28px;
+      padding: 0;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      box-shadow: none;
+    }
+
+    .overview-summary>img {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      object-fit: cover;
+      border: 1px solid #273142;
+      border-radius: 12px;
+      background: #111722;
+      box-shadow: 0 18px 50px rgba(0, 0, 0, .22);
+    }
+
+    .overview-details {
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      justify-content: flex-start;
+      padding: 26px;
+      border: 1px solid #273142;
+      border-radius: 12px;
+      background: #111722;
+      box-shadow: 0 18px 50px rgba(0, 0, 0, .18);
+    }
+
+    .overview-details h2 {
+      font-size: 1.15rem;
+    }
+
+    .overview-details .overview-meta {
+      width: 100%;
+      margin: 5px 0 14px;
+      padding: 10px 0;
+      border-top: 1px solid #273142;
+      border-bottom: 1px solid #273142;
+    }
+
+    .overview-details .progress-line {
+      width: 100%;
+    }
+
+    .overview-details .learning-button {
+      width: 100%;
+      margin-top: 16px;
+    }
+
+    .overview-content-grid {
+      margin-top: 18px;
+    }
+
+    .playlist-panel {
+      padding: 16px;
+      border-radius: 8px;
+    }
+
+    .panel-heading {
+      padding-bottom: 12px;
+    }
+
+    .overview-playlist {
+      display: grid;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .overview-playlist .module-block {
+      margin: 0;
+    }
+
+    .overview-playlist .lesson-row {
+      min-height: 48px;
+    }
+
+    .overview-playlist .lesson-row-action {
+      display: inline-flex;
+      align-items: center;
+      min-height: 24px;
+      padding: 3px 8px;
+      border: 1px solid rgba(142, 175, 255, .55);
+      border-radius: 4px;
+      color: #c6d5ff;
+      background: rgba(122, 162, 255, .13);
+      font-size: .68rem;
+      font-weight: 700;
+    }
+
+    .overview-playlist .lesson-row.complete .lesson-row-action {
+      border-color: rgba(87, 211, 145, .45);
+      color: #8be6b4;
+      background: rgba(87, 211, 145, .1);
+    }
+
+    .course-sales-panels {
+      margin-top: 18px;
+    }
+
+    .faq-panel {
+      margin-top: 18px;
+    }
+
     /* Course workspace: playlist first, lesson player second. */
-    .lesson-screen { grid-template-columns: 300px minmax(0, 1fr); gap: 18px; min-height: calc(100vh - 132px); }
-    .lesson-sidebar { grid-column: 1; grid-row: 1; position: sticky; top: 86px; max-height: calc(100vh - 110px); overflow: hidden; border-radius: 8px; background: #101722; }
-    .lesson-main { grid-column: 2; grid-row: 1; min-width: 0; }
-    .sidebar-course-head { padding: 18px; border-bottom: 1px solid #273142; background: #151d2a; }
-    .sidebar-course-head h2 { margin: 0 0 14px; font-size: .98rem; }
-    .lesson-playlist { max-height: calc(100vh - 250px); overflow-y: auto; padding: 8px; }
-    .module-block { margin: 0 0 8px; border-radius: 6px; }
-    .module-title { padding: 11px 12px; font-size: .75rem; }
-    .lesson-row { min-height: 48px; padding: 8px 10px; border-radius: 4px; }
-    .lesson-row-title { font-size: .76rem; }
-    .lesson-row-meta { font-size: .66rem; }
-    .lesson-video-wrap { border-radius: 8px; box-shadow: 0 18px 45px rgba(0,0,0,.26); }
-    .lesson-video-wrap iframe, .lesson-video-wrap video { display: block; width: 100%; aspect-ratio: 16 / 9; }
-    .lesson-heading { display: flex; justify-content: space-between; gap: 16px; padding: 20px 2px 14px; }
-    .lesson-heading h1 { font-size: clamp(1.35rem, 2.5vw, 2rem); }
-    .lesson-heading p:not(.learning-eyebrow) { max-width: 70ch; }
-    .lesson-duration { flex: 0 0 auto; padding-top: 18px; color: #aab5c7; font-size: .78rem; }
-    .lesson-actions { padding: 0 2px; }
+    .lesson-screen {
+      grid-template-columns: 300px minmax(0, 1fr);
+      gap: 18px;
+      min-height: calc(100vh - 132px);
+    }
+
+    .lesson-sidebar {
+      grid-column: 1;
+      grid-row: 1;
+      position: sticky;
+      top: 86px;
+      max-height: calc(100vh - 110px);
+      overflow: hidden;
+      border-radius: 8px;
+      background: #101722;
+    }
+
+    .lesson-main {
+      grid-column: 2;
+      grid-row: 1;
+      min-width: 0;
+    }
+
+    .sidebar-course-head {
+      padding: 18px;
+      border-bottom: 1px solid #273142;
+      background: #151d2a;
+    }
+
+    .sidebar-course-head h2 {
+      margin: 0 0 14px;
+      font-size: .98rem;
+    }
+
+    .lesson-playlist {
+      max-height: calc(100vh - 250px);
+      overflow-y: auto;
+      padding: 8px;
+    }
+
+    .module-block {
+      margin: 0 0 8px;
+      border-radius: 6px;
+    }
+
+    .module-title {
+      padding: 11px 12px;
+      font-size: .75rem;
+    }
+
+    .lesson-row {
+      min-height: 48px;
+      padding: 8px 10px;
+      border-radius: 4px;
+    }
+
+    .lesson-row-title {
+      font-size: .76rem;
+    }
+
+    .lesson-row-meta {
+      font-size: .66rem;
+    }
+
+    .lesson-video-wrap {
+      border-radius: 8px;
+      box-shadow: 0 18px 45px rgba(0, 0, 0, .26);
+    }
+
+    .lesson-video-wrap iframe,
+    .lesson-video-wrap video {
+      display: block;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+    }
+
+    .lesson-heading {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 20px 2px 14px;
+    }
+
+    .lesson-heading h1 {
+      font-size: clamp(1.35rem, 2.5vw, 2rem);
+    }
+
+    .lesson-heading p:not(.learning-eyebrow) {
+      max-width: 70ch;
+    }
+
+    .lesson-duration {
+      flex: 0 0 auto;
+      padding-top: 18px;
+      color: #aab5c7;
+      font-size: .78rem;
+    }
+
+    .lesson-actions {
+      padding: 0 2px;
+    }
+
     @media (max-width: 900px) {
-      .overview-summary { grid-template-columns: 1fr; gap: 24px; }
-      .overview-details { padding: 24px; border-left: 1px solid #273142; border-top: 0; border-radius: 12px; }
+      .overview-summary {
+        grid-template-columns: 1fr;
+        gap: 24px;
+      }
+
+      .overview-details {
+        padding: 24px;
+        border-left: 1px solid #273142;
+        border-top: 0;
+        border-radius: 12px;
+      }
     }
+
     @media (max-width: 760px) {
-      .learning-app { width: calc(100% - 24px); padding: 28px 12px 52px; }
-      .learning-topbar { height: auto; min-height: 62px; padding: 12px 16px; gap: 12px; }
-      .overview-heading { flex-direction: column; gap: 14px; }
-      .overview-summary { grid-template-columns: 1fr; gap: 0; padding: 0; border: 0; border-radius: 10px; }
-      .overview-summary > img, .overview-summary > .overview-thumbnail { min-height: auto; aspect-ratio: 16 / 9; border: 0; border-radius: 10px 10px 0 0; box-shadow: none; }
-      .overview-details { padding: 20px; border: 0; border-top: 1px solid #273142; border-radius: 0 0 10px 10px; }
-      .course-sales-panels { grid-template-columns: 1fr; }
-      .faq-panel, .sales-panel { padding: 18px 16px; }
-      .lesson-screen { display: flex; flex-direction: column; gap: 12px; min-height: 0; }
-      .lesson-sidebar { position: static; order: -1; width: 100%; max-height: 230px; }
-      .sidebar-course-head { padding: 14px; }
-      .lesson-playlist { max-height: 145px; }
-      .lesson-main { width: 100%; }
-      .lesson-heading { padding-top: 16px; }
-      .lesson-duration { padding-top: 14px; }
-      .lesson-actions .learning-button { flex: 1 1 100%; }
+      .learning-app {
+        width: calc(100% - 24px);
+        padding: 28px 12px 52px;
+      }
+
+      .learning-topbar {
+        height: auto;
+        min-height: 62px;
+        padding: 12px 16px;
+        gap: 12px;
+      }
+
+      .overview-heading {
+        flex-direction: column;
+        gap: 14px;
+      }
+
+      .overview-summary {
+        grid-template-columns: 1fr;
+        gap: 0;
+        padding: 0;
+        border: 0;
+        border-radius: 10px;
+      }
+
+      .overview-summary>img,
+      .overview-summary>.overview-thumbnail {
+        min-height: auto;
+        aspect-ratio: 16 / 9;
+        border: 0;
+        border-radius: 10px 10px 0 0;
+        box-shadow: none;
+      }
+
+      .overview-details {
+        padding: 20px;
+        border: 0;
+        border-top: 1px solid #273142;
+        border-radius: 0 0 10px 10px;
+      }
+
+      .course-sales-panels {
+        grid-template-columns: 1fr;
+      }
+
+      .faq-panel,
+      .sales-panel {
+        padding: 18px 16px;
+      }
+
+      .lesson-screen {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        min-height: 0;
+      }
+
+      .lesson-sidebar {
+        position: static;
+        order: -1;
+        width: 100%;
+        max-height: 230px;
+      }
+
+      .sidebar-course-head {
+        padding: 14px;
+      }
+
+      .lesson-playlist {
+        max-height: 145px;
+      }
+
+      .lesson-main {
+        width: 100%;
+      }
+
+      .lesson-heading {
+        padding-top: 16px;
+      }
+
+      .lesson-duration {
+        padding-top: 14px;
+      }
+
+      .lesson-actions .learning-button {
+        flex: 1 1 100%;
+      }
     }
+
     @media (prefers-reduced-motion: reduce) {
-      .course-overview-screen, .lesson-screen { animation: none; }
-      .learning-button, .lesson-row { transition: none; }
+
+      .course-overview-screen,
+      .lesson-screen {
+        animation: none;
+      }
+
+      .learning-button,
+      .lesson-row {
+        transition: none;
+      }
     }
 
     /* Match the focused course workspace layout. */
-    .course-learning-page { background: #070a10; }
-    .learning-topbar { height: 64px; padding: 0 5vw; background: #090d15; border-bottom-color: #202a3a; }
-    .learning-app { width: min(1280px, calc(100% - 48px)); padding: 18px 0 64px; }
-    .lesson-screen { grid-template-columns: 300px minmax(0, 1fr); gap: 18px; min-height: calc(100vh - 112px); }
-    .lesson-sidebar { top: 82px; border-color: #263247; border-radius: 7px; background: #101722; box-shadow: 0 12px 32px rgba(0,0,0,.2); }
-    .lesson-screen:not(.sidebar-hidden) .lesson-sidebar { display: block; }
-    .lesson-sidebar .lesson-playlist { scrollbar-width: thin; scrollbar-color: #4b6595 #101722; }
-    .lesson-sidebar .lesson-playlist::-webkit-scrollbar { width: 7px; }
-    .lesson-sidebar .lesson-playlist::-webkit-scrollbar-track { background: #101722; }
-    .lesson-sidebar .lesson-playlist::-webkit-scrollbar-thumb { border-radius: 8px; background: #4b6595; }
-    .sidebar-course-head { padding: 18px 20px; background: #151d2a; }
-    .lesson-playlist { padding: 8px; }
-    .lesson-main { min-width: 0; }
-    .lesson-video-wrap { border-color: #314365; border-radius: 7px; box-shadow: 0 16px 40px rgba(0,0,0,.3); }
-    .lesson-heading { padding: 16px 2px 12px; }
-    .lesson-heading h1 { font-size: clamp(1.45rem, 2.4vw, 2rem); }
-    .lesson-actions { padding: 0 2px; }
-    .workspace-settings-button { min-height: 32px; }
+    .course-learning-page {
+      background: #070a10;
+    }
+
+    .learning-topbar {
+      height: 64px;
+      padding: 0 5vw;
+      background: #090d15;
+      border-bottom-color: #202a3a;
+    }
+
+    .learning-app {
+      width: min(1280px, calc(100% - 48px));
+      padding: 18px 0 64px;
+    }
+
+    .lesson-screen {
+      grid-template-columns: 300px minmax(0, 1fr);
+      gap: 18px;
+      min-height: calc(100vh - 112px);
+    }
+
+    .lesson-sidebar {
+      top: 82px;
+      border-color: #263247;
+      border-radius: 7px;
+      background: #101722;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, .2);
+    }
+
+    .lesson-screen:not(.sidebar-hidden) .lesson-sidebar {
+      display: block;
+    }
+
+    .lesson-sidebar .lesson-playlist {
+      scrollbar-width: thin;
+      scrollbar-color: #4b6595 #101722;
+    }
+
+    .lesson-sidebar .lesson-playlist::-webkit-scrollbar {
+      width: 7px;
+    }
+
+    .lesson-sidebar .lesson-playlist::-webkit-scrollbar-track {
+      background: #101722;
+    }
+
+    .lesson-sidebar .lesson-playlist::-webkit-scrollbar-thumb {
+      border-radius: 8px;
+      background: #4b6595;
+    }
+
+    .sidebar-course-head {
+      padding: 18px 20px;
+      background: #151d2a;
+    }
+
+    .lesson-playlist {
+      padding: 8px;
+    }
+
+    .lesson-main {
+      min-width: 0;
+    }
+
+    .lesson-video-wrap {
+      border-color: #314365;
+      border-radius: 7px;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, .3);
+    }
+
+    .lesson-heading {
+      padding: 16px 2px 12px;
+    }
+
+    .lesson-heading h1 {
+      font-size: clamp(1.45rem, 2.4vw, 2rem);
+    }
+
+    .lesson-actions {
+      padding: 0 2px;
+    }
+
+    .workspace-settings-button {
+      min-height: 32px;
+    }
+
     @media (max-width: 760px) {
-      .learning-app { width: calc(100% - 24px); padding-top: 12px; }
-      .lesson-screen { gap: 12px; }
-      .lesson-sidebar { border-radius: 7px; }
+      .learning-app {
+        width: calc(100% - 24px);
+        padding-top: 12px;
+      }
+
+      .lesson-screen {
+        gap: 12px;
+      }
+
+      .lesson-sidebar {
+        border-radius: 7px;
+      }
     }
   </style>
   <style>
     /* Keep the learning surface readable on narrow phones. */
-    .course-learning-page { font-family: "IBM Plex Sans", sans-serif; }
-    .learning-topbar { min-height: 68px; }
-    .learning-app { width: min(1400px, calc(100% - 60px)); margin: 0 auto; padding-left: 30px; padding-right: 30px; }
-    .overview-summary { align-items: stretch; }
-    .overview-summary > img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; }
-    .overview-summary > #courseCheckout { grid-column: 1; grid-row: 2; align-self: start; width: 100%; margin-top: 0; }
-    #learningLoading { position: relative; display: grid; overflow: hidden; width: 100%; min-height: 480px; margin: 0 auto 24px; padding: 86px 24px 52px; place-items: center; border: 1px solid rgba(201,243,91,.18); border-radius: 18px; background: radial-gradient(circle at 50% 42%, rgba(201,243,91,.12), transparent 24%), radial-gradient(circle at 18% 12%, rgba(126,214,192,.08), transparent 28%), linear-gradient(145deg, #151c19, #0b100f); box-shadow: 0 24px 70px rgba(0,0,0,.25); }
-    #learningLoading::before { content: "CODEWITHSIAM / LEARNING SPACE"; position: absolute; top: 24px; left: 28px; color: rgba(201,243,91,.68); font-family: "JetBrains Mono", monospace; font-size: .62rem; font-weight: 700; letter-spacing: .15em; }
-    #learningLoading::after { content: ""; position: absolute; right: 18%; bottom: 24px; left: 18%; height: 2px; overflow: hidden; background: rgba(238,241,225,.1); }
-    #learningLoading .learning-focus { display: grid; justify-items: center; gap: 16px; width: min(100%, 430px); text-align: center; }
-    #learningLoading .loading-spinner { position: relative; display: grid; width: 112px; height: 112px; place-items: center; border: 1px solid rgba(201,243,91,.34); border-radius: 50%; color: #c9f35b; background: radial-gradient(circle, rgba(201,243,91,.16), rgba(201,243,91,.025) 58%, transparent 60%); box-shadow: 0 0 55px rgba(201,243,91,.14), inset 0 0 30px rgba(126,214,192,.08); animation: learning-breathe 2s ease-in-out infinite; }
-    #learningLoading .loading-spinner::before { content: "C"; font-family: "JetBrains Mono", monospace; font-size: 2.15rem; font-weight: 800; }
-    #learningLoading .loading-spinner::after { content: ""; position: absolute; inset: -10px; border: 1px solid rgba(126,214,192,.24); border-top-color: #c9f35b; border-radius: 50%; animation: learning-orbit 2.8s linear infinite; }
-    #learningLoading h1 { display: block; margin: 4px 0 0; color: #f2f3e9; font-family: "JetBrains Mono", monospace; font-size: clamp(1.25rem, 4vw, 1.7rem); letter-spacing: 0; }
-    #learningLoading p { display: block; margin: 0; color: #a4ada2; font-size: .86rem; }
-    #learningLoading .loading-rail { position: relative; width: min(100%, 280px); height: 4px; overflow: hidden; border-radius: 99px; background: rgba(238,241,225,.1); }
-    #learningLoading .loading-rail::after { content: ""; position: absolute; inset: 0 auto 0 0; width: 42%; border-radius: inherit; background: linear-gradient(90deg, #c9f35b, #7ed6c0); box-shadow: 0 0 14px rgba(201,243,91,.4); animation: learning-rail 1.8s ease-in-out infinite; }
-    #learningLoading .loading-dots { display: flex; gap: 6px; }
-    #learningLoading .loading-dots span { width: 5px; height: 5px; border-radius: 50%; background: #c9f35b; animation: learning-dot 1.2s ease-in-out infinite; }
-    #learningLoading .loading-dots span:nth-child(2) { animation-delay: .15s; }
-    #learningLoading .loading-dots span:nth-child(3) { animation-delay: .3s; }
-    @keyframes learning-breathe { 0%, 100% { transform: scale(.96); opacity: .78; } 50% { transform: scale(1.03); opacity: 1; } }
-    @keyframes learning-orbit { to { transform: rotate(360deg); } }
-    @keyframes learning-rail { 0% { transform: translateX(-110%); } 55%, 100% { transform: translateX(250%); } }
-    @keyframes learning-dot { 0%, 100% { transform: translateY(0); opacity: .35; } 50% { transform: translateY(-4px); opacity: 1; } }
-    @keyframes learning-progress { from { transform: translateX(-100%); } to { transform: translateX(260%); } }
-    #learningLoading::after { background: linear-gradient(90deg, transparent, #c9f35b 35%, #7ed6c0 65%, transparent); background-size: 45% 100%; background-repeat: no-repeat; animation: learning-progress 1.8s ease-in-out infinite; }
+    .course-learning-page {
+      font-family: "IBM Plex Sans", sans-serif;
+    }
+
+    .learning-topbar {
+      min-height: 68px;
+    }
+
+    .learning-app {
+      width: min(1400px, calc(100% - 60px));
+      margin: 0 auto;
+      padding-left: 30px;
+      padding-right: 30px;
+    }
+
+    .overview-summary {
+      align-items: stretch;
+    }
+
+    .overview-summary>img {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      object-fit: cover;
+    }
+
+    .overview-summary>#courseCheckout {
+      grid-column: 1;
+      grid-row: 2;
+      align-self: start;
+      width: 100%;
+      margin-top: 0;
+    }
+
+    #learningLoading {
+      position: relative;
+      display: grid;
+      overflow: hidden;
+      width: min(100%, 560px);
+      min-height: 420px;
+      margin: 32px auto 24px;
+      padding: 32px 20px 26px;
+      align-content: center;
+      justify-items: center;
+      border: 1px solid rgba(255, 255, 255, .08);
+      border-radius: 22px;
+      background: linear-gradient(180deg, rgba(10, 14, 20, 0.94), rgba(10, 14, 20, 0.98));
+      box-shadow: 0 24px 70px rgba(0, 0, 0, .25);
+    }
+
+    #learningLoading::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(130, 68, 255, .16), transparent 40%, rgba(99, 164, 255, .06));
+      pointer-events: none;
+    }
+
+    #learningLoading .learning-focus {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      justify-items: center;
+      gap: 18px;
+      width: min(100%, 330px);
+      text-align: center;
+      margin-top: 18px;
+    }
+
+    #learningLoading .loading-visual {
+      position: relative;
+      display: grid;
+      place-items: center;
+      width: 220px;
+      height: 180px;
+      border-radius: 18px;
+      background: rgba(12, 15, 21, 0.96);
+      border: 1px solid rgba(255, 255, 255, .04);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .02);
+    }
+
+    #learningLoading .loading-visual::before {
+      content: "";
+      position: absolute;
+      left: 40%;
+      top: 48%;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #2a9dff;
+      box-shadow: 0 0 16px rgba(42, 157, 255, .9);
+      transform: translate(-50%, -50%);
+      animation: loaderPulse 1.2s ease-in-out infinite;
+    }
+
+    #learningLoading .loading-visual::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 52%;
+      width: 52px;
+      height: 12px;
+      transform: translate(-50%, -50%);
+      border-radius: 999px;
+      background: linear-gradient(90deg, rgba(255, 255, 255, .2), rgba(255, 255, 255, .35), rgba(255, 255, 255, .24));
+      box-shadow: 0 0 0 1px rgba(255, 255, 255, .04);
+    }
+
+    #learningLoading .loading-line {
+      position: absolute;
+      left: 50%;
+      top: calc(50% + 24px);
+      width: 72px;
+      height: 5px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, .18);
+      transform: translateX(-50%);
+      box-shadow: 0 0 0 1px rgba(255, 255, 255, .02);
+    }
+
+    #learningLoading .loading-line::before,
+    #learningLoading .loading-line::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+    }
+
+    #learningLoading .loading-line::before {
+      width: 30%;
+      background: rgba(255, 255, 255, .48);
+    }
+
+    #learningLoading .loading-line::after {
+      right: 0;
+      width: 36%;
+      background: rgba(255, 255, 255, .24);
+    }
+
+    #learningLoading .loading-code-panel {
+      position: relative;
+      z-index: 1;
+      width: min(100%, 460px);
+      margin-top: 18px;
+      padding: 16px 18px 12px;
+      border: 1px solid rgba(255, 255, 255, .06);
+      border-radius: 14px;
+      background: rgba(11, 14, 18, 0.9);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .02);
+    }
+
+    #learningLoading .loading-code-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+      color: rgba(196, 201, 213, 0.7);
+      font-size: .7rem;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    #learningLoading .loading-code-header span {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, .24);
+    }
+
+    #learningLoading .loading-code-header span:first-child {
+      background: #ff6d6d;
+    }
+
+    #learningLoading .loading-code-header span:nth-child(2) {
+      background: #ffd166;
+    }
+
+    #learningLoading .loading-code-header span:nth-child(3) {
+      background: #6ee7b7;
+    }
+
+    #learningLoading .loading-code-body {
+      display: grid;
+      gap: 8px;
+      color: rgba(215, 221, 232, .74);
+      font-size: .72rem;
+      line-height: 1.5;
+      font-family: "JetBrains Mono", monospace;
+    }
+
+    #learningLoading .loading-code-body .line {
+      display: block;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    #learningLoading .loading-code-body .line:nth-child(1) {
+      width: 88%;
+    }
+
+    #learningLoading .loading-code-body .line:nth-child(2) {
+      width: 72%;
+    }
+
+    #learningLoading .loading-code-body .line:nth-child(3) {
+      width: 96%;
+    }
+
+    #learningLoading .loading-code-body .line:nth-child(4) {
+      width: 66%;
+    }
+
+    #learningLoading .loading-code-body .line:nth-child(5) {
+      width: 81%;
+    }
+
+    #learningLoading .loading-spinner {
+      display: none;
+    }
+
+    #learningLoading h1 {
+      display: none;
+    }
+
+    #learningLoading p {
+      display: none;
+    }
+
+    #learningLoading .loading-rail,
+    #learningLoading .loading-dots {
+      display: none;
+    }
+
+    @keyframes loaderPulse {
+
+      0%,
+      100% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: .75;
+      }
+
+      50% {
+        transform: translate(-50%, -50%) scale(1.18);
+        opacity: 1;
+      }
+    }
+
+    @keyframes learning-breathe {
+
+      0%,
+      100% {
+        transform: scale(.96);
+        opacity: .78;
+      }
+
+      50% {
+        transform: scale(1.03);
+        opacity: 1;
+      }
+    }
+
+    @keyframes learning-orbit {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    @keyframes learning-rail {
+      0% {
+        transform: translateX(-110%);
+      }
+
+      55%,
+      100% {
+        transform: translateX(250%);
+      }
+    }
+
+    @keyframes learning-dot {
+
+      0%,
+      100% {
+        transform: translateY(0);
+        opacity: .35;
+      }
+
+      50% {
+        transform: translateY(-4px);
+        opacity: 1;
+      }
+    }
+
+    @keyframes learning-progress {
+      from {
+        transform: translateX(-100%);
+      }
+
+      to {
+        transform: translateX(260%);
+      }
+    }
+
+    #learningLoading::after {
+      background: linear-gradient(90deg, transparent, #c9f35b 35%, #7ed6c0 65%, transparent);
+      background-size: 45% 100%;
+      background-repeat: no-repeat;
+      animation: learning-progress 1.8s ease-in-out infinite;
+    }
+
     #courseCheckout {
       display: grid;
       gap: 16px;
@@ -340,179 +2035,977 @@
       box-shadow: 0 20px 55px rgba(15, 23, 42, .14), 0 2px 8px rgba(15, 23, 42, .06);
       color: #0f172a;
     }
-    #courseCheckout::before { content: ''; position: absolute; top: 0; right: 0; left: 0; height: 4px; background: linear-gradient(90deg, #f59e0b, #fbbf24, #84cc16); }
-    .checkout-price { display: flex; align-items: end; gap: 10px; padding-bottom: 10px; border-bottom: 1px solid rgba(15, 23, 42, .08); }
-    .checkout-price strong { color: #111827; font-size: 1.9rem; letter-spacing: -.04em; }
-    .checkout-price del { color: #64748b; font-size: .82rem; }
-    .checkout-label { display: grid; gap: 8px; color: #334155; font-size: .8rem; font-weight: 600; }
-    .checkout-label input, .checkout-label select { width: 100%; min-height: 44px; padding: 10px 11px; border: 1px solid #dfe7ef; border-radius: 8px; color: #0f172a; background: #f8fafc; font: inherit; }
-    .checkout-phone-label { gap: 6px; }
-    .checkout-phone-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
-    .checkout-phone-heading small { color: #64748b; font-size: .68rem; font-weight: 500; }
-    .checkout-phone-row { display: grid; grid-template-columns: minmax(132px, .78fr) minmax(0, 1.22fr); gap: 0; padding: 4px; border: 1px solid #dfe7ef; border-radius: 11px; background: #ffffff; transition: border-color .18s ease, box-shadow .18s ease; }
-    .checkout-phone-row:focus-within { border-color: #f59e0b; box-shadow: 0 0 0 3px rgba(245, 158, 11, .12); }
-    .checkout-phone-row select, .checkout-phone-row input { min-width: 0; min-height: 42px; border: 0; border-radius: 7px; background: transparent; color: #0f172a; }
-    .checkout-phone-row select { padding-right: 8px; border-right: 1px solid #e2e8f0; }
-    .checkout-phone-row input { padding-left: 13px; }
-    .checkout-phone-row select:focus, .checkout-phone-row input:focus { outline: 0; box-shadow: none; }
-    .checkout-phone-hint { margin: 0; color: #64748b; font-size: .68rem; font-weight: 400; line-height: 1.4; }
-    #checkoutPaymentMethod { border-color: #dfe7ef; background: #ffffff; }
-    #checkoutPaymentMethod, #checkoutCountry { color-scheme: light; }
-    #checkoutPaymentMethod option, #checkoutCountry option { color: #0f172a; background: #ffffff; }
-    .checkout-payment-select { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; }
-    .payment-logo-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
-    .payment-logo-choice { display: grid; align-content: center; justify-items: center; gap: 5px; min-height: 64px; padding: 6px 4px; border: 1px solid #dfe7ef; border-radius: 9px; color: #475569; background: #f8fafc; font: inherit; font-size: .65rem; font-weight: 600; cursor: pointer; transition: border-color .18s ease, background .18s ease, transform .18s ease; overflow: hidden; }
-    .payment-logo-choice:hover { border-color: #f59e0b; background: rgba(245, 158, 11, .05); transform: translateY(-1px); }
-    .payment-logo-choice.is-selected { border-color: #f59e0b; color: #0f172a; background: rgba(245, 158, 11, .08); box-shadow: 0 0 0 2px rgba(245, 158, 11, .12); }
-    .payment-logo-choice img, .payment-logo-fallback { display: grid; width: 32px; height: 22px; place-items: center; object-fit: contain; border-radius: 5px; background: #ffffff; }
-    .payment-logo-fallback { color: #172019; font-size: .58rem; font-weight: 900; }
-    .payment-logo-choice small { font-size: .62rem; line-height: 1.1; }
-    @media (max-width: 420px) { .payment-logo-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-    #checkoutPaymentInstruction { min-height: 1.3em; padding: 8px 10px; border-left: 2px solid #f59e0b; border-radius: 4px; color: #475569; background: rgba(245, 158, 11, .05); }
-    .checkout-label input:focus, .checkout-label select:focus { outline: 0; border-color: #f59e0b; box-shadow: 0 0 0 3px rgba(245, 158, 11, .12); }
-    .checkout-label input[type="file"] { padding: 6px; color: #a4ada2; }
-    .checkout-label input[type="file"]::file-selector-button { min-height: 29px; margin-right: 8px; padding: 0 9px; border: 1px solid rgba(201,243,91,.25); border-radius: 6px; color: #10150b; background: #c9f35b; cursor: pointer; }
-    .checkout-note, .checkout-error { margin: 0; color: #475569; font-size: .78rem; line-height: 1.5; }
-    .checkout-error { color: #dc2626; }
-    .checkout-benefits { display: grid; gap: 7px; padding-top: 8px; color: #0f172a; font-size: .8rem; }
-    .checkout-benefits > span { color: #475569; }
-    .checkout-share { width: 100%; min-height: 42px; padding: 10px 14px; border: 1px solid #dfe7ef; border-radius: 8px; color: #0f172a; background: #f8fafc; font: inherit; font-weight: 700; cursor: pointer; transition: .18s ease; }
-    .checkout-share:hover { border-color: #f59e0b; color: #b45309; background: rgba(245, 158, 11, .05); transform: translateY(-1px); }
-    #checkoutWhatsappBtn { border-color: rgba(22, 163, 74, .25); color: #166534; background: rgba(22, 163, 74, .04); }
-    .checkout-whatsapp-note { margin: 12px 0 0; color: #475569; font-size: .78rem; line-height: 1.5; }
-    #courseCheckout.hidden { display: none !important; }
-    .checkout-header { display: flex; align-items: start; justify-content: space-between; gap: 16px; }
-    .checkout-header h2 { margin: 2px 0 5px; color: #0f172a; font-size: 1.35rem; letter-spacing: -.02em; }
-    .checkout-header p:not(.checkout-kicker) { margin: 0; color: #64748b; font-size: .76rem; line-height: 1.5; }
-    .checkout-kicker { margin: 0 0 5px; color: #b45309; font-size: .63rem; font-weight: 800; letter-spacing: .14em; }
-    .checkout-account-badge { padding: 5px 8px; border: 1px solid #dbeafe; border-radius: 999px; color: #2563eb; background: #eff6ff; font-size: .63rem; font-weight: 700; white-space: nowrap; }
-    .checkout-course-summary { display: grid; grid-template-columns: 100px minmax(0, 1fr); gap: 12px; align-items: center; padding: 10px; border: 1px solid #e2e8f0; border-radius: 9px; background: #f8fafc; }
-    .checkout-course-summary img { width: 100px; aspect-ratio: 16 / 10; border-radius: 6px; object-fit: cover; background: #e2e8f0; }
-    .checkout-course-summary h3 { margin: 0 0 4px; color: #0f172a; font-size: .92rem; line-height: 1.35; }
-    .checkout-course-summary p:not(.checkout-kicker) { margin: 0 0 5px; color: #64748b; font-size: .7rem; line-height: 1.4; }
-    .checkout-course-summary span { color: #475569; font-size: .68rem; }
-    .checkout-order-summary { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; padding: 12px 0; border-top: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; color: #64748b; font-size: .75rem; }
-    .checkout-order-summary strong { color: #334155; font-size: .75rem; text-align: right; }
-    .checkout-order-summary .checkout-total-label, .checkout-order-summary .checkout-total { color: #0f172a; font-size: .9rem; font-weight: 800; }
-    .checkout-section-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-top: 5px; padding-top: 10px; border-top: 1px solid #eef2f6; color: #0f172a; font-size: .9rem; font-weight: 800; }
-    .checkout-section-heading small { color: #94a3b8; font-size: .66rem; font-weight: 500; }
-    .checkout-student-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-    .checkout-label input[readonly] { color: #64748b; background: #eef2f7; }
-    .checkout-confirmation { display: flex; align-items: start; gap: 8px; color: #334155; font-size: .73rem; line-height: 1.45; cursor: pointer; }
-    .checkout-confirmation input { flex: 0 0 auto; width: 17px; height: 17px; margin: 1px 0 0; accent-color: #f59e0b; }
-    .checkout-order-card { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px; border: 1px solid #fde68a; border-radius: 8px; background: #fffbeb; }
-    .checkout-order-card div { display: grid; gap: 3px; }
-    .checkout-order-card span { color: #92400e; font-size: .68rem; line-height: 1.4; }
-    .checkout-order-card strong { color: #78350f; font-size: 1.2rem; }
-    .checkout-order-card > span { max-width: 170px; text-align: right; }
-    .checkout-success { display: flex; align-items: start; gap: 10px; padding: 13px; border: 1px solid #bbf7d0; border-radius: 8px; color: #166534; background: #f0fdf4; }
-    .checkout-success > i { margin-top: 2px; font-size: 1.15rem; }
-    .checkout-success div { display: grid; gap: 4px; }
-    .checkout-success strong { font-size: .84rem; }
-    .checkout-success span, .checkout-success small { font-size: .72rem; line-height: 1.45; }
-    #checkoutPayBtn { min-height: 50px; border-radius: 10px; color: #111827; background: linear-gradient(135deg, #fbbf24, #f59e0b); border-color: #f59e0b; box-shadow: 0 8px 18px rgba(245, 158, 11, .2); font-weight: 800; letter-spacing: .01em; }
-    #checkoutPayBtn:hover:not(:disabled) { color: #111827; background: #f59e0b; border-color: #f59e0b; }
-    @media (max-width: 760px) {
-      .learning-topbar { height: auto; min-height: 62px; padding: 12px 16px; gap: 12px; }
-      .learning-brand { font-size: .9rem; }
-      .learning-back { font-size: .74rem; white-space: nowrap; }
-      .learning-app { width: calc(100% - 24px); padding-left: 12px; padding-right: 12px; }
-      .overview-heading { display: grid; gap: 14px; margin-bottom: 18px; }
-      .overview-heading h1 { font-size: clamp(1.65rem, 9vw, 2.25rem); overflow-wrap: anywhere; }
-      .overview-heading .learning-back { justify-self: start; }
-      .overview-summary { display: grid; grid-template-columns: 1fr; gap: 0; padding: 0; border: 0; border-radius: 10px; }
-      .overview-summary > img { min-height: 0; border-radius: 10px 10px 0 0; }
-      .overview-details { min-width: 0; padding: 18px; border-top: 1px solid #273142; border-left: 0; border-radius: 0 0 10px 10px; }
-      .overview-details h2 { font-size: 1.05rem; overflow-wrap: anywhere; }
-      .overview-meta { display: flex; flex-wrap: wrap; gap: 10px; }
-      #courseCheckout { padding: 14px; gap: 12px; }
-      .checkout-header { display: grid; gap: 8px; }
-      .checkout-account-badge { justify-self: start; }
-      .checkout-student-grid { grid-template-columns: 1fr; gap: 12px; }
-      .checkout-order-card { align-items: start; }
-      .checkout-price { display: flex; align-items: baseline; gap: 8px; }
-      .checkout-phone-row { grid-template-columns: minmax(135px, .9fr) minmax(0, 1.1fr); }
-      .checkout-label, .checkout-phone-row { min-width: 0; }
-      .checkout-phone-row { display: grid; grid-template-columns: minmax(135px, .9fr) minmax(0, 1.1fr); }
-      .checkout-share, #checkoutPayBtn { width: 100%; min-height: 42px; }
-      .course-sales-panels { margin-top: 16px; }
-      .sales-panel, .faq-panel { border-radius: 10px; }
-      .checkout-phone-row { grid-template-columns: minmax(135px, .9fr) minmax(0, 1.1fr); }
-      #learningLoading { min-height: 480px; border-radius: 12px; }
-      #learningLoading::before { top: 18px; left: 18px; font-size: .54rem; }
-      #learningLoading::after { right: 12%; left: 12%; bottom: 18px; }
-      #learningLoading { padding: 72px 18px 42px; }
-      #learningLoading .learning-focus { gap: 13px; }
-      #learningLoading .loading-spinner { width: 94px; height: 94px; }
-      #learningLoading .loading-spinner::before { font-size: 1.8rem; }
+
+    #courseCheckout::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: 0;
+      left: 0;
+      height: 4px;
+      background: linear-gradient(90deg, #f59e0b, #fbbf24, #84cc16);
     }
+
+    .checkout-price {
+      display: flex;
+      align-items: end;
+      gap: 10px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid rgba(15, 23, 42, .08);
+    }
+
+    .checkout-price strong {
+      color: #111827;
+      font-size: 1.9rem;
+      letter-spacing: -.04em;
+    }
+
+    .checkout-price del {
+      color: #64748b;
+      font-size: .82rem;
+    }
+
+    .checkout-label {
+      display: grid;
+      gap: 8px;
+      color: #334155;
+      font-size: .8rem;
+      font-weight: 600;
+    }
+
+    .checkout-label input,
+    .checkout-label select {
+      width: 100%;
+      min-height: 44px;
+      padding: 10px 11px;
+      border: 1px solid #dfe7ef;
+      border-radius: 8px;
+      color: #0f172a;
+      background: #f8fafc;
+      font: inherit;
+    }
+
+    .checkout-phone-label {
+      gap: 6px;
+    }
+
+    .checkout-phone-heading {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .checkout-phone-heading small {
+      color: #64748b;
+      font-size: .68rem;
+      font-weight: 500;
+    }
+
+    .checkout-phone-row {
+      display: grid;
+      grid-template-columns: minmax(132px, .78fr) minmax(0, 1.22fr);
+      gap: 0;
+      padding: 4px;
+      border: 1px solid #dfe7ef;
+      border-radius: 11px;
+      background: #ffffff;
+      transition: border-color .18s ease, box-shadow .18s ease;
+    }
+
+    .checkout-phone-row:focus-within {
+      border-color: #f59e0b;
+      box-shadow: 0 0 0 3px rgba(245, 158, 11, .12);
+    }
+
+    .checkout-phone-row select,
+    .checkout-phone-row input {
+      min-width: 0;
+      min-height: 42px;
+      border: 0;
+      border-radius: 7px;
+      background: transparent;
+      color: #0f172a;
+    }
+
+    .checkout-phone-row select {
+      padding-right: 8px;
+      border-right: 1px solid #e2e8f0;
+    }
+
+    .checkout-phone-row input {
+      padding-left: 13px;
+    }
+
+    .checkout-phone-row select:focus,
+    .checkout-phone-row input:focus {
+      outline: 0;
+      box-shadow: none;
+    }
+
+    .checkout-phone-hint {
+      margin: 0;
+      color: #64748b;
+      font-size: .68rem;
+      font-weight: 400;
+      line-height: 1.4;
+    }
+
+    #checkoutPaymentMethod {
+      border-color: #dfe7ef;
+      background: #ffffff;
+    }
+
+    #checkoutPaymentMethod,
+    #checkoutCountry {
+      color-scheme: light;
+    }
+
+    #checkoutPaymentMethod option,
+    #checkoutCountry option {
+      color: #0f172a;
+      background: #ffffff;
+    }
+
+    .checkout-payment-select {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+
+    .payment-logo-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .payment-logo-choice {
+      display: grid;
+      align-content: center;
+      justify-items: center;
+      gap: 5px;
+      min-height: 64px;
+      padding: 6px 4px;
+      border: 1px solid #dfe7ef;
+      border-radius: 9px;
+      color: #475569;
+      background: #f8fafc;
+      font: inherit;
+      font-size: .65rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: border-color .18s ease, background .18s ease, transform .18s ease;
+      overflow: hidden;
+    }
+
+    .payment-logo-choice:hover {
+      border-color: #f59e0b;
+      background: rgba(245, 158, 11, .05);
+      transform: translateY(-1px);
+    }
+
+    .payment-logo-choice.is-selected {
+      border-color: #f59e0b;
+      color: #0f172a;
+      background: rgba(245, 158, 11, .08);
+      box-shadow: 0 0 0 2px rgba(245, 158, 11, .12);
+    }
+
+    .payment-logo-choice img,
+    .payment-logo-fallback {
+      display: grid;
+      width: 32px;
+      height: 22px;
+      place-items: center;
+      object-fit: contain;
+      border-radius: 5px;
+      background: #ffffff;
+    }
+
+    .payment-logo-fallback {
+      color: #172019;
+      font-size: .58rem;
+      font-weight: 900;
+    }
+
+    .payment-logo-choice small {
+      font-size: .62rem;
+      line-height: 1.1;
+    }
+
+    @media (max-width: 420px) {
+      .payment-logo-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+    }
+
+    #checkoutPaymentInstruction {
+      min-height: 1.3em;
+      padding: 8px 10px;
+      border-left: 2px solid #f59e0b;
+      border-radius: 4px;
+      color: #475569;
+      background: rgba(245, 158, 11, .05);
+    }
+
+    .checkout-label input:focus,
+    .checkout-label select:focus {
+      outline: 0;
+      border-color: #f59e0b;
+      box-shadow: 0 0 0 3px rgba(245, 158, 11, .12);
+    }
+
+    .checkout-label input[type="file"] {
+      padding: 6px;
+      color: #a4ada2;
+    }
+
+    .checkout-label input[type="file"]::file-selector-button {
+      min-height: 29px;
+      margin-right: 8px;
+      padding: 0 9px;
+      border: 1px solid rgba(201, 243, 91, .25);
+      border-radius: 6px;
+      color: #10150b;
+      background: #c9f35b;
+      cursor: pointer;
+    }
+
+    .checkout-note,
+    .checkout-error {
+      margin: 0;
+      color: #475569;
+      font-size: .78rem;
+      line-height: 1.5;
+    }
+
+    .checkout-error {
+      color: #dc2626;
+    }
+
+    .checkout-benefits {
+      display: grid;
+      gap: 7px;
+      padding-top: 8px;
+      color: #0f172a;
+      font-size: .8rem;
+    }
+
+    .checkout-benefits>span {
+      color: #475569;
+    }
+
+    .checkout-share {
+      width: 100%;
+      min-height: 42px;
+      padding: 10px 14px;
+      border: 1px solid #dfe7ef;
+      border-radius: 8px;
+      color: #0f172a;
+      background: #f8fafc;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+      transition: .18s ease;
+    }
+
+    .checkout-share:hover {
+      border-color: #f59e0b;
+      color: #b45309;
+      background: rgba(245, 158, 11, .05);
+      transform: translateY(-1px);
+    }
+
+    #checkoutWhatsappBtn {
+      border-color: rgba(22, 163, 74, .25);
+      color: #166534;
+      background: rgba(22, 163, 74, .04);
+    }
+
+    .checkout-whatsapp-note {
+      margin: 12px 0 0;
+      color: #475569;
+      font-size: .78rem;
+      line-height: 1.5;
+    }
+
+    #courseCheckout.hidden {
+      display: none !important;
+    }
+
+    .checkout-header {
+      display: flex;
+      align-items: start;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .checkout-header h2 {
+      margin: 2px 0 5px;
+      color: #0f172a;
+      font-size: 1.35rem;
+      letter-spacing: -.02em;
+    }
+
+    .checkout-header p:not(.checkout-kicker) {
+      margin: 0;
+      color: #64748b;
+      font-size: .76rem;
+      line-height: 1.5;
+    }
+
+    .checkout-kicker {
+      margin: 0 0 5px;
+      color: #b45309;
+      font-size: .63rem;
+      font-weight: 800;
+      letter-spacing: .14em;
+    }
+
+    .checkout-account-badge {
+      padding: 5px 8px;
+      border: 1px solid #dbeafe;
+      border-radius: 999px;
+      color: #2563eb;
+      background: #eff6ff;
+      font-size: .63rem;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .checkout-course-summary {
+      display: grid;
+      grid-template-columns: 100px minmax(0, 1fr);
+      gap: 12px;
+      align-items: center;
+      padding: 10px;
+      border: 1px solid #e2e8f0;
+      border-radius: 9px;
+      background: #f8fafc;
+    }
+
+    .checkout-course-summary img {
+      width: 100px;
+      aspect-ratio: 16 / 10;
+      border-radius: 6px;
+      object-fit: cover;
+      background: #e2e8f0;
+    }
+
+    .checkout-course-summary h3 {
+      margin: 0 0 4px;
+      color: #0f172a;
+      font-size: .92rem;
+      line-height: 1.35;
+    }
+
+    .checkout-course-summary p:not(.checkout-kicker) {
+      margin: 0 0 5px;
+      color: #64748b;
+      font-size: .7rem;
+      line-height: 1.4;
+    }
+
+    .checkout-course-summary span {
+      color: #475569;
+      font-size: .68rem;
+    }
+
+    .checkout-order-summary {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 6px 12px;
+      padding: 12px 0;
+      border-top: 1px solid #e2e8f0;
+      border-bottom: 1px solid #e2e8f0;
+      color: #64748b;
+      font-size: .75rem;
+    }
+
+    .checkout-order-summary strong {
+      color: #334155;
+      font-size: .75rem;
+      text-align: right;
+    }
+
+    .checkout-order-summary .checkout-total-label,
+    .checkout-order-summary .checkout-total {
+      color: #0f172a;
+      font-size: .9rem;
+      font-weight: 800;
+    }
+
+    .checkout-section-heading {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 5px;
+      padding-top: 10px;
+      border-top: 1px solid #eef2f6;
+      color: #0f172a;
+      font-size: .9rem;
+      font-weight: 800;
+    }
+
+    .checkout-section-heading small {
+      color: #94a3b8;
+      font-size: .66rem;
+      font-weight: 500;
+    }
+
+    .checkout-student-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .checkout-label input[readonly] {
+      color: #64748b;
+      background: #eef2f7;
+    }
+
+    .checkout-confirmation {
+      display: flex;
+      align-items: start;
+      gap: 8px;
+      color: #334155;
+      font-size: .73rem;
+      line-height: 1.45;
+      cursor: pointer;
+    }
+
+    .checkout-confirmation input {
+      flex: 0 0 auto;
+      width: 17px;
+      height: 17px;
+      margin: 1px 0 0;
+      accent-color: #f59e0b;
+    }
+
+    .checkout-order-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px;
+      border: 1px solid #fde68a;
+      border-radius: 8px;
+      background: #fffbeb;
+    }
+
+    .checkout-order-card div {
+      display: grid;
+      gap: 3px;
+    }
+
+    .checkout-order-card span {
+      color: #92400e;
+      font-size: .68rem;
+      line-height: 1.4;
+    }
+
+    .checkout-order-card strong {
+      color: #78350f;
+      font-size: 1.2rem;
+    }
+
+    .checkout-order-card>span {
+      max-width: 170px;
+      text-align: right;
+    }
+
+    .checkout-success {
+      display: flex;
+      align-items: start;
+      gap: 10px;
+      padding: 13px;
+      border: 1px solid #bbf7d0;
+      border-radius: 8px;
+      color: #166534;
+      background: #f0fdf4;
+    }
+
+    .checkout-success>i {
+      margin-top: 2px;
+      font-size: 1.15rem;
+    }
+
+    .checkout-success div {
+      display: grid;
+      gap: 4px;
+    }
+
+    .checkout-success strong {
+      font-size: .84rem;
+    }
+
+    .checkout-success span,
+    .checkout-success small {
+      font-size: .72rem;
+      line-height: 1.45;
+    }
+
+    #checkoutPayBtn {
+      min-height: 50px;
+      border-radius: 10px;
+      color: #111827;
+      background: linear-gradient(135deg, #fbbf24, #f59e0b);
+      border-color: #f59e0b;
+      box-shadow: 0 8px 18px rgba(245, 158, 11, .2);
+      font-weight: 800;
+      letter-spacing: .01em;
+    }
+
+    #checkoutPayBtn:hover:not(:disabled) {
+      color: #111827;
+      background: #f59e0b;
+      border-color: #f59e0b;
+    }
+
+    @media (max-width: 760px) {
+      .learning-topbar {
+        height: auto;
+        min-height: 62px;
+        padding: 12px 16px;
+        gap: 12px;
+      }
+
+      .learning-brand {
+        font-size: .9rem;
+      }
+
+      .learning-back {
+        font-size: .74rem;
+        white-space: nowrap;
+      }
+
+      .learning-app {
+        width: calc(100% - 24px);
+        padding-left: 12px;
+        padding-right: 12px;
+      }
+
+      .overview-heading {
+        display: grid;
+        gap: 14px;
+        margin-bottom: 18px;
+      }
+
+      .overview-heading h1 {
+        font-size: clamp(1.65rem, 9vw, 2.25rem);
+        overflow-wrap: anywhere;
+      }
+
+      .overview-heading .learning-back {
+        justify-self: start;
+      }
+
+      .overview-summary {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 0;
+        padding: 0;
+        border: 0;
+        border-radius: 10px;
+      }
+
+      .overview-summary>img {
+        min-height: 0;
+        border-radius: 10px 10px 0 0;
+      }
+
+      .overview-details {
+        min-width: 0;
+        padding: 18px;
+        border-top: 1px solid #273142;
+        border-left: 0;
+        border-radius: 0 0 10px 10px;
+      }
+
+      .overview-details h2 {
+        font-size: 1.05rem;
+        overflow-wrap: anywhere;
+      }
+
+      .overview-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      #courseCheckout {
+        padding: 14px;
+        gap: 12px;
+      }
+
+      .checkout-header {
+        display: grid;
+        gap: 8px;
+      }
+
+      .checkout-account-badge {
+        justify-self: start;
+      }
+
+      .checkout-student-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+
+      .checkout-order-card {
+        align-items: start;
+      }
+
+      .checkout-price {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+      }
+
+      .checkout-phone-row {
+        grid-template-columns: minmax(135px, .9fr) minmax(0, 1.1fr);
+      }
+
+      .checkout-label,
+      .checkout-phone-row {
+        min-width: 0;
+      }
+
+      .checkout-phone-row {
+        display: grid;
+        grid-template-columns: minmax(135px, .9fr) minmax(0, 1.1fr);
+      }
+
+      .checkout-share,
+      #checkoutPayBtn {
+        width: 100%;
+        min-height: 42px;
+      }
+
+      .course-sales-panels {
+        margin-top: 16px;
+      }
+
+      .sales-panel,
+      .faq-panel {
+        border-radius: 10px;
+      }
+
+      .checkout-phone-row {
+        grid-template-columns: minmax(135px, .9fr) minmax(0, 1.1fr);
+      }
+
+      #learningLoading {
+        min-height: 480px;
+        border-radius: 12px;
+      }
+
+      #learningLoading::before {
+        top: 18px;
+        left: 18px;
+        font-size: .54rem;
+      }
+
+      #learningLoading::after {
+        right: 12%;
+        left: 12%;
+        bottom: 18px;
+      }
+
+      #learningLoading {
+        padding: 72px 18px 42px;
+      }
+
+      #learningLoading .learning-focus {
+        gap: 13px;
+      }
+
+      #learningLoading .loading-spinner {
+        width: 94px;
+        height: 94px;
+      }
+
+      #learningLoading .loading-spinner::before {
+        font-size: 1.8rem;
+      }
+    }
+
     @media (max-width: 380px) {
-      #courseCheckout { padding: 12px; }
-      .checkout-phone-row { grid-template-columns: 1fr; gap: 2px; }
-      .checkout-phone-row select { border-right: 0; border-bottom: 1px solid #e2e8f0; }
-      .checkout-order-card { flex-direction: column; }
-      .checkout-order-card > span { max-width: none; text-align: left; }
+      #courseCheckout {
+        padding: 12px;
+      }
+
+      .checkout-phone-row {
+        grid-template-columns: 1fr;
+        gap: 2px;
+      }
+
+      .checkout-phone-row select {
+        border-right: 0;
+        border-bottom: 1px solid #e2e8f0;
+      }
+
+      .checkout-order-card {
+        flex-direction: column;
+      }
+
+      .checkout-order-card>span {
+        max-width: none;
+        text-align: left;
+      }
     }
+
     @media (prefers-reduced-motion: reduce) {
-      #learningLoading::after { animation: none; }
-      #learningLoading .loading-spinner, #learningLoading .loading-spinner::after, #learningLoading .loading-rail::after, #learningLoading .loading-dots span { animation: none; }
+      #learningLoading::after {
+        animation: none;
+      }
+
+      #learningLoading .loading-spinner,
+      #learningLoading .loading-spinner::after,
+      #learningLoading .loading-rail::after,
+      #learningLoading .loading-dots span {
+        animation: none;
+      }
     }
+
     @media (max-width: 760px) {
-      .learning-state { min-height: calc(100dvh - 110px); }
-      .learning-button, .checkout-share, .checkout-label input, .checkout-label select { min-height: 48px; }
-      .lesson-sidebar { max-height: 260px; }
-      .lesson-playlist { max-height: 170px; }
-      .lesson-actions .learning-button { flex: 1 1 100%; }
+      .learning-state {
+        min-height: calc(100dvh - 110px);
+      }
+
+      .learning-button,
+      .checkout-share,
+      .checkout-label input,
+      .checkout-label select {
+        min-height: 48px;
+      }
+
+      .lesson-sidebar {
+        max-height: 260px;
+      }
+
+      .lesson-playlist {
+        max-height: 170px;
+      }
+
+      .lesson-actions .learning-button {
+        flex: 1 1 100%;
+      }
     }
+
     @media (max-width: 520px) {
-      html, body { max-width: 100%; overflow-x: hidden; }
-      .learning-topbar { align-items: flex-start; flex-wrap: wrap; }
-      .learning-brand { flex: 1 1 auto; min-width: 0; }
-      .learning-back { max-width: 100%; overflow-wrap: anywhere; }
-      .learning-app { width: calc(100% - 20px); padding-top: 20px; }
-      .lesson-screen { gap: 18px; }
-      .lesson-main, .lesson-sidebar, .lesson-video-wrap { width: 100%; min-width: 0; }
-      .lesson-video-wrap { aspect-ratio: 16 / 9; border-radius: 8px; }
-      .lesson-video-wrap iframe, .lesson-video-wrap video { display: block; width: 100%; height: 100%; min-width: 0; }
-      .lesson-heading { padding: 16px 0 12px; }
-      .lesson-heading h1 { overflow-wrap: anywhere; }
-      .lesson-duration { padding-top: 8px; }
-      .lesson-actions { display: grid; grid-template-columns: 1fr; gap: 8px; padding: 0; }
-      .lesson-actions .learning-button { width: 100%; min-width: 0; }
-      .lesson-sidebar { order: 2; max-height: none; border-radius: 8px; }
-      .lesson-playlist { max-height: 260px; }
-      .lesson-row { min-height: 52px; padding: 9px 8px; }
-      .lesson-row-title { overflow-wrap: anywhere; }
-      .lesson-row-meta { display: none; }
-      .lesson-video-wrap.is-custom-player .custom-video-controls { opacity: 1; }
-      #courseCheckout { width: 100%; margin-top: 16px; padding: 16px; gap: 14px; font-size: 1rem; }
-      #courseCheckout h2 { font-size: 1.15rem; line-height: 1.35; }
-      #courseCheckout .checkout-header p:not(.checkout-kicker) { font-size: .82rem; }
-      #courseCheckout .checkout-label { gap: 7px; font-size: .9rem; }
-      #courseCheckout .checkout-label input, #courseCheckout .checkout-label select { min-height: 48px; padding: 11px 12px; font-size: 16px; }
-      #courseCheckout .checkout-phone-row { padding: 3px; }
-      #courseCheckout .checkout-phone-row select, #courseCheckout .checkout-phone-row input { min-height: 46px; font-size: 16px; }
-      #courseCheckout .checkout-section-heading { font-size: .95rem; }
-      #courseCheckout .checkout-section-heading small { font-size: .72rem; }
-      #courseCheckout .payment-logo-grid { gap: 8px; }
-      #courseCheckout .payment-logo-choice { min-height: 70px; font-size: .72rem; }
-      #courseCheckout .payment-logo-choice small { font-size: .7rem; }
-      #courseCheckout .checkout-confirmation { font-size: .82rem; }
-      #courseCheckout .checkout-order-card { padding: 14px; }
-      #courseCheckout .checkout-share, #courseCheckout #checkoutPayBtn { min-height: 48px; font-size: .88rem; }
+
+      html,
+      body {
+        max-width: 100%;
+        overflow-x: hidden;
+      }
+
+      .learning-topbar {
+        align-items: flex-start;
+        flex-wrap: wrap;
+      }
+
+      .learning-brand {
+        flex: 1 1 auto;
+        min-width: 0;
+      }
+
+      .learning-back {
+        max-width: 100%;
+        overflow-wrap: anywhere;
+      }
+
+      .learning-app {
+        width: calc(100% - 20px);
+        padding-top: 20px;
+      }
+
+      .lesson-screen {
+        gap: 18px;
+      }
+
+      .lesson-main,
+      .lesson-sidebar,
+      .lesson-video-wrap {
+        width: 100%;
+        min-width: 0;
+      }
+
+      .lesson-video-wrap {
+        aspect-ratio: 16 / 9;
+        border-radius: 8px;
+      }
+
+      .lesson-video-wrap iframe,
+      .lesson-video-wrap video {
+        display: block;
+        width: 100%;
+        height: 100%;
+        min-width: 0;
+      }
+
+      .lesson-heading {
+        padding: 16px 0 12px;
+      }
+
+      .lesson-heading h1 {
+        overflow-wrap: anywhere;
+      }
+
+      .lesson-duration {
+        padding-top: 8px;
+      }
+
+      .lesson-actions {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 8px;
+        padding: 0;
+      }
+
+      .lesson-actions .learning-button {
+        width: 100%;
+        min-width: 0;
+      }
+
+      .lesson-sidebar {
+        order: 2;
+        max-height: none;
+        border-radius: 8px;
+      }
+
+      .lesson-playlist {
+        max-height: 260px;
+      }
+
+      .lesson-row {
+        min-height: 52px;
+        padding: 9px 8px;
+      }
+
+      .lesson-row-title {
+        overflow-wrap: anywhere;
+      }
+
+      .lesson-row-meta {
+        display: none;
+      }
+
+      .lesson-video-wrap.is-custom-player .custom-video-controls {
+        opacity: 1;
+      }
+
+      #courseCheckout {
+        width: 100%;
+        margin-top: 16px;
+        padding: 16px;
+        gap: 14px;
+        font-size: 1rem;
+      }
+
+      #courseCheckout h2 {
+        font-size: 1.15rem;
+        line-height: 1.35;
+      }
+
+      #courseCheckout .checkout-header p:not(.checkout-kicker) {
+        font-size: .82rem;
+      }
+
+      #courseCheckout .checkout-label {
+        gap: 7px;
+        font-size: .9rem;
+      }
+
+      #courseCheckout .checkout-label input,
+      #courseCheckout .checkout-label select {
+        min-height: 48px;
+        padding: 11px 12px;
+        font-size: 16px;
+      }
+
+      #courseCheckout .checkout-phone-row {
+        padding: 3px;
+      }
+
+      #courseCheckout .checkout-phone-row select,
+      #courseCheckout .checkout-phone-row input {
+        min-height: 46px;
+        font-size: 16px;
+      }
+
+      #courseCheckout .checkout-section-heading {
+        font-size: .95rem;
+      }
+
+      #courseCheckout .checkout-section-heading small {
+        font-size: .72rem;
+      }
+
+      #courseCheckout .payment-logo-grid {
+        gap: 8px;
+      }
+
+      #courseCheckout .payment-logo-choice {
+        min-height: 70px;
+        font-size: .72rem;
+      }
+
+      #courseCheckout .payment-logo-choice small {
+        font-size: .7rem;
+      }
+
+      #courseCheckout .checkout-confirmation {
+        font-size: .82rem;
+      }
+
+      #courseCheckout .checkout-order-card {
+        padding: 14px;
+      }
+
+      #courseCheckout .checkout-share,
+      #courseCheckout #checkoutPayBtn {
+        min-height: 48px;
+        font-size: .88rem;
+      }
     }
   </style>
   <link rel="stylesheet" href="assets/css/course-inspired-ui.css?v=20260915-action-box-1">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
 </head>
+
 <body class="course-learning-page">
   <header class="learning-topbar">
-    <a class="learning-brand" href="index.html"><img class="learning-brand-logo" src="assets/images/profile-siam-round.png" alt="CodeWithSiam logo"><span class="learning-brand-name">CodeWithSiam</span></a>
+    <a class="learning-brand" href="index.html"><img class="learning-brand-logo"
+        src="assets/images/profile-siam-round.png" alt="CodeWithSiam logo"><span
+        class="learning-brand-name">CodeWithSiam</span></a>
     <a class="learning-back" href="index.html"><i class="fa-solid fa-arrow-left"></i> Back to courses</a>
   </header>
 
   <main id="learningApp" class="learning-app">
-    <section id="learningLoading" class="learning-state" role="status" aria-label="Loading course"><div class="learning-focus"><span class="loading-spinner" aria-hidden="true"></span><h1>Loading course</h1><p>Preparing your learning space...</p><div class="loading-rail" aria-hidden="true"></div><div class="loading-dots" aria-hidden="true"><span></span><span></span><span></span></div></div></section>
+    <section id="learningLoading" class="learning-state" role="status" aria-label="Loading course">
+      <div class="learning-focus">
+        <div class="loading-visual" aria-hidden="true">
+          <span class="loading-line"></span>
+        </div>
+      </div>
+      <div class="loading-code-panel" aria-hidden="true">
+        <div class="loading-code-header"><span></span><span></span><span></span></div>
+        <div class="loading-code-body">
+          <span class="line">const loader = new LoadingState();</span>
+          <span class="line">const blocks = ['course', 'lessons'];</span>
+          <span class="line">console.log('Preparing your learning space...');</span>
+          <span class="line">return buildCourseView(blocks);</span>
+          <span class="line">await hydrateLessons();</span>
+        </div>
+      </div>
+    </section>
     <section id="learningLogin" class="learning-state hidden">
       <div class="access-state-icon" aria-hidden="true"><i class="fa-solid fa-graduation-cap"></i></div>
       <div id="accessIntro" class="access-intro">
@@ -537,9 +3030,19 @@
           <button type="button" class="payment-method-choice" data-payment-method="rocket">Rocket</button>
           <button type="button" class="payment-method-choice" data-payment-method="bank">Bank</button>
         </div>
-        <div class="payment-method-details" id="paymentDetails-bkash"><strong>bKash Payment</strong><span>Send payment to: <b id="accessPaymentBkash">01644171751</b></span><button type="button" class="copy-payment-number" data-copy-target="accessPaymentBkash">Copy Number</button><p>1. Open bKash<br>2. Send the exact amount<br>3. Copy your Transaction ID</p></div>
-        <div class="payment-method-details hidden" id="paymentDetails-rocket"><strong>Rocket Payment</strong><span>Send payment to: <b id="accessPaymentRocket">01644171751</b></span><button type="button" class="copy-payment-number" data-copy-target="accessPaymentRocket">Copy Number</button><p>1. Open Rocket<br>2. Send the exact amount<br>3. Copy your Transaction ID</p></div>
-        <div class="payment-method-details hidden" id="paymentDetails-bank"><strong>Bank Transfer</strong><span id="accessPaymentBank">Contact for bank details</span><button type="button" class="copy-payment-number" data-copy-target="accessPaymentBank">Copy Details</button></div>
+        <div class="payment-method-details" id="paymentDetails-bkash"><strong>bKash Payment</strong><span>Send payment
+            to: <b id="accessPaymentBkash">01644171751</b></span><button type="button" class="copy-payment-number"
+            data-copy-target="accessPaymentBkash">Copy Number</button>
+          <p>1. Open bKash<br>2. Send the exact amount<br>3. Copy your Transaction ID</p>
+        </div>
+        <div class="payment-method-details hidden" id="paymentDetails-rocket"><strong>Rocket Payment</strong><span>Send
+            payment to: <b id="accessPaymentRocket">01644171751</b></span><button type="button"
+            class="copy-payment-number" data-copy-target="accessPaymentRocket">Copy Number</button>
+          <p>1. Open Rocket<br>2. Send the exact amount<br>3. Copy your Transaction ID</p>
+        </div>
+        <div class="payment-method-details hidden" id="paymentDetails-bank"><strong>Bank Transfer</strong><span
+            id="accessPaymentBank">Contact for bank details</span><button type="button" class="copy-payment-number"
+            data-copy-target="accessPaymentBank">Copy Details</button></div>
         <div class="payment-qr-panel" id="accessPaymentQrPanel" aria-label="Selected payment QR code"></div>
       </div>
       <div class="payment-submit-panel" id="payment-submit-panel">
@@ -563,8 +3066,10 @@
         <p id="paymentSubmitStatus" class="learning-status" aria-live="polite"></p>
         <a id="viewCourseBtn" class="learning-button primary hidden" href="">View Course</a>
       </div>
-        <button id="learningGoogleBtn" class="learning-button primary hidden" type="button"><i class="fa-brands fa-google"></i> Continue with Google</button>
-        <button id="refreshAccessBtn" class="learning-button hidden" type="button"><i class="fa-solid fa-rotate"></i> Refresh Access</button>
+      <button id="learningGoogleBtn" class="learning-button primary hidden" type="button"><i
+          class="fa-brands fa-google"></i> Continue with Google</button>
+      <button id="refreshAccessBtn" class="learning-button hidden" type="button"><i class="fa-solid fa-rotate"></i>
+        Refresh Access</button>
       <p id="learningAuthStatus" class="learning-status" aria-live="polite"></p>
     </section>
 
@@ -583,7 +3088,8 @@
           <p class="learning-eyebrow">CODEWITHSIAM COURSE</p>
           <h2 id="overviewLessonTitle">Start your first lesson</h2>
           <p id="courseInstructor"></p>
-          <div class="overview-meta"><span id="courseLessonCount">0 lessons</span><span id="courseDuration">0 min</span></div>
+          <div class="overview-meta"><span id="courseLessonCount">0 lessons</span><span id="courseDuration">0 min</span>
+          </div>
           <div class="progress-line"><span id="overviewProgressBar"></span></div>
           <strong id="overviewProgressText">0% COMPLETE</strong>
           <div id="coursePaymentPanel" class="course-payment-panel learning-payment-panel">
@@ -593,56 +3099,133 @@
               <span>Manual payment verification</span>
             </div>
             <div class="course-payment-methods">
-              <a id="coursePaymentBkashLink" href="tel:01644171751"><span class="payment-brand bkash"><span class="payment-brand-fallback">bK</span></span> bKash <b id="coursePaymentBkash">01644171751</b><span class="payment-action">Pay / Call</span></a>
-              <a id="coursePaymentRocketLink" href="tel:01644171751"><span class="payment-brand rocket"><span class="payment-brand-fallback">R</span></span> Rocket <b id="coursePaymentRocket">01644171751</b><span class="payment-action">Pay / Call</span></a>
-              <a id="coursePaymentBankLink" href="#coursePaymentBank"><span class="payment-brand"><i class="fa-solid fa-building-columns"></i></span> Bank <b id="coursePaymentBank">Contact for bank details</b><span class="payment-action">Details</span></a>
+              <a id="coursePaymentBkashLink" href="tel:01644171751"><span class="payment-brand bkash"><span
+                    class="payment-brand-fallback">bK</span></span> bKash <b
+                  id="coursePaymentBkash">01644171751</b><span class="payment-action">Pay / Call</span></a>
+              <a id="coursePaymentRocketLink" href="tel:01644171751"><span class="payment-brand rocket"><span
+                    class="payment-brand-fallback">R</span></span> Rocket <b
+                  id="coursePaymentRocket">01644171751</b><span class="payment-action">Pay / Call</span></a>
+              <a id="coursePaymentBankLink" href="#coursePaymentBank"><span class="payment-brand"><i
+                    class="fa-solid fa-building-columns"></i></span> Bank <b id="coursePaymentBank">Contact for bank
+                  details</b><span class="payment-action">Details</span></a>
             </div>
             <div class="payment-qr-panel" id="coursePaymentQrPanel" aria-label="Scan payment QR codes"></div>
           </div>
-          <button id="overviewEnrollBtn" class="learning-button primary" type="button"><i class="fa-solid fa-key"></i> Enroll</button>
-          <button id="overviewStartBtn" class="learning-button primary" type="button"><i class="fa-solid fa-play"></i> Enroll Now</button>
+          <button id="overviewEnrollBtn" class="learning-button primary" type="button"><i class="fa-solid fa-key"></i>
+            Enroll</button>
+          <button id="overviewStartBtn" class="learning-button primary" type="button"><i class="fa-solid fa-play"></i>
+            Enroll Now</button>
           <p id="courseEnrollmentStatus" class="enrollment-success">✓ You're enrolled</p>
           <section id="courseCheckout" aria-label="Course checkout">
-            <div class="checkout-header"><div><p class="checkout-kicker">GET STARTED</p><h2>Complete your enrollment</h2><p id="checkoutAccountHint">Already have an account? Your CodeWithSiam details will be used automatically.</p></div><span class="checkout-account-badge" id="checkoutAccountBadge">Secure checkout</span></div>
-            <div class="checkout-course-summary"><img id="checkoutCourseThumbnail" src="" alt="Course thumbnail"><div><p class="checkout-kicker">YOUR COURSE</p><h3 id="checkoutCourseTitle">Course</h3><p id="checkoutCourseDescription"></p><span id="checkoutCourseInstructor"></span></div></div>
-            <div class="checkout-order-summary"><span>Course price</span><strong id="checkoutOriginalSummary">৳0</strong><span>Discount</span><strong id="checkoutDiscountSummary">-৳0</strong><span class="checkout-total-label">Total</span><strong class="checkout-total" id="checkoutTotalSummary">Free</strong></div>
-            <div class="checkout-price"><strong id="checkoutFinalPrice">Free</strong><del id="checkoutOriginalPrice" class="hidden">৳0</del></div>
-            <div class="checkout-section-heading"><span>Student information</span><small>Fill in your details</small></div>
-            <div class="checkout-student-grid">
-              <label class="checkout-label">Full name<input id="checkoutStudentName" type="text" autocomplete="name" placeholder="Your full name"></label>
-              <label class="checkout-label">Email<input id="checkoutStudentEmail" type="email" autocomplete="email" placeholder="you@example.com" readonly></label>
+            <div class="checkout-header">
+              <div>
+                <p class="checkout-kicker">GET STARTED</p>
+                <h2>Complete your enrollment</h2>
+                <p id="checkoutAccountHint">Already have an account? Your CodeWithSiam details will be used
+                  automatically.</p>
+              </div><span class="checkout-account-badge" id="checkoutAccountBadge">Secure checkout</span>
             </div>
-            <label class="checkout-label checkout-phone-label"><span class="checkout-phone-heading"><span>Phone number</span><small>Required for enrollment</small></span>
-              <span class="checkout-phone-row"><select id="checkoutCountry" aria-label="Country code"><option value="+880" data-placeholder="01XXXXXXXXX" data-country="Bangladesh">🇧🇩 +880</option><option value="+91" data-placeholder="XXXXXXXXXX" data-country="India">🇮🇳 +91</option><option value="+92" data-placeholder="XXXXXXXXXX" data-country="Pakistan">🇵🇰 +92</option><option value="+971" data-placeholder="5XXXXXXXX" data-country="UAE">🇦🇪 +971</option><option value="+966" data-placeholder="5XXXXXXXX" data-country="Saudi Arabia">🇸🇦 +966</option><option value="+60" data-placeholder="1XXXXXXXX" data-country="Malaysia">🇲🇾 +60</option><option value="+44" data-placeholder="7XXXXXXXXX" data-country="United Kingdom">🇬🇧 +44</option><option value="+1" data-placeholder="XXXXXXXXXX" data-country="United States">🇺🇸 +1</option></select><input id="checkoutPhone" type="tel" inputmode="numeric" maxlength="15" placeholder="01XXXXXXXXX" autocomplete="tel" autocorrect="off" spellcheck="false" aria-label="Phone number"></span>
+            <div class="checkout-course-summary"><img id="checkoutCourseThumbnail" src="" alt="Course thumbnail">
+              <div>
+                <p class="checkout-kicker">YOUR COURSE</p>
+                <h3 id="checkoutCourseTitle">Course</h3>
+                <p id="checkoutCourseDescription"></p><span id="checkoutCourseInstructor"></span>
+              </div>
+            </div>
+            <div class="checkout-order-summary"><span>Course price</span><strong
+                id="checkoutOriginalSummary">৳0</strong><span>Discount</span><strong
+                id="checkoutDiscountSummary">-৳0</strong><span class="checkout-total-label">Total</span><strong
+                class="checkout-total" id="checkoutTotalSummary">Free</strong></div>
+            <div class="checkout-price"><strong id="checkoutFinalPrice">Free</strong><del id="checkoutOriginalPrice"
+                class="hidden">৳0</del></div>
+            <div class="checkout-section-heading"><span>Student information</span><small>Fill in your details</small>
+            </div>
+            <div class="checkout-student-grid">
+              <label class="checkout-label">Full name<input id="checkoutStudentName" type="text" autocomplete="name"
+                  placeholder="Your full name"></label>
+              <label class="checkout-label">Email<input id="checkoutStudentEmail" type="email" autocomplete="email"
+                  placeholder="you@example.com" readonly></label>
+            </div>
+            <label class="checkout-label checkout-phone-label"><span class="checkout-phone-heading"><span>Phone
+                  number</span><small>Required for enrollment</small></span>
+              <span class="checkout-phone-row"><select id="checkoutCountry" aria-label="Country code">
+                  <option value="+880" data-placeholder="01XXXXXXXXX" data-country="Bangladesh">🇧🇩 +880</option>
+                  <option value="+91" data-placeholder="XXXXXXXXXX" data-country="India">🇮🇳 +91</option>
+                  <option value="+92" data-placeholder="XXXXXXXXXX" data-country="Pakistan">🇵🇰 +92</option>
+                  <option value="+971" data-placeholder="5XXXXXXXX" data-country="UAE">🇦🇪 +971</option>
+                  <option value="+966" data-placeholder="5XXXXXXXX" data-country="Saudi Arabia">🇸🇦 +966</option>
+                  <option value="+60" data-placeholder="1XXXXXXXX" data-country="Malaysia">🇲🇾 +60</option>
+                  <option value="+44" data-placeholder="7XXXXXXXXX" data-country="United Kingdom">🇬🇧 +44</option>
+                  <option value="+1" data-placeholder="XXXXXXXXXX" data-country="United States">🇺🇸 +1</option>
+                </select><input id="checkoutPhone" type="tel" inputmode="numeric" maxlength="15"
+                  placeholder="01XXXXXXXXX" autocomplete="tel" autocorrect="off" spellcheck="false"
+                  aria-label="Phone number"></span>
               <small class="checkout-phone-hint">Use the number linked to your payment account.</small>
             </label>
             <p id="checkoutPhoneError" class="checkout-error" role="alert"></p>
-            <div class="checkout-section-heading"><span>Payment method</span><small>Manual payment verification</small></div>
+            <div class="checkout-section-heading"><span>Payment method</span><small>Manual payment verification</small>
+            </div>
             <label class="checkout-label">Choose how you paid
-              <select id="checkoutPaymentMethod" class="checkout-payment-select"><option value="bkash">bKash</option><option value="rocket">Rocket</option><option value="nagad">Nagad</option><option value="bank">Bank Transfer</option><option value="visa">Visa</option><option value="debit_card">Debit Card</option><option value="credit_card">Credit Card</option><option value="paypal">PayPal</option></select>
+              <select id="checkoutPaymentMethod" class="checkout-payment-select">
+                <option value="bkash">bKash</option>
+                <option value="rocket">Rocket</option>
+                <option value="nagad">Nagad</option>
+                <option value="bank">Bank Transfer</option>
+                <option value="visa">Visa</option>
+                <option value="debit_card">Debit Card</option>
+                <option value="credit_card">Credit Card</option>
+                <option value="paypal">PayPal</option>
+              </select>
               <span class="payment-logo-grid" role="group" aria-label="Choose a payment method">
-                <button class="payment-logo-choice is-selected" type="button" data-payment-choice="bkash" aria-pressed="true"><img src="https://cdn.worldvectorlogo.com/logos/bkash.svg" alt="bKash logo"><small>bKash</small></button>
-                <button class="payment-logo-choice" type="button" data-payment-choice="rocket" aria-pressed="false"><span class="payment-logo-fallback">R</span><small>Rocket</small></button>
-                <button class="payment-logo-choice" type="button" data-payment-choice="nagad" aria-pressed="false"><img src="https://cdn.worldvectorlogo.com/logos/nagad-1.svg" alt="Nagad logo"><small>Nagad</small></button>
-                <button class="payment-logo-choice" type="button" data-payment-choice="bank" aria-pressed="false"><span class="payment-logo-fallback">BANK</span><small>Bank</small></button>
-                <button class="payment-logo-choice" type="button" data-payment-choice="visa" aria-pressed="false"><img src="https://cdn.simpleicons.org/visa" alt="Visa logo"><small>Visa</small></button>
-                <button class="payment-logo-choice" type="button" data-payment-choice="debit_card" aria-pressed="false"><img src="https://cdn.worldvectorlogo.com/logos/maestro-2.svg" alt="Debit card logo"><small>Debit</small></button>
-                <button class="payment-logo-choice" type="button" data-payment-choice="credit_card" aria-pressed="false"><img src="https://cdn.simpleicons.org/mastercard" alt="Credit card logo"><small>Credit</small></button>
-                <button class="payment-logo-choice" type="button" data-payment-choice="paypal" aria-pressed="false"><img src="https://cdn.simpleicons.org/paypal" alt="PayPal logo"><small>PayPal</small></button>
+                <button class="payment-logo-choice is-selected" type="button" data-payment-choice="bkash"
+                  aria-pressed="true"><img src="https://cdn.worldvectorlogo.com/logos/bkash.svg"
+                    alt="bKash logo"><small>bKash</small></button>
+                <button class="payment-logo-choice" type="button" data-payment-choice="rocket"
+                  aria-pressed="false"><span class="payment-logo-fallback">R</span><small>Rocket</small></button>
+                <button class="payment-logo-choice" type="button" data-payment-choice="nagad" aria-pressed="false"><img
+                    src="https://cdn.worldvectorlogo.com/logos/nagad-1.svg"
+                    alt="Nagad logo"><small>Nagad</small></button>
+                <button class="payment-logo-choice" type="button" data-payment-choice="bank" aria-pressed="false"><span
+                    class="payment-logo-fallback">BANK</span><small>Bank</small></button>
+                <button class="payment-logo-choice" type="button" data-payment-choice="visa" aria-pressed="false"><img
+                    src="https://cdn.simpleicons.org/visa" alt="Visa logo"><small>Visa</small></button>
+                <button class="payment-logo-choice" type="button" data-payment-choice="debit_card"
+                  aria-pressed="false"><img src="https://cdn.worldvectorlogo.com/logos/maestro-2.svg"
+                    alt="Debit card logo"><small>Debit</small></button>
+                <button class="payment-logo-choice" type="button" data-payment-choice="credit_card"
+                  aria-pressed="false"><img src="https://cdn.simpleicons.org/mastercard"
+                    alt="Credit card logo"><small>Credit</small></button>
+                <button class="payment-logo-choice" type="button" data-payment-choice="paypal" aria-pressed="false"><img
+                    src="https://cdn.simpleicons.org/paypal" alt="PayPal logo"><small>PayPal</small></button>
               </span>
             </label>
             <p id="checkoutPaymentInstruction" class="checkout-note"></p>
-            <label class="checkout-label">Transaction ID<input id="checkoutTransactionId" type="text" maxlength="80" placeholder="Enter transaction ID" autocomplete="off" autocorrect="off" spellcheck="false"></label>
-            <label class="checkout-label">Payment screenshot <span>(optional)</span><input id="checkoutPaymentScreenshot" type="file" accept="image/jpeg,image/png,image/webp"></label>
-            <label class="checkout-confirmation"><input id="checkoutPaymentConfirm" type="checkbox"><span>I confirm that I have completed the payment and entered the correct details.</span></label>
-            <div class="checkout-order-card"><div><span>Total payable</span><strong id="checkoutOrderTotal">Free</strong></div><span id="checkoutOrderNote">Your request will be reviewed by the CodeWithSiam team.</span></div>
-            <button id="checkoutPayBtn" class="learning-button primary" type="button" disabled>Confirm Enrollment</button>
+            <label class="checkout-label">Transaction ID<input id="checkoutTransactionId" type="text" maxlength="80"
+                placeholder="Enter transaction ID" autocomplete="off" autocorrect="off" spellcheck="false"></label>
+            <label class="checkout-label">Payment screenshot <span>(optional)</span><input
+                id="checkoutPaymentScreenshot" type="file" accept="image/jpeg,image/png,image/webp"></label>
+            <label class="checkout-confirmation"><input id="checkoutPaymentConfirm" type="checkbox"><span>I confirm that
+                I have completed the payment and entered the correct details.</span></label>
+            <div class="checkout-order-card">
+              <div><span>Total payable</span><strong id="checkoutOrderTotal">Free</strong></div><span
+                id="checkoutOrderNote">Your request will be reviewed by the CodeWithSiam team.</span>
+            </div>
+            <button id="checkoutPayBtn" class="learning-button primary" type="button" disabled>Confirm
+              Enrollment</button>
             <p id="checkoutStatus" class="checkout-note" role="status"></p>
-            <div id="checkoutSuccess" class="checkout-success hidden" role="status"><i class="fa-solid fa-circle-check"></i><div><strong>Enrollment request submitted!</strong><span>Your payment is being reviewed. You’ll receive course access after approval.</span><small>Request ID: <b id="checkoutRequestId"></b></small></div></div>
-            <div class="checkout-benefits"><strong>This course includes:</strong><span id="checkoutBenefits"></span></div>
-              <p class="checkout-whatsapp-note">After submitting, you can send the payment details to WhatsApp and manually attach your screenshot there.</p>
-              <button id="checkoutWhatsappBtn" class="checkout-share" type="button"><i class="fa-brands fa-whatsapp"></i> Send Payment Proof via WhatsApp</button>
-            <button id="checkoutShareBtn" class="checkout-share" type="button"><i class="fa-solid fa-share-nodes"></i> Share</button>
+            <div id="checkoutSuccess" class="checkout-success hidden" role="status"><i
+                class="fa-solid fa-circle-check"></i>
+              <div><strong>Enrollment request submitted!</strong><span>Your payment is being reviewed. You’ll receive
+                  course access after approval.</span><small>Request ID: <b id="checkoutRequestId"></b></small></div>
+            </div>
+            <div class="checkout-benefits"><strong>This course includes:</strong><span id="checkoutBenefits"></span>
+            </div>
+            <p class="checkout-whatsapp-note">After submitting, you can send the payment details to WhatsApp and
+              manually attach your screenshot there.</p>
+            <button id="checkoutWhatsappBtn" class="checkout-share" type="button"><i class="fa-brands fa-whatsapp"></i>
+              Send Payment Proof via WhatsApp</button>
+            <button id="checkoutShareBtn" class="checkout-share" type="button"><i class="fa-solid fa-share-nodes"></i>
+              Share</button>
           </section>
         </div>
       </div>
@@ -670,7 +3253,12 @@
 
       <div class="overview-content-grid">
         <section class="playlist-panel">
-          <div class="panel-heading"><div><p class="learning-eyebrow">COURSE CONTENT</p><h2>Course Content</h2></div><span id="playlistCount">0 lessons</span></div>
+          <div class="panel-heading">
+            <div>
+              <p class="learning-eyebrow">COURSE CONTENT</p>
+              <h2>Course Content</h2>
+            </div><span id="playlistCount">0 lessons</span>
+          </div>
           <div id="overviewPlaylist" class="overview-playlist"></div>
         </section>
       </div>
@@ -683,19 +3271,23 @@
         <div class="faq-list">
           <details open>
             <summary>Do I get instant access after payment?</summary>
-            <p>After your payment is verified, the course access is granted manually. This keeps the process transparent and helps prevent mistakes.</p>
+            <p>After your payment is verified, the course access is granted manually. This keeps the process transparent
+              and helps prevent mistakes.</p>
           </details>
           <details>
             <summary>Can I learn even if I’m a beginner?</summary>
-            <p>Yes. The course is designed to help you learn progressively, with clear lessons and practical examples instead of overwhelming theory.</p>
+            <p>Yes. The course is designed to help you learn progressively, with clear lessons and practical examples
+              instead of overwhelming theory.</p>
           </details>
           <details>
             <summary>What payment methods are supported?</summary>
-            <p>You can pay through bKash, Rocket, or bank transfer. All instructions are provided directly on the enrollment panel.</p>
+            <p>You can pay through bKash, Rocket, or bank transfer. All instructions are provided directly on the
+              enrollment panel.</p>
           </details>
           <details>
             <summary>Is there a free preview?</summary>
-            <p>Some lessons are marked as free preview, so you can sample the teaching style and content before enrolling in the full course.</p>
+            <p>Some lessons are marked as free preview, so you can sample the teaching style and content before
+              enrolling in the full course.</p>
           </details>
         </div>
       </div>
@@ -706,18 +3298,75 @@
       <p class="learning-eyebrow">ENROLLMENT ACCESS</p>
       <h1>This class is available for enrolled students.</h1>
       <p id="lessonLockedMessage">Watch the first 2 classes free before enrolling.</p>
-      <button id="lessonEnrollBtn" class="learning-button primary" type="button"><i class="fa-solid fa-key"></i> Enroll Now</button>
+      <button id="lessonEnrollBtn" class="learning-button primary" type="button"><i class="fa-solid fa-key"></i> Enroll
+        Now</button>
     </section>
 
     <section id="lessonPlayer" class="lesson-screen hidden">
       <div class="lesson-main">
-        <div class="lesson-workspace-tools"><div class="workspace-settings"><button type="button" class="workspace-settings-button" id="workspaceSettingsButton" aria-expanded="false" aria-controls="workspaceSettingsMenu"><i class="fa-solid fa-sliders"></i> Settings</button><div class="workspace-settings-menu" id="workspaceSettingsMenu" hidden><label class="workspace-setting"><span>Show Sidebar</span><input type="checkbox" id="showSidebarToggle" checked></label><label class="workspace-setting"><span>Autoplay</span><input type="checkbox" id="autoplayToggle"></label><label class="workspace-setting"><span>Autocomplete</span><input type="checkbox" id="autocompleteToggle" checked></label></div></div></div>
-        <div class="lesson-video-wrap"><iframe loading="lazy" id="lessonVideo" title="Course lesson video" tabindex="0" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe><div class="youtube-click-shield left" aria-hidden="true"></div><div class="youtube-click-shield right" aria-hidden="true"></div><video id="lessonMp4" controls playsinline preload="metadata"></video><div class="youtube-video-brand" hidden><i class="fa-solid fa-play"></i><span>CodeWithSiam Player</span></div><div class="youtube-video-controls" hidden><div class="youtube-video-timeline"><span class="youtube-video-current-time">0:00</span><input class="youtube-video-progress" type="range" min="0" max="100" value="0" aria-label="Video progress"><span class="youtube-video-total-time">0:00</span></div><div class="youtube-video-toolbar"><div class="youtube-video-toolbar-left"><button type="button" data-youtube-action="play" aria-label="Play or pause"><i class="fa-solid fa-play"></i></button><button type="button" data-youtube-action="seek-back" aria-label="Rewind 10 seconds"><i class="fa-solid fa-rotate-left"></i><small>10</small></button><button type="button" data-youtube-action="seek-forward" aria-label="Forward 10 seconds"><i class="fa-solid fa-rotate-right"></i><small>10</small></button><button type="button" data-youtube-action="mute" aria-label="Mute or unmute"><i class="fa-solid fa-volume-high"></i></button></div><div class="youtube-video-toolbar-right"><button type="button" class="video-caption-button" data-video-captions aria-label="Toggle subtitles"><i class="fa-solid fa-closed-captioning"></i></button><button type="button" data-youtube-action="settings" aria-label="Player settings"><i class="fa-solid fa-sliders"></i></button><button type="button" data-youtube-action="pip" aria-label="Picture in picture"><i class="fa-solid fa-clone"></i></button><button type="button" data-youtube-action="fullscreen" aria-label="Fullscreen"><i class="fa-solid fa-expand"></i></button></div></div></div></div>
-        <div class="lesson-heading"><div><p class="learning-eyebrow">NOW PLAYING</p><h1 id="lessonTitle">Lesson</h1><p id="lessonDescription"></p><a id="lessonYoutubeLink" class="lesson-youtube-link hidden" href="" target="_blank" rel="noopener noreferrer">Watch on YouTube</a></div><span id="lessonDuration" class="lesson-duration"></span></div>
-        <div class="lesson-actions"><button id="previousLesson" class="learning-button" type="button"><i class="fa-solid fa-arrow-left"></i> Previous Lesson</button><button id="completeLesson" class="learning-button primary" type="button">Complete and Continue <i class="fa-solid fa-arrow-right"></i></button><button id="nextLesson" class="learning-button" type="button">Next Lesson <i class="fa-solid fa-arrow-right"></i></button></div>
+        <div class="lesson-workspace-tools">
+          <div class="workspace-settings"><button type="button" class="workspace-settings-button"
+              id="workspaceSettingsButton" aria-expanded="false" aria-controls="workspaceSettingsMenu"><i
+                class="fa-solid fa-sliders"></i> Settings</button>
+            <div class="workspace-settings-menu" id="workspaceSettingsMenu" hidden><label
+                class="workspace-setting"><span>Show Sidebar</span><input type="checkbox" id="showSidebarToggle"
+                  checked></label><label class="workspace-setting"><span>Autoplay</span><input type="checkbox"
+                  id="autoplayToggle"></label><label class="workspace-setting"><span>Autocomplete</span><input
+                  type="checkbox" id="autocompleteToggle" checked></label></div>
+          </div>
+        </div>
+        <div class="lesson-video-wrap"><iframe loading="lazy" id="lessonVideo" title="Course lesson video" tabindex="0"
+            allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>
+          <div class="youtube-click-shield left" aria-hidden="true"></div>
+          <div class="youtube-click-shield right" aria-hidden="true"></div><video id="lessonMp4" controls playsinline
+            preload="metadata"></video>
+          <div class="youtube-video-brand" hidden><i class="fa-solid fa-play"></i><span>CodeWithSiam Player</span></div>
+          <div class="youtube-video-controls" hidden>
+            <div class="youtube-video-timeline"><span class="youtube-video-current-time">0:00</span><input
+                class="youtube-video-progress" type="range" min="0" max="100" value="0"
+                aria-label="Video progress"><span class="youtube-video-total-time">0:00</span></div>
+            <div class="youtube-video-toolbar">
+              <div class="youtube-video-toolbar-left"><button type="button" data-youtube-action="play"
+                  aria-label="Play or pause"><i class="fa-solid fa-play"></i></button><button type="button"
+                  data-youtube-action="seek-back" aria-label="Rewind 10 seconds"><i
+                    class="fa-solid fa-rotate-left"></i><small>10</small></button><button type="button"
+                  data-youtube-action="seek-forward" aria-label="Forward 10 seconds"><i
+                    class="fa-solid fa-rotate-right"></i><small>10</small></button><button type="button"
+                  data-youtube-action="mute" aria-label="Mute or unmute"><i
+                    class="fa-solid fa-volume-high"></i></button></div>
+              <div class="youtube-video-toolbar-right"><button type="button" class="video-caption-button"
+                  data-video-captions aria-label="Toggle subtitles"><i
+                    class="fa-solid fa-closed-captioning"></i></button><button type="button"
+                  data-youtube-action="settings" aria-label="Player settings"><i
+                    class="fa-solid fa-sliders"></i></button><button type="button" data-youtube-action="pip"
+                  aria-label="Picture in picture"><i class="fa-solid fa-clone"></i></button><button type="button"
+                  data-youtube-action="fullscreen" aria-label="Fullscreen"><i class="fa-solid fa-expand"></i></button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="lesson-heading">
+          <div>
+            <p class="learning-eyebrow">NOW PLAYING</p>
+            <h1 id="lessonTitle">Lesson</h1>
+            <p id="lessonDescription"></p><a id="lessonYoutubeLink" class="lesson-youtube-link hidden" href=""
+              target="_blank" rel="noopener noreferrer">Watch on YouTube</a>
+          </div><span id="lessonDuration" class="lesson-duration"></span>
+        </div>
+        <div class="lesson-actions"><button id="previousLesson" class="learning-button" type="button"><i
+              class="fa-solid fa-arrow-left"></i> Previous Lesson</button><button id="completeLesson"
+            class="learning-button primary" type="button">Complete and Continue <i
+              class="fa-solid fa-arrow-right"></i></button><button id="nextLesson" class="learning-button"
+            type="button">Next Lesson <i class="fa-solid fa-arrow-right"></i></button></div>
       </div>
       <aside class="lesson-sidebar">
-        <div class="sidebar-course-head"><p class="learning-eyebrow">COURSE PLAYLIST</p><h2 id="sidebarCourseTitle">Course</h2><div class="sidebar-progress-label"><strong id="sidebarProgressText">0% COMPLETE</strong><span id="sidebarProgressCount">0 / 0 lessons</span></div><div class="progress-line"><span id="sidebarProgressBar"></span></div></div>
+        <div class="sidebar-course-head">
+          <p class="learning-eyebrow">COURSE PLAYLIST</p>
+          <h2 id="sidebarCourseTitle">Course</h2>
+          <div class="sidebar-progress-label"><strong id="sidebarProgressText">0% COMPLETE</strong><span
+              id="sidebarProgressCount">0 / 0 lessons</span></div>
+          <div class="progress-line"><span id="sidebarProgressBar"></span></div>
+        </div>
         <div id="lessonPlaylist" class="lesson-playlist"></div>
       </aside>
     </section>
@@ -744,4 +3393,5 @@
   </script>
   <script type="module" src="assets/js/course-learning.js?v=20260915-lock-badge-1"></script>
 </body>
+
 </html>

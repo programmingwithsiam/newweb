@@ -22,8 +22,8 @@ import { getLessonVideoSource } from './courses-db.js';
    ========================================================= */
 let siteEffectsInitialized = false;
 let chatToggleInitialized = false;
-function initSiteEffects(){
-  if(siteEffectsInitialized) return;
+function initSiteEffects() {
+  if (siteEffectsInitialized) return;
   siteEffectsInitialized = true;
 
   // Initialize all UI effects
@@ -36,7 +36,7 @@ function initSiteEffects(){
   initTiltCards();
   initHero3dParallax();
   initMobileMenu();
-  
+
   // Initialize page-specific features
   initCourseDeck();
   initLiveNotification();
@@ -135,10 +135,10 @@ function getCourseLessonTotal(course) {
   }
   const moduleTotal = Array.isArray(course.modules)
     ? course.modules.reduce((sum, module) => {
-        if (Array.isArray(module.lessonCatalog)) return sum + module.lessonCatalog.length;
-        if (Array.isArray(module.lessons)) return sum + module.lessons.length;
-        return sum;
-      }, 0)
+      if (Array.isArray(module.lessonCatalog)) return sum + module.lessonCatalog.length;
+      if (Array.isArray(module.lessons)) return sum + module.lessons.length;
+      return sum;
+    }, 0)
     : 0;
   if (moduleTotal) return moduleTotal;
   return Array.isArray(course.lessons) ? course.lessons.length : 0;
@@ -149,10 +149,10 @@ function normalizeCourse(course) {
   const modules = Array.isArray(course.modules) && course.modules.length
     ? course.modules
     : [{
-        id: `${course.id}-module-1`,
-        title: course.moduleTitle || 'Course Module',
-        lessons: lessons.map(lesson => ({ id: lesson.id, title: lesson.title, duration: lesson.duration || '0 min' }))
-      }];
+      id: `${course.id}-module-1`,
+      title: course.moduleTitle || 'Course Module',
+      lessons: lessons.map(lesson => ({ id: lesson.id, title: lesson.title, duration: lesson.duration || '0 min' }))
+    }];
 
   return {
     ...course,
@@ -195,7 +195,7 @@ function renderModuleList(course) {
                 ${completed.has(lesson.id) ? '<span class="lesson-check">✓</span>' : '<span class="lesson-check"></span>'}
                 <span class="lesson-title">${lesson.title}</span>
               </span>
-              <span class="lesson-action"><span>${lesson.duration || '0 min'}</span> ${completed.has(lesson.id) ? 'Review' : 'Play'} <i class="fa-solid fa-arrow-right"></i></span>
+              <span class="lesson-action"><span>${lesson.duration || '0 min'}</span> ${completed.has(lesson.id) ? 'Review' : 'Start'} <i class="fa-solid fa-arrow-right"></i></span>
             </button>
           `).join('')}
         </div>
@@ -229,16 +229,16 @@ function loadLessonNotes(course, lesson) {
 function renderCourseDetail(course) {
   activeCourse = course;
   const lesson = getCurrentLesson(course);
-if (!lesson) {
-  const courseProgressText = document.getElementById('courseOverviewProgressText');
-  document.querySelector('.course-lesson-player')?.classList.add('hidden');
+  if (!lesson) {
+    const courseProgressText = document.getElementById('courseOverviewProgressText');
+    document.querySelector('.course-lesson-player')?.classList.add('hidden');
 
-  if (courseProgressText) {
-    courseProgressText.textContent = 'No lessons';
+    if (courseProgressText) {
+      courseProgressText.textContent = 'No lessons';
+    }
+
+    return;
   }
-
-  return;
-}
 
   const video = document.getElementById('courseVideo');
   const placeholder = document.getElementById('videoPlaceholder');
@@ -336,18 +336,18 @@ if (!lesson) {
   }
 
   // Watch on YouTube link (opens the lesson video in YouTube)
-    const watchLink = document.getElementById('watchOnYoutube');
-    if (watchLink) {
-      // Do not expose external video URL to unauthenticated visitors.
-      const externalUrl = currentSignedInUid && !course.accessDenied ? (lesson.videoUrl || course.videoUrl || '') : '';
-      if (externalUrl) {
-        watchLink.href = externalUrl;
-        watchLink.classList.remove('hidden');
-      } else {
-        watchLink.href = '#';
-        watchLink.classList.add('hidden');
-      }
+  const watchLink = document.getElementById('watchOnYoutube');
+  if (watchLink) {
+    // Do not expose external video URL to unauthenticated visitors.
+    const externalUrl = currentSignedInUid && !course.accessDenied ? (lesson.videoUrl || course.videoUrl || '') : '';
+    if (externalUrl) {
+      watchLink.href = externalUrl;
+      watchLink.classList.remove('hidden');
+    } else {
+      watchLink.href = '#';
+      watchLink.classList.add('hidden');
     }
+  }
 
   if (video) {
     const source = getLessonVideoSource(lesson) || getLessonVideoSource(course);
@@ -475,7 +475,7 @@ function handleVideoEnded(course) {
     pushCourseRoute(course.id, selectedLessonId);
     renderCourseDetail(course);
     const video = document.getElementById('courseVideo');
-    if (video) video.play().catch(() => {});
+    if (video) video.play().catch(() => { });
   }
 }
 
@@ -522,21 +522,21 @@ function attachCourseEvents(course) {
   restartBtn?.addEventListener('click', () => {
     if (video) {
       video.currentTime = 0;
-      video.play().catch(() => {});
+      video.play().catch(() => { });
     }
   });
   speedSelect?.addEventListener('change', event => {
     if (video) {
       const r = Number(event.target.value);
       video.playbackRate = r;
-      try { localStorage.setItem(getLessonPlaybackKey(course.id, getCurrentLesson(course).id), String(r)); } catch(e){}
+      try { localStorage.setItem(getLessonPlaybackKey(course.id, getCurrentLesson(course).id), String(r)); } catch (e) { }
     }
   });
   pipBtn?.addEventListener('click', async () => {
     if (document.pictureInPictureElement) {
-      await document.exitPictureInPicture().catch(() => {});
+      await document.exitPictureInPicture().catch(() => { });
     } else if (video && typeof video.requestPictureInPicture === 'function') {
-      await video.requestPictureInPicture().catch(() => {});
+      await video.requestPictureInPicture().catch(() => { });
     }
   });
   notesInput?.addEventListener('input', event => {
@@ -591,7 +591,7 @@ function attachCourseEvents(course) {
   playPauseBtn?.addEventListener('click', () => {
     if (!video) return;
     if (video.paused) {
-      video.play().catch(() => {});
+      video.play().catch(() => { });
     } else {
       video.pause();
     }
@@ -599,9 +599,9 @@ function attachCourseEvents(course) {
   video?.addEventListener('dblclick', async () => {
     if (!video) return;
     if (document.fullscreenElement) {
-      await document.exitFullscreen().catch(() => {});
+      await document.exitFullscreen().catch(() => { });
     } else {
-      await video.requestFullscreen().catch(() => {});
+      await video.requestFullscreen().catch(() => { });
     }
   });
   muteBtn?.addEventListener('click', () => {
@@ -616,9 +616,9 @@ function attachCourseEvents(course) {
   fullscreenBtn?.addEventListener('click', async () => {
     if (!video) return;
     if (document.fullscreenElement) {
-      await document.exitFullscreen().catch(() => {});
+      await document.exitFullscreen().catch(() => { });
     } else {
-      await video.requestFullscreen().catch(() => {});
+      await video.requestFullscreen().catch(() => { });
     }
   });
 
@@ -631,12 +631,12 @@ function attachCourseEvents(course) {
       case ' ':
       case 'Spacebar': // legacy
         event.preventDefault();
-        video.paused ? video.play().catch(() => {}) : video.pause();
+        video.paused ? video.play().catch(() => { }) : video.pause();
         break;
       case 'k':
       case 'K':
         event.preventDefault();
-        video.paused ? video.play().catch(() => {}) : video.pause();
+        video.paused ? video.play().catch(() => { }) : video.pause();
         break;
       case 'ArrowRight':
         event.preventDefault();
@@ -650,24 +650,24 @@ function attachCourseEvents(course) {
         event.preventDefault();
         video.playbackRate = Math.min(2, +(video.playbackRate + 0.25).toFixed(2));
         speedSelect && (speedSelect.value = String(video.playbackRate));
-        try { localStorage.setItem(getLessonPlaybackKey(course.id, getCurrentLesson(course).id), String(video.playbackRate)); } catch(e){}
+        try { localStorage.setItem(getLessonPlaybackKey(course.id, getCurrentLesson(course).id), String(video.playbackRate)); } catch (e) { }
         break;
       case ',': // decrease speed
         event.preventDefault();
         video.playbackRate = Math.max(0.5, +(video.playbackRate - 0.25).toFixed(2));
         speedSelect && (speedSelect.value = String(video.playbackRate));
-        try { localStorage.setItem(getLessonPlaybackKey(course.id, getCurrentLesson(course).id), String(video.playbackRate)); } catch(e){}
+        try { localStorage.setItem(getLessonPlaybackKey(course.id, getCurrentLesson(course).id), String(video.playbackRate)); } catch (e) { }
         break;
       case 'f':
       case 'F':
         event.preventDefault();
-        if (document.fullscreenElement) { document.exitFullscreen().catch(()=>{}); } else { video.requestFullscreen().catch(()=>{}); }
+        if (document.fullscreenElement) { document.exitFullscreen().catch(() => { }); } else { video.requestFullscreen().catch(() => { }); }
         break;
       case 'p':
       case 'P':
         event.preventDefault();
-        if (document.pictureInPictureElement) { document.exitPictureInPicture().catch(()=>{}); }
-        else if (video && typeof video.requestPictureInPicture === 'function') { video.requestPictureInPicture().catch(()=>{}); }
+        if (document.pictureInPictureElement) { document.exitPictureInPicture().catch(() => { }); }
+        else if (video && typeof video.requestPictureInPicture === 'function') { video.requestPictureInPicture().catch(() => { }); }
         break;
       case 'n':
       case 'N':
@@ -815,11 +815,11 @@ window.handleAuthStateChange = async function handleAuthStateChange(user) {
       renderPublishedCourseCatalog();
       syncCourseRoute();
       const course = getCurrentCourse();
-          if (course && activeCourse) {
-            document.getElementById('coursePlatform')?.classList.remove('hidden');
-            document.getElementById('courseSignInGate')?.classList.add('hidden');
-            renderCourseDetail(course);
-          }
+      if (course && activeCourse) {
+        document.getElementById('coursePlatform')?.classList.remove('hidden');
+        document.getElementById('courseSignInGate')?.classList.add('hidden');
+        renderCourseDetail(course);
+      }
     } catch (error) {
       console.error('Failed to sync progress from cloud:', error);
     }
@@ -858,7 +858,9 @@ function initializePortfolio() {
   // (and therefore progress syncing / the admin link) is driven separately
   // by auth-app.js via window.handleAuthStateChange().
   initSiteEffects();
-  activateSection(new URLSearchParams(window.location.search).has('course') || window.location.hash === '#course' ? 'course' : 'home');
+  const hasCourseRoute = new URLSearchParams(window.location.search).has('course') ||
+    window.location.pathname.split('/').filter(Boolean)[0] === 'courses';
+  activateSection(hasCourseRoute ? 'learn' : window.location.hash.slice(1) || 'home');
   initChatToggle();
 }
 
@@ -891,11 +893,11 @@ let speechRecognizer = null;
 let chatBotInitialized = false;
 let chatRequestInFlight = false;
 
-function initChatbot(){
+function initChatbot() {
   if (chatBotInitialized) return;
   chatBotInitialized = true;
   const input = document.getElementById('input');
-  input?.addEventListener('keydown', e=>{ if(e.key==='Enter') sendMessage(); });
+  input?.addEventListener('keydown', e => { if (e.key === 'Enter') sendMessage(); });
   document.getElementById('sendBtn')?.addEventListener('click', sendMessage);
   document.querySelectorAll('[data-question]').forEach(button => button.addEventListener('click', () => quickAsk(button.dataset.question || '')));
 
@@ -904,39 +906,39 @@ function initChatbot(){
 }
 
 /* ---------- Chat toggle (floating button) ---------- */
-function initChatToggle(){
+function initChatToggle() {
   if (chatToggleInitialized) return;
   const toggle = document.getElementById('chatToggleBtn');
   const chat = document.getElementById('chatbot') || document.querySelector('.chatbox');
-  if(!toggle || !chat) return;
+  if (!toggle || !chat) return;
   if (toggle.dataset.chatBound === 'true') {
     chatToggleInitialized = true;
     return;
   }
   toggle.dataset.chatBound = 'true';
 
-  function setOpen(open){
+  function setOpen(open) {
     chat.classList.toggle('active', open);
     toggle.classList.toggle('open', open);
     toggle.setAttribute('aria-expanded', String(open));
     chat.setAttribute('aria-hidden', String(!open));
-    if(open){
+    if (open) {
       // ensure chatbot subsystems are ready
-      try { initChatbot(); } catch(e){}
-      setTimeout(()=> document.getElementById('input')?.focus(), 180);
+      try { initChatbot(); } catch (e) { }
+      setTimeout(() => document.getElementById('input')?.focus(), 180);
     } else {
       toggle.focus();
     }
   }
 
-  toggle.onclick = ()=>{
+  toggle.onclick = () => {
     const isOpen = chat.classList.contains('active');
     setOpen(!isOpen);
   };
 
   // Close chat with Escape
-  document.addEventListener('keydown', (e)=>{
-    if(e.key === 'Escape' && chat.classList.contains('active')){
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && chat.classList.contains('active')) {
       setOpen(false);
     }
   });
@@ -946,31 +948,31 @@ function initChatToggle(){
 
 /* ---------- local fallback replies (used only if the API call fails) ---------- */
 const fallbackReplies = [
-  { keys: ['project','built','made'], reply: "I've built 10 Python/AI projects — an Image Classifier (92% CNN), Sentiment Analyzer (BERT), Data Dashboard, House Price Predictor, Text Generator (LSTM), Digit Recognizer (99.1%), AI Chatbot, Fake News Detector, Stock Price Predictor, and a Face Recognition Attendance system! Check the Projects section above 👆" },
-  { keys: ['python skill','best skill','skill'], reply: "Python is my strongest language, and I work regularly with NumPy/Pandas, scikit-learn, and TensorFlow/Keras. Check the Skills section for the full breakdown 📊" },
-  { keys: ['python','learn python','programming'], reply: "Python is my main language. I use it for automation, data analysis, machine learning, APIs, and practical projects with NumPy, Pandas, scikit-learn, and TensorFlow." },
-  { keys: ['cnn','convolutional'], reply: "My CNN model is an image classifier trained on CIFAR-10, hitting 92% accuracy, with real-time webcam inference via OpenCV 🖼️" },
-  { keys: ['course','free python','tutorial','learn'], reply: "Yes! CodeWithSiam has a free Python course from beginner to advanced topics, with practical video lessons and projects. Open the Free Course section to start learning." },
-  { keys: ['data science','pandas','numpy','machine learning','ai','artificial intelligence'], reply: "Siam works with Python, NumPy, Pandas, scikit-learn, TensorFlow/Keras, and practical machine-learning workflows such as data preparation, training, evaluation, and deployment." },
-  { keys: ['contact','email','reach','hire'], reply: "You can reach me via WhatsApp (fastest!), email, or any of my social links in the Contact section below 👇" },
-  { keys: ['github','youtube','facebook','social'], reply: "You can find CodeWithSiam on GitHub, YouTube, Facebook, Instagram, and WhatsApp through the Contact section of this website." },
-  { keys: ['college','school','study','education'], reply: "I'm currently a Class 11 Science student at Narsingdi Government College, Bangladesh — studying alongside my AI/ML work! 🎓" },
-  { keys: ['where','bangladesh','location','from'], reply: "Siam is from Bangladesh and studies at Narsingdi Government College while building Python, data science, and AI projects." },
-  { keys: ['who are you','your name','about you'], reply: "I am the CodeWithSiam AI assistant. I can answer questions about Siam, his projects, Python, AI/ML, data science, and his courses." },
-  { keys: ['hi','hello','hey'], reply: "Hey there! 👋 Ask me about my Python projects, ML skills, or the free Python course!" },
+  { keys: ['project', 'built', 'made'], reply: "I've built 10 Python/AI projects — an Image Classifier (92% CNN), Sentiment Analyzer (BERT), Data Dashboard, House Price Predictor, Text Generator (LSTM), Digit Recognizer (99.1%), AI Chatbot, Fake News Detector, Stock Price Predictor, and a Face Recognition Attendance system! Check the Projects section above 👆" },
+  { keys: ['python skill', 'best skill', 'skill'], reply: "Python is my strongest language, and I work regularly with NumPy/Pandas, scikit-learn, and TensorFlow/Keras. Check the Skills section for the full breakdown 📊" },
+  { keys: ['python', 'learn python', 'programming'], reply: "Python is my main language. I use it for automation, data analysis, machine learning, APIs, and practical projects with NumPy, Pandas, scikit-learn, and TensorFlow." },
+  { keys: ['cnn', 'convolutional'], reply: "My CNN model is an image classifier trained on CIFAR-10, hitting 92% accuracy, with real-time webcam inference via OpenCV 🖼️" },
+  { keys: ['course', 'free python', 'tutorial', 'learn'], reply: "Yes! CodeWithSiam has a free Python course from beginner to advanced topics, with practical video lessons and projects. Open the Free Course section to start learning." },
+  { keys: ['data science', 'pandas', 'numpy', 'machine learning', 'ai', 'artificial intelligence'], reply: "Siam works with Python, NumPy, Pandas, scikit-learn, TensorFlow/Keras, and practical machine-learning workflows such as data preparation, training, evaluation, and deployment." },
+  { keys: ['contact', 'email', 'reach', 'hire'], reply: "You can reach me via WhatsApp (fastest!), email, or any of my social links in the Contact section below 👇" },
+  { keys: ['github', 'youtube', 'facebook', 'social'], reply: "You can find CodeWithSiam on GitHub, YouTube, Facebook, Instagram, and WhatsApp through the Contact section of this website." },
+  { keys: ['college', 'school', 'study', 'education'], reply: "I'm currently a Class 11 Science student at Narsingdi Government College, Bangladesh — studying alongside my AI/ML work! 🎓" },
+  { keys: ['where', 'bangladesh', 'location', 'from'], reply: "Siam is from Bangladesh and studies at Narsingdi Government College while building Python, data science, and AI projects." },
+  { keys: ['who are you', 'your name', 'about you'], reply: "I am the CodeWithSiam AI assistant. I can answer questions about Siam, his projects, Python, AI/ML, data science, and his courses." },
+  { keys: ['hi', 'hello', 'hey'], reply: "Hey there! 👋 Ask me about my Python projects, ML skills, or the free Python course!" },
 ];
-function fallbackResponse(msg){
+function fallbackResponse(msg) {
   const lower = msg.toLowerCase();
-  for(const r of fallbackReplies){
-    if(r.keys.some(k=>lower.includes(k))) return r.reply;
+  for (const r of fallbackReplies) {
+    if (r.keys.some(k => lower.includes(k))) return r.reply;
   }
   return "I couldn't reach the AI backend just now, so here's a quick answer: for specifics, the fastest way is to message Siam directly on WhatsApp 🙂";
 }
 
 /* ---------- message bubble rendering ---------- */
-function appendMessage(text, isUser){
+function appendMessage(text, isUser) {
   const chat = document.getElementById('chat');
-  if(!chat) return null;
+  if (!chat) return null;
   const wrap = document.createElement('div');
   wrap.className = 'msg ' + (isUser ? 'user-msg' : 'bot-msg');
   wrap.innerHTML = `<span class="avatar">${isUser ? '🧑' : '🤖'}</span><div class="bubble"></div>`;
@@ -980,9 +982,9 @@ function appendMessage(text, isUser){
   return wrap;
 }
 
-function appendTypingIndicator(){
+function appendTypingIndicator() {
   const chat = document.getElementById('chat');
-  if(!chat) return null;
+  if (!chat) return null;
   const wrap = document.createElement('div');
   wrap.className = 'msg bot-msg';
   wrap.innerHTML = `<span class="avatar">🤖</span><div class="bubble typing"><span></span><span></span><span></span></div>`;
@@ -992,21 +994,21 @@ function appendTypingIndicator(){
 }
 
 /* ---------- core send flow: call backend, fall back locally on failure ---------- */
-async function getBotReply(userMsg){
+async function getBotReply(userMsg) {
   chatHistory.push({ role: 'user', content: userMsg });
 
-  try{
+  try {
     const res = await fetch(CHAT_API_ENDPOINT, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ messages: chatHistory }),
     });
-    if(!res.ok) throw new Error('backend not available');
+    if (!res.ok) throw new Error('backend not available');
     const data = await res.json();
-    if(!data.reply) throw new Error('empty reply');
+    if (!data.reply) throw new Error('empty reply');
     chatHistory.push({ role: 'assistant', content: data.reply });
     return data.reply;
-  } catch(err){
+  } catch (err) {
     // Backend not deployed yet, or call failed — use local fallback so the
     // chatbox still feels alive during development / before Netlify setup.
     const fallback = fallbackResponse(userMsg);
@@ -1015,11 +1017,11 @@ async function getBotReply(userMsg){
   }
 }
 
-async function sendMessage(){
+async function sendMessage() {
   const input = document.getElementById('input');
   const sendBtn = document.getElementById('sendBtn');
   const msg = input?.value.trim();
-  if(!msg || chatRequestInFlight) return;
+  if (!msg || chatRequestInFlight) return;
   chatRequestInFlight = true;
   if (sendBtn) sendBtn.disabled = true;
   appendMessage(msg, true);
@@ -1037,7 +1039,7 @@ async function sendMessage(){
   }
 }
 
-async function quickAsk(text){
+async function quickAsk(text) {
   if (chatRequestInFlight) return;
   chatRequestInFlight = true;
   appendMessage(text, true);
@@ -1055,21 +1057,21 @@ async function quickAsk(text){
 /* =========================================================
    VOICE OUTPUT (text-to-speech) — browser built-in, free
    ========================================================= */
-function initVoiceToggle(){
+function initVoiceToggle() {
   const btn = document.getElementById('voiceToggle');
-  if(!btn) return;
+  if (!btn) return;
   btn.addEventListener('click', () => {
     voiceOutputOn = !voiceOutputOn;
     btn.textContent = voiceOutputOn ? '🔊' : '🔇';
     btn.classList.toggle('muted', !voiceOutputOn);
     btn.setAttribute('aria-pressed', String(voiceOutputOn));
-    if(!voiceOutputOn) window.speechSynthesis?.cancel();
+    if (!voiceOutputOn) window.speechSynthesis?.cancel();
   });
 }
 
-function speak(text){
-  if(!voiceOutputOn) return;
-  if(!('speechSynthesis' in window)) return;
+function speak(text) {
+  if (!voiceOutputOn) return;
+  if (!('speechSynthesis' in window)) return;
   window.speechSynthesis.cancel(); // stop any prior utterance
   const utter = new SpeechSynthesisUtterance(text);
   utter.rate = 1.0;
@@ -1081,13 +1083,13 @@ function speak(text){
 /* =========================================================
    VOICE INPUT (speech-to-text) — browser built-in, free
    ========================================================= */
-function initMic(){
+function initMic() {
   const micBtn = document.getElementById('micBtn');
   const status = document.getElementById('micStatus');
-  if(!micBtn) return;
+  if (!micBtn) return;
 
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if(!SpeechRecognition){
+  if (!SpeechRecognition) {
     micBtn.classList.add('unsupported');
     micBtn.title = 'Voice input is not supported in this browser';
     return;
@@ -1115,7 +1117,7 @@ function initMic(){
     recognizing = false;
     micBtn.classList.remove('listening');
     status.textContent = "Didn't catch that — try again.";
-    setTimeout(()=> status.classList.remove('show'), 1800);
+    setTimeout(() => status.classList.remove('show'), 1800);
   });
 
   speechRecognizer.addEventListener('result', (e) => {
@@ -1126,11 +1128,11 @@ function initMic(){
   });
 
   micBtn.addEventListener('click', () => {
-    if(recognizing){
+    if (recognizing) {
       speechRecognizer.stop();
     } else {
       window.speechSynthesis?.cancel();
-      try{ speechRecognizer.start(); } catch(e){ /* already started */ }
+      try { speechRecognizer.start(); } catch (e) { /* already started */ }
     }
   });
 }

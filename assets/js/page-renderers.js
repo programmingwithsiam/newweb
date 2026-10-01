@@ -97,10 +97,10 @@ function getCourseLessonTotal(course) {
   }
   const moduleTotal = Array.isArray(course.modules)
     ? course.modules.reduce((sum, module) => {
-        if (Array.isArray(module.lessonCatalog)) return sum + module.lessonCatalog.length;
-        if (Array.isArray(module.lessons)) return sum + module.lessons.length;
-        return sum;
-      }, 0)
+      if (Array.isArray(module.lessonCatalog)) return sum + module.lessonCatalog.length;
+      if (Array.isArray(module.lessons)) return sum + module.lessons.length;
+      return sum;
+    }, 0)
     : 0;
   if (moduleTotal) return moduleTotal;
   return Array.isArray(course.lessons) ? course.lessons.length : 0;
@@ -112,10 +112,10 @@ function normalizeCourse(course) {
   const modules = Array.isArray(course.modules) && course.modules.length
     ? course.modules
     : [{
-        id: `${course.id}-module-1`,
-        title: course.moduleTitle || 'Course Module',
-        lessons: lessons.map(lesson => ({ id: lesson.id, title: lesson.title, duration: lesson.duration || '0 min' }))
-      }];
+      id: `${course.id}-module-1`,
+      title: course.moduleTitle || 'Course Module',
+      lessons: lessons.map(lesson => ({ id: lesson.id, title: lesson.title, duration: lesson.duration || '0 min' }))
+    }];
 
   return {
     ...course,
@@ -243,13 +243,13 @@ export function renderPublishedCourseCatalog() {
   const catalog = document.getElementById('publishedCourseCatalog');
   if (!catalog) return;
   const courses = cachedCourses.filter(course => {
-      if (course.status !== 'published') return false;
-  if (courseLanguageFilter !== 'all' && (course.language || '').toLowerCase() !== courseLanguageFilter) return false;
+    if (course.status !== 'published') return false;
+    if (courseLanguageFilter !== 'all' && (course.language || '').toLowerCase() !== courseLanguageFilter) return false;
     if (courseCatalogFilter === 'paid') return Number(course.price) > 0;
     if (courseCatalogFilter === 'free') return Number(course.price) <= 0;
     return true;
   });
-    catalog.innerHTML = courses.map(course => {
+  catalog.innerHTML = courses.map(course => {
     const progress = getCoursePercent(course);
     const savedLessonId = getCourseProgress()?.[course.id]?.lastLessonId;
     const courseHref = savedLessonId
@@ -403,10 +403,10 @@ export function renderUpcomingCourses() {
 
   const THEME_BY_CATEGORY = {
     'Data Science': { gradient: 'linear-gradient(135deg,#f5576c,#f093fb)', icon: 'fa-chart-line' },
-    'Python':        { gradient: 'linear-gradient(135deg,#4b8bbe,#ffd43b)', icon: 'fa-brands fa-python' },
+    'Python': { gradient: 'linear-gradient(135deg,#4b8bbe,#ffd43b)', icon: 'fa-brands fa-python' },
     'Web Development': { gradient: 'linear-gradient(135deg,#00c6ff,#0072ff)', icon: 'fa-code' },
     'Machine Learning': { gradient: 'linear-gradient(135deg,#a18cd1,#fbc2eb)', icon: 'fa-brain' },
-    'default':       { gradient: 'linear-gradient(135deg,#43cea2,#185a9d)', icon: 'fa-graduation-cap' },
+    'default': { gradient: 'linear-gradient(135deg,#43cea2,#185a9d)', icon: 'fa-graduation-cap' },
   };
 
   list.innerHTML = upcoming.map(course => {
@@ -501,7 +501,7 @@ export function initLiveNotification() {
       panel.classList.add('hidden');
       button.setAttribute('aria-expanded', 'false');
     });
-  }).catch(() => {});
+  }).catch(() => { });
 }
 
 export async function initSiteLiveChat() {
@@ -592,41 +592,41 @@ export async function initSiteLiveChat() {
   }).catch(() => { status.textContent = 'Chat setup required'; });
 }
 
-export function initChatToggle(){
+export function initChatToggle() {
   const toggle = document.getElementById('chatToggleBtn');
   const chat = document.getElementById('chatbot') || document.querySelector('.chatbox');
-  if(!toggle || !chat) return;
+  if (!toggle || !chat) return;
   if (toggle.dataset.chatBound === 'true') return;
   toggle.dataset.chatBound = 'true';
 
-  function setOpen(open){
+  function setOpen(open) {
     chat.classList.toggle('active', open);
     toggle.classList.toggle('open', open);
     toggle.setAttribute('aria-expanded', String(open));
     chat.setAttribute('aria-hidden', String(!open));
-    if(open){
-      setTimeout(()=> document.getElementById('input')?.focus(), 180);
+    if (open) {
+      setTimeout(() => document.getElementById('input')?.focus(), 180);
     } else {
       toggle.focus();
     }
   }
 
-  toggle.onclick = ()=>{
+  toggle.onclick = () => {
     const isOpen = chat.classList.contains('active');
     setOpen(!isOpen);
   };
 
-  document.addEventListener('keydown', (e)=>{
-    if(e.key === 'Escape' && chat.classList.contains('active')){
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && chat.classList.contains('active')) {
       setOpen(false);
     }
   });
 }
 
-export async function initCourseDeck(){
+export async function initCourseDeck() {
   bindCourseFilters();
   const platform = document.getElementById('coursePlatform');
-  const routeRequestsCourse = new URLSearchParams(location.search).has('course') || location.hash === '#course' || location.pathname.includes('/courses/');
+  const routeRequestsCourse = new URLSearchParams(location.search).has('course') || ['#course', '#learn'].includes(location.hash) || location.pathname.includes('/courses/');
   if (!platform || routeRequestsCourse || !('IntersectionObserver' in window)) {
     await initCoursePlatform();
     return;
