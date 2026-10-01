@@ -30,7 +30,7 @@ function ReactionIcon({ type, size = 24 }) {
 // targetPath: e.g. `reactions/${postId}` or `commentReactions/${commentId}`
 // countPath: path to the numeric counter to keep in sync, e.g. `posts/${postId}/reactionsCount`
 export default function ReactionBar({ targetPath, countPath, ownerUid, notifyPayload }) {
-  const { user } = useAuth();
+  const { user, requestSignIn } = useAuth();
   const [reactions, setReactions] = useState({});
   const [showPicker, setShowPicker] = useState(false);
   const [pickerClosing, setPickerClosing] = useState(false);
@@ -38,10 +38,14 @@ export default function ReactionBar({ targetPath, countPath, ownerUid, notifyPay
   const timeoutRef = useRef(null);
 
   useEffect(() => {
+    if (!user) {
+      setReactions({});
+      return undefined;
+    }
     const r = ref(db, targetPath);
     const unsub = onValue(r, (snap) => setReactions(snap.val() || {}));
     return unsub;
-  }, [targetPath]);
+  }, [targetPath, user?.uid]);
 
   const myReaction = user ? reactions[user.uid]?.type : null;
   const counts = {};
@@ -73,6 +77,7 @@ export default function ReactionBar({ targetPath, countPath, ownerUid, notifyPay
   }
 
   function openPicker() {
+    if (!user) return;
     clearTimeout(timeoutRef.current);
     setPickerClosing(false);
     setShowPicker(true);
@@ -93,6 +98,10 @@ export default function ReactionBar({ targetPath, countPath, ownerUid, notifyPay
   }
 
   function handleTriggerClick() {
+    if (!user) {
+      requestSignIn('Sign in to react to a community post.');
+      return;
+    }
     if (showPicker) {
       closePicker(0);
       return;

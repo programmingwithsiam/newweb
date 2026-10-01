@@ -1,5 +1,5 @@
-import { fetchAllCourses, saveUserCourseProgress, createPaymentSubmission, createFreeCourseEnrollment, uploadPaymentScreenshot, updatePaymentScreenshot, fetchUserPayments, getLessonVideoSource } from './courses-db.js';
-import { observeAuthState, signInWithGoogle } from './auth.js';
+import { fetchAllCourses, saveUserCourseProgress, createPaymentSubmission, createFreeCourseEnrollment, uploadPaymentScreenshot, updatePaymentScreenshot, fetchUserPayments, getLessonVideoSource } from './courses-db.js?v=20261001-auth-flow-1';
+import { observeAuthState, redirectToAuthPrompt } from './auth.js?v=20261001-auth-flow-1';
 
 const progressKey = 'siam_portfolio_course_progress';
 const params = new URLSearchParams(location.search);
@@ -163,8 +163,8 @@ function showAccessGate({ signedIn = false, startEnrollment = false } = {}) {
   }
   $('learningGateTitle').textContent = signedIn ? 'Video access required' : 'Sign in to start learning';
   $('learningGateText').textContent = signedIn
-    ? `Signed in as ${user?.email || 'your Google account'}. Admin approval is required for this course.`
-    : 'Sign in with Google to access the lesson playlist and videos.';
+    ? `Signed in as ${user?.email || 'your account'}. Course approval is required for private lessons.`
+    : 'Sign in or create an account to enroll and access private lessons.';
   $('learningGoogleBtn').classList.toggle('hidden', signedIn);
   $('refreshAccessBtn')?.classList.toggle('hidden', !signedIn);
   $('accessIntro').classList.toggle('hidden', signedIn || startEnrollment);
@@ -599,7 +599,7 @@ function bindCheckout() {
     const validName = name.value.trim().length >= 2;
     const isFree = Number(course?.price || 0) <= 0;
     $('checkoutPhoneError').textContent = phone.value && !validPhone ? `Please enter a valid ${selected.country} phone number` : '';
-    pay.disabled = !user || !validName || (!isFree && (!validPhone || !transaction.value.trim() || !confirmation.checked)) || Boolean(pay.dataset.processing);
+    pay.disabled = Boolean(pay.dataset.processing) || Boolean(user && (!validName || (!isFree && (!validPhone || !transaction.value.trim() || !confirmation.checked))));
   };
   name.addEventListener('input', update);
   phone.addEventListener('input', update);
@@ -808,7 +808,7 @@ async function load() {
   $('learningLoading').classList.add('hidden');
   render();
 }
-$('learningGoogleBtn').onclick = async () => { const button = $('learningGoogleBtn'); button.disabled = true; button.innerHTML = '<i class="fa-brands fa-google"></i> Connecting to Google...'; $('learningAuthStatus').textContent = 'Opening secure Google sign-in...'; try { await signInWithGoogle(); } catch (error) { $('learningAuthStatus').textContent = error.message; button.disabled = false; button.innerHTML = '<i class="fa-brands fa-google"></i> Continue with Google'; } };
+$('learningGoogleBtn').onclick = () => redirectToAuthPrompt('Sign in or create an account to enroll and access private lessons.');
 $('refreshAccessBtn')?.addEventListener('click', async () => {
   const button = $('refreshAccessBtn');
   button.disabled = true;
@@ -822,7 +822,12 @@ $('refreshAccessBtn')?.addEventListener('click', async () => {
     button.disabled = false;
   }
 });
-$('accessContinueBtn').onclick = () => { $('accessIntro').classList.add('hidden'); $('accessContinueBtn').classList.add('hidden'); $('learningGoogleBtn').classList.remove('hidden'); };
+$('accessContinueBtn').onclick = () => {
+  $('accessIntro').classList.add('hidden');
+  $('accessContinueBtn').classList.add('hidden');
+  $('learningGoogleBtn').classList.remove('hidden');
+  $('learningGoogleBtn').textContent = 'Sign In or Create Account';
+};
 document.querySelectorAll('.payment-method-choice').forEach(button => button.addEventListener('click', () => selectPaymentMethod(button.dataset.paymentMethod)));
 document.querySelectorAll('.copy-payment-number').forEach(button => button.addEventListener('click', async () => {
   const value = $(button.dataset.copyTarget)?.textContent.trim() || '';

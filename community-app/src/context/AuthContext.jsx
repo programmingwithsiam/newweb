@@ -2,17 +2,45 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import {
   onAuthStateChanged,
   signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
   signInWithPopup,
   signInWithRedirect,
   getRedirectResult,
   signOut,
   sendPasswordResetEmail,
-  updateProfile
+  EmailAuthProvider,
+  linkWithCredential,
+  linkWithPopup,
+  reauthenticateWithCredential,
+  updatePassword
 } from 'firebase/auth';
-import { ref, set, get, onDisconnect, onValue, serverTimestamp, update } from 'firebase/database';
+import { ref, set, get, onDisconnect, onValue, serverTimestamp, update, runTransaction } from 'firebase/database';
 import { auth, db, googleProvider } from '../firebase/config';
 import { usernameToKey, validateUsername } from '../utils/helpers';
+
+function authApiBaseUrl() {
+  if (import.meta.env.VITE_AUTH_API_URL) return import.meta.env.VITE_AUTH_API_URL.replace(/\/$/, '');
+  if (typeof window !== 'undefined' && window.CODEWITHSIAM_AUTH_API) return window.CODEWITHSIAM_AUTH_API.replace(/\/$/, '');
+  if (typeof window !== 'undefined' && ['localhost', '127.0.0.1'].includes(window.location.hostname)) return 'http://localhost:3001';
+  return '';
+}
+
+async function registrationRequest(path, payload) {
+  const baseUrl = authApiBaseUrl();
+  if (!baseUrl) throw new Error('Email verification service is not configured.');
+  let response;
+  try {
+    response = await fetch(`${baseUrl}/auth/register/${path}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+  } catch {
+    throw new Error('Cannot reach the verification service. Please try again later.');
+  }
+  const result = await response.json().catch(() => null);
+  if (!response.ok) throw new Error(result?.error || 'The verification request failed. Please try again.');
+  return result || {};
+}
 
 const AuthContext = createContext(null);
 
@@ -25,14 +53,17 @@ export function AuthProvider({ children }) {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [authError, setAuthError] = useState('');
+  const [authPrompt, setAuthPrompt] = useState('');
 
   // Track auth state and mirror the user's own profile doc in real time.
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (fbUser) => {
-      setUser(fbUser);
+      const isVerified = fbUser?.emailVerified || fbUser?.providerData.some((provider) => provider.providerId === 'google.com');
+      setUser(isVerified ? fbUser : null);
       setLoading(false);
-      if (!fbUser) {
+      if (!isVerified) {
         setProfile(null);
+        if (fbUser) signOut(auth).catch(() => { });
       }
     });
     return () => {
@@ -86,24 +117,31 @@ export function AuthProvider({ children }) {
   }, [user]);
 
   async function createProfileIfMissing(fbUser, extra = {}) {
+    if (!fbUser.emailVerified && !fbUser.providerData.some((provider) => provider.providerId === 'google.com')) return;
     const userRef = ref(db, `users/${fbUser.uid}`);
     const existing = await get(userRef);
     if (existing.exists()) return;
 
-    let username = extra.username || (fbUser.email ? fbUser.email.split('@')[0] : `user${fbUser.uid.slice(0, 6)}`);
-    username = username.replace(/[^a-zA-Z0-9_.]/g, '').slice(0, 20) || `user${fbUser.uid.slice(0, 6)}`;
-    const usernameKey = usernameToKey(username);
-
-    // Reserve the username in a separate top-level index so lookups /
-    // uniqueness checks don't require scanning all users.
-    const usernameRef = ref(db, `usernames/${usernameKey}`);
-    const taken = await get(usernameRef);
-    if (taken.exists()) {
-      username = `${username}${Math.floor(Math.random() * 10000)}`;
+    const usernameBase = (extra.username || (fbUser.email ? fbUser.email.split('@')[0] : `user${fbUser.uid.slice(0, 6)}`))
+      .replace(/[^a-zA-Z0-9_.]/g, '').slice(0, 20) || `user${fbUser.uid.slice(0, 6)}`;
+    let username = usernameBase;
+    let usernameKey = '';
+    let reserved = false;
+    for (let attempt = 0; attempt < 8; attempt += 1) {
+      const suffix = attempt === 0 ? '' : attempt.toString(36);
+      username = `${usernameBase.slice(0, 20 - suffix.length)}${suffix}`;
+      usernameKey = usernameToKey(username);
+      const reservation = await runTransaction(ref(db, `usernames/${usernameKey}`), (current) => {
+        if (current === null || current === fbUser.uid) return fbUser.uid;
+        return;
+      });
+      if (reservation.committed) {
+        reserved = true;
+        break;
+      }
     }
+    if (!reserved) throw new Error('A unique username could not be reserved. Please try again.');
 
-    const finalKey = usernameToKey(username);
-    await set(ref(db, `usernames/${finalKey}`), fbUser.uid);
     await set(userRef, {
       uid: fbUser.uid,
       fullName: extra.fullName || fbUser.displayName || username,
@@ -124,18 +162,30 @@ export function AuthProvider({ children }) {
   }
 
   async function signup({ email, password, fullName, username }) {
+    if (password.length < 8) throw new Error('Password must be at least 8 characters.');
     if (username && !validateUsername(username)) {
       throw new Error('Username must be 3-20 characters: letters, numbers, "_" or "." only.');
     }
-    const cred = await createUserWithEmailAndPassword(auth, email, password);
-    const displayName = fullName?.trim() || email.trim().split('@')[0];
-    await updateProfile(cred.user, { displayName });
-    await createProfileIfMissing(cred.user, { fullName, username });
-    return cred.user;
+    const normalizedEmail = email.trim().toLowerCase();
+    const displayName = fullName?.trim() || normalizedEmail.split('@')[0];
+    await registrationRequest('start', { name: displayName, email: normalizedEmail, password });
+    return { email: normalizedEmail };
+  }
+
+  async function verifySignupCode(email, otp) {
+    return registrationRequest('verify', { email: email.trim().toLowerCase(), otp: otp.trim() });
+  }
+
+  async function resendSignupCode(email) {
+    return registrationRequest('resend', { email: email.trim().toLowerCase() });
   }
 
   async function login(email, password) {
-    const cred = await signInWithEmailAndPassword(auth, email.trim(), password);
+    const cred = await signInWithEmailAndPassword(auth, email.trim().toLowerCase(), password);
+    if (!cred.user.emailVerified && !cred.user.providerData.some((provider) => provider.providerId === 'google.com')) {
+      await signOut(auth);
+      throw new Error('Please verify your email with the 6-digit code sent during registration.');
+    }
     await createProfileIfMissing(cred.user);
     return cred.user;
   }
@@ -168,7 +218,29 @@ export function AuthProvider({ children }) {
   }
 
   async function resetPassword(email) {
-    return sendPasswordResetEmail(auth, email);
+    return sendPasswordResetEmail(auth, email.trim().toLowerCase());
+  }
+
+  async function linkGoogleAccount() {
+    if (!auth.currentUser) throw new Error('Please sign in first.');
+    const credential = await linkWithPopup(auth.currentUser, googleProvider);
+    await createProfileIfMissing(credential.user);
+    return credential.user;
+  }
+
+  async function changeAccountPassword(currentPassword, newPassword) {
+    const currentUser = auth.currentUser;
+    if (!currentUser?.email) throw new Error('Please sign in with an email account first.');
+    if (newPassword.length < 8) throw new Error('Password must be at least 8 characters.');
+    const hasPasswordProvider = currentUser.providerData.some((provider) => provider.providerId === 'password');
+    if (hasPasswordProvider) {
+      if (!currentPassword) throw new Error('Enter your current password.');
+      const credential = EmailAuthProvider.credential(currentUser.email, currentPassword);
+      await reauthenticateWithCredential(currentUser, credential);
+      await updatePassword(currentUser, newPassword);
+    } else {
+      await linkWithCredential(currentUser, EmailAuthProvider.credential(currentUser.email, newPassword));
+    }
   }
 
   async function logout() {
@@ -184,10 +256,17 @@ export function AuthProvider({ children }) {
     loading,
     authError,
     clearAuthError: () => setAuthError(''),
+    authPrompt,
+    requestSignIn: (message = 'Please sign in to continue.') => setAuthPrompt(message),
+    dismissAuthPrompt: () => setAuthPrompt(''),
     signup,
+    verifySignupCode,
+    resendSignupCode,
     login,
     loginWithGoogle,
     resetPassword,
+    linkGoogleAccount,
+    changeAccountPassword,
     logout
   };
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -7,12 +7,12 @@ service firebase.storage {
         request.auth.token.email == 'mdsiamahmmedloselovestroy@gmail.com';
     }
 
-    function isGoogleUser() {
-      return request.auth != null && request.auth.token.firebase.sign_in_provider == 'google.com';
+    function isVerifiedUser() {
+      return request.auth != null && request.auth.token.email_verified == true;
     }
 
     function canAccessCourse(courseId) {
-      return isAdmin() || (isGoogleUser() &&
+      return isAdmin() || (isVerifiedUser() &&
         (!firestore.exists(/databases/(default)/documents/enrollments/$(request.auth.uid)_$(courseId)) ||
           firestore.get(/databases/(default)/documents/enrollments/$(request.auth.uid)_$(courseId)).data.status != 'revoked') &&
         (firestore.exists(/databases/(default)/documents/enrollments/$(request.auth.uid)_$(courseId)) &&
@@ -23,23 +23,23 @@ service firebase.storage {
 
     match /community_images/{uid}/{fileName} {
       allow read: if true;
-      allow write: if isGoogleUser() && request.auth.uid == uid &&
+      allow write: if isVerifiedUser() && request.auth.uid == uid &&
         request.resource.contentType.matches('image/.*') && request.resource.size <= 5242880;
-      allow delete: if isGoogleUser() && request.auth.uid == uid;
+      allow delete: if isVerifiedUser() && request.auth.uid == uid;
     }
 
     match /profile-pictures/{uid}/{fileName} {
       allow read: if true;
-      allow write: if isGoogleUser() && request.auth.uid == uid &&
+      allow write: if isVerifiedUser() && request.auth.uid == uid &&
         request.resource.contentType.matches('image/(jpeg|png|webp)') && request.resource.size <= 5242880;
-      allow delete: if isGoogleUser() && request.auth.uid == uid;
+      allow delete: if isVerifiedUser() && request.auth.uid == uid;
     }
 
     match /payment-proofs/{uid}/{paymentId} {
-      allow read: if isAdmin() || (isGoogleUser() && request.auth.uid == uid);
-      allow write: if isGoogleUser() && request.auth.uid == uid &&
+      allow read: if isAdmin() || (isVerifiedUser() && request.auth.uid == uid);
+      allow write: if isVerifiedUser() && request.auth.uid == uid &&
         request.resource.contentType.matches('image/(jpeg|png|webp)') && request.resource.size <= 1048576;
-      allow delete: if isAdmin() || (isGoogleUser() && request.auth.uid == uid);
+      allow delete: if isAdmin() || (isVerifiedUser() && request.auth.uid == uid);
     }
 
     match /lessons/{courseId}/{moduleId}/{fileName} {

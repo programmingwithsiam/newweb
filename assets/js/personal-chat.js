@@ -4,7 +4,7 @@
    ========================================================= */
 
 import { auth, db } from './firebase-init.js';
-import { observeAuthState, signInWithGoogle } from './auth.js?v=20260829-auth-fix-1';
+import { observeAuthState, redirectToAuthPrompt } from './auth.js?v=20261001-auth-flow-1';
 
 // ==================== DOM ELEMENTS ====================
 const pageBody = document.body;
@@ -69,7 +69,7 @@ function relativeTime(date) {
   const mins = Math.floor(secs / 60);
   const hours = Math.floor(mins / 60);
   const days = Math.floor(hours / 24);
-  
+
   if (secs < 60) return 'just now';
   if (mins < 60) return `${mins}m ago`;
   if (hours < 24) return `${hours}h ago`;
@@ -81,22 +81,17 @@ function relativeTime(date) {
 function showSignIn() {
   if (!contacts) return;
   contacts.innerHTML = `
-    <p class="comments-empty">Sign in with Google to use Personal Chat.</p>
+    <p class="comments-empty">Sign in or create an account to use Personal Chat.</p>
     <button id="chatSignInBtn" class="primary" type="button">
-      <i class="fa-brands fa-google"></i> Sign in
+      Sign In or Create Account
     </button>
   `;
-  
+
   const btn = document.getElementById('chatSignInBtn');
   if (btn) {
-    btn.addEventListener('click', () => {
-      signInWithGoogle().catch(err => {
-        console.error('Sign-in failed:', err);
-        if (userStateDisplay) userStateDisplay.textContent = 'Sign-in failed. Try again.';
-      });
-    });
+    btn.addEventListener('click', () => redirectToAuthPrompt('Sign in to use Personal Chat.'));
   }
-  
+
   if (userStateDisplay) userStateDisplay.textContent = 'Sign in';
 }
 
@@ -151,7 +146,7 @@ async function loadConversations(user) {
 
   try {
     showLoading();
-    
+
     const { collection, query, where, orderBy, onSnapshot } = await import(
       'https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js'
     );
@@ -186,7 +181,7 @@ async function loadConversations(user) {
       }
     }, error => {
       console.error('[Chat] Load conversations error:', error);
-      const msg = error.code === 'permission-denied' 
+      const msg = error.code === 'permission-denied'
         ? 'Firestore rules not configured properly. Please check the rules and try again.'
         : error.message || 'Failed to load conversations. Try again.';
       showError(msg);
@@ -308,7 +303,7 @@ async function loadMessages(otherUid) {
 
     // Set up real-time listener
     if (stopChatListener) stopChatListener();
-    
+
     stopChatListener = onSnapshot(q, snapshot => {
       const messageList = snapshot.docs.map(doc => ({
         id: doc.id,
@@ -339,7 +334,7 @@ function renderMessages(messageList) {
     const isOwn = msg.senderId === currentUser.uid;
     const time = msg.createdAt?.toDate?.() || new Date(msg.createdAt);
     const timeStr = time.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
-    
+
     const replyLabel = msg.parentText ? `<small class="message-reply-label">Replying to: ${escapeHtml(msg.parentText.slice(0, 60))}</small>` : '';
 
     return `
@@ -505,7 +500,7 @@ if (form && input && status) {
     } catch (error) {
       console.error('[Chat] Send message error:', error);
       if (status) {
-        const msg = error.code === 'permission-denied' 
+        const msg = error.code === 'permission-denied'
           ? 'No permission to send messages. Check Firestore rules.'
           : 'Failed to send message. Try again.';
         status.textContent = msg;

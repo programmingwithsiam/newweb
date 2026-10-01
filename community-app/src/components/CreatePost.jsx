@@ -17,7 +17,7 @@ function withTimeout(promise, message, milliseconds = 12000) {
 }
 
 export default function CreatePost({ onPosted }) {
-  const { user, profile } = useAuth();
+  const { user, profile, requestSignIn } = useAuth();
   const { showToast } = useToast();
   const [text, setText] = useState('');
   const [files, setFiles] = useState([]);
@@ -38,6 +38,10 @@ export default function CreatePost({ onPosted }) {
 
   async function submit(e) {
     e.preventDefault();
+    if (!user) {
+      requestSignIn('Sign in to create a community post.');
+      return;
+    }
     if (!text.trim() && files.length === 0 && !videoUrl.trim()) {
       showToast('Write something or add media first', 'error');
       return;
@@ -89,6 +93,17 @@ export default function CreatePost({ onPosted }) {
     } finally {
       setBusy(false);
     }
+  }
+
+  if (!user) {
+    return (
+      <section className="create-post composer-inline guest-composer">
+        <p>Join the conversation</p>
+        <button className="btn btn-primary" type="button" onClick={() => requestSignIn('Sign in to create a community post.')}>
+          Sign in to create a post
+        </button>
+      </section>
+    );
   }
 
   const embedPreview = videoUrl.trim() ? getEmbedUrl(videoUrl.trim()) : null;

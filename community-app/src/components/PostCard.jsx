@@ -37,7 +37,7 @@ function formatVideoTime(seconds) {
 }
 
 export default function PostCard({ postId, post }) {
-  const { user } = useAuth();
+  const { user, requestSignIn } = useAuth();
   const { showToast } = useToast();
   const navigate = useNavigate();
   const [showComments, setShowComments] = useState(false);
@@ -114,7 +114,7 @@ export default function PostCard({ postId, post }) {
     video.muted = true;
     setVideoMuted(true);
     const observer = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting) video.play().catch(() => {});
+      if (entry.isIntersecting) video.play().catch(() => { });
       else video.pause();
     }, { threshold: 0.5 });
     observer.observe(videoRef.current);
@@ -227,12 +227,17 @@ export default function PostCard({ postId, post }) {
 
   async function sharePost() {
     const url = `${window.location.origin}/post/${postId}`;
-    if (navigator.share) await navigator.share({ title: `${post.authorName}'s post`, url }).catch(() => {});
+    if (navigator.share) await navigator.share({ title: `${post.authorName}'s post`, url }).catch(() => { });
     else await copyLink();
     setShowShareMenu(false);
   }
 
   async function submitReport(reason) {
+    if (!user) {
+      setReportOpen(false);
+      requestSignIn('Sign in to report a community post.');
+      return;
+    }
     await push(ref(db, 'reports'), {
       type: 'post',
       targetId: postId,

@@ -42,8 +42,9 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    if (!user) return;
     let unsubscribers = [];
+    setPostIds(new Set());
+    setPosts({});
     setLoading(true);
     setFeedError('');
     const feedTimer = setTimeout(() => setLoading(false), 900);
@@ -55,15 +56,17 @@ export default function Home() {
         const publicSnap = await get(query(ref(db, 'publicPostsIndex'), orderByChild('createdAt'), limitToLast(40)));
         if (publicSnap.exists()) Object.keys(publicSnap.val()).forEach((id) => ids.add(id));
 
-        const ownSnap = await get(ref(db, `userPosts/${user.uid}`));
-        if (ownSnap.exists()) Object.keys(ownSnap.val()).forEach((id) => ids.add(id));
+        if (user) {
+          const ownSnap = await get(ref(db, `userPosts/${user.uid}`));
+          if (ownSnap.exists()) Object.keys(ownSnap.val()).forEach((id) => ids.add(id));
 
-        const friendsSnap = await get(ref(db, `friends/${user.uid}`));
-        if (friendsSnap.exists()) {
-          const friendUids = Object.keys(friendsSnap.val());
-          for (const fUid of friendUids) {
-            const fPosts = await get(ref(db, `userPosts/${fUid}`));
-            if (fPosts.exists()) Object.keys(fPosts.val()).forEach((id) => ids.add(id));
+          const friendsSnap = await get(ref(db, `friends/${user.uid}`));
+          if (friendsSnap.exists()) {
+            const friendUids = Object.keys(friendsSnap.val());
+            for (const fUid of friendUids) {
+              const fPosts = await get(ref(db, `userPosts/${fUid}`));
+              if (fPosts.exists()) Object.keys(fPosts.val()).forEach((id) => ids.add(id));
+            }
           }
         }
 
@@ -92,7 +95,7 @@ export default function Home() {
   return (
     <div className="feed">
       <CreatePost />
-      <StoriesStrip />
+      {user && <StoriesStrip />}
       {loading && <LoadingSpinner label="Loading your feed..." />}
       {!loading && feedError && (
         <div className="empty-state feed-error">
@@ -104,8 +107,8 @@ export default function Home() {
       )}
       {!loading && !feedError && ordered.length === 0 && (
         <div className="empty-state">
-          <p>Your feed is empty.</p>
-          <p className="muted">Add friends or write your first post to get started.</p>
+          <p>No public posts yet.</p>
+          {user && <p className="muted">Add friends or write your first post to get started.</p>}
         </div>
       )}
       {ordered.map(([id, post]) => (

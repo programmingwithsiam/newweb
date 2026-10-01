@@ -12,13 +12,15 @@ import {
   signInWithGoogle,
   signInWithEmail,
   resetPassword,
+  linkGoogleToCurrentUser,
+  setAccountPassword,
   logout,
   observeAuthState,
   isCurrentUserAdmin,
   getCurrentUser,
-} from './auth.js?v=20260829-auth-fix-1';
+} from './auth.js?v=20261001-otp-flow-1';
 import { isFirebaseConfigured } from './firebase-init.js';
-import { startRegistration, verifyRegistration, resendRegistrationCode } from './auth-api.js';
+import { startRegistration, verifyRegistration, resendRegistrationCode } from './auth-api.js?v=20261001-otp-1';
 
 const modal = document.getElementById('authModal');
 const modalClose = document.getElementById('authModalClose');
@@ -35,8 +37,10 @@ const otpForm = document.getElementById('otpForm');
 const otpDigits = [...document.querySelectorAll('.otp-digit')];
 const resendOtpBtn = document.getElementById('resendOtpBtn');
 const resendCountdown = document.getElementById('resendCountdown');
-const resendOtpLabel = resendOtpBtn?.innerHTML;
 const otpEmailLabel = document.getElementById('otpEmailLabel');
+const passwordSettingsView = document.getElementById('passwordSettingsView');
+const passwordSettingsForm = document.getElementById('passwordSettingsForm');
+const currentPasswordField = document.getElementById('currentPasswordField');
 const authModeCaption = document.getElementById('authModeCaption');
 const authWelcomeCopy = document.getElementById('authWelcomeCopy');
 let pendingRegistration = null;
@@ -57,10 +61,11 @@ const userChipName = document.getElementById('userChipName');
 const userDropdown = document.getElementById('userDropdown');
 const userDropdownEmail = document.getElementById('userDropdownEmail');
 const userLogoutBtn = document.getElementById('userLogoutBtn');
+const accountPasswordBtn = document.getElementById('accountPasswordBtn');
+const linkGoogleAccountBtn = document.getElementById('linkGoogleAccountBtn');
 const adminNavLink = document.getElementById('adminNavLink');
 const contactAdminPanel = document.getElementById('contactAdminPanel');
 const contactAdminLink = document.getElementById('contactAdminLink');
-const communityAuthMode = new URLSearchParams(window.location.search).get('communityAuth') === '1';
 
 function setStatus(message, type = 'error') {
   if (!modalStatus) return;
@@ -115,10 +120,9 @@ function openAuthModal(message) {
 }
 window.openAuthModal = openAuthModal; // used by script.js's toggleLessonComplete gate
 
-if (communityAuthMode) {
-  document.getElementById('siteRoot')?.classList.remove('show');
-  modalClose?.classList.add('hidden');
-  openAuthModal();
+const authParams = new URLSearchParams(window.location.search);
+if (authParams.get('auth') === '1') {
+  openAuthModal(authParams.get('authMessage') || '');
 }
 
 function closeAuthModal() {
@@ -129,14 +133,19 @@ function closeAuthModal() {
   signInForm?.reset();
   registerForm?.reset();
   otpForm?.reset();
+  passwordSettingsForm?.reset();
   pendingRegistration = null;
   clearInterval(resendTimer);
   switchTab(false);
   authFormsView?.classList.remove('hidden');
   otpView?.classList.add('hidden');
+  passwordSettingsView?.classList.add('hidden');
 }
 
 function switchTab(showRegister) {
+  otpView?.classList.add('hidden');
+  authFormsView?.classList.remove('hidden');
+  loginResendOtpBtn?.classList.add('hidden');
   signInForm?.classList.toggle('hidden', showRegister);
   registerForm?.classList.toggle('hidden', !showRegister);
   modalCard?.classList.toggle('active', showRegister);
@@ -152,15 +161,15 @@ modal?.addEventListener('click', (e) => {
   if (e.target === modal) closeAuthModal();
 });
 document.addEventListener('keydown', (e) => {
-  if (!communityAuthMode && e.key === 'Escape' && !modal?.classList.contains('hidden')) closeAuthModal();
+  if (e.key === 'Escape' && !modal?.classList.contains('hidden')) closeAuthModal();
 });
 
 document.getElementById('switchToRegister')?.addEventListener('click', () => switchTab(true));
 document.getElementById('switchToLogin')?.addEventListener('click', () => switchTab(false));
 document.getElementById('changeOtpEmailBtn')?.addEventListener('click', () => {
   clearInterval(resendTimer);
-  authFormsView?.classList.remove('hidden');
   otpView?.classList.add('hidden');
+  authFormsView?.classList.remove('hidden');
   switchTab(true);
   document.getElementById('registerEmailInput')?.focus();
 });
@@ -174,14 +183,71 @@ courseGateSignInBtn?.addEventListener('click', () => openAuthModal());
 async function finishSignIn() {
   const admin = await isCurrentUserAdmin();
   closeAuthModal();
-  if (communityAuthMode) {
-    window.top.location.assign(admin ? '/admin.html' : '/community/');
-    return;
+  const returnTo = new URLSearchParams(window.location.search).get('returnTo');
+  if (returnTo) {
+    const target = new URL(returnTo, window.location.origin);
+    if (target.origin === window.location.origin) {
+      window.location.assign(`${target.pathname}${target.search}${target.hash}`);
+      return;
+    }
   }
   if (admin && !location.pathname.endsWith('/admin.html')) {
     window.location.assign('admin.html');
   }
 }
+
+function openPasswordSettings() {
+  const user = getCurrentUser();
+  if (!user) return;
+  openAuthModal();
+  const hasPassword = user.providerData.some((provider) => provider.providerId === 'password');
+  currentPasswordField?.classList.toggle('hidden', !hasPassword);
+  authFormsView?.classList.add('hidden');
+  passwordSettingsView?.classList.remove('hidden');
+  clearStatus();
+  setTimeout(() => document.getElementById('newAccountPassword')?.focus(), 60);
+}
+
+accountPasswordBtn?.addEventListener('click', openPasswordSettings);
+document.getElementById('backToAuthFormsBtn')?.addEventListener('click', () => {
+  passwordSettingsView?.classList.add('hidden');
+  authFormsView?.classList.remove('hidden');
+  clearStatus();
+});
+
+linkGoogleAccountBtn?.addEventListener('click', async () => {
+  openAuthModal();
+  linkGoogleAccountBtn.disabled = true;
+  try {
+    await linkGoogleToCurrentUser();
+    setStatus('Google is now linked to this account.', 'success');
+    renderLoggedIn(getCurrentUser(), await isCurrentUserAdmin());
+  } catch (error) {
+    setStatus(error.message);
+  } finally {
+    linkGoogleAccountBtn.disabled = false;
+  }
+});
+
+passwordSettingsForm?.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const currentPassword = document.getElementById('currentAccountPassword')?.value || '';
+  const password = document.getElementById('newAccountPassword')?.value || '';
+  const confirmation = document.getElementById('confirmAccountPassword')?.value || '';
+  if (password.length < 8) return setStatus('Password must be at least 8 characters.');
+  if (password !== confirmation) return setStatus('Password confirmation does not match.');
+  const button = document.getElementById('saveAccountPasswordBtn');
+  button.disabled = true;
+  try {
+    await setAccountPassword(currentPassword, password);
+    passwordSettingsForm.reset();
+    setStatus('Password settings updated.', 'success');
+  } catch (error) {
+    setStatus(error.message);
+  } finally {
+    button.disabled = false;
+  }
+});
 
 googleBtn?.addEventListener('click', async () => {
   if (!isFirebaseConfigured) {
@@ -220,18 +286,12 @@ signInForm?.addEventListener('submit', async (e) => {
   clearStatus();
   try {
     await signInWithEmail(email, password);
-    const signedInUser = getCurrentUser();
-    if (signedInUser && !signedInUser.emailVerified) {
-      await logout();
-      showLoginResend(email);
-      setStatus('Your email is not verified yet. Request a new access code to continue.', 'info');
-      return;
-    }
     await finishSignIn();
   } catch (error) {
-    if (/disabled|not verified|verify your email/i.test(error.message || '')) {
-      showLoginResend(email);
-      setStatus('Your account is awaiting email verification. Request a new access code to continue.', 'info');
+    if (/account has been disabled/i.test(error.message || '')) {
+      loginResendOtpBtn.dataset.email = email;
+      loginResendOtpBtn.classList.remove('hidden');
+      setStatus('This account is awaiting email verification. Resend the 6-digit code to continue.', 'info');
     } else {
       setStatus(error.message);
     }
@@ -246,48 +306,38 @@ function setFieldError(id, message) {
   if (error) error.textContent = message;
 }
 
-function showLoginResend(email) {
-  if (!loginResendOtpBtn) return;
-  loginResendOtpBtn.dataset.email = email;
-  loginResendOtpBtn.classList.remove('hidden');
-}
-
 function clearFieldErrors(form) {
   form?.querySelectorAll('.auth-field-error').forEach((item) => { item.textContent = ''; });
 }
 
-document.querySelectorAll('.auth-password-toggle').forEach((toggle) => {
-  toggle.addEventListener('click', () => {
-    const input = document.getElementById(toggle.dataset.passwordTarget);
-    if (!input) return;
-    const showPassword = input.type === 'password';
-    input.type = showPassword ? 'text' : 'password';
-    toggle.setAttribute('aria-label', showPassword ? 'Hide password' : 'Show password');
-    toggle.innerHTML = `<i class="fa-regular ${showPassword ? 'fa-eye-slash' : 'fa-eye'}" aria-hidden="true"></i>`;
-  });
-});
-
-document.querySelectorAll('#signInForm input, #registerForm input').forEach((input) => {
-  input.addEventListener('input', () => {
-    const fieldError = input.closest('.lock-field')?.querySelector('.auth-field-error');
-    if (fieldError) fieldError.textContent = '';
-  });
-});
+function showOtpView({ name = '', email }, message = 'Your verification code has been sent.') {
+  pendingRegistration = { name, email };
+  otpEmailLabel.textContent = email;
+  otpDigits.forEach((input) => { input.value = ''; });
+  authFormsView?.classList.add('hidden');
+  passwordSettingsView?.classList.add('hidden');
+  otpView?.classList.remove('hidden');
+  setStatus(message, 'success');
+  startResendCountdown();
+  otpDigits[0]?.focus();
+}
 
 function startResendCountdown(seconds = 60) {
   clearInterval(resendTimer);
   let remaining = seconds;
+  if (!resendOtpBtn || !resendCountdown) return;
   resendOtpBtn.disabled = true;
-  resendCountdown.textContent = String(remaining);
+  resendOtpBtn.innerHTML = `Resend code in <span id="resendCountdown">${remaining}</span>s`;
+  const countdown = document.getElementById('resendCountdown');
   resendTimer = setInterval(() => {
     remaining -= 1;
     if (remaining <= 0) {
       clearInterval(resendTimer);
       resendOtpBtn.disabled = false;
-      resendOtpBtn.innerHTML = 'Resend code';
+      resendOtpBtn.textContent = 'Resend code';
       return;
     }
-    resendCountdown.textContent = String(remaining);
+    if (countdown) countdown.textContent = String(remaining);
   }, 1000);
 }
 
@@ -296,40 +346,39 @@ function otpValue() {
 }
 
 async function verifyOtp() {
-  if (!pendingRegistration) return;
-  const otp = otpValue();
-  if (!/^\d{6}$/.test(otp)) return;
+  if (!pendingRegistration || otpValue().length !== 6) return;
   const button = document.getElementById('verifyOtpBtn');
   button.disabled = true;
   button.textContent = 'Verifying...';
   clearStatus();
   try {
-    await verifyRegistration({ email: pendingRegistration.email, otp });
-    await signInWithEmail(pendingRegistration.email, pendingRegistration.password);
-    await finishSignIn();
+    const email = pendingRegistration.email;
+    await verifyRegistration({ email, otp: otpValue() });
+    clearInterval(resendTimer);
+    pendingRegistration = null;
+    otpView?.classList.add('hidden');
+    authFormsView?.classList.remove('hidden');
+    switchTab(false);
+    document.getElementById('signInEmail').value = email;
+    document.getElementById('signInPassword').value = '';
+    setStatus('Email verified. You can now sign in with your password.', 'success');
   } catch (error) {
-    setStatus(error.message || 'The code could not be verified. Check it and try again.');
-    otpView.classList.remove('otp-shake');
+    setStatus(error.message || 'The code is invalid or expired. Check it and try again.');
+    otpView?.classList.remove('otp-shake');
     void otpView.offsetWidth;
-    otpView.classList.add('otp-shake');
+    otpView?.classList.add('otp-shake');
     otpDigits.forEach((input) => { input.value = ''; });
     otpDigits[0]?.focus();
   } finally {
     button.disabled = false;
-    button.textContent = 'Verify code';
+    button.textContent = 'Verify Email';
   }
 }
 
 otpDigits.forEach((input, index) => {
   input.addEventListener('input', () => {
-    const digits = input.value.replace(/\D/g, '');
-    input.value = digits.slice(-1);
-    if (input.value) {
-      input.classList.remove('digit-pop');
-      void input.offsetWidth;
-      input.classList.add('digit-pop');
-      otpDigits[index + 1]?.focus();
-    }
+    input.value = input.value.replace(/\D/g, '').slice(-1);
+    if (input.value) otpDigits[index + 1]?.focus();
     if (otpValue().length === 6) verifyOtp();
   });
   input.addEventListener('keydown', (event) => {
@@ -355,28 +404,61 @@ otpForm?.addEventListener('submit', async (event) => {
 resendOtpBtn?.addEventListener('click', async () => {
   if (!pendingRegistration || resendOtpBtn.disabled) return;
   resendOtpBtn.disabled = true;
-  clearStatus();
   try {
     await resendRegistrationCode({ email: pendingRegistration.email });
-    setStatus('A new access code has been sent.', 'success');
-    resendOtpBtn.innerHTML = resendOtpLabel;
-    startResendCountdown(60);
+    setStatus('A new verification code has been sent.', 'success');
+    startResendCountdown();
   } catch (error) {
     resendOtpBtn.disabled = false;
     setStatus(error.message || 'Could not resend the code. Please try again.');
   }
 });
 
+loginResendOtpBtn?.addEventListener('click', async () => {
+  const email = loginResendOtpBtn.dataset.email || document.getElementById('signInEmail')?.value.trim().toLowerCase();
+  if (!email) return setStatus('Enter your email address first.');
+  loginResendOtpBtn.disabled = true;
+  try {
+    await resendRegistrationCode({ email });
+    switchTab(false);
+    showOtpView({ email }, 'A new verification code has been sent.');
+  } catch (error) {
+    setStatus(error.message || 'Could not resend the code. Please try again.');
+  } finally {
+    loginResendOtpBtn.disabled = false;
+  }
+});
+
+document.querySelectorAll('.auth-password-toggle').forEach((toggle) => {
+  toggle.addEventListener('click', () => {
+    const input = document.getElementById(toggle.dataset.passwordTarget);
+    if (!input) return;
+    const showPassword = input.type === 'password';
+    input.type = showPassword ? 'text' : 'password';
+    toggle.setAttribute('aria-label', showPassword ? 'Hide password' : 'Show password');
+    toggle.innerHTML = `<i class="fa-regular ${showPassword ? 'fa-eye-slash' : 'fa-eye'}" aria-hidden="true"></i>`;
+  });
+});
+
+document.querySelectorAll('#signInForm input, #registerForm input').forEach((input) => {
+  input.addEventListener('input', () => {
+    const fieldError = input.closest('.lock-field')?.querySelector('.auth-field-error');
+    if (fieldError) fieldError.textContent = '';
+  });
+});
+
 registerForm?.addEventListener('submit', async (e) => {
   e.preventDefault();
   clearFieldErrors(registerForm);
   const name = document.getElementById('registerNameInput')?.value.trim();
-  const email = document.getElementById('registerEmailInput')?.value.trim();
+  const email = document.getElementById('registerEmailInput')?.value.trim().toLowerCase();
   const password = document.getElementById('registerPasswordInput')?.value;
+  const confirmation = document.getElementById('registerConfirmPasswordInput')?.value;
   let valid = true;
   if (!name) { setFieldError('registerNameError', 'Enter your name.'); valid = false; }
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setFieldError('registerEmailError', 'Enter a valid email address.'); valid = false; }
-  if (!password || password.length < 8) { setFieldError('registerPasswordError', 'Password must be at least 8 characters'); valid = false; }
+  if (!password || password.length < 8) { setFieldError('registerPasswordError', 'Password must be at least 8 characters.'); valid = false; }
+  if (password !== confirmation) { setFieldError('registerConfirmPasswordError', 'Passwords do not match.'); valid = false; }
   if (!valid) {
     setStatus('Please correct the highlighted fields.');
     return;
@@ -387,38 +469,13 @@ registerForm?.addEventListener('submit', async (e) => {
   clearStatus();
   try {
     await startRegistration({ name, email, password });
-    pendingRegistration = { name, email, password };
-    otpEmailLabel.textContent = email;
-    otpDigits.forEach((input) => { input.value = ''; });
-    authFormsView?.classList.add('hidden');
-    otpView?.classList.remove('hidden');
-    startResendCountdown(60);
-    otpDigits[0]?.focus();
-    setStatus('Your access code is on its way.', 'success');
+    registerForm.reset();
+    showOtpView({ name, email }, 'Your 6-digit verification code is on its way.');
   } catch (error) {
     setStatus(error.message);
   } finally {
     btn.disabled = false;
-    btn.textContent = 'Continue';
-  }
-});
-
-loginResendOtpBtn?.addEventListener('click', async () => {
-  const email = loginResendOtpBtn.dataset.email || document.getElementById('signInEmail')?.value.trim();
-  if (!email) {
-    setStatus('Enter your email address first.');
-    return;
-  }
-  loginResendOtpBtn.disabled = true;
-  loginResendOtpBtn.textContent = 'Sending...';
-  try {
-    await resendRegistrationCode({ email });
-    setStatus('If a registration is pending, a new access code has been sent.', 'success');
-  } catch (error) {
-    setStatus(error.message || 'Could not resend the code. Start Sign Up again or try later.');
-  } finally {
-    loginResendOtpBtn.disabled = false;
-    loginResendOtpBtn.textContent = 'Resend verification code';
+    btn.textContent = 'Create Account';
   }
 });
 
@@ -485,6 +542,7 @@ function renderLoggedIn(user, isAdmin) {
   const name = user.displayName || user.email?.split('@')[0] || 'Student';
   userChipName.textContent = 'My Account';
   userDropdownEmail.textContent = user.email || '';
+  linkGoogleAccountBtn?.classList.toggle('hidden', user.providerData.some((provider) => provider.providerId === 'google.com'));
 
   if (user.photoURL) {
     userChipAvatar.src = user.photoURL;

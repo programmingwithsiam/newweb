@@ -198,17 +198,27 @@
               </div>
               <small class="auth-field-error" id="registerPasswordError"></small>
             </div>
-            <button type="submit" class="btn btn-primary btn-full" id="registerSubmitBtn">Continue</button>
+            <div class="lock-field">
+              <label for="registerConfirmPasswordInput">Confirm Password</label>
+              <div class="auth-password-wrap">
+                <input type="password" id="registerConfirmPasswordInput" autocomplete="new-password" minlength="8"
+                  required aria-describedby="registerConfirmPasswordError" />
+                <button class="auth-password-toggle" type="button" data-password-target="registerConfirmPasswordInput"
+                  aria-label="Show password"><i class="fa-regular fa-eye" aria-hidden="true"></i></button>
+              </div>
+              <small class="auth-field-error" id="registerConfirmPasswordError"></small>
+            </div>
+            <button type="submit" class="btn btn-primary btn-full" id="registerSubmitBtn">Create Account</button>
             <p class="auth-mode-switch">Already have an account? <button type="button" class="text-link"
                 id="switchToLogin">Login</button></p>
           </form>
         </div>
         <section class="auth-otp-view hidden" id="authOtpView" aria-labelledby="otpTitle">
           <div class="auth-otp-icon"><i class="fa-regular fa-envelope" aria-hidden="true"></i></div>
-          <h2 id="otpTitle">Enter Access Code</h2>
+          <h2 id="otpTitle">Enter Verification Code</h2>
           <p class="auth-otp-copy">Enter the 6-digit code sent to <strong id="otpEmailLabel"></strong>.</p>
           <form id="otpForm">
-            <div class="otp-inputs" role="group" aria-label="Six-digit access code">
+            <div class="otp-inputs" role="group" aria-label="Six-digit verification code">
               <input class="otp-digit" id="otpDigit0" type="text" inputmode="numeric" autocomplete="one-time-code"
                 maxlength="1" aria-label="Digit 1" />
               <input class="otp-digit" id="otpDigit1" type="text" inputmode="numeric" maxlength="1"
@@ -222,13 +232,32 @@
               <input class="otp-digit" id="otpDigit5" type="text" inputmode="numeric" maxlength="1"
                 aria-label="Digit 6" />
             </div>
-            <button type="submit" class="btn btn-primary btn-full" id="verifyOtpBtn">Verify code</button>
+            <button type="submit" class="btn btn-primary btn-full" id="verifyOtpBtn">Verify Email</button>
           </form>
           <div class="auth-otp-links">
-            <button type="button" class="text-link" id="changeOtpEmailBtn">Change email</button>
+            <button type="button" class="text-link" id="changeOtpEmailBtn">Back to Sign Up</button>
             <button type="button" class="text-link" id="resendOtpBtn" disabled>Resend code in <span
                 id="resendCountdown">60</span>s</button>
           </div>
+        </section>
+        <section id="passwordSettingsView" class="auth-panel hidden" aria-labelledby="passwordSettingsTitle">
+          <h3 id="passwordSettingsTitle">Password settings</h3>
+          <form id="passwordSettingsForm" novalidate>
+            <div class="lock-field hidden" id="currentPasswordField">
+              <label for="currentAccountPassword">Current Password</label>
+              <input type="password" id="currentAccountPassword" autocomplete="current-password" />
+            </div>
+            <div class="lock-field">
+              <label for="newAccountPassword">New Password</label>
+              <input type="password" id="newAccountPassword" autocomplete="new-password" minlength="8" required />
+            </div>
+            <div class="lock-field">
+              <label for="confirmAccountPassword">Confirm New Password</label>
+              <input type="password" id="confirmAccountPassword" autocomplete="new-password" minlength="8" required />
+            </div>
+            <button type="submit" class="btn btn-primary btn-full" id="saveAccountPasswordBtn">Save Password</button>
+            <button type="button" class="text-link" id="backToAuthFormsBtn">Back</button>
+          </form>
         </section>
         <p class="auth-status" id="authModalStatus" role="status" aria-live="polite"></p>
         <p class="lock-hint auth-help-hint">Need help? <a
@@ -264,6 +293,8 @@
           <div class="user-dropdown hidden" id="userDropdown">
             <p class="user-dropdown-email" id="userDropdownEmail"></p>
             <a href="#learn">Course Dashboard</a>
+            <button type="button" id="accountPasswordBtn">Password settings</button>
+            <button type="button" id="linkGoogleAccountBtn" class="hidden">Link Google account</button>
             <a href="/admin" id="adminNavLink">Admin Panel</a>
             <button type="button" id="userLogoutBtn" class="animated-logout-btn"><span class="logout-icon"
                 aria-hidden="true"><i class="fa-solid fa-person-walking-arrow-right logout-person"></i><i
@@ -1378,8 +1409,7 @@
     <!-- COMMUNITY -->
     <section class="section" id="community" data-page="community">
       <div class="container reveal">
-        <iframe class="community-page-frame" src="/index.html?communityAuth=1"
-          title="CodeWithSiam Community login"></iframe>
+        <iframe class="community-page-frame" src="/community/index.html" title="CodeWithSiam Community feed"></iframe>
       </div>
     </section>
 
@@ -1506,7 +1536,7 @@
     <!-- /siteRoot -->
 
     <script type="module" src="/assets/js/script.js?v=20260915-public-course-render-1"></script>
-    <script type="module" src="/assets/js/auth-app.js?v=20261001-community-auth-2"></script>
+    <script type="module" src="/assets/js/auth-app.js?v=20261001-otp-flow-1"></script>
 </body>
 
 </html>

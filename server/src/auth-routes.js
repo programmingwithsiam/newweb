@@ -89,12 +89,15 @@ router.post('/register/start', startEmailLimit, async (req, res) => {
 
     const key = emailKey(email);
     const pendingRef = database.ref(`${PENDING_PATH}/${key}`);
+    let originalPending = null;
+    let newlyCreatedUid = null;
     try {
         stage = 'pending_record_lookup';
         logStage(requestId, 'pending_record_lookup_started');
         const currentSnapshot = await pendingRef.get();
         logStage(requestId, 'pending_record_lookup_completed');
         const currentPending = currentSnapshot.val();
+        originalPending = currentPending;
         if (currentPending?.lastSentAt && Date.now() - currentPending.lastSentAt < RESEND_COOLDOWN_MS) {
             logStage(requestId, 'registration_start_rate_limited', { code: 'RESEND_COOLDOWN' });
             return sendError(res, 429, 'Please wait before requesting another code.', 'RATE_LIMITED');
@@ -114,22 +117,24 @@ router.post('/register/start', startEmailLimit, async (req, res) => {
         logStage(requestId, 'firebase_user_lookup_completed', { found: Boolean(existingUser) });
 
         if (existingUser?.emailVerified) {
-            logStage(requestId, 'firebase_verified_user_rejected', { code: 'REGISTRATION_REJECTED' });
-            return sendError(res, 409, 'Unable to start registration. Check your details or try signing in.', 'REGISTRATION_REJECTED');
+            const hasGoogleProvider = existingUser.providerData?.some((provider) => provider.providerId === 'google.com');
+            const hasPasswordProvider = existingUser.providerData?.some((provider) => provider.providerId === 'password');
+            const isGoogleOnly = hasGoogleProvider && !hasPasswordProvider;
+            const code = isGoogleOnly ? 'GOOGLE_ACCOUNT_EXISTS' : 'EMAIL_ALREADY_REGISTERED';
+            const message = isGoogleOnly
+                ? 'This account uses Google. Please continue with Google.'
+                : 'This email is already registered. Please sign in.';
+            logStage(requestId, 'firebase_verified_user_exists', { code });
+            return sendError(res, 409, message, code);
         }
 
-        let user;
-        if (existingUser) {
-            stage = 'firebase_unverified_user_reset';
-            logStage(requestId, 'firebase_unverified_user_reset_started');
-            user = await auth.updateUser(existingUser.uid, {
-                displayName: name,
-                password,
-                emailVerified: false,
-                disabled: true
-            });
-            logStage(requestId, 'firebase_unverified_user_reset_completed');
-        } else {
+        if (existingUser && (!currentPending || currentPending.uid !== existingUser.uid || currentPending.status !== 'pending')) {
+            logStage(requestId, 'firebase_unverified_user_exists', { code: 'EMAIL_VERIFICATION_PENDING' });
+            return sendError(res, 409, 'This email already has an account awaiting verification. Sign in and verify your email.', 'EMAIL_VERIFICATION_PENDING');
+        }
+
+        let user = existingUser;
+        if (!user) {
             stage = 'firebase_disabled_user_create';
             logStage(requestId, 'firebase_disabled_user_create_started');
             user = await auth.createUser({
@@ -139,6 +144,7 @@ router.post('/register/start', startEmailLimit, async (req, res) => {
                 emailVerified: false,
                 disabled: true
             });
+            newlyCreatedUid = user.uid;
             logStage(requestId, 'firebase_disabled_user_create_completed');
         }
 
@@ -158,21 +164,52 @@ router.post('/register/start', startEmailLimit, async (req, res) => {
         await pendingRef.set(pendingRecord);
         logStage(requestId, 'registration_otp_saved');
 
+        if (existingUser) {
+            try {
+                stage = 'firebase_pending_user_update';
+                user = await auth.updateUser(existingUser.uid, {
+                    displayName: name,
+                    password,
+                    emailVerified: false,
+                    disabled: true
+                });
+                logStage(requestId, 'firebase_pending_user_updated');
+            } catch (error) {
+                await pendingRef.transaction((current) => current?.otpHash === pendingRecord.otpHash
+                    ? (originalPending || null)
+                    : undefined).catch(() => { });
+                throw error;
+            }
+        }
+
         try {
             await sendRegistrationCode({ name, email, otp });
             logStage(requestId, 'registration_email_sent');
             return res.status(202).json({ ok: true, message: 'If the address can be registered, a verification code has been sent.' });
         } catch (error) {
-            await pendingRef.transaction((current) => current?.otpHash === pendingRecord.otpHash ? null : undefined).catch(() => { });
+            await pendingRef.transaction((current) => current?.otpHash === pendingRecord.otpHash
+                ? (originalPending || null)
+                : undefined).catch(() => { });
+            if (newlyCreatedUid) {
+                await auth.deleteUser(newlyCreatedUid).catch((deleteError) => {
+                    logStage(requestId, 'firebase_orphan_cleanup_failed', { code: deleteError?.code || 'FIREBASE_AUTH_ERROR' });
+                });
+                newlyCreatedUid = null;
+            }
             logStage(requestId, 'registration_email_failed', { code: error?.code || 'MAIL_ERROR' });
             return sendError(res, 502, 'We could not send a verification email. Please try again later.', 'EMAIL_DELIVERY_FAILED');
         }
     } catch (error) {
+        if (newlyCreatedUid) {
+            await auth.deleteUser(newlyCreatedUid).catch((deleteError) => {
+                logStage(requestId, 'firebase_orphan_cleanup_failed', { code: deleteError?.code || 'FIREBASE_AUTH_ERROR' });
+            });
+        }
         const code = error?.code || 'REGISTRATION_ERROR';
         if (code === 'auth/email-already-exists') {
             stage = 'firebase_user_create';
-            logStage(requestId, 'registration_email_already_exists', { code: 'REGISTRATION_REJECTED' });
-            return sendError(res, 409, 'Unable to start registration. Check your details or try signing in.', 'REGISTRATION_REJECTED');
+            logStage(requestId, 'registration_email_already_exists', { code: 'EMAIL_ALREADY_REGISTERED' });
+            return sendError(res, 409, 'This email is already registered. Please sign in.', 'EMAIL_ALREADY_REGISTERED');
         }
         logStage(requestId, 'registration_start_failed', { stage, code });
         return sendError(res, 500, 'Registration could not be started. Please try again.', 'REGISTRATION_START_FAILED');

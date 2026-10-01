@@ -1,5 +1,5 @@
 import { auth, db } from './firebase-init.js';
-import { observeAuthState } from './auth.js?v=20260829-auth-fix-1';
+import { observeAuthState, redirectToAuthPrompt } from './auth.js?v=20261001-auth-flow-1';
 import { fetchAllCourses, fetchUserPayments } from './courses-db.js';
 
 let currentUser = null;
@@ -145,7 +145,7 @@ async function renderUserProfile() {
       : escapeHtml(value)).join(' · ');
     profileMeta.classList.toggle('hidden', metadata.length === 0);
   }
-  
+
   // Update timestamps
   const joinDate = userProfileData.createdAt?.toDate?.() || new Date(userProfileData.createdAt || 0);
   document.getElementById('profileJoinDate').textContent = `Joined ${joinDate.toLocaleDateString('en-US', { year: 'numeric', month: 'short' })}`;
@@ -170,7 +170,7 @@ async function renderUserProfile() {
   const skillsSection = document.getElementById('skillsSection');
   const skillsTags = document.getElementById('skillsTags');
   const aboutSkills = document.getElementById('aboutSkills');
-  
+
   if (userProfileData.skills && userProfileData.skills.length > 0) {
     skillsSection.classList.remove('hidden');
     skillsTags.innerHTML = userProfileData.skills
@@ -201,11 +201,9 @@ async function renderUserProfile() {
     if (!currentUser) {
       // Show message to sign in
       const messageBtn = document.getElementById('messageProfileBtn');
-      messageBtn.textContent = 'Sign in to follow';
+      messageBtn.textContent = 'Sign in to follow or message';
       messageBtn.classList.remove('hidden');
-      messageBtn.addEventListener('click', () => {
-        window.location.href = 'community.html#signin';
-      });
+      messageBtn.addEventListener('click', () => redirectToAuthPrompt('Sign in to follow or message this member.'));
     } else {
       const followBtn = document.getElementById('followProfileBtn');
       const messageBtn = document.getElementById('messageProfileBtn');
@@ -217,19 +215,19 @@ async function renderUserProfile() {
       // Check if already following
       const isFollowing = await isUserFollowing(currentUser.uid, viewingUserId);
       followBtn.classList.remove('hidden');
-      
+
       // Update follow button text and handler
       const updateFollowBtn = () => {
-        followBtn.textContent = isFollowing 
-          ? '✓ Following' 
+        followBtn.textContent = isFollowing
+          ? '✓ Following'
           : '+ Follow';
-        followBtn.className = isFollowing 
-          ? 'profile-action-btn follow-btn following' 
+        followBtn.className = isFollowing
+          ? 'profile-action-btn follow-btn following'
           : 'profile-action-btn follow-btn';
       };
-      
+
       updateFollowBtn();
-      
+
       followBtn.addEventListener('click', async () => {
         followBtn.disabled = true;
         try {
@@ -383,7 +381,7 @@ async function saveProfileChanges() {
       if (!profilePictureFile.type.startsWith('image/')) {
         throw new Error('Profile picture must be an image file');
       }
-      
+
       const profilePicRef = ref(storage, `profile-pictures/${currentUser.uid}/picture.${profilePictureFile.type.split('/')[1]}`);
       status.textContent = 'Uploading profile picture...';
       await uploadBytes(profilePicRef, profilePictureFile);
@@ -399,7 +397,7 @@ async function saveProfileChanges() {
       if (!coverPhotoFile.type.startsWith('image/')) {
         throw new Error('Cover photo must be an image file');
       }
-      
+
       const coverPhotoRef = ref(storage, `profile-pictures/${currentUser.uid}/cover.${coverPhotoFile.type.split('/')[1]}`);
       status.textContent = 'Uploading cover photo...';
       await uploadBytes(coverPhotoRef, coverPhotoFile);
@@ -436,7 +434,7 @@ function setupTabs() {
   tabButtons.forEach(btn => {
     btn.addEventListener('click', () => {
       const tabName = btn.dataset.tab;
-      
+
       // Remove active class from all
       tabButtons.forEach(b => b.classList.remove('active'));
       tabPanes.forEach(p => p.classList.remove('active'));
@@ -488,7 +486,7 @@ function setupModals() {
   document.getElementById('followerCount')?.addEventListener('click', async () => {
     const followers = userProfileData.followers || [];
     const followersList = document.getElementById('followersList');
-    
+
     if (followers.length === 0) {
       followersList.innerHTML = '<p class="empty-message">No followers yet</p>';
     } else {
@@ -519,7 +517,7 @@ function setupModals() {
   document.getElementById('followingCount')?.addEventListener('click', async () => {
     const following = userProfileData.following || [];
     const followingList = document.getElementById('followingList');
-    
+
     if (following.length === 0) {
       followingList.innerHTML = '<p class="empty-message">Not following anyone yet</p>';
     } else {
@@ -557,7 +555,8 @@ async function init() {
     if (auth.currentUser) {
       viewingUserId = auth.currentUser.uid;
     } else {
-      profileLoading.innerHTML = '<i class="fa-solid fa-user-lock"></i><p>Sign in to view your profile.</p><a class="profile-action-btn edit-btn" href="community.html#signin">Sign in</a>';
+      profileLoading.innerHTML = '<i class="fa-solid fa-user-lock"></i><p>Sign in to view your profile.</p><button class="profile-action-btn edit-btn" id="profileSignInBtn" type="button">Sign in</button>';
+      document.getElementById('profileSignInBtn')?.addEventListener('click', () => redirectToAuthPrompt('Sign in to view your profile.'));
       return;
     }
   }
@@ -577,7 +576,7 @@ async function init() {
 if (!authObserverStarted) {
   authObserverStarted = true;
   observeAuthState(user => {
-  currentUser = user;
+    currentUser = user;
     if (user && !viewingUserId) init().catch(error => console.error('Error loading own profile:', error));
   });
 }

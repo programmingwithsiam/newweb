@@ -76,7 +76,7 @@ function CommentItem({ postId, postOwnerUid, comment, id, onReply }) {
 }
 
 export default function CommentSection({ postId, postOwnerUid }) {
-  const { user, profile } = useAuth();
+  const { user, profile, requestSignIn } = useAuth();
   const [comments, setComments] = useState({});
   const [text, setText] = useState('');
   const [replyTo, setReplyTo] = useState(null); // { id, name }
@@ -89,7 +89,11 @@ export default function CommentSection({ postId, postOwnerUid }) {
 
   async function submit(e) {
     e.preventDefault();
-    if (!text.trim() || !user) return;
+    if (!user) {
+      requestSignIn('Sign in to comment on a community post.');
+      return;
+    }
+    if (!text.trim()) return;
     const newRef = push(ref(db, `comments/${postId}`));
     await update(newRef, {
       uid: user.uid,

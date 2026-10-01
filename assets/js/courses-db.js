@@ -218,7 +218,7 @@ function writeSessionCache(key, value) {
 }
 
 function clearSessionCache(...keys) {
-  try { keys.forEach(key => sessionStorage.removeItem(key)); } catch {}
+  try { keys.forEach(key => sessionStorage.removeItem(key)); } catch { }
 }
 
 export async function fetchCourseEnrollment(uid, courseId) {
@@ -245,10 +245,10 @@ export async function fetchAllCourses({ includeLessons = true } = {}) {
   }
   const currentUser = auth?.currentUser || null;
   const isAdminUser = currentUser?.email?.toLowerCase() === 'mdsiamahmmedloselovestroy@gmail.com';
-  const isGoogleUser = currentUser?.providerData?.some(provider => provider.providerId === 'google.com');
+  const isVerifiedUser = currentUser?.emailVerified === true;
   let emailAccess = false;
   let courseAccessIds = [];
-  if (isGoogleUser && currentUser.email) {
+  if (isVerifiedUser && currentUser.email) {
     try {
       const { doc, getDoc } = await loadFirestore();
       const accessSnap = await getDoc(doc(db, 'authorized_users', currentUser.email.toLowerCase()));
@@ -263,7 +263,7 @@ export async function fetchAllCourses({ includeLessons = true } = {}) {
   }
   const courses = await Promise.all(sortByOrder(coursesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }))).map(async (course) => {
     const enrollment = currentUser ? await fetchCourseEnrollment(currentUser.uid, course.id).catch(() => null) : null;
-    const legacyAccess = isGoogleUser && emailAccess && (!courseAccessIds.length || courseAccessIds.includes(course.id));
+    const legacyAccess = isVerifiedUser && emailAccess && (!courseAccessIds.length || courseAccessIds.includes(course.id));
     const hasAccess = isAdminUser || enrollment?.status === 'approved' || (legacyAccess && enrollment?.status !== 'revoked');
     const accessStatus = isAdminUser || hasAccess ? 'approved' : enrollment?.status || 'not_enrolled';
     // Course-level video URLs are legacy fields and must never be sent to learners without access.
@@ -761,9 +761,9 @@ export async function syncLessonCatalog(courseId, moduleId) {
   }));
   const catalog = sortedLessons.length
     ? sortedLessons.map((lesson, index) => {
-        const isFreePreview = lesson.hasExplicitPreview ? lesson.isFreePreview : index < 2;
-        return { id: lesson.id, title: lesson.title, duration: lesson.duration, order: lesson.order, isFreePreview, freePreview: isFreePreview };
-      })
+      const isFreePreview = lesson.hasExplicitPreview ? lesson.isFreePreview : index < 2;
+      return { id: lesson.id, title: lesson.title, duration: lesson.duration, order: lesson.order, isFreePreview, freePreview: isFreePreview };
+    })
     : existingCatalog;
 
   if (moduleSnap.exists()) await setDoc(moduleRef, { lessonCatalog: catalog }, { merge: true });
@@ -781,16 +781,16 @@ export async function uploadLessonVideo(file, courseId, moduleId, onProgress) {
   if (!isFirebaseConfigured) throw new Error('Firebase is not configured');
   if (!file) throw new Error('No file selected');
   if (!file.type.startsWith('video/')) throw new Error('Only video files are supported');
-  
+
   const { storage } = await import('./firebase-init.js');
   if (!storage) throw new Error('Firebase Storage is not available');
-  
+
   const storageModule = await import('https://www.gstatic.com/firebasejs/10.13.0/firebase-storage.js');
   const { ref, uploadBytesResumable, getDownloadURL } = storageModule;
-  
+
   const storagePath = `lessons/${courseId}/${moduleId}/${Date.now()}-${file.name}`;
   const fileRef = ref(storage, storagePath);
-  
+
   return new Promise((resolve, reject) => {
     const uploadTask = uploadBytesResumable(fileRef, file);
     uploadTask.on('state_changed',
@@ -833,7 +833,7 @@ export async function fetchUserProgress(uid) {
 export async function saveUserCourseProgress(uid, courseId, data) {
   if (!isFirebaseConfigured || !db || !uid) return;
   const { doc, setDoc, serverTimestamp } = await loadFirestore();
-  try { sessionStorage.removeItem(`siam_progress_cache_${uid}`); } catch {}
+  try { sessionStorage.removeItem(`siam_progress_cache_${uid}`); } catch { }
   return setDoc(
     doc(db, 'progress', uid, 'courses', courseId),
     { ...data, lastUpdated: serverTimestamp() },
