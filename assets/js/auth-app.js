@@ -60,6 +60,7 @@ const userLogoutBtn = document.getElementById('userLogoutBtn');
 const adminNavLink = document.getElementById('adminNavLink');
 const contactAdminPanel = document.getElementById('contactAdminPanel');
 const contactAdminLink = document.getElementById('contactAdminLink');
+const communityAuthMode = new URLSearchParams(window.location.search).get('communityAuth') === '1';
 
 function setStatus(message, type = 'error') {
   if (!modalStatus) return;
@@ -114,6 +115,12 @@ function openAuthModal(message) {
 }
 window.openAuthModal = openAuthModal; // used by script.js's toggleLessonComplete gate
 
+if (communityAuthMode) {
+  document.getElementById('siteRoot')?.classList.remove('show');
+  modalClose?.classList.add('hidden');
+  openAuthModal();
+}
+
 function closeAuthModal() {
   if (!modal) return;
   modal.classList.add('hidden');
@@ -145,7 +152,7 @@ modal?.addEventListener('click', (e) => {
   if (e.target === modal) closeAuthModal();
 });
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && !modal?.classList.contains('hidden')) closeAuthModal();
+  if (!communityAuthMode && e.key === 'Escape' && !modal?.classList.contains('hidden')) closeAuthModal();
 });
 
 document.getElementById('switchToRegister')?.addEventListener('click', () => switchTab(true));
@@ -167,6 +174,10 @@ courseGateSignInBtn?.addEventListener('click', () => openAuthModal());
 async function finishSignIn() {
   const admin = await isCurrentUserAdmin();
   closeAuthModal();
+  if (communityAuthMode) {
+    window.top.location.assign(admin ? '/admin.html' : '/community/');
+    return;
+  }
   if (admin && !location.pathname.endsWith('/admin.html')) {
     window.location.assign('admin.html');
   }
