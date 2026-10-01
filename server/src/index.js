@@ -8,12 +8,13 @@ import authRoutes from './auth-routes.js';
 
 const app = express();
 const port = Number(process.env.PORT) || 3001;
-const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:5173')
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:5173')
     .split(',')
     .map((origin) => origin.trim())
     .filter(Boolean);
 
 app.disable('x-powered-by');
+app.set('trust proxy', 1);
 app.use(helmet());
 app.use(cors({
     origin(origin, callback) {

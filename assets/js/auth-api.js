@@ -1,5 +1,6 @@
-const configuredApiUrl = document.querySelector('meta[name="auth-api-url"]')?.content?.trim();
-const API_BASE_URL = (window.AUTH_API_URL || configuredApiUrl || 'http://localhost:3001').replace(/\/+$/, '');
+const API_BASE_URL = ['localhost', '127.0.0.1'].includes(window.location.hostname)
+    ? 'http://localhost:3001'
+    : 'https://YOUR-SERVICE.onrender.com';
 
 async function post(path, payload) {
     let response;
