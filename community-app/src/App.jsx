@@ -28,36 +28,38 @@ function LazyPage({ children }) {
 
 export default function App() {
   return (
-    <ThemeProvider>
-      <ToastProvider>
-        <AuthProvider>
-          <BrowserRouter basename="/community">
-            <Routes>
-              <Route path="/login" element={<Login />} />
-              <Route path="/signup" element={<LazyPage><Signup /></LazyPage>} />
-              <Route path="/forgot-password" element={<LazyPage><ForgotPassword /></LazyPage>} />
+    <div className="cwsfb">
+      <ThemeProvider>
+        <ToastProvider>
+          <AuthProvider>
+            <BrowserRouter basename="/community">
+              <Routes>
+                <Route path="/login" element={<Login />} />
+                <Route path="/signup" element={<LazyPage><Signup /></LazyPage>} />
+                <Route path="/forgot-password" element={<LazyPage><ForgotPassword /></LazyPage>} />
 
-              <Route element={<AppLayout />}>
-                <Route path="/" element={<LazyPage><Home /></LazyPage>} />
-                <Route path="/index.html" element={<LazyPage><Home /></LazyPage>} />
-                <Route path="/post/:postId" element={<LazyPage><PostPage /></LazyPage>} />
-                <Route element={<ProtectedRoute />}>
-                  <Route path="/profile/:uid" element={<LazyPage><Profile /></LazyPage>} />
-                  <Route path="/messenger" element={<LazyPage><Messenger /></LazyPage>} />
-                  <Route path="/messenger/:convId" element={<LazyPage><Messenger /></LazyPage>} />
-                  <Route path="/notifications" element={<LazyPage><Notifications /></LazyPage>} />
-                  <Route path="/message-notifications" element={<LazyPage><Notifications kind="messages" /></LazyPage>} />
-                  <Route path="/search" element={<LazyPage><Search /></LazyPage>} />
-                  <Route path="/hashtag/:tag" element={<LazyPage><Hashtag /></LazyPage>} />
-                  <Route path="/settings" element={<LazyPage><Settings /></LazyPage>} />
-                  <Route path="/create" element={<LazyPage><CreatePostPage /></LazyPage>} />
+                <Route element={<AppLayout />}>
+                  <Route path="/" element={<LazyPage><Home /></LazyPage>} />
+                  <Route path="/index.html" element={<LazyPage><Home /></LazyPage>} />
+                  <Route path="/post/:postId" element={<LazyPage><PostPage /></LazyPage>} />
+                  <Route element={<ProtectedRoute />}>
+                    <Route path="/profile/:uid" element={<LazyPage><Profile /></LazyPage>} />
+                    <Route path="/messenger" element={<LazyPage><Messenger /></LazyPage>} />
+                    <Route path="/messenger/:convId" element={<LazyPage><Messenger /></LazyPage>} />
+                    <Route path="/notifications" element={<LazyPage><Notifications /></LazyPage>} />
+                    <Route path="/message-notifications" element={<LazyPage><Notifications kind="messages" /></LazyPage>} />
+                    <Route path="/search" element={<LazyPage><Search /></LazyPage>} />
+                    <Route path="/hashtag/:tag" element={<LazyPage><Hashtag /></LazyPage>} />
+                    <Route path="/settings" element={<LazyPage><Settings /></LazyPage>} />
+                    <Route path="/create" element={<LazyPage><CreatePostPage /></LazyPage>} />
+                  </Route>
                 </Route>
-              </Route>
-            </Routes>
-            <AuthPrompt />
-          </BrowserRouter>
-        </AuthProvider>
-      </ToastProvider>
-    </ThemeProvider>
+              </Routes>
+              <AuthPrompt />
+            </BrowserRouter>
+          </AuthProvider>
+        </ToastProvider>
+      </ThemeProvider>
+    </div>
   );
 }

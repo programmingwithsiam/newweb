@@ -27,9 +27,15 @@ function authApiBaseUrl() {
 async function registrationRequest(path, payload) {
   const baseUrl = authApiBaseUrl();
   if (!baseUrl) throw new Error('Email verification service is not configured.');
+  const endpoint = {
+    start: '/api/auth/send-otp',
+    verify: '/api/auth/verify-otp',
+    resend: '/api/auth/resend-otp'
+  }[path];
+  if (!endpoint) throw new Error('Invalid registration request.');
   let response;
   try {
-    response = await fetch(`${baseUrl}/auth/register/${path}`, {
+    response = await fetch(`${baseUrl}${endpoint}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
@@ -38,7 +44,9 @@ async function registrationRequest(path, payload) {
     throw new Error('Cannot reach the verification service. Please try again later.');
   }
   const result = await response.json().catch(() => null);
-  if (!response.ok) throw new Error(result?.error || 'The verification request failed. Please try again.');
+  if (!response.ok || result?.success === false) {
+    throw new Error(result?.message || result?.error || 'The verification request failed. Please try again.');
+  }
   return result || {};
 }
 
@@ -146,7 +154,7 @@ export function AuthProvider({ children }) {
       uid: fbUser.uid,
       fullName: extra.fullName || fbUser.displayName || username,
       username,
-      usernameLower: finalKey,
+      usernameLower: usernameKey,
       bio: '',
       photoURL: fbUser.photoURL || '',
       coverURL: '',
@@ -172,8 +180,8 @@ export function AuthProvider({ children }) {
     return { email: normalizedEmail };
   }
 
-  async function verifySignupCode(email, otp) {
-    return registrationRequest('verify', { email: email.trim().toLowerCase(), otp: otp.trim() });
+  async function verifySignupCode(email, otp, password = '') {
+    return registrationRequest('verify', { email: email.trim().toLowerCase(), otp: otp.trim(), password });
   }
 
   async function resendSignupCode(email) {

@@ -1,1 +1,0 @@
-import{g as t,i as a,x as n,p as r}from"./index-Wov8taHt.js";function o(e,s){if(!e)return;const f=t(a,`notifications/${e}`);return n(f,{...s,createdAt:r(),read:!1})}function c(e,s){if(e)return n(t(a,`messageNotifications/${e}`),{...s,createdAt:r(),read:!1})}export{c as a,o as n};

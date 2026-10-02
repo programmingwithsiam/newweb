@@ -209,7 +209,7 @@ async function renderUserProfile() {
       const messageBtn = document.getElementById('messageProfileBtn');
       messageBtn.classList.remove('hidden');
       messageBtn.addEventListener('click', () => {
-        window.location.href = `personal-chat.html?uid=${encodeURIComponent(viewingUserId)}`;
+        window.location.href = '/community/messenger';
       });
 
       // Check if already following

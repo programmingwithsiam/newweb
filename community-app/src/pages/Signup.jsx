@@ -54,7 +54,7 @@ export default function Signup() {
       setConfirmPassword('');
       setOtpStep(true);
       setResendRemaining(60);
-      showToast('A 6-digit verification code was sent to your email.', 'success');
+      showToast('If registration can be completed, a 6-digit verification code will arrive by email.', 'success');
     } catch (err) {
       showToast(friendlyAuthError(err), 'error');
     } finally {
@@ -68,7 +68,7 @@ export default function Signup() {
       await resendSignupCode(email);
       setOtp('');
       setResendRemaining(60);
-      showToast('A new verification code was sent.', 'success');
+      showToast('If a registration is pending, a new code will arrive shortly.', 'success');
     } catch (err) {
       showToast(friendlyAuthError(err), 'error');
     } finally {
@@ -84,13 +84,16 @@ export default function Signup() {
         {otpStep ? (
           <>
             <h1>Verify your email</h1>
-            <p className="muted">Enter the 6-digit code sent to {email}. It expires in 5 minutes.</p>
+            <p className="muted">If registration can be completed, a 6-digit code will arrive at {email}. It expires in 10 minutes.</p>
             <label className="auth-field-label" htmlFor="signup-otp">Verification code</label>
             <input id="signup-otp" type="text" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6} value={otp} required
               onChange={(event) => setOtp(event.target.value.replace(/\D/g, '').slice(0, 6))} />
             <button className="btn btn-primary" type="submit" disabled={busy || otp.length !== 6}>{busy ? 'Verifying...' : 'Verify Email'}</button>
             <button className="link-btn" type="button" disabled={busy || resendRemaining > 0} onClick={resendCode}>
               {resendRemaining > 0 ? `Resend code in ${resendRemaining}s` : 'Resend verification code'}
+            </button>
+            <button className="link-btn" type="button" disabled={busy} onClick={() => navigate('/login', { state: { email, returnTo: location.state?.returnTo } })}>
+              Already have an account? Sign in
             </button>
             <button className="link-btn" type="button" disabled={busy} onClick={() => { setOtpStep(false); setOtp(''); }}>Back to sign up</button>
           </>

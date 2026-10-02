@@ -216,7 +216,8 @@
         <section class="auth-otp-view hidden" id="authOtpView" aria-labelledby="otpTitle">
           <div class="auth-otp-icon"><i class="fa-regular fa-envelope" aria-hidden="true"></i></div>
           <h2 id="otpTitle">Enter Verification Code</h2>
-          <p class="auth-otp-copy">Enter the 6-digit code sent to <strong id="otpEmailLabel"></strong>.</p>
+          <p class="auth-otp-copy">If this address can be registered, a 6-digit code will arrive at <strong
+              id="otpEmailLabel"></strong>. It expires in 10 minutes.</p>
           <form id="otpForm">
             <div class="otp-inputs" role="group" aria-label="Six-digit verification code">
               <input class="otp-digit" id="otpDigit0" type="text" inputmode="numeric" autocomplete="one-time-code"
@@ -239,6 +240,7 @@
             <button type="button" class="text-link" id="resendOtpBtn" disabled>Resend code in <span
                 id="resendCountdown">60</span>s</button>
           </div>
+          <button type="button" class="text-link" id="otpSignInBtn">Already have an account? Sign in</button>
         </section>
         <section id="passwordSettingsView" class="auth-panel hidden" aria-labelledby="passwordSettingsTitle">
           <h3 id="passwordSettingsTitle">Password settings</h3>
@@ -279,7 +281,7 @@
         <a href="#about" data-page-link="about">About</a>
         <a href="#projects" data-page-link="projects">Projects</a>
         <a href="#learn" data-page-link="learn">Learn</a>
-        <a href="#community" data-page-link="community">Community</a>
+        <a href="/community/index.html">Community</a>
         <a href="#contact" data-page-link="contact">Contact</a>
         <div class="nav-auth" id="navAuthLoggedOut">
           <button type="button" class="btn btn-outline small" id="headerSignInBtn">Sign In</button>
@@ -310,7 +312,7 @@
     </header>
 
     <!-- HERO -->
-    <section class="hero" id="home" data-page="home" data-page-shared>
+    <section class="hero" id="home" data-page="home">
       <div class="hero-bg-grid"></div>
       <div class="hero-inner">
         <div class="hero-content reveal">
@@ -351,8 +353,9 @@
             <blockquote class="about-tagline">Still a student. Already building. Always learning.</blockquote>
             <p>
               I’m a <strong>Data Science and Machine Learning Developer from Bangladesh</strong> with a strong interest
-              in Python, AI, and Web Development. I’m currently a <strong>Class 12 Science student at Narsingdi
-                Government College</strong>, preparing for HSC 2027.
+              in Python, AI, and Web Development.
+              I’m a <strong>Data Science and Machine Learning Developer from Bangladesh</strong> with a strong interest
+              in Python, AI, and Web Development.
             </p>
             <p style="margin-top: 14px">
               Alongside Data Science and Machine Learning, I enjoy solving real-world problems and turning ideas into
@@ -364,13 +367,6 @@
               My main goal is to become a <strong>skilled Data Scientist and Machine Learning Engineer</strong> and
               build software and AI-powered solutions that are genuinely useful in the real world.
             </p>
-            <div class="edu-badge tilt-card">
-              <span class="edu-icon">🎓</span>
-              <div>
-                <strong>Class 12 Science Student</strong>
-                <span>Narsingdi Government College · HSC 2027</span>
-              </div>
-            </div>
             <div class="about-stats">
               <div class="stat-item">
                 <span class="stat-num">Data</span>
@@ -488,7 +484,7 @@
     </section>
 
     <!-- LEARNING JOURNEY -->
-    <section class="section" id="ml" data-page="about">
+    <section class="section" id="ml" data-page="learn">
       <div class="container reveal">
         <h2 class="section-title">
           Learning <span class="accent">Journey</span>
@@ -496,6 +492,13 @@
         <p class="section-sub">
           A practical roadmap built around real projects, structured learning, and continuous experimentation.
         </p>
+        <div class="edu-badge tilt-card">
+          <span class="edu-icon">🎓</span>
+          <div>
+            <strong>Class 12 Science Student</strong>
+            <span>Narsingdi Government College · HSC 2027</span>
+          </div>
+        </div>
         <div class="boxes">
           <div class="box tilt-card">
             <div class="box-icon">🐍</div>
@@ -988,555 +991,514 @@
 
         <!-- COURSE PLATFORM -->
         <div id="coursePlatform" class="course-platform hidden">
+          <div class="course-overview-meta">
 
+            <span>
+              <i class="fa-solid fa-user"></i>
+              <span id="courseOverviewInstructor">
+                CodeWithSiam
+              </span>
+            </span>
 
-          <!-- COURSE OVERVIEW -->
-          <section class="course-overview-card">
+            <span>
+              <i class="fa-solid fa-play"></i>
+              <span id="courseOverviewLessons">
+                0 Lessons
+              </span>
+            </span>
 
-            <div class="course-overview-thumbnail">
+            <span>
+              <i class="fa-solid fa-clock"></i>
+              <span id="courseOverviewDuration">
+                0 min
+              </span>
+            </span>
 
-              <img id="courseOverviewThumbnail" src="" alt="Course thumbnail">
+          </div>
 
+          <div class="course-payment-panel">
+            <div>
+              <p class="eyebrow">ENROLLMENT</p>
+              <strong id="courseOverviewPrice">Free</strong>
+              <span>Manual payment verification</span>
             </div>
-
-            <div class="course-overview-start">
-              <p class="eyebrow">CONTINUE LEARNING</p>
-              <h3 id="courseOverviewNextLesson">Choose a lesson</h3>
-              <button type="button" class="btn btn-primary" id="courseOverviewStartBtn">
-                <i class="fa-solid fa-play"></i>
-                Start Lesson
-              </button>
+            <div class="course-payment-methods">
+              <a id="courseOverviewBkashLink" href="tel:01644171751"><i class="fa-solid fa-mobile-screen-button"></i>
+                bKash <b id="courseOverviewBkash">01644171751</b></a>
+              <a id="courseOverviewRocketLink" href="tel:01644171751"><i class="fa-solid fa-mobile-screen-button"></i>
+                Rocket <b id="courseOverviewRocket">01644171751</b></a>
+              <a id="courseOverviewBankLink" href="#contact"><i class="fa-solid fa-building-columns"></i> Bank <b
+                  id="courseOverviewBank">Contact for bank
+                  details</b></a>
             </div>
+          </div>
 
 
-            <div class="course-overview-content">
+          <!-- PROGRESS -->
+          <div class="course-overview-progress">
 
-              <p class="eyebrow">
-                CURRENT COURSE
-              </p>
+            <div class="course-overview-progress-head">
 
-              <h2 id="courseOverviewTitle">
-                Course Title
-              </h2>
+              <span>
+                Course Progress
+              </span>
 
-              <p id="courseOverviewDescription" class="course-overview-description">
-                Course description
-              </p>
-
-
-              <div class="course-overview-meta">
-
-                <span>
-                  <i class="fa-solid fa-user"></i>
-                  <span id="courseOverviewInstructor">
-                    CodeWithSiam
-                  </span>
-                </span>
-
-                <span>
-                  <i class="fa-solid fa-play"></i>
-                  <span id="courseOverviewLessons">
-                    0 Lessons
-                  </span>
-                </span>
-
-                <span>
-                  <i class="fa-solid fa-clock"></i>
-                  <span id="courseOverviewDuration">
-                    0 min
-                  </span>
-                </span>
-
-              </div>
-
-              <div class="course-payment-panel">
-                <div>
-                  <p class="eyebrow">ENROLLMENT</p>
-                  <strong id="courseOverviewPrice">Free</strong>
-                  <span>Manual payment verification</span>
-                </div>
-                <div class="course-payment-methods">
-                  <a id="courseOverviewBkashLink" href="tel:01644171751"><i
-                      class="fa-solid fa-mobile-screen-button"></i> bKash <b
-                      id="courseOverviewBkash">01644171751</b></a>
-                  <a id="courseOverviewRocketLink" href="tel:01644171751"><i
-                      class="fa-solid fa-mobile-screen-button"></i> Rocket <b
-                      id="courseOverviewRocket">01644171751</b></a>
-                  <a id="courseOverviewBankLink" href="#contact"><i class="fa-solid fa-building-columns"></i> Bank <b
-                      id="courseOverviewBank">Contact for bank
-                      details</b></a>
-                </div>
-              </div>
-
-
-              <!-- PROGRESS -->
-              <div class="course-overview-progress">
-
-                <div class="course-overview-progress-head">
-
-                  <span>
-                    Course Progress
-                  </span>
-
-                  <strong id="courseOverviewProgressText">
-                    0% Complete
-                  </strong>
-
-                </div>
-
-
-                <div class="progress-track">
-
-                  <div id="courseOverviewProgressBar" class="progress-fill" style="width:0%">
-                  </div>
-
-                </div>
-
-              </div>
-
-            </div>
-
-          </section>
-
-
-          <!-- VIDEO PLAYER -->
-          <section class="course-lesson-player">
-
-
-            <!-- PLAYER HEADER -->
-            <div class="lesson-player-header">
-
-              <div>
-
-                <p class="eyebrow">
-                  NOW PLAYING
-                </p>
-
-                <h3 id="currentLessonTitle">
-                  Choose a lesson
-                </h3>
-
-              </div>
-
-
-              <div class="player-badges">
-
-                <span class="course-badge" id="currentLessonDuration">
-                  0 min
-                </span>
-
-                <span class="course-badge accent" id="currentLessonStatus">
-                  Queued
-                </span>
-
-              </div>
+              <strong id="courseOverviewProgressText">
+                0% Complete
+              </strong>
 
             </div>
 
 
-            <!-- VIDEO -->
-            <div class="player-stage">
+            <div class="progress-track">
 
-              <div class="player-frame">
-
-
-                <!-- NORMAL VIDEO -->
-                <video id="courseVideo" preload="metadata" playsinline>
-                </video>
-
-
-                <!-- YOUTUBE -->
-                <iframe id="courseYoutubeFrame" class="hidden" title="Lesson video"
-                  allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen>
-                </iframe>
-
-
-                <!-- LOADING -->
-                <div class="video-skeleton" id="videoSkeleton" aria-hidden="true">
-
-                  <div class="skeleton-shine"></div>
-
-                </div>
-
-
-                <!-- EMPTY VIDEO -->
-                <div class="video-placeholder hidden" id="videoPlaceholder">
-
-                  <i class="fa-solid fa-video"></i>
-
-                  <p>
-                    Select a lesson from the playlist to start learning.
-                  </p>
-
-                </div>
-
-                <!-- WATCH ON YOUTUBE -->
-                <a id="watchOnYoutube" href="#" target="_blank" rel="noopener noreferrer"
-                  class="lesson-youtube-link hidden" aria-label="Watch this lesson on YouTube">
-                  Watch on YouTube <i class="fa-solid fa-arrow-up-right-from-square"></i>
-                </a>
-
-
-                <!-- VIDEO CONTROLS -->
-                <div class="video-controls" id="videoControls" role="group" aria-label="Video player controls">
-
-
-                  <!-- PLAY -->
-                  <button type="button" class="video-control-btn" id="videoPlayPauseBtn" aria-label="Play lesson">
-
-                    <i class="fa-solid fa-play"></i>
-
-                  </button>
-
-
-                  <!-- TIME -->
-                  <span class="video-time" id="videoTimeLabel">
-                    0:00 / 0:00
-                  </span>
-
-
-                  <!-- PLAYBACK SPEED -->
-                  <select id="speedSelect" class="video-control-select" aria-label="Video playback speed">
-                    <option value="0.5">0.5x</option>
-                    <option value="0.75">0.75x</option>
-                    <option value="1" selected>1x</option>
-                    <option value="1.25">1.25x</option>
-                    <option value="1.5">1.5x</option>
-                    <option value="1.75">1.75x</option>
-                    <option value="2">2x</option>
-                  </select>
-
-                  <!-- RESTART LESSON -->
-                  <button type="button" class="video-control-btn" id="restartLessonBtn"
-                    aria-label="Restart lesson from beginning">
-
-                    <i class="fa-solid fa-redo"></i>
-
-                  </button>
-
-                  <!-- PICTURE-IN-PICTURE -->
-                  <button type="button" class="video-control-btn" id="pipBtn" aria-label="Picture-in-picture">
-
-                    <i class="fa-solid fa-window-restore"></i>
-
-                  </button>
-
-                  <!-- MUTE -->
-                  <button type="button" class="video-control-btn" id="videoMuteBtn" aria-label="Mute video">
-
-                    <i class="fa-solid fa-volume-high"></i>
-
-                  </button>
-
-                  <!-- FULLSCREEN -->
-                  <button type="button" class="video-control-btn" id="videoFullscreenBtn" aria-label="Fullscreen video">
-
-                    <i class="fa-solid fa-expand"></i>
-
-                  </button>
-
-                </div>
-
+              <div id="courseOverviewProgressBar" class="progress-fill" style="width:0%">
               </div>
 
             </div>
 
+          </div>
 
-            <!-- LESSON INFO -->
-            <div class="lesson-player-info">
+        </div>
 
-
-              <div class="lesson-player-description">
-
-                <p class="eyebrow" id="currentLessonMeta">
-                  Lesson
-                </p>
-
-                <h3 id="lessonPlayerTitle">
-                  Choose a lesson
-                </h3>
-
-                <p id="currentLessonDescription" class="course-description">
-                  Select a lesson from the playlist to start learning.
-                </p>
-
-              </div>
+    </section>
 
 
-              <!-- NAVIGATION -->
-              <div class="lesson-player-actions">
+    <!-- VIDEO PLAYER -->
+    <section class="course-lesson-player" hidden>
 
 
-                <button type="button" class="btn btn-outline" id="prevLessonBtn">
+      <!-- PLAYER HEADER -->
+      <div class="lesson-player-header">
 
-                  <i class="fa-solid fa-arrow-left"></i>
+        <div>
 
-                  Previous
+          <p class="eyebrow">
+            NOW PLAYING
+          </p>
 
-                </button>
-
-
-                <button type="button" class="btn btn-primary" id="markCompleteBtn">
-
-                  Complete & Continue
-
-                  <i class="fa-solid fa-arrow-right"></i>
-
-                </button>
-
-
-                <button type="button" class="btn btn-outline" id="nextLessonBtn">
-
-                  Next
-
-                  <i class="fa-solid fa-arrow-right"></i>
-
-                </button>
-
-              </div>
-
-            </div>
-
-
-            <!-- NOTES + RESOURCES -->
-            <div class="lesson-details-grid">
-
-
-              <!-- NOTES -->
-              <article class="glass-card">
-
-                <div class="glass-card-head">
-
-                  <h4>
-                    <i class="fa-solid fa-file-lines"></i>
-                    Lesson Notes
-                  </h4>
-
-                  <span class="tiny-pill">
-                    Saved locally
-                  </span>
-
-                </div>
-
-
-                <textarea id="lessonNotesInput" class="lesson-notes-input"
-                  placeholder="Write your notes here..."></textarea>
-
-
-                <p class="helper-text">
-                  Your notes stay on this device.
-                </p>
-
-              </article>
-
-
-              <!-- RESOURCES -->
-              <article class="glass-card">
-
-                <div class="glass-card-head">
-
-                  <h4>
-                    <i class="fa-solid fa-download"></i>
-                    Resources
-                  </h4>
-
-                  <span class="tiny-pill">
-                    Lesson Files
-                  </span>
-
-                </div>
-
-
-                <ul id="lessonResources" class="resource-list">
-
-                  <li>
-                    Resources appear here automatically.
-                  </li>
-
-                </ul>
-
-              </article>
-
-            </div>
-
-          </section>
+          <h3 id="currentLessonTitle">
+            Choose a lesson
+          </h3>
 
         </div>
 
 
-        <!-- EMPTY COURSE -->
-        <div id="courseEmptyState" class="empty-state hidden">
+        <div class="player-badges">
 
-          <h3>
-            No published courses yet
+          <span class="course-badge" id="currentLessonDuration">
+            0 min
+          </span>
+
+          <span class="course-badge accent" id="currentLessonStatus">
+            Queued
+          </span>
+
+        </div>
+
+      </div>
+
+
+      <!-- VIDEO -->
+      <div class="player-stage">
+
+        <div class="player-frame">
+
+
+          <!-- NORMAL VIDEO -->
+          <video id="courseVideo" preload="metadata" playsinline>
+          </video>
+
+
+          <!-- YOUTUBE -->
+          <iframe id="courseYoutubeFrame" class="hidden" title="Lesson video"
+            allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen>
+          </iframe>
+
+
+          <!-- LOADING -->
+          <div class="video-skeleton" id="videoSkeleton" aria-hidden="true">
+
+            <div class="skeleton-shine"></div>
+
+          </div>
+
+
+          <!-- EMPTY VIDEO -->
+          <div class="video-placeholder hidden" id="videoPlaceholder">
+
+            <i class="fa-solid fa-video"></i>
+
+            <p>
+              Select a lesson from the playlist to start learning.
+            </p>
+
+          </div>
+
+          <!-- WATCH ON YOUTUBE -->
+          <a id="watchOnYoutube" href="#" target="_blank" rel="noopener noreferrer" class="lesson-youtube-link hidden"
+            aria-label="Watch this lesson on YouTube">
+            Watch on YouTube <i class="fa-solid fa-arrow-up-right-from-square"></i>
+          </a>
+
+
+          <!-- VIDEO CONTROLS -->
+          <div class="video-controls" id="videoControls" role="group" aria-label="Video player controls">
+
+
+            <!-- PLAY -->
+            <button type="button" class="video-control-btn" id="videoPlayPauseBtn" aria-label="Play lesson">
+
+              <i class="fa-solid fa-play"></i>
+
+            </button>
+
+
+            <!-- TIME -->
+            <span class="video-time" id="videoTimeLabel">
+              0:00 / 0:00
+            </span>
+
+
+            <!-- PLAYBACK SPEED -->
+            <select id="speedSelect" class="video-control-select" aria-label="Video playback speed">
+              <option value="0.5">0.5x</option>
+              <option value="0.75">0.75x</option>
+              <option value="1" selected>1x</option>
+              <option value="1.25">1.25x</option>
+              <option value="1.5">1.5x</option>
+              <option value="1.75">1.75x</option>
+              <option value="2">2x</option>
+            </select>
+
+            <!-- RESTART LESSON -->
+            <button type="button" class="video-control-btn" id="restartLessonBtn"
+              aria-label="Restart lesson from beginning">
+
+              <i class="fa-solid fa-redo"></i>
+
+            </button>
+
+            <!-- PICTURE-IN-PICTURE -->
+            <button type="button" class="video-control-btn" id="pipBtn" aria-label="Picture-in-picture">
+
+              <i class="fa-solid fa-window-restore"></i>
+
+            </button>
+
+            <!-- MUTE -->
+            <button type="button" class="video-control-btn" id="videoMuteBtn" aria-label="Mute video">
+
+              <i class="fa-solid fa-volume-high"></i>
+
+            </button>
+
+            <!-- FULLSCREEN -->
+            <button type="button" class="video-control-btn" id="videoFullscreenBtn" aria-label="Fullscreen video">
+
+              <i class="fa-solid fa-expand"></i>
+
+            </button>
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <!-- LESSON INFO -->
+      <div class="lesson-player-info">
+
+
+        <div class="lesson-player-description">
+
+          <p class="eyebrow" id="currentLessonMeta">
+            Lesson
+          </p>
+
+          <h3 id="lessonPlayerTitle">
+            Choose a lesson
           </h3>
 
-          <p>
-            Upload your first course from the admin page.
+          <p id="currentLessonDescription" class="course-description">
+            Select a lesson from the playlist to start learning.
           </p>
 
         </div>
 
 
-        <!-- UPCOMING COURSES -->
-        <div id="upcomingCoursesSection" class="course-upcoming hidden">
-
-          <div class="upcoming-heading">
-
-            <div>
-
-              <p class="eyebrow">
-                Coming Soon
-              </p>
-
-              <h3>
-                Upcoming Courses
-              </h3>
-
-            </div>
-
-          </div>
+        <!-- NAVIGATION -->
+        <div class="lesson-player-actions">
 
 
-          <div id="upcomingCourseList" class="upcoming-grid">
-          </div>
+          <button type="button" class="btn btn-outline" id="prevLessonBtn">
+
+            <i class="fa-solid fa-arrow-left"></i>
+
+            Previous
+
+          </button>
+
+
+          <button type="button" class="btn btn-primary" id="markCompleteBtn">
+
+            Complete & Continue
+
+            <i class="fa-solid fa-arrow-right"></i>
+
+          </button>
+
+
+          <button type="button" class="btn btn-outline" id="nextLessonBtn">
+
+            Next
+
+            <i class="fa-solid fa-arrow-right"></i>
+
+          </button>
 
         </div>
 
       </div>
-    </section>
 
-    <!-- COMMUNITY -->
-    <section class="section" id="community" data-page="community">
-      <div class="container reveal">
-        <iframe class="community-page-frame" src="/community/index.html" title="CodeWithSiam Community feed"></iframe>
+
+      <!-- NOTES + RESOURCES -->
+      <div class="lesson-details-grid">
+
+
+        <!-- NOTES -->
+        <article class="glass-card">
+
+          <div class="glass-card-head">
+
+            <h4>
+              <i class="fa-solid fa-file-lines"></i>
+              Lesson Notes
+            </h4>
+
+            <span class="tiny-pill">
+              Saved locally
+            </span>
+
+          </div>
+
+
+          <textarea id="lessonNotesInput" class="lesson-notes-input" placeholder="Write your notes here..."></textarea>
+
+
+          <p class="helper-text">
+            Your notes stay on this device.
+          </p>
+
+        </article>
+
+
+        <!-- RESOURCES -->
+        <article class="glass-card">
+
+          <div class="glass-card-head">
+
+            <h4>
+              <i class="fa-solid fa-download"></i>
+              Resources
+            </h4>
+
+            <span class="tiny-pill">
+              Lesson Files
+            </span>
+
+          </div>
+
+
+          <ul id="lessonResources" class="resource-list">
+
+            <li>
+              Resources appear here automatically.
+            </li>
+
+          </ul>
+
+        </article>
+
       </div>
+
     </section>
 
-    <!-- CONTACT -->
-    <section class="section section-alt" id="contact" data-page="contact">
-      <div class="container reveal">
-        <h2 class="section-title">
-          Let’s <span class="accent">Connect</span>
-        </h2>
-        <p class="section-sub">
-          I’m open to learning collaborations, project ideas, research discussions, and meaningful opportunities.
+  </div>
+
+
+  <!-- EMPTY COURSE -->
+  <div id="courseEmptyState" class="empty-state hidden">
+
+    <h3>
+      No published courses yet
+    </h3>
+
+    <p>
+      Upload your first course from the admin page.
+    </p>
+
+  </div>
+
+
+  <!-- UPCOMING COURSES -->
+  <div id="upcomingCoursesSection" class="course-upcoming hidden">
+
+    <div class="upcoming-heading">
+
+      <div>
+
+        <p class="eyebrow">
+          Coming Soon
         </p>
-        <div class="contact-grid">
-          <div class="contact-info">
-            <a class="contact-item contact-link" href="mailto:mdsiamahmmedloselovestroy@gmail.com?subject=Hello%20Siam">
-              <span class="c-icon"><i class="fa-solid fa-envelope"></i></span>
-              <div>
-                <strong>Email</strong>
-                <p>mdsiamahmmedloselovestroy@gmail.com</p>
-              </div>
-            </a>
-            <a class="contact-item contact-link" href="tel:+8801644171751">
-              <span class="c-icon"><i class="fa-solid fa-phone"></i></span>
-              <div>
-                <strong>Phone</strong>
-                <p>01644171751</p>
-              </div>
-            </a>
 
-            <a href="https://wa.me/8801644171751" target="_blank" rel="noopener noreferrer"
-              class="contact-item contact-whatsapp">
-              <span class="c-icon"><i class="fa-brands fa-whatsapp"></i></span>
-              <div>
-                <strong>WhatsApp</strong>
-                <p>Chat with me directly</p>
-              </div>
-              <span class="wa-arrow">→</span>
-            </a>
-            <div class="contact-item">
-              <span class="c-icon"><i class="fa-solid fa-location-dot"></i></span>
-              <div>
-                <strong>Location</strong>
-                <p>Bangladesh</p>
-              </div>
-            </div>
-          </div>
-          <div class="social-links">
-            <a href="https://www.facebook.com/siam.ahmed.772527" target="_blank" rel="noopener noreferrer"
-              class="social-card sc-facebook">
-              <span class="s-icon"><i class="fa-brands fa-facebook-f"></i></span><span>Facebook Profile</span>
-            </a>
-            <a href="https://www.facebook.com/profile.php?id=61584789664848" target="_blank" rel="noopener noreferrer"
-              class="social-card sc-facebook">
-              <span class="s-icon"><i class="fa-brands fa-facebook-f"></i></span><span>Facebook Page</span>
-            </a>
-            <a href="https://www.instagram.com/programming.with.siam/?hl=en" target="_blank" rel="noopener noreferrer"
-              class="social-card sc-instagram">
-              <span class="s-icon"><i class="fa-brands fa-instagram"></i></span><span>Instagram</span>
-            </a>
-            <a href="https://github.com/programmingwithsiam" target="_blank" rel="noopener noreferrer"
-              class="social-card sc-github">
-              <span class="s-icon"><i class="fa-brands fa-github"></i></span><span>GitHub</span>
-            </a>
-            <a href="https://www.youtube.com/@CodeWithSiamBD" target="_blank" rel="noopener noreferrer"
-              class="social-card sc-youtube">
-              <span class="s-icon"><i class="fa-brands fa-youtube"></i></span><span>YouTube</span>
-            </a>
-            <a href="https://wa.me/8801644171751" target="_blank" rel="noopener noreferrer"
-              class="social-card sc-whatsapp">
-              <span class="s-icon"><i class="fa-brands fa-whatsapp"></i></span><span>WhatsApp</span>
-            </a>
-            <a href="https://starconnect.com/profile/6037?feed=post" target="_blank" rel="noopener noreferrer"
-              class="social-card sc-starconnect">
-              <span class="s-icon"><i class="fa-solid fa-star"></i></span><span>StarConnect</span>
-            </a>
-            <a href="https://www.linkedin.com/in/si-am-b417a6412/" target="_blank" rel="noopener noreferrer"
-              class="social-card sc-linkedin">
-              <span class="s-icon"><i class="fa-brands fa-linkedin-in"></i></span><span>LinkedIn</span>
-            </a>
-          </div>
-          <!-- FOOTER -->
-          <aside class="chatbox" aria-label="CodeWithSiam AI assistant" aria-hidden="true">
-            <div class="chat-header"><span class="bot-dot" aria-hidden="true"></span><span>CodeWithSiam
-                Assistant</span><span class="online-indicator">Ready</span><button type="button" id="voiceToggle"
-                aria-label="Toggle voice replies" aria-pressed="true">🔊</button></div>
-            <div id="chat" role="log" aria-live="polite">
-              <div class="msg bot-msg"><span class="avatar">🤖</span>
-                <div class="bubble">Hi, I’m the CodeWithSiam assistant. Ask me about Siam, Python, AI/ML, projects,
-                  courses, or the learning platform.</div>
-              </div>
-            </div>
-            <div class="chat-suggestions" aria-label="Suggested questions">
-              <button type="button" class="suggest-btn" data-question="What projects has Siam built?">Projects?</button>
-              <button type="button" class="suggest-btn" data-question="What are Siam's Python skills?">Python
-                skills?</button>
-              <button type="button" class="suggest-btn" data-question="Tell me about the free course.">Free
-                course?</button>
-              <button type="button" class="suggest-btn" data-question="How can I contact Siam?">Contact?</button>
-            </div>
-            <p id="micStatus" class="mic-status" aria-live="polite"></p>
-            <div class="chat-input-wrap">
-              <button type="button" id="micBtn" aria-label="Use voice input">🎙️</button>
-              <input id="input" type="text" placeholder="Ask CodeWithSiam..." autocomplete="off"
-                aria-label="Message CodeWithSiam assistant">
-              <button type="button" id="sendBtn">Send <span aria-hidden="true">➤</span></button>
-            </div>
-          </aside>
-          <button type="button" class="chat-toggle-btn" id="chatToggleBtn" aria-label="Open CodeWithSiam AI assistant"
-            aria-expanded="false"><span class="chat-icon" aria-hidden="true">💬</span><span class="online-badge-small"
-              aria-hidden="true"></span></button>
+        <h3>
+          Upcoming Courses
+        </h3>
 
-        </div>
-    </section>
+      </div>
 
-    <div class="container reveal">
-      <footer>
-        <p>
-          Designed & built by
-          <span class="accent">Siam</span> &copy; 2026
-        </p>
-        <p class="footer-sub">Made with Python 🐍 &amp; passion for AI</p>
-      </footer>
     </div>
-    <!-- /siteRoot -->
 
-    <script type="module" src="/assets/js/script.js?v=20260915-public-course-render-1"></script>
-    <script type="module" src="/assets/js/auth-app.js?v=20261001-otp-flow-1"></script>
+
+    <div id="upcomingCourseList" class="upcoming-grid">
+    </div>
+
+  </div>
+
+  </div>
+  </section>
+
+  <!-- COMMUNITY -->
+  <section class="section" id="community" data-page="community">
+    <div class="container reveal">
+      <iframe class="community-page-frame" src="/community/index.html" title="CodeWithSiam Community feed"></iframe>
+    </div>
+  </section>
+
+  <!-- CONTACT -->
+  <section class="section section-alt" id="contact" data-page="contact">
+    <div class="container reveal">
+      <h2 class="section-title">
+        Let’s <span class="accent">Connect</span>
+      </h2>
+      <p class="section-sub">
+        I’m open to learning collaborations, project ideas, research discussions, and meaningful opportunities.
+      </p>
+      <div class="contact-grid">
+        <div class="contact-info">
+          <a class="contact-item contact-link" href="mailto:mdsiamahmmedloselovestroy@gmail.com?subject=Hello%20Siam">
+            <span class="c-icon"><i class="fa-solid fa-envelope"></i></span>
+            <div>
+              <strong>Email</strong>
+              <p>mdsiamahmmedloselovestroy@gmail.com</p>
+            </div>
+          </a>
+          <a class="contact-item contact-link" href="tel:+8801644171751">
+            <span class="c-icon"><i class="fa-solid fa-phone"></i></span>
+            <div>
+              <strong>Phone</strong>
+              <p>01644171751</p>
+            </div>
+          </a>
+
+          <a href="https://wa.me/8801644171751" target="_blank" rel="noopener noreferrer"
+            class="contact-item contact-whatsapp">
+            <span class="c-icon"><i class="fa-brands fa-whatsapp"></i></span>
+            <div>
+              <strong>WhatsApp</strong>
+              <p>Chat with me directly</p>
+            </div>
+            <span class="wa-arrow">→</span>
+          </a>
+          <div class="contact-item">
+            <span class="c-icon"><i class="fa-solid fa-location-dot"></i></span>
+            <div>
+              <strong>Location</strong>
+              <p>Bangladesh</p>
+            </div>
+          </div>
+        </div>
+        <div class="social-links">
+          <a href="https://www.facebook.com/siam.ahmed.772527" target="_blank" rel="noopener noreferrer"
+            class="social-card sc-facebook">
+            <span class="s-icon"><i class="fa-brands fa-facebook-f"></i></span><span>Facebook Profile</span>
+          </a>
+          <a href="https://www.facebook.com/profile.php?id=61584789664848" target="_blank" rel="noopener noreferrer"
+            class="social-card sc-facebook">
+            <span class="s-icon"><i class="fa-brands fa-facebook-f"></i></span><span>Facebook Page</span>
+          </a>
+          <a href="https://www.instagram.com/programming.with.siam/?hl=en" target="_blank" rel="noopener noreferrer"
+            class="social-card sc-instagram">
+            <span class="s-icon"><i class="fa-brands fa-instagram"></i></span><span>Instagram</span>
+          </a>
+          <a href="https://github.com/programmingwithsiam" target="_blank" rel="noopener noreferrer"
+            class="social-card sc-github">
+            <span class="s-icon"><i class="fa-brands fa-github"></i></span><span>GitHub</span>
+          </a>
+          <a href="https://www.youtube.com/@CodeWithSiamBD" target="_blank" rel="noopener noreferrer"
+            class="social-card sc-youtube">
+            <span class="s-icon"><i class="fa-brands fa-youtube"></i></span><span>YouTube</span>
+          </a>
+          <a href="https://wa.me/8801644171751" target="_blank" rel="noopener noreferrer"
+            class="social-card sc-whatsapp">
+            <span class="s-icon"><i class="fa-brands fa-whatsapp"></i></span><span>WhatsApp</span>
+          </a>
+          <a href="https://starconnect.com/profile/6037?feed=post" target="_blank" rel="noopener noreferrer"
+            class="social-card sc-starconnect">
+            <span class="s-icon"><i class="fa-solid fa-star"></i></span><span>StarConnect</span>
+          </a>
+          <a href="https://www.linkedin.com/in/si-am-b417a6412/" target="_blank" rel="noopener noreferrer"
+            class="social-card sc-linkedin">
+            <span class="s-icon"><i class="fa-brands fa-linkedin-in"></i></span><span>LinkedIn</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <aside class="chatbox" aria-label="CodeWithSiam AI assistant" aria-hidden="true">
+    <div class="chat-header"><span class="bot-dot" aria-hidden="true"></span><span>CodeWithSiam
+        Assistant</span><span class="online-indicator">Ready</span><button type="button" id="voiceToggle"
+        aria-label="Toggle voice replies" aria-pressed="true">🔊</button></div>
+    <div id="chat" role="log" aria-live="polite">
+      <div class="msg bot-msg"><span class="avatar">🤖</span>
+        <div class="bubble">Hi, I’m the CodeWithSiam assistant. Ask me about Siam, Python, AI/ML, projects,
+          courses, or the learning platform.</div>
+      </div>
+    </div>
+    <div class="chat-suggestions" aria-label="Suggested questions">
+      <button type="button" class="suggest-btn" data-question="What projects has Siam built?">Projects?</button>
+      <button type="button" class="suggest-btn" data-question="What are Siam's Python skills?">Python skills?</button>
+      <button type="button" class="suggest-btn" data-question="Tell me about the free course.">Free course?</button>
+      <button type="button" class="suggest-btn" data-question="How can I contact Siam?">Contact?</button>
+    </div>
+    <p id="micStatus" class="mic-status" aria-live="polite"></p>
+    <div class="chat-input-wrap">
+      <button type="button" id="micBtn" aria-label="Use voice input">🎙️</button>
+      <input id="input" type="text" placeholder="Ask CodeWithSiam..." autocomplete="off"
+        aria-label="Message CodeWithSiam assistant">
+      <button type="button" id="sendBtn">Send <span aria-hidden="true">➤</span></button>
+    </div>
+  </aside>
+  <button type="button" class="chat-toggle-btn" id="chatToggleBtn" aria-label="Open CodeWithSiam AI assistant"
+    aria-expanded="false"><span class="chat-icon" aria-hidden="true">💬</span><span class="online-badge-small"
+      aria-hidden="true"></span></button>
+
+  <div class="container reveal">
+    <footer>
+      <p>
+        Designed & built by
+        <span class="accent">Siam</span> &copy; 2026
+      </p>
+      <p class="footer-sub">Made with Python 🐍 &amp; passion for AI</p>
+    </footer>
+  </div>
+  <!-- /siteRoot -->
+
+  <script type="module" src="/assets/js/script.js?v=20260915-public-course-render-1"></script>
+  <script type="module" src="/assets/js/auth-app.js?v=20261001-otp-flow-1"></script>
 </body>
 
 </html>

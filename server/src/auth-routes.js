@@ -6,10 +6,14 @@ import { auth, database, otpHashSecret } from './firebase.js';
 import { sendRegistrationCode } from './mailer.js';
 
 const router = Router();
-const OTP_LIFETIME_MS = 5 * 60 * 1000;
+const OTP_LIFETIME_MS = 10 * 60 * 1000;
 const RESEND_COOLDOWN_MS = 60 * 1000;
 const MAX_OTP_ATTEMPTS = 5;
 const PENDING_PATH = 'authRegistrationPending';
+const OTP_REQUEST_LIMIT = 5;
+const OTP_WINDOW_MS = 15 * 60 * 1000;
+const OTP_RESEND_LIMIT = 3;
+const OTP_RESEND_WINDOW_MS = 60 * 60 * 1000;
 
 function logStage(requestId, stage, details = {}) {
     console.info(JSON.stringify({ timestamp: new Date().toISOString(), requestId, stage, ...details }));
@@ -27,6 +31,10 @@ function otpDigest(email, otp) {
     return createHmac('sha256', otpHashSecret).update(`${email}:${otp}`).digest('hex');
 }
 
+function passwordHash(email, password) {
+    return createHmac('sha256', otpHashSecret).update(`${email}:${password}`).digest('hex');
+}
+
 function equalDigest(left, right) {
     if (typeof left !== 'string' || typeof right !== 'string' || left.length !== right.length) return false;
     const leftBuffer = Buffer.from(left, 'hex');
@@ -42,11 +50,23 @@ function isEmailValid(email) {
     return email.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
-function sendError(res, status, message, code) {
-    return res.status(status).json({ error: message, ...(code ? { code } : {}) });
+function sendSuccess(res, status, message) {
+    return res.status(status).json({ success: true, ok: true, message });
 }
 
-function createEmailLimiter({ limit, windowMs, stage }) {
+function sendError(res, status, message, code) {
+    return res.status(status).json({ success: false, message, error: message, ...(code ? { code } : {}) });
+}
+
+function registrationAccepted(res) {
+    return sendSuccess(res, 202, 'OTP sent successfully');
+}
+
+function resendAccepted(res) {
+    return sendSuccess(res, 202, 'OTP sent successfully');
+}
+
+function createEmailLimiter({ limit, windowMs, stage, message = 'Too many requests. Please wait and try again.' }) {
     return rateLimit({
         windowMs,
         limit,
@@ -54,32 +74,32 @@ function createEmailLimiter({ limit, windowMs, stage }) {
         legacyHeaders: false,
         keyGenerator: (req) => {
             const email = normalizeEmail(req.body?.email);
-            return `email:${email || 'missing-email'}`;
+            const ip = req.ip || req.headers['x-forwarded-for'] || 'unknown-ip';
+            return email ? `email:${email}` : `ip:${String(ip)}`;
         },
         validate: false,
         handler: (req, res) => {
             logStage(req.requestId, stage, { code: 'EMAIL_RATE_LIMIT' });
-            return sendError(res, 429, 'Too many requests. Please wait and try again.', 'RATE_LIMITED');
+            return sendError(res, 429, message, 'RATE_LIMITED');
         },
-        message: { error: 'Too many requests. Please wait and try again.' }
+        message: { success: false, message }
     });
 }
 
-const startEmailLimit = createEmailLimiter({ limit: 5, windowMs: 15 * 60 * 1000, stage: 'registration_start_rate_limited' });
-const verifyEmailLimit = createEmailLimiter({ limit: 15, windowMs: 15 * 60 * 1000, stage: 'registration_verify_rate_limited' });
-const resendEmailLimit = createEmailLimiter({ limit: 5, windowMs: 60 * 60 * 1000, stage: 'registration_resend_rate_limited' });
+const startEmailLimit = createEmailLimiter({ limit: OTP_REQUEST_LIMIT, windowMs: OTP_WINDOW_MS, stage: 'registration_start_rate_limited', message: 'Too many OTP requests. Please wait a moment and try again.' });
+const verifyEmailLimit = createEmailLimiter({ limit: 15, windowMs: OTP_WINDOW_MS, stage: 'registration_verify_rate_limited', message: 'Too many verification attempts. Please wait and try again.' });
+const resendEmailLimit = createEmailLimiter({ limit: OTP_RESEND_LIMIT, windowMs: OTP_RESEND_WINDOW_MS, stage: 'registration_resend_rate_limited', message: 'Too many resend requests. Please wait before requesting another OTP.' });
 
-router.post('/register/start', startEmailLimit, async (req, res) => {
+async function sendOtpHandler(req, res) {
     const requestId = req.requestId;
     const name = typeof req.body?.name === 'string' ? req.body.name.trim() : '';
     const email = normalizeEmail(req.body?.email);
     const password = typeof req.body?.password === 'string' ? req.body.password : '';
 
-    let stage = 'registration_validation';
     logStage(requestId, 'registration_validation_started');
     if (password.length < 8) {
         logStage(requestId, 'registration_validation_failed', { code: 'PASSWORD_TOO_SHORT' });
-        return sendError(res, 400, 'Password must be at least 8 characters', 'PASSWORD_TOO_SHORT');
+        return sendError(res, 400, 'Password must be at least 8 characters.', 'PASSWORD_TOO_SHORT');
     }
     if (!name || name.length > 80 || !isEmailValid(email) || password.length > 128) {
         logStage(requestId, 'registration_validation_failed', { code: 'INVALID_INPUT' });
@@ -92,19 +112,14 @@ router.post('/register/start', startEmailLimit, async (req, res) => {
     let originalPending = null;
     let newlyCreatedUid = null;
     try {
-        stage = 'pending_record_lookup';
-        logStage(requestId, 'pending_record_lookup_started');
         const currentSnapshot = await pendingRef.get();
-        logStage(requestId, 'pending_record_lookup_completed');
         const currentPending = currentSnapshot.val();
         originalPending = currentPending;
         if (currentPending?.lastSentAt && Date.now() - currentPending.lastSentAt < RESEND_COOLDOWN_MS) {
             logStage(requestId, 'registration_start_rate_limited', { code: 'RESEND_COOLDOWN' });
-            return sendError(res, 429, 'Please wait before requesting another code.', 'RATE_LIMITED');
+            return sendError(res, 429, 'Please wait before requesting a new OTP.', 'RESEND_COOLDOWN');
         }
 
-        stage = 'firebase_user_lookup';
-        logStage(requestId, 'firebase_user_lookup_started');
         let existingUser = null;
         try {
             existingUser = await auth.getUserByEmail(email);
@@ -114,70 +129,44 @@ router.post('/register/start', startEmailLimit, async (req, res) => {
                 throw error;
             }
         }
-        logStage(requestId, 'firebase_user_lookup_completed', { found: Boolean(existingUser) });
+
+        const existingUserHasGoogle = existingUser?.providerData?.some((provider) => provider.providerId === 'google.com');
+        if (existingUserHasGoogle) {
+            logStage(requestId, 'registration_skipped');
+            return sendError(res, 409, 'This account uses Google. Please continue with Google.', 'GOOGLE_ACCOUNT');
+        }
 
         if (existingUser?.emailVerified) {
-            const hasGoogleProvider = existingUser.providerData?.some((provider) => provider.providerId === 'google.com');
-            const hasPasswordProvider = existingUser.providerData?.some((provider) => provider.providerId === 'password');
-            const isGoogleOnly = hasGoogleProvider && !hasPasswordProvider;
-            const code = isGoogleOnly ? 'GOOGLE_ACCOUNT_EXISTS' : 'EMAIL_ALREADY_REGISTERED';
-            const message = isGoogleOnly
-                ? 'This account uses Google. Please continue with Google.'
-                : 'This email is already registered. Please sign in.';
-            logStage(requestId, 'firebase_verified_user_exists', { code });
-            return sendError(res, 409, message, code);
-        }
-
-        if (existingUser && (!currentPending || currentPending.uid !== existingUser.uid || currentPending.status !== 'pending')) {
-            logStage(requestId, 'firebase_unverified_user_exists', { code: 'EMAIL_VERIFICATION_PENDING' });
-            return sendError(res, 409, 'This email already has an account awaiting verification. Sign in and verify your email.', 'EMAIL_VERIFICATION_PENDING');
-        }
-
-        let user = existingUser;
-        if (!user) {
-            stage = 'firebase_disabled_user_create';
-            logStage(requestId, 'firebase_disabled_user_create_started');
-            user = await auth.createUser({
-                email,
-                password,
-                displayName: name,
-                emailVerified: false,
-                disabled: true
-            });
-            newlyCreatedUid = user.uid;
-            logStage(requestId, 'firebase_disabled_user_create_completed');
+            logStage(requestId, 'registration_skipped');
+            return sendError(res, 409, 'An account with this email already exists. Please log in instead.', 'EMAIL_EXISTS');
         }
 
         const otp = makeOtp();
         const now = Date.now();
         const pendingRecord = {
-            uid: user.uid,
+            uid: existingUser?.uid || null,
             name,
             email,
+            passwordHash: passwordHash(email, password),
             otpHash: otpDigest(email, otp),
             expiresAt: now + OTP_LIFETIME_MS,
             attempts: 0,
             lastSentAt: now,
             status: 'pending'
         };
-        stage = 'registration_otp_save';
         await pendingRef.set(pendingRecord);
         logStage(requestId, 'registration_otp_saved');
 
         if (existingUser) {
             try {
-                stage = 'firebase_pending_user_update';
-                user = await auth.updateUser(existingUser.uid, {
+                await auth.updateUser(existingUser.uid, {
                     displayName: name,
-                    password,
                     emailVerified: false,
                     disabled: true
                 });
                 logStage(requestId, 'firebase_pending_user_updated');
             } catch (error) {
-                await pendingRef.transaction((current) => current?.otpHash === pendingRecord.otpHash
-                    ? (originalPending || null)
-                    : undefined).catch(() => { });
+                await pendingRef.transaction((current) => current?.otpHash === pendingRecord.otpHash ? (originalPending || null) : undefined).catch(() => { });
                 throw error;
             }
         }
@@ -185,19 +174,17 @@ router.post('/register/start', startEmailLimit, async (req, res) => {
         try {
             await sendRegistrationCode({ name, email, otp });
             logStage(requestId, 'registration_email_sent');
-            return res.status(202).json({ ok: true, message: 'If the address can be registered, a verification code has been sent.' });
+            return registrationAccepted(res);
         } catch (error) {
-            await pendingRef.transaction((current) => current?.otpHash === pendingRecord.otpHash
-                ? (originalPending || null)
-                : undefined).catch(() => { });
             if (newlyCreatedUid) {
+                await pendingRef.transaction((current) => current?.otpHash === pendingRecord.otpHash ? null : undefined).catch(() => { });
                 await auth.deleteUser(newlyCreatedUid).catch((deleteError) => {
                     logStage(requestId, 'firebase_orphan_cleanup_failed', { code: deleteError?.code || 'FIREBASE_AUTH_ERROR' });
                 });
                 newlyCreatedUid = null;
             }
             logStage(requestId, 'registration_email_failed', { code: error?.code || 'MAIL_ERROR' });
-            return sendError(res, 502, 'We could not send a verification email. Please try again later.', 'EMAIL_DELIVERY_FAILED');
+            return sendError(res, 503, 'We could not send the OTP email right now. Please try again.', 'OTP_EMAIL_FAILED');
         }
     } catch (error) {
         if (newlyCreatedUid) {
@@ -206,34 +193,32 @@ router.post('/register/start', startEmailLimit, async (req, res) => {
             });
         }
         const code = error?.code || 'REGISTRATION_ERROR';
-        if (code === 'auth/email-already-exists') {
-            stage = 'firebase_user_create';
-            logStage(requestId, 'registration_email_already_exists', { code: 'EMAIL_ALREADY_REGISTERED' });
-            return sendError(res, 409, 'This email is already registered. Please sign in.', 'EMAIL_ALREADY_REGISTERED');
-        }
-        logStage(requestId, 'registration_start_failed', { stage, code });
+        logStage(requestId, 'registration_start_failed', { code });
         return sendError(res, 500, 'Registration could not be started. Please try again.', 'REGISTRATION_START_FAILED');
     }
-});
+}
 
-router.post('/register/verify', verifyEmailLimit, async (req, res) => {
+const verifyRegistrationHandler = async (req, res) => {
     const requestId = req.requestId;
     const email = normalizeEmail(req.body?.email);
     const otp = typeof req.body?.otp === 'string' ? req.body.otp.trim() : '';
+    const password = typeof req.body?.password === 'string' ? req.body.password : '';
     logStage(requestId, 'registration_verification_validation_started');
-    if (!isEmailValid(email) || !/^\d{6}$/.test(otp)) {
+    if (!isEmailValid(email) || !/^\d{6}$/.test(otp) || password.length < 8) {
         logStage(requestId, 'registration_verification_validation_failed');
-        return sendError(res, 400, 'Enter a valid email and 6-digit code.');
+        return sendError(res, 400, password.length < 8 ? 'Password must be at least 8 characters.' : 'Invalid or expired OTP', password.length < 8 ? 'PASSWORD_TOO_SHORT' : 'INVALID_OTP');
     }
     logStage(requestId, 'registration_verification_validation_passed');
 
     const pendingRef = database.ref(`${PENDING_PATH}/${emailKey(email)}`);
     const submittedHash = otpDigest(email, otp);
+    const submittedPasswordHash = passwordHash(email, password);
     const now = Date.now();
     try {
         const transaction = await pendingRef.transaction((current) => {
             if (!current || current.status !== 'pending') return;
             if (current.expiresAt <= now) return { ...current, status: 'expired' };
+            if (!current.passwordHash || !equalDigest(current.passwordHash, submittedPasswordHash)) return { ...current, status: 'invalid' };
             if (equalDigest(current.otpHash, submittedHash)) return { ...current, status: 'verifying' };
             const attempts = Number(current.attempts || 0) + 1;
             return { ...current, attempts, status: attempts >= MAX_OTP_ATTEMPTS ? 'locked' : 'pending' };
@@ -242,43 +227,56 @@ router.post('/register/verify', verifyEmailLimit, async (req, res) => {
         const pending = transaction.snapshot.val();
         if (!transaction.committed || !pending) {
             logStage(requestId, 'registration_verification_rejected', { reason: 'missing_or_in_progress' });
-            return sendError(res, 400, 'The code is invalid or expired. Start registration again.');
+            return sendError(res, 400, 'Invalid or expired OTP', 'INVALID_OTP');
         }
         if (pending.status === 'expired' || pending.status === 'locked') {
             await pendingRef.remove();
             logStage(requestId, pending.status === 'expired' ? 'registration_code_expired' : 'registration_attempts_exhausted', {
                 attempts: Number(pending.attempts || 0)
             });
-            return sendError(res, 400, 'The code is invalid or expired. Start registration again.');
+            return sendError(res, 400, 'Invalid or expired OTP', pending.status === 'locked' ? 'OTP_LOCKED' : 'OTP_EXPIRED');
+        }
+        if (pending.status === 'invalid') {
+            logStage(requestId, 'registration_password_or_code_mismatch', { attempts: Number(pending.attempts || 0) });
+            return sendError(res, 400, 'Invalid or expired OTP', 'INVALID_OTP');
         }
         if (pending.status === 'pending') {
             logStage(requestId, 'registration_code_mismatch', { attempts: Number(pending.attempts || 0) });
-            return sendError(res, 400, 'The code is invalid or expired. Start registration again.');
+            return sendError(res, 400, 'Invalid or expired OTP', 'INVALID_OTP');
         }
 
         try {
-            await auth.updateUser(pending.uid, { disabled: false, emailVerified: true });
+            const createdUser = await auth.createUser({
+                email,
+                password,
+                displayName: pending.name || email.split('@')[0],
+                emailVerified: true,
+                disabled: false
+            });
             await pendingRef.remove();
-            logStage(requestId, 'registration_verified');
-            return res.json({ ok: true, message: 'Email verified. You can now sign in.' });
+            logStage(requestId, 'registration_verified', { uid: createdUser.uid });
+            return sendSuccess(res, 200, 'Email verified successfully');
         } catch (error) {
             await pendingRef.transaction((current) => current?.status === 'verifying' ? { ...current, status: 'pending' } : undefined).catch(() => { });
+            if (error?.code === 'auth/email-already-exists') {
+                return sendError(res, 409, 'An account with this email already exists. Please log in instead.', 'EMAIL_EXISTS');
+            }
             logStage(requestId, 'registration_user_enable_failed', { code: error?.code || 'FIREBASE_AUTH_ERROR' });
-            return sendError(res, 503, 'Verification could not be completed right now. Please try again.');
+            return sendError(res, 503, 'Verification could not be completed right now. Please try again.', 'VERIFICATION_FAILED');
         }
     } catch (error) {
         logStage(requestId, 'registration_verification_failed', { code: error?.code || 'VERIFICATION_ERROR' });
-        return sendError(res, 500, 'Verification could not be completed. Please try again.');
+        return sendError(res, 500, 'Verification could not be completed. Please try again.', 'VERIFICATION_ERROR');
     }
-});
+};
 
-router.post('/register/resend', resendEmailLimit, async (req, res) => {
+const resendRegistrationHandler = async (req, res) => {
     const requestId = req.requestId;
     const email = normalizeEmail(req.body?.email);
     logStage(requestId, 'registration_resend_validation_started');
     if (!isEmailValid(email)) {
         logStage(requestId, 'registration_resend_validation_failed');
-        return sendError(res, 400, 'Enter a valid email address.');
+        return sendError(res, 400, 'Enter a valid email address.', 'INVALID_EMAIL');
     }
     logStage(requestId, 'registration_resend_validation_passed');
 
@@ -288,21 +286,22 @@ router.post('/register/resend', resendEmailLimit, async (req, res) => {
         snapshot = await pendingRef.get();
     } catch (error) {
         logStage(requestId, 'registration_resend_lookup_failed', { code: error?.code || 'DATABASE_ERROR' });
-        return sendError(res, 503, 'The code could not be checked. Please try again.');
+        return sendError(res, 503, 'The code could not be checked. Please try again.', 'OTP_LOOKUP_FAILED');
     }
+
     const original = snapshot.val();
     if (!original || original.status !== 'pending') {
-        return sendError(res, 400, 'Unable to resend a code. Start registration again.');
+        return resendAccepted(res);
     }
+
     const now = Date.now();
     if (original.expiresAt <= now) {
         await pendingRef.remove();
-        return sendError(res, 400, 'The registration expired. Start registration again.');
+        return resendAccepted(res);
     }
     if (now - original.lastSentAt < RESEND_COOLDOWN_MS) {
-        const retryAfter = Math.ceil((RESEND_COOLDOWN_MS - (now - original.lastSentAt)) / 1000);
-        res.set('Retry-After', String(retryAfter));
-        return sendError(res, 429, 'Please wait before requesting another code.');
+        logStage(requestId, 'registration_resend_rate_limited', { waitMs: RESEND_COOLDOWN_MS - (now - original.lastSentAt) });
+        return sendError(res, 429, 'Please wait before requesting a new OTP.', 'RESEND_COOLDOWN');
     }
 
     const otp = makeOtp();
@@ -311,28 +310,37 @@ router.post('/register/resend', resendEmailLimit, async (req, res) => {
         otpHash: otpDigest(email, otp),
         expiresAt: now + OTP_LIFETIME_MS,
         attempts: 0,
-        lastSentAt: now
+        lastSentAt: now,
+        status: 'pending'
     };
     try {
         const transaction = await pendingRef.transaction((current) => {
             if (!current || current.status !== 'pending' || current.expiresAt <= now || now - current.lastSentAt < RESEND_COOLDOWN_MS) return;
             return nextRecord;
         });
-        if (!transaction.committed) return sendError(res, 429, 'Please wait before requesting another code.');
+        if (!transaction.committed) return resendAccepted(res);
         logStage(requestId, 'registration_resend_otp_saved');
         try {
             await sendRegistrationCode({ name: original.name, email, otp });
             logStage(requestId, 'registration_resend_email_sent');
-            return res.json({ ok: true, message: 'If a registration is pending, a new code has been sent.' });
+            return resendAccepted(res);
         } catch (error) {
-            await pendingRef.transaction((current) => current?.otpHash === nextRecord.otpHash ? original : undefined).catch(() => { });
             logStage(requestId, 'registration_resend_email_failed', { code: error?.code || 'MAIL_ERROR' });
-            return sendError(res, 502, 'We could not send a verification email. Please try again later.');
+            return sendError(res, 503, 'We could not resend the OTP email right now. Please try again.', 'OTP_EMAIL_FAILED');
         }
     } catch (error) {
         logStage(requestId, 'registration_resend_failed', { code: error?.code || 'RESEND_ERROR' });
-        return sendError(res, 500, 'The code could not be resent. Please try again.');
+        return sendError(res, 500, 'The code could not be resent. Please try again.', 'RESEND_FAILED');
     }
-});
+};
+
+router.post('/send-otp', startEmailLimit, sendOtpHandler);
+router.post('/register/start', startEmailLimit, sendOtpHandler);
+router.post('/verify-otp', verifyEmailLimit, verifyRegistrationHandler);
+router.post('/register/verify', verifyEmailLimit, verifyRegistrationHandler);
+router.post('/verify-email-otp', verifyEmailLimit, verifyRegistrationHandler);
+router.post('/resend-otp', resendEmailLimit, resendRegistrationHandler);
+router.post('/register/resend', resendEmailLimit, resendRegistrationHandler);
+router.post('/resend-email-otp', resendEmailLimit, resendRegistrationHandler);
 
 export default router;

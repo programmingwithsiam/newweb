@@ -8,7 +8,7 @@ import authRoutes from './auth-routes.js';
 
 const app = express();
 const port = Number(process.env.PORT) || 3001;
-const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:5173')
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:3000,http://localhost:5173')
     .split(',')
     .map((origin) => origin.trim())
     .filter(Boolean);
@@ -31,7 +31,7 @@ app.use((req, _res, next) => {
 });
 
 app.get('/health', (_req, res) => res.json({ status: 'ok' }));
-app.use('/auth', rateLimit({
+const authIpLimit = rateLimit({
     windowMs: 15 * 60 * 1000,
     limit: 60,
     standardHeaders: 'draft-7',
@@ -41,8 +41,10 @@ app.use('/auth', rateLimit({
         console.info(JSON.stringify({ timestamp: new Date().toISOString(), requestId: req.requestId, stage: 'auth_ip_rate_limited', code: 'IP_RATE_LIMIT' }));
         return res.status(429).json({ error: 'Too many requests. Please wait and try again.', code: 'RATE_LIMITED' });
     }
-}));
+});
+app.use(['/auth', '/api/auth'], authIpLimit);
 app.use('/auth', authRoutes);
+app.use('/api/auth', authRoutes);
 
 app.use((error, _req, res, _next) => {
     if (error?.type === 'entity.too.large') return res.status(413).json({ error: 'Request is too large.' });

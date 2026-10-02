@@ -14,11 +14,24 @@ const serviceAccountPath = isAbsolute(serviceAccountSetting)
 const databaseUrl = process.env.FIREBASE_DATABASE_URL ||
   'https://mylatestweb-fd3d7-default-rtdb.asia-southeast1.firebasedatabase.app';
 
-let serviceAccount;
-try {
-  serviceAccount = JSON.parse(readFileSync(serviceAccountPath, 'utf8'));
-} catch {
-  throw new Error('Firebase service-account configuration could not be loaded. Check FIREBASE_SERVICE_ACCOUNT.');
+function normalizePrivateKey(value) {
+  return typeof value === 'string' ? value.replace(/\\n/g, '\n') : value;
+}
+
+let serviceAccount = {};
+
+if (process.env.FIREBASE_PROJECT_ID || process.env.FIREBASE_CLIENT_EMAIL || process.env.FIREBASE_PRIVATE_KEY) {
+  serviceAccount = {
+    project_id: process.env.FIREBASE_PROJECT_ID || '',
+    client_email: process.env.FIREBASE_CLIENT_EMAIL || '',
+    private_key: normalizePrivateKey(process.env.FIREBASE_PRIVATE_KEY || '')
+  };
+} else {
+  try {
+    serviceAccount = JSON.parse(readFileSync(serviceAccountPath, 'utf8'));
+  } catch {
+    throw new Error('Firebase service-account configuration could not be loaded. Check FIREBASE_SERVICE_ACCOUNT or FIREBASE_PROJECT_ID/FIREBASE_CLIENT_EMAIL/FIREBASE_PRIVATE_KEY.');
+  }
 }
 
 if (!serviceAccount.project_id || !serviceAccount.private_key || !serviceAccount.client_email) {
@@ -26,10 +39,18 @@ if (!serviceAccount.project_id || !serviceAccount.private_key || !serviceAccount
 }
 
 const app = getApps()[0] || initializeApp({
-  credential: cert(serviceAccount),
+  credential: cert({
+    project_id: serviceAccount.project_id,
+    client_email: serviceAccount.client_email,
+    private_key: serviceAccount.private_key
+  }),
   databaseURL: databaseUrl
 });
 
+if (!process.env.OTP_HASH_SECRET || !process.env.OTP_HASH_SECRET.trim()) {
+  throw new Error('OTP_HASH_SECRET is not configured. Set a dedicated secret in Render or your local .env file.');
+}
+
 export const auth = getAuth(app);
 export const database = getDatabase(app);
-export const otpHashSecret = process.env.OTP_HASH_SECRET || serviceAccount.private_key;
+export const otpHashSecret = process.env.OTP_HASH_SECRET.trim();

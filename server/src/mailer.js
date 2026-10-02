@@ -4,17 +4,24 @@ import nodemailer from 'nodemailer';
 let transporter;
 
 function getTransporter() {
-    const gmailUser = process.env.GMAIL_USER;
-    const gmailAppPassword = process.env.GMAIL_APP_PASSWORD;
-    if (!gmailUser || !gmailAppPassword) {
-        const error = new Error('Gmail SMTP is not configured.');
+    const smtpHost = process.env.SMTP_HOST || 'smtp.gmail.com';
+    const smtpPort = Number(process.env.SMTP_PORT || '587');
+    const smtpUser = process.env.SMTP_USER || process.env.GMAIL_USER;
+    const smtpPass = process.env.SMTP_PASS || process.env.GMAIL_APP_PASSWORD;
+
+    if (!smtpUser || !smtpPass) {
+        const error = new Error('SMTP email is not configured. Set SMTP_USER and SMTP_PASS (or the legacy Gmail variables).');
         error.code = 'MAIL_CONFIG';
         throw error;
     }
+
     if (!transporter) {
         transporter = nodemailer.createTransport({
-            service: 'gmail',
-            auth: { user: gmailUser, pass: gmailAppPassword }
+            host: smtpHost,
+            port: smtpPort,
+            secure: smtpPort === 465,
+            auth: { user: smtpUser, pass: smtpPass },
+            requireTLS: true
         });
     }
     return transporter;
@@ -31,24 +38,27 @@ function escapeHtml(value) {
 }
 
 export async function sendRegistrationCode({ name, email, otp }) {
-    const gmailTransporter = getTransporter();
-    const safeName = escapeHtml(name);
+    const smtpTransporter = getTransporter();
+    const safeName = escapeHtml(name || 'Learner');
+    const safeFrom = process.env.SMTP_FROM || process.env.GMAIL_USER || process.env.SMTP_USER || 'CodeWithSiam <noreply@example.com>';
     const html = `
-    <div style="margin:0;padding:32px 12px;background:#0b0f0e;font-family:Arial,sans-serif;color:#eef1e1">
-      <div style="max-width:520px;margin:0 auto;padding:30px;border:1px solid #273142;border-radius:14px;background:#101722">
-        <p style="margin:0 0 12px;color:#c9f35b;font-size:12px;font-weight:700;letter-spacing:2px">CODEWITHSIAM</p>
-        <h1 style="margin:0 0 12px;font-size:24px">Verify your email</h1>
-        <p style="margin:0 0 22px;color:#96a1b2;line-height:1.6">Hi ${safeName}, enter this access code to finish creating your account. It expires in 5 minutes.</p>
-        <div style="padding:18px;border:1px solid #3d4c5d;border-radius:10px;background:#0b1118;text-align:center;color:#c9f35b;font-size:32px;font-weight:700;letter-spacing:10px">${otp}</div>
-        <p style="margin:22px 0 0;color:#96a1b2;font-size:13px;line-height:1.6">If you did not request this code, you can ignore this email.</p>
+    <div style="margin:0;padding:32px 12px;background:#0e1720;font-family:Arial,sans-serif;color:#edf3ee;">
+      <div style="max-width:560px;margin:0 auto;padding:30px;border:1px solid #2b3d50;border-radius:16px;background:#111d2a;box-shadow:0 8px 24px rgba(0,0,0,0.18);">
+        <p style="margin:0 0 12px;color:#8ee5a4;font-size:12px;font-weight:700;letter-spacing:2px;">CODEWITHSIAM</p>
+        <h1 style="margin:0 0 12px;font-size:28px;line-height:1.2;color:#ffffff;">Verify your CodeWithSiam account</h1>
+        <p style="margin:0 0 20px;color:#c0cad8;line-height:1.7;">Hello ${safeName}, enter this 6-digit code to verify your email and complete your account setup. This code expires in 10 minutes.</p>
+        <div style="padding:22px 18px;border:1px solid #3d536d;border-radius:12px;background:#0b1520;text-align:center;color:#9ae6b4;font-size:34px;font-weight:700;letter-spacing:12px;">${otp}</div>
+        <p style="margin:20px 0 0;color:#dce7f4;font-size:13px;line-height:1.6;">For your security, do not share this code with anyone.</p>
+        <p style="margin:18px 0 0;color:#8a97a9;font-size:12px;line-height:1.6;">If you did not request this code, you can ignore this email.</p>
+        <p style="margin:22px 0 0;color:#a5b4c6;font-size:13px;line-height:1.6;">Thanks,<br>CodeWithSiam Team</p>
       </div>
     </div>`;
 
-    return gmailTransporter.sendMail({
-        from: `CodeWithSiam <${process.env.GMAIL_USER}>`,
+    return smtpTransporter.sendMail({
+        from: safeFrom,
         to: email,
-        subject: 'Your CodeWithSiam verification code',
-        text: `Hi ${name}, your CodeWithSiam verification code is ${otp}. It expires in 5 minutes.`,
+        subject: 'Verify your CodeWithSiam account',
+        text: `Hello ${name}, your CodeWithSiam verification code is ${otp}. This 6-digit code expires in 10 minutes. For your security, do not share this code with anyone. If you did not request it, you can ignore this email.\n\nThanks,\nCodeWithSiam Team`,
         html
     });
 }

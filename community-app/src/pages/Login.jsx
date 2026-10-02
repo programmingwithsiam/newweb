@@ -67,7 +67,7 @@ export default function Login() {
     try {
       await resendSignupCode(email);
       setResendRemaining(60);
-      setAuthMessage('A new verification code was sent.');
+      setAuthMessage('If a registration is pending, a new verification code will arrive shortly.');
     } catch (err) {
       showToast(friendlyAuthError(err), 'error');
     } finally {
@@ -101,6 +101,7 @@ export default function Login() {
         <button className="btn btn-primary" type="submit" disabled={busy}>Log In</button>
         {verificationMode && (
           <>
+            <p className="muted small">Enter the 6-digit code sent to this email. It expires in 10 minutes.</p>
             <label className="auth-field-label" htmlFor="login-otp">6-digit verification code</label>
             <input id="login-otp" type="text" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6} value={otp}
               onChange={(event) => setOtp(event.target.value.replace(/\D/g, '').slice(0, 6))} />
@@ -142,6 +143,8 @@ export function friendlyAuthError(err) {
     'auth/redirect-cancelled-by-user': 'Google sign-in was cancelled.'
   };
   if (map[code]) return map[code];
+  if (!code && /^The code is invalid or expired\./.test(err?.message || '')) return 'Invalid or expired verification code.';
+  if (!code && /^(Too many requests\. Please wait and try again\.|Unable to start signup\..*)$/.test(err?.message || '')) return err.message;
   if (!code && /^(This (email|account)|Please |Password |Enter |Cannot reach |Could not |The verification)/.test(err?.message || '')) return err.message;
   if (!code && /^(Passwords do not match\.|Password must be at least 8 characters\.|Please verify your email before signing in\..*)$/.test(err?.message || '')) return err.message;
   return 'Something went wrong. Please try again.';

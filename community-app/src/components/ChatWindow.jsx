@@ -1,475 +1,351 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  ref, push, onValue, update, remove, set,
-  query, orderByChild, limitToLast, serverTimestamp
-} from 'firebase/database';
-import { db } from '../firebase/config';
-import { uploadCommunityImage } from '../supabase/client';
-import { useAuth } from '../context/AuthContext';
+  collection,
+  deleteDoc,
+  doc,
+  limit,
+  onSnapshot,
+  orderBy,
+  query,
+  serverTimestamp,
+  setDoc,
+  updateDoc,
+} from 'firebase/firestore';
+import { firestore } from '../firebase/config';
 import { useToast } from '../context/ToastContext';
-import { timeAgo } from '../utils/helpers';
-import { notifyMessage } from '../utils/notify';
-import GroupInfoPanel from './GroupInfoPanel';
-import { ArrowLeft, Image, Info, MoreHorizontal, Phone, Search, Send, Smile, UserRound, Video, VolumeX } from 'lucide-react';
-import { messengerSeedConversations, messengerSeedMessages } from '../data/messengerSeed';
+import { ArrowLeft, CheckCheck, ImagePlus, SendHorizonal, Smile, X } from 'lucide-react';
 
-const CHAT_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '😡', '🎉'];
+const EMOJIS = ['👍', '❤️', '😂', '🎉', '😮', '😢', '😎'];
 
-export default function ChatWindow({ convId }) {
+function parseTimestamp(value) {
+  if (!value) return null;
+  if (typeof value.toDate === 'function') return value.toDate();
+  if (value instanceof Date) return value;
+  if (typeof value === 'number') return new Date(value);
+  if (typeof value === 'string') {
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+  if (typeof value.seconds === 'number') return new Date(value.seconds * 1000);
+  return null;
+}
+
+function formatBubbleTime(value) {
+  const date = parseTimestamp(value);
+  if (!date) return '';
+  return new Intl.DateTimeFormat('en', { hour: 'numeric', minute: '2-digit' }).format(date);
+}
+
+function formatDayChip(value) {
+  const date = parseTimestamp(value);
+  if (!date) return 'Today';
+  const diffDays = (Date.now() - date.getTime()) / 86400000;
+  if (diffDays < 1) return 'Today';
+  if (diffDays < 2) return 'Yesterday';
+  return new Intl.DateTimeFormat('en', { month: 'short', day: 'numeric' }).format(date);
+}
+
+export default function ChatWindow({ chat, chatId, currentUser, usersMap, onBack }) {
   const navigate = useNavigate();
-  const { user } = useAuth();
   const { showToast } = useToast();
-  const [conv, setConv] = useState(null);
-  const [messages, setMessages] = useState({});
-  const [text, setText] = useState('');
-  const [peer, setPeer] = useState(null);
-  const [typingUsers, setTypingUsers] = useState({});
-  const [showGroupInfo, setShowGroupInfo] = useState(false);
-  const [editingId, setEditingId] = useState(null);
-  const [editText, setEditText] = useState('');
-  const [messageReactions, setMessageReactions] = useState({});
-  const [reactionOpenId, setReactionOpenId] = useState(null);
-  const [showSearch, setShowSearch] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
-  const [showMoreMenu, setShowMoreMenu] = useState(false);
-  const [mediaExpanded, setMediaExpanded] = useState(true);
-  const [supportExpanded, setSupportExpanded] = useState(true);
-  const [infoOpen, setInfoOpen] = useState(false);
-  const [isSending, setIsSending] = useState(false);
-  const bottomRef = useRef(null);
-  const fileInputRef = useRef(null);
-  const typingTimeout = useRef(null);
+  const [messages, setMessages] = useState([]);
+  const [draft, setDraft] = useState('');
+  const [replyTo, setReplyTo] = useState(null);
+  const [typing, setTyping] = useState(false);
+  const [showEmoji, setShowEmoji] = useState(false);
+  const [menuOpenId, setMenuOpenId] = useState(null);
+  const [sending, setSending] = useState(false);
+  const [messageLimit, setMessageLimit] = useState(30);
+  const scrollRef = useRef(null);
+  const inputRef = useRef(null);
+  const typingTimer = useRef(null);
+
+  const peerUid = useMemo(() => {
+    if (!chat?.members || !currentUser) return null;
+    return chat.members.find((member) => member !== currentUser.uid) || null;
+  }, [chat, currentUser]);
+
+  const peerUser = peerUid ? usersMap?.[peerUid] || null : null;
 
   useEffect(() => {
-    if (!convId) return undefined;
-
-    const seedConv = messengerSeedConversations.find((candidate) => candidate.id === convId);
-    if (seedConv) {
-      setConv(seedConv);
-      return undefined;
-    }
-
-    const unsub = onValue(ref(db, `conversations/${convId}`), (snap) => {
-      if (!snap.exists()) {
-        const fallbackConv = messengerSeedConversations[0];
-        if (fallbackConv) setConv(fallbackConv);
-        return;
-      }
-      setConv(snap.val());
-    });
-    return unsub;
-  }, [convId]);
-
-  useEffect(() => {
-    if (!convId) return undefined;
-
-    const fallbackMessages = messengerSeedMessages[convId] || {};
-    if (Object.prototype.hasOwnProperty.call(messengerSeedMessages, convId)) {
-      setMessages(fallbackMessages);
-      return undefined;
-    }
-
-    const r = query(ref(db, `messages/${convId}`), orderByChild('createdAt'), limitToLast(100));
-    const unsub = onValue(r, (snap) => {
-      const payload = snap.val() || {};
-      setMessages(payload);
-    });
-    return unsub;
-  }, [convId]);
-
-  useEffect(() => {
-    if (!convId) return;
-    const unsub = onValue(ref(db, `typing/${convId}`), (snap) => setTypingUsers(snap.val() || {}));
-    return unsub;
-  }, [convId]);
-
-  useEffect(() => {
-    if (!convId) return;
-    const unsub = onValue(ref(db, `messageReactions/${convId}`), (snap) => setMessageReactions(snap.val() || {}));
-    return unsub;
-  }, [convId]);
-
-  const isGroup = conv?.type === 'group';
-  const peerUid = conv && !isGroup && user?.uid ? Object.keys(conv.members || {}).find((m) => m !== user.uid) : null;
-
-  useEffect(() => {
-    if (!peerUid || !conv || isGroup) return undefined;
-    const unsub = onValue(ref(db, `users/${peerUid}`), (snap) => setPeer(snap.val()));
-    return unsub;
-  }, [peerUid, conv, isGroup]);
-
-  useEffect(() => {
-    if (!conv || !user || !convId) return;
-    const updates = {};
-    Object.entries(messages).forEach(([id, m]) => {
-      if (m.senderId !== user.uid && !m.seenBy?.[user.uid]) {
-        updates[`messages/${convId}/${id}/seenBy/${user.uid}`] = true;
-      }
-    });
-    if (Object.keys(updates).length) update(ref(db), updates);
-    set(ref(db, `userConversations/${user.uid}/${convId}/unreadCount`), 0);
-  }, [messages, conv, convId, user]);
-
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, convId]);
-
-  const sharedMedia = useMemo(() => Object.values(messages || {}).filter((m) => m?.imageUrl || m?.fileUrl).slice(0, 6), [messages]);
-  const visibleMessages = useMemo(() => {
-    const term = searchTerm.trim().toLowerCase();
-    if (!term) return Object.entries(messages || {});
-    return Object.entries(messages || {}).filter(([, msg]) => {
-      const body = (msg?.text || '').toLowerCase();
-      return body.includes(term);
-    });
-  }, [messages, searchTerm]);
-
-  async function sendMessage(event) {
-    event?.preventDefault();
-    if (!text.trim() || !convId || isSending) return;
-    if (!user) {
-      showToast('Please sign in to send a message.', 'error');
-      return;
-    }
-
-    try {
-      setIsSending(true);
-      await doSend({ text: text.trim() });
-      setText('');
-      await set(ref(db, `typing/${convId}/${user.uid}`), null);
-    } catch (err) {
-      showToast(`Message failed: ${err.message}`, 'error');
-    } finally {
-      setIsSending(false);
-    }
-  }
-
-  async function sendImage(event) {
-    const file = event.target.files?.[0];
-    if (!file || !convId) return;
-    if (file.size > 8 * 1024 * 1024) {
-      showToast('Image is too large (max 8MB)', 'error');
-      return;
-    }
-
-    try {
-      const url = await uploadCommunityImage(file, `chatImages/${convId}`);
-      await doSend({ imageUrl: url });
-      event.target.value = '';
-    } catch (err) {
-      showToast(`Image upload failed: ${err.message}`, 'error');
-    }
-  }
-
-  async function doSend(payload) {
-    if (!user || !convId) return;
-
-    if (Object.prototype.hasOwnProperty.call(messengerSeedMessages, convId)) {
-      const msgId = `local-${Date.now()}`;
-      setMessages((current) => ({
-        ...(current || {}),
-        [msgId]: {
-          senderId: user.uid,
-          ...payload,
-          createdAt: Date.now(),
-          seenBy: { [user.uid]: true },
-        }
-      }));
-      return;
-    }
-
-    const msgRef = push(ref(db, `messages/${convId}`));
-    await update(msgRef, {
-      senderId: user.uid,
-      ...payload,
-      createdAt: serverTimestamp(),
-      seenBy: { [user.uid]: true }
-    });
-
-    try {
-      const preview = payload.text || '📷 Photo';
-      await update(ref(db, `conversations/${convId}`), { lastMessage: preview, lastMessageAt: Date.now() });
-      const members = Object.keys(conv?.members || {});
-      for (const member of members) {
-        if (member === user.uid) continue;
-        await set(ref(db, `userConversations/${member}/${convId}/unreadCount`), 1);
-        await set(ref(db, `userConversations/${member}/${convId}/lastMessageAt`), Date.now());
-        if (isGroup) {
-          notifyMessage(member, { type: 'group_invite', fromUid: user.uid, convId, subtype: 'message' });
-        } else {
-          notifyMessage(member, { type: 'message', fromUid: user.uid, convId });
-        }
-      }
-    } catch (err) {
-      console.warn('Message metadata update failed:', err);
-    }
-  }
-
-  function handleTyping(value) {
-    setText(value);
-    if (!user || !convId) return;
-    set(ref(db, `typing/${convId}/${user.uid}`), true);
-    clearTimeout(typingTimeout.current);
-    typingTimeout.current = setTimeout(() => set(ref(db, `typing/${convId}/${user.uid}`), null), 2000);
-  }
-
-  function insertEmoji(emoji) {
-    setText((current) => `${current}${emoji}`);
-    setShowEmojiPicker(false);
-  }
-
-  async function deleteMessage(id) {
-    try {
-      await remove(ref(db, `messages/${convId}/${id}`));
-    } catch (err) {
-      showToast(`Delete failed: ${err.message}`, 'error');
-    }
-  }
-
-  async function saveEditedMessage(id) {
-    if (!editText.trim()) return;
-    try {
-      await update(ref(db, `messages/${convId}/${id}`), {
-        text: editText.trim(),
-        editedAt: serverTimestamp()
-      });
-      setEditingId(null);
-      setEditText('');
-    } catch (err) {
-      showToast(`Edit failed: ${err.message}`, 'error');
-    }
-  }
-
-  async function toggleReaction(id, emoji) {
-    if (!user || !convId) return;
-    const reactionRef = ref(db, `messageReactions/${convId}/${id}/${user.uid}`);
-    try {
-      const currentEmoji = messageReactions[id]?.[user.uid]?.emoji;
-      if (currentEmoji === emoji) {
-        await remove(reactionRef);
-        setMessageReactions((current) => {
-          const next = { ...current, [id]: { ...(current[id] || {}) } };
-          delete next[id][user.uid];
-          return next;
+    if (!chatId) return undefined;
+    const q = query(collection(firestore, 'chats', chatId, 'messages'), orderBy('createdAt', 'desc'), limit(messageLimit));
+    const unsub = onSnapshot(q, (snapshot) => {
+      const next = snapshot.docs
+        .map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }))
+        .sort((first, second) => {
+          const firstTime = parseTimestamp(first.createdAt)?.getTime?.() || 0;
+          const secondTime = parseTimestamp(second.createdAt)?.getTime?.() || 0;
+          return firstTime - secondTime;
         });
-      } else {
-        await set(reactionRef, { emoji, createdAt: serverTimestamp() });
-        setMessageReactions((current) => ({
-          ...current,
-          [id]: { ...(current[id] || {}), [user.uid]: { emoji } }
-        }));
-      }
-    } catch (err) {
-      console.warn('Reaction persistence failed:', err);
-      showToast('Reaction could not be saved.', 'error');
-    }
-  }
+      setMessages(next);
+      requestAnimationFrame(() => {
+        if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      });
+    });
+    return () => unsub();
+  }, [chatId, messageLimit]);
 
-  const othersTyping = Object.entries(typingUsers).some(([uid, value]) => uid !== user?.uid && value);
-  const title = isGroup ? conv?.name : peer?.fullName || conv?.name || 'Conversation';
-  const photo = isGroup ? conv?.photoURL : peer?.photoURL || conv?.photoURL;
-  const openProfile = () => {
-    const targetUid = peerUid || user?.uid;
-    if (targetUid) navigate(`/profile/${targetUid}`);
+  useEffect(() => {
+    if (!chatId || !currentUser || !peerUid) return undefined;
+    const typingRef = doc(firestore, 'chats', chatId, 'typing', peerUid);
+    const unsub = onSnapshot(typingRef, (snap) => {
+      setTyping(Boolean(snap.data()?.isTyping));
+    });
+    return () => unsub();
+  }, [chatId, currentUser, peerUid]);
+
+  useEffect(() => {
+    if (!inputRef.current) return;
+    inputRef.current.style.height = 'auto';
+    inputRef.current.style.height = `${Math.min(inputRef.current.scrollHeight, 140)}px`;
+  }, [draft]);
+
+  const handleTypingChange = (value) => {
+    setDraft(value);
+    if (!currentUser || !chatId) return;
+
+    setDoc(doc(firestore, 'chats', chatId, 'typing', currentUser.uid), {
+      isTyping: value.trim().length > 0,
+      updatedAt: serverTimestamp(),
+    }, { merge: true });
+
+    clearTimeout(typingTimer.current);
+    typingTimer.current = setTimeout(() => {
+      setDoc(doc(firestore, 'chats', chatId, 'typing', currentUser.uid), {
+        isTyping: false,
+        updatedAt: serverTimestamp(),
+      }, { merge: true }).catch(() => undefined);
+    }, 1500);
   };
 
-  if (!conv) {
-    return (
-      <div className="chat-window empty-state">
-        <div className="chat-empty-state">
-          <UserRound size={20} />
-          <span>Select a conversation</span>
-        </div>
-      </div>
-    );
+  async function sendMessage() {
+    if (!currentUser || !chatId || !draft.trim() || sending) return;
+    setSending(true);
+
+    try {
+      const messageRef = doc(collection(firestore, 'chats', chatId, 'messages'));
+      const messagePayload = {
+        senderId: currentUser.uid,
+        text: draft.trim(),
+        createdAt: serverTimestamp(),
+        status: 'sent',
+        replyTo: replyTo ? { id: replyTo.id, text: replyTo.text, senderId: replyTo.senderId } : null,
+      };
+
+      await setDoc(messageRef, messagePayload);
+      const nextUnread = { ...(chat?.unread || {}), [currentUser.uid]: 0 };
+      if (peerUid) nextUnread[peerUid] = Number(nextUnread[peerUid] || 0) + 1;
+      await updateDoc(doc(firestore, 'chats', chatId), {
+        lastMessage: draft.trim(),
+        lastMessageAt: serverTimestamp(),
+        unread: nextUnread,
+      });
+      setDraft('');
+      setReplyTo(null);
+      setShowEmoji(false);
+    } catch (error) {
+      showToast('Message failed to send.', 'error');
+    } finally {
+      setSending(false);
+    }
   }
 
+  async function handleImageSelect(event) {
+    const file = event.target.files?.[0];
+    if (!file || !chatId || !currentUser) return;
+
+    const limit = 1_000_000;
+    if (file.size > limit) {
+      showToast('Image is too large. Please send a file under 1MB.', 'error');
+      event.target.value = '';
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = async () => {
+      try {
+        const messageRef = doc(collection(firestore, 'chats', chatId, 'messages'));
+        await setDoc(messageRef, {
+          senderId: currentUser.uid,
+          text: '',
+          imageData: String(reader.result || ''),
+          createdAt: serverTimestamp(),
+          status: 'sent',
+        });
+        const nextUnread = { ...(chat?.unread || {}), [currentUser.uid]: 0 };
+        if (peerUid) nextUnread[peerUid] = Number(nextUnread[peerUid] || 0) + 1;
+        await updateDoc(doc(firestore, 'chats', chatId), {
+          lastMessage: 'Image',
+          lastMessageAt: serverTimestamp(),
+          unread: nextUnread,
+        });
+      } catch (error) {
+        showToast('Image failed to send.', 'error');
+      }
+    };
+    reader.readAsDataURL(file);
+    event.target.value = '';
+  }
+
+  async function handleDelete(messageId, mode) {
+    if (!chatId) return;
+    const messageRef = doc(firestore, 'chats', chatId, 'messages', messageId);
+    if (mode === 'everyone') {
+      await updateDoc(messageRef, {
+        deletedForEveryone: true,
+        text: 'This message was deleted',
+        imageData: '',
+        status: 'deleted',
+      }).catch(() => undefined);
+      setMenuOpenId(null);
+      return;
+    }
+    await updateDoc(messageRef, { deletedFor: [currentUser.uid] }).catch(() => undefined);
+    setMenuOpenId(null);
+  }
+
+  async function handleCopy(text) {
+    if (!text) return;
+    try {
+      await navigator.clipboard.writeText(text);
+      showToast('Message copied.', 'success');
+    } catch {
+      showToast('Copy failed.', 'error');
+    }
+  }
+
+  const loadMore = () => setMessageLimit((count) => count + 30);
+
   return (
-    <div className={`chat-window${infoOpen ? ' has-info' : ''}`}>
-      <div className="chat-main-panel">
-        <header className="chat-header">
-          <button className="chat-back-btn icon-btn" type="button" onClick={() => navigate('/messenger')} aria-label="Back to conversations"><ArrowLeft size={20} /></button>
-          <button className="chat-title-trigger" type="button" onClick={openProfile} aria-label="Open profile">
-            <img className="avatar-sm" src={photo || '/default-avatar.png'} alt="" />
+    <div className="cwschat chat-window-wrap">
+      <header className="cwschat chat-header">
+        <div className="cwschat header-left">
+          <button type="button" className="cwschat back-button" onClick={onBack} aria-label="Back to list">
+            <ArrowLeft size={18} />
           </button>
-          <div className="chat-header-text" onClick={openProfile} role="button" tabIndex={0} onKeyDown={(event) => event.key === 'Enter' && openProfile()}>
-            <strong>{title}</strong>
-            <span className="chat-status"><i />{othersTyping ? 'Typing...' : isMuted ? 'Muted' : 'Active now'}</span>
+          <div className="cwschat header-avatar-wrap">
+            {peerUser?.photoURL ? (
+              <img src={peerUser.photoURL} alt="" className="cwschat header-avatar" />
+            ) : (
+              <span className="cwschat header-avatar fallback">{(peerUser?.displayName || 'C').slice(0, 1).toUpperCase()}</span>
+            )}
+            {peerUser?.online && <span className="cwschat online-indicator" />}
           </div>
-          <div className="chat-header-actions">
-            <button className="icon-btn" type="button" aria-label="Start voice call" onClick={() => showToast('Voice call started.', 'success')}><Phone size={18} /></button>
-            <button className="icon-btn" type="button" aria-label="Start video call" onClick={() => showToast('Video call started.', 'success')}><Video size={18} /></button>
-            <button className="icon-btn" type="button" aria-label="Search in conversation" onClick={() => setShowSearch((value) => !value)}><Search size={18} /></button>
-            <button className="icon-btn" type="button" aria-label="Conversation info" onClick={() => setInfoOpen((value) => !value)}><Info size={18} /></button>
+          <div className="cwschat header-identify">
+            <strong>{peerUser?.displayName || 'CodeWithSiam user'}</strong>
+            <span>{typing ? 'typing...' : peerUser?.online ? 'online' : 'offline'}</span>
           </div>
-        </header>
-
-        {showSearch && (
-          <div className="chat-search-box">
-            <Search size={16} aria-hidden="true" />
-            <input value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} placeholder="Search messages" />
-          </div>
-        )}
-
-        <div className="chat-messages">
-          {visibleMessages.length === 0 ? (
-            <div className="chat-empty-state">
-              <UserRound size={20} />
-              <span>No messages match your search.</span>
-            </div>
-          ) : visibleMessages
-            .sort((a, b) => (a[1].createdAt || 0) - (b[1].createdAt || 0))
-            .map(([id, msg]) => (
-              <div key={id} className={`chat-message${msg.senderId === user?.uid ? ' mine' : ''}`}>
-                {editingId === id ? (
-                  <div className="chat-edit-box">
-                    <textarea value={editText} onChange={(event) => setEditText(event.target.value)} />
-                    <div>
-                      <button className="btn btn-primary btn-sm" type="button" onClick={() => saveEditedMessage(id)}>Save</button>
-                      <button className="btn btn-ghost btn-sm" type="button" onClick={() => setEditingId(null)}>Cancel</button>
-                    </div>
-                  </div>
-                ) : msg.imageUrl ? <img src={msg.imageUrl} alt="" className="chat-image" /> : <p>{msg.text}</p>}
-
-                <div className="chat-message-meta">
-                  <span>{timeAgo(msg.createdAt)}</span>
-                  {msg.editedAt && <span>edited</span>}
-                  <span className="chat-reaction-wrap">
-                    <button
-                      className={`link-btn chat-reaction-trigger${messageReactions[id]?.[user?.uid]?.emoji ? ' active-reaction' : ''}`}
-                      type="button"
-                      onClick={() => setReactionOpenId((current) => current === id ? null : id)}
-                      aria-label="Choose reaction"
-                    >
-                      {messageReactions[id]?.[user?.uid]?.emoji || '😊'}
-                    </button>
-                    {reactionOpenId === id && (
-                      <span className="chat-reaction-picker" aria-label="Message reactions">
-                        {CHAT_EMOJIS.map((emoji) => (
-                          <button key={emoji} type="button" onClick={() => { toggleReaction(id, emoji); setReactionOpenId(null); }} aria-label={`React ${emoji}`}>
-                            {emoji}
-                          </button>
-                        ))}
-                      </span>
-                    )}
-                  </span>
-                  {msg.senderId === user?.uid && (
-                    <>
-                      <span>{isGroup ? (Object.keys(msg.seenBy || {}).length > 1 ? 'Seen' : 'Sent') : (msg.seenBy?.[peerUid] ? 'Seen' : 'Sent')}</span>
-                      {!msg.imageUrl && <button className="link-btn" type="button" onClick={() => { setEditingId(id); setEditText(msg.text || ''); }}>Edit</button>}
-                      <button className="link-btn" onClick={() => deleteMessage(id)}>Delete</button>
-                    </>
-                  )}
-                </div>
-              </div>
-            ))}
-          <div ref={bottomRef} />
         </div>
+      </header>
 
-        <form className="chat-input" onSubmit={sendMessage}>
-          <div className="chat-compose-actions">
-            <button className="icon-btn chat-emoji-btn" type="button" aria-label="Add emoji" onClick={() => setShowEmojiPicker((value) => !value)}><Smile size={19} /></button>
-            <button className="icon-btn file-label" type="button" aria-label="Send image" onClick={() => fileInputRef.current?.click()}>
-              <Image size={20} strokeWidth={1.5} aria-hidden="true" />
-            </button>
-            <input ref={fileInputRef} type="file" accept="image/*" hidden onChange={sendImage} />
-          </div>
-          {showEmojiPicker && (
-            <div className="chat-emoji-picker" role="dialog" aria-label="Emoji picker">
-              {CHAT_EMOJIS.map((emoji) => (
-                <button key={emoji} type="button" onClick={() => insertEmoji(emoji)} aria-label={`Insert ${emoji}`}>
-                  {emoji}
-                </button>
-              ))}
-            </div>
+      <div className="cwschat chat-body" ref={scrollRef}>
+        <div className="cwschat chat-scroll-inner">
+          <button type="button" className="cwschat load-more-btn" onClick={loadMore}>Load older messages</button>
+          {messages.length === 0 ? (
+            <div className="cwschat empty-message-state">Say hello to start the conversation.</div>
+          ) : (
+            messages.map((message, index) => {
+              const isMine = message.senderId === currentUser?.uid;
+              const previous = index > 0 ? messages[index - 1] : null;
+              const showDateChip = !previous || formatDayChip(previous.createdAt) !== formatDayChip(message.createdAt);
+              const isDeleted = Boolean(message.deletedForEveryone || message.deletedFor?.includes(currentUser?.uid));
+
+              return (
+                <div key={message.id} className="cwschat message-group">
+                  {showDateChip && <div className="cwschat date-chip">{formatDayChip(message.createdAt)}</div>}
+                  <div className={`cwschat message-bubble${isMine ? ' mine' : ' theirs'}`}>
+                    {message.replyTo && (
+                      <div className="cwschat reply-preview">
+                        Replying to {message.replyTo.senderId === currentUser?.uid ? 'yourself' : 'message'}
+                      </div>
+                    )}
+
+                    {isDeleted ? (
+                      <div className="cwschat deleted-message">Message deleted</div>
+                    ) : (
+                      <>
+                        {message.imageData ? <img src={message.imageData} alt="sent media" className="cwschat message-image" /> : null}
+                        {message.text ? <p>{message.text}</p> : null}
+                      </>
+                    )}
+
+                    <div className="cwschat bubble-meta">
+                      <span>{formatBubbleTime(message.createdAt)}</span>
+                      {isMine && <CheckCheck size={12} />}
+                    </div>
+
+                    {isMine && !isDeleted && (
+                      <div className="cwschat bubble-actions">
+                        <button type="button" onClick={() => handleCopy(message.text || '')}>Copy</button>
+                        <button type="button" onClick={() => setReplyTo({ id: message.id, text: message.text || 'Image', senderId: message.senderId })}>Reply</button>
+                        <div className="cwschat dropdown-wrap">
+                          <button type="button" onClick={() => setMenuOpenId(menuOpenId === message.id ? null : message.id)}>Delete</button>
+                          {menuOpenId === message.id && (
+                            <div className="cwschat delete-menu">
+                              <button type="button" onClick={() => handleDelete(message.id, 'me')}>For me</button>
+                              <button type="button" onClick={() => handleDelete(message.id, 'everyone')}>For everyone</button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })
           )}
-          <textarea
-            className="chat-composer-textarea"
-            value={text}
-            onChange={(event) => handleTyping(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter' && !event.shiftKey) {
-                event.preventDefault();
-                sendMessage(event);
-              }
-            }}
-            placeholder="Type a message..."
-            disabled={!user && !convId}
-            aria-label="Message text"
-            rows={1}
-          />
-          <button className="chat-send-btn" type="submit" aria-label="Send message" disabled={!user || isSending}><Send size={18} /></button>
-        </form>
+        </div>
       </div>
 
-      <aside className={`chat-info-panel${infoOpen ? ' open' : ' hidden'}`}>
-        <div className="chat-info-header">
-          <button className="chat-info-profile" type="button" onClick={openProfile} aria-label="Open profile details">
-            <img className="chat-info-avatar" src={photo || '/default-avatar.png'} alt="" />
+      <div className="cwschat input-row">
+        <div className="cwschat composer-tools">
+          <button type="button" className="cwschat tool-button" aria-label="Emoji" onClick={() => setShowEmoji((value) => !value)}>
+            <Smile size={18} />
           </button>
-          <h3>{title}</h3>
-          <span className="chat-status"><i />{othersTyping ? 'Typing...' : isMuted ? 'Muted' : 'Active now'}</span>
+          <label className="cwschat tool-button" aria-label="Attach image">
+            <ImagePlus size={18} />
+            <input type="file" accept="image/*" onChange={handleImageSelect} />
+          </label>
         </div>
 
-        <div className="chat-info-actions">
-          <button type="button" className="chat-info-action" onClick={() => setShowSearch(true)}>Search</button>
-          <button type="button" className="chat-info-action" onClick={() => setIsMuted((value) => !value)}>{isMuted ? 'Unmute' : 'Mute'}</button>
-          <button type="button" className="chat-info-action" onClick={() => setShowMoreMenu((value) => !value)}>More</button>
-        </div>
-
-        {showMoreMenu && (
-          <div className="chat-more-menu">
-            <button type="button" onClick={openProfile}>View profile</button>
-            <button type="button" onClick={() => setShowSearch(true)}>Search chat</button>
-            <button type="button" onClick={() => setIsMuted((value) => !value)}>{isMuted ? 'Unmute chat' : 'Mute chat'}</button>
+        {showEmoji && (
+          <div className="cwschat emoji-picker" role="dialog" aria-label="Emoji picker">
+            {EMOJIS.map((emoji) => (
+              <button key={emoji} type="button" className="cwschat emoji-option" onClick={() => { setDraft((value) => `${value}${emoji}`); setShowEmoji(false); }}>
+                {emoji}
+              </button>
+            ))}
           </div>
         )}
 
-        <div className="chat-info-section">
-          <button type="button" className="chat-section-toggle" aria-expanded={mediaExpanded} onClick={() => setMediaExpanded((value) => !value)}>
-            <span>Media and files</span>
-            <span>▾</span>
-          </button>
-          {mediaExpanded && (
-            <div className="chat-info-body">
-              {sharedMedia.length > 0 ? (
-                <div className="media-grid">
-                  {sharedMedia.map((item, index) => (
-                    <button key={`${item.imageUrl || item.fileUrl || index}`} type="button" className="media-item-button" onClick={() => item.imageUrl && window.open(item.imageUrl, '_blank', 'noopener,noreferrer')}>
-                      {item.imageUrl ? <img src={item.imageUrl} alt="Shared media" /> : <span className="file-pill">File</span>}
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <div className="chat-empty-state compact">
-                  <span>No shared media yet.</span>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+        {replyTo && (
+          <div className="cwschat reply-box">
+            <span>Replying to {replyTo.text}</span>
+            <button type="button" onClick={() => setReplyTo(null)}><X size={12} /></button>
+          </div>
+        )}
 
-        <div className="chat-info-section">
-          <button type="button" className="chat-section-toggle" aria-expanded={supportExpanded} onClick={() => setSupportExpanded((value) => !value)}>
-            <span>Privacy and support</span>
-            <span>▾</span>
-          </button>
-          {supportExpanded && (
-            <div className="chat-info-body info-list">
-              <div><strong>Participants</strong><span>{isGroup ? Object.keys(conv.members || {}).length : '1'} people</span></div>
-              <div><strong>Shared files</strong><span>{sharedMedia.length} files</span></div>
-              <div><strong>Support</strong><span>Community help</span></div>
-            </div>
-          )}
-        </div>
-      </aside>
+        <textarea
+          ref={inputRef}
+          value={draft}
+          onChange={(event) => handleTypingChange(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' && !event.shiftKey) {
+              event.preventDefault();
+              sendMessage();
+            }
+          }}
+          className="cwschat message-input"
+          placeholder="Type a message"
+          rows={1}
+        />
 
-      {showGroupInfo && isGroup && (
-        <GroupInfoPanel convId={convId} conv={conv} onClose={() => setShowGroupInfo(false)} />
-      )}
+        <button type="button" className="cwschat send-button" onClick={sendMessage} aria-label="Send message" disabled={sending || !draft.trim()}>
+          <SendHorizonal size={18} />
+        </button>
+      </div>
     </div>
   );
 }

@@ -173,6 +173,16 @@ document.getElementById('changeOtpEmailBtn')?.addEventListener('click', () => {
   switchTab(true);
   document.getElementById('registerEmailInput')?.focus();
 });
+document.getElementById('otpSignInBtn')?.addEventListener('click', () => {
+  const email = pendingRegistration?.email || otpEmailLabel?.textContent || '';
+  clearInterval(resendTimer);
+  pendingRegistration = null;
+  otpView?.classList.add('hidden');
+  authFormsView?.classList.remove('hidden');
+  switchTab(false);
+  document.getElementById('signInEmail').value = email;
+  setStatus('Sign in if you already have an account.', 'info');
+});
 headerSignInBtn?.addEventListener('click', () => openAuthModal());
 mobileAccountBtn?.addEventListener('click', () => {
   if (!navLoggedIn?.classList.contains('hidden')) userChipBtn?.click();
@@ -310,8 +320,8 @@ function clearFieldErrors(form) {
   form?.querySelectorAll('.auth-field-error').forEach((item) => { item.textContent = ''; });
 }
 
-function showOtpView({ name = '', email }, message = 'Your verification code has been sent.') {
-  pendingRegistration = { name, email };
+function showOtpView({ name = '', email, password = '' }, message = 'If registration can be completed, a verification code will be sent.') {
+  pendingRegistration = { name, email, password };
   otpEmailLabel.textContent = email;
   otpDigits.forEach((input) => { input.value = ''; });
   authFormsView?.classList.add('hidden');
@@ -353,15 +363,12 @@ async function verifyOtp() {
   clearStatus();
   try {
     const email = pendingRegistration.email;
-    await verifyRegistration({ email, otp: otpValue() });
+    const password = pendingRegistration.password || document.getElementById('registerPasswordInput')?.value || '';
+    await verifyRegistration({ email, otp: otpValue(), password });
+    await signInWithEmail(email, password);
+    await finishSignIn();
     clearInterval(resendTimer);
     pendingRegistration = null;
-    otpView?.classList.add('hidden');
-    authFormsView?.classList.remove('hidden');
-    switchTab(false);
-    document.getElementById('signInEmail').value = email;
-    document.getElementById('signInPassword').value = '';
-    setStatus('Email verified. You can now sign in with your password.', 'success');
   } catch (error) {
     setStatus(error.message || 'The code is invalid or expired. Check it and try again.');
     otpView?.classList.remove('otp-shake');
@@ -406,7 +413,7 @@ resendOtpBtn?.addEventListener('click', async () => {
   resendOtpBtn.disabled = true;
   try {
     await resendRegistrationCode({ email: pendingRegistration.email });
-    setStatus('A new verification code has been sent.', 'success');
+    setStatus('If a registration is pending, a new code will be sent.', 'success');
     startResendCountdown();
   } catch (error) {
     resendOtpBtn.disabled = false;
@@ -421,7 +428,7 @@ loginResendOtpBtn?.addEventListener('click', async () => {
   try {
     await resendRegistrationCode({ email });
     switchTab(false);
-    showOtpView({ email }, 'A new verification code has been sent.');
+    showOtpView({ email }, 'If a registration is pending, a new code will be sent.');
   } catch (error) {
     setStatus(error.message || 'Could not resend the code. Please try again.');
   } finally {
@@ -470,7 +477,7 @@ registerForm?.addEventListener('submit', async (e) => {
   try {
     await startRegistration({ name, email, password });
     registerForm.reset();
-    showOtpView({ name, email }, 'Your 6-digit verification code is on its way.');
+    showOtpView({ name, email, password }, 'If registration can be completed, a 6-digit code will be sent.');
   } catch (error) {
     setStatus(error.message);
   } finally {

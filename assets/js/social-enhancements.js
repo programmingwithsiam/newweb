@@ -3,7 +3,7 @@ import { observeAuthState } from './auth.js?v=20260829-auth-fix-1';
 
 const page = location.pathname.split('/').pop();
 const isCommunity = page === 'community.html' || page === 'community' || page === '';
-const isChat = page === 'personal-chat.html' || page === 'personal-chat';
+const isChat = false;
 let currentUser = null;
 let firestore = null;
 const visitorId = `visitor_${localStorage.getItem('community-visitor-id') || crypto.randomUUID?.() || `${Date.now()}_${Math.random().toString(36).slice(2)}`}`;
@@ -39,7 +39,7 @@ async function createNotification(uid, type, message, targetId) {
     message,
     targetId,
     createdAt: serverTimestamp(),
-  }).catch(() => {});
+  }).catch(() => { });
 }
 
 function addNotificationButton() {
@@ -80,7 +80,7 @@ function watchNotifications() {
       }).join('') : '<p class="comments-empty">No notifications yet.</p>';
       list.querySelectorAll('[data-notification-id]').forEach(item => item.addEventListener('click', async () => {
         const { doc, serverTimestamp, updateDoc } = await loadFirestore();
-        await updateDoc(doc(db, 'notifications', currentUser.uid, 'items', item.dataset.notificationId), { readAt: serverTimestamp() }).catch(() => {});
+        await updateDoc(doc(db, 'notifications', currentUser.uid, 'items', item.dataset.notificationId), { readAt: serverTimestamp() }).catch(() => { });
       }));
     });
   });
@@ -178,8 +178,8 @@ function setupChatEnhancements() {
   input.addEventListener('input', () => {
     if (!currentUser) return;
     clearTimeout(timer);
-    loadFirestore().then(({ doc, serverTimestamp, setDoc }) => setDoc(doc(db, 'presence', currentUser.uid), { online: true, lastSeen: serverTimestamp(), typing: true }, { merge: true })).catch(() => {});
-    timer = setTimeout(() => loadFirestore().then(({ doc, serverTimestamp, setDoc }) => setDoc(doc(db, 'presence', currentUser.uid), { online: true, lastSeen: serverTimestamp(), typing: false }, { merge: true })).catch(() => {}), 900);
+    loadFirestore().then(({ doc, serverTimestamp, setDoc }) => setDoc(doc(db, 'presence', currentUser.uid), { online: true, lastSeen: serverTimestamp(), typing: true }, { merge: true })).catch(() => { });
+    timer = setTimeout(() => loadFirestore().then(({ doc, serverTimestamp, setDoc }) => setDoc(doc(db, 'presence', currentUser.uid), { online: true, lastSeen: serverTimestamp(), typing: false }, { merge: true })).catch(() => { }), 900);
   });
 }
 

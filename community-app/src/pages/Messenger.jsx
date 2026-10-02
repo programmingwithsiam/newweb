@@ -1,152 +1,247 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { onValue, ref, set, serverTimestamp } from 'firebase/database';
-import { db } from '../firebase/config';
+import {
+  collection,
+  doc,
+  getDoc,
+  onSnapshot,
+  orderBy,
+  query,
+  serverTimestamp,
+  setDoc,
+  updateDoc,
+  where,
+} from 'firebase/firestore';
+import { firestore } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
 import ConversationList from '../components/ConversationList';
 import ChatWindow from '../components/ChatWindow';
-import NewGroupModal from '../components/NewGroupModal';
-import UserSearchPicker from '../components/UserSearchPicker';
-import { Bell, Bookmark, MailPlus, MessageCircle, Search, Settings, UsersRound, UserRound } from 'lucide-react';
-import { messengerSeedConversations } from '../data/messengerSeed';
+import { MessageSquareText, Plus, Search, Sparkles, UserRound, X } from 'lucide-react';
+
+function buildChatId(uidA, uidB) {
+  return [uidA, uidB].sort().join('_');
+}
 
 export default function Messenger() {
-  const { convId } = useParams();
-  const { user } = useAuth();
+  const { chatId } = useParams();
   const navigate = useNavigate();
-  const [showNewGroup, setShowNewGroup] = useState(false);
-  const [showNewChat, setShowNewChat] = useState(false);
+  const { user } = useAuth();
+  const [chats, setChats] = useState([]);
+  const [userList, setUserList] = useState([]);
+  const [search, setSearch] = useState('');
+  const [newChatOpen, setNewChatOpen] = useState(false);
 
   useEffect(() => {
-    if (convId) return;
+    if (!user) return undefined;
 
-    const fallbackId = messengerSeedConversations[0]?.id;
+    const userDocRef = doc(firestore, 'users', user.uid);
+    setDoc(userDocRef, {
+      uid: user.uid,
+      displayName: user.displayName || user.email?.split('@')[0] || 'CodeWithSiam user',
+      photoURL: user.photoURL || '',
+      online: true,
+      lastSeen: serverTimestamp(),
+    }, { merge: true }).catch(() => undefined);
 
-    if (!user) {
-      if (fallbackId) navigate(`/messenger/${fallbackId}`, { replace: true });
-      return;
-    }
+    const handleVisibility = () => {
+      updateDoc(userDocRef, {
+        online: document.visibilityState === 'visible',
+        lastSeen: serverTimestamp(),
+      }).catch(() => undefined);
+    };
 
-    const unsub = onValue(ref(db, `userConversations/${user.uid}`), (snap) => {
-      if (!snap.exists()) {
-        if (fallbackId) navigate(`/messenger/${fallbackId}`, { replace: true });
-        return;
+    handleVisibility();
+    document.addEventListener('visibilitychange', handleVisibility);
+    const beforeUnload = () => {
+      updateDoc(userDocRef, {
+        online: false,
+        lastSeen: serverTimestamp(),
+      }).catch(() => undefined);
+    };
+    window.addEventListener('beforeunload', beforeUnload);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('beforeunload', beforeUnload);
+      updateDoc(userDocRef, {
+        online: false,
+        lastSeen: serverTimestamp(),
+      }).catch(() => undefined);
+    };
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return undefined;
+
+    const chatsQuery = query(
+      collection(firestore, 'chats'),
+      where('members', 'array-contains', user.uid),
+      orderBy('lastMessageAt', 'desc')
+    );
+
+    const unsub = onSnapshot(chatsQuery, (snapshot) => {
+      const next = snapshot.docs.map((docSnap) => ({
+        id: docSnap.id,
+        ...docSnap.data(),
+      }));
+      setChats(next);
+
+      if (!chatId && next[0]) {
+        navigate(`/messenger/${next[0].id}`, { replace: true });
       }
-
-      const conversations = Object.entries(snap.val());
-      if (!conversations.length) {
-        if (fallbackId) navigate(`/messenger/${fallbackId}`, { replace: true });
-        return;
-      }
-
-      const sorted = conversations.sort((a, b) => (b[1].lastMessageAt || 0) - (a[1].lastMessageAt || 0));
-      const [[firstId]] = sorted;
-      if (!firstId) return;
-
-      navigate(`/messenger/${firstId}`, { replace: true });
     });
 
     return () => unsub();
-  }, [convId, user, navigate]);
+  }, [user, chatId, navigate]);
 
-  async function startChatWith(u) {
-    const id = [user.uid, u.uid].sort().join('_');
-    await set(ref(db, `conversations/${id}`), {
-      type: 'private',
-      members: { [user.uid]: true, [u.uid]: true },
-      createdAt: serverTimestamp()
+  useEffect(() => {
+    const unsub = onSnapshot(collection(firestore, 'users'), (snapshot) => {
+      setUserList(snapshot.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() })));
     });
-    const conversationSummary = {
-      members: { [user.uid]: true, [u.uid]: true },
-      lastMessage: '',
-      lastMessageAt: Date.now(),
-      unreadCount: 0
-    };
-    await set(ref(db, `userConversations/${user.uid}/${id}`), conversationSummary);
-    await set(ref(db, `userConversations/${u.uid}/${id}`), conversationSummary);
-    setShowNewChat(false);
-    navigate(`/messenger/${id}`);
+    return () => unsub();
+  }, []);
+
+  const userMap = useMemo(() => {
+    return Object.fromEntries(userList.map((entry) => [entry.id, entry]));
+  }, [userList]);
+
+  const filteredUsers = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return userList.filter((entry) => entry.id !== user?.uid);
+    return userList.filter((entry) => {
+      if (entry.id === user?.uid) return false;
+      const display = `${entry.displayName || ''} ${entry.username || ''}`.toLowerCase();
+      return display.includes(q);
+    });
+  }, [search, user?.uid, userList]);
+
+  const totalUnread = chats.reduce((sum, chat) => sum + Number(chat.unread?.[user?.uid] || 0), 0);
+
+  const openChat = (chatDocId) => {
+    navigate(`/messenger/${chatDocId}`);
+  };
+
+  async function createChat(targetUid) {
+    if (!user || !targetUid || targetUid === user.uid) return;
+
+    const chatDocId = buildChatId(user.uid, targetUid);
+    const chatDocRef = doc(firestore, 'chats', chatDocId);
+    const chatSnap = await getDoc(chatDocRef);
+
+    if (!chatSnap.exists()) {
+      await setDoc(chatDocRef, {
+        id: chatDocId,
+        members: [user.uid, targetUid],
+        unread: {
+          [user.uid]: 0,
+          [targetUid]: 0,
+        },
+        lastMessage: '',
+        lastMessageAt: serverTimestamp(),
+        createdAt: serverTimestamp(),
+      });
+    }
+
+    setNewChatOpen(false);
+    navigate(`/messenger/${chatDocId}`);
   }
 
+  const activeChat = chats.find((chat) => chat.id === chatId) || null;
+
   return (
-    <div className={`messenger messenger-shell${convId ? ' show-chat' : ''}`}>
-      <aside className="messenger-sidebar">
-        <div className="messenger-brand">
-          <span className="messenger-brand-mark"><MessageCircle size={22} /></span>
-          <span className="messenger-brand-name">Community</span>
-        </div>
-
-        <div className="messenger-profile">
-          <span className="messenger-profile-avatar">
-            <UserRound size={22} />
-          </span>
-          <span className="messenger-profile-label">{user?.displayName || user?.email || 'Me'}</span>
-        </div>
-
-        <nav className="messenger-nav">
-          <button className="messenger-nav-item active" type="button" aria-label="Chats">
-            <MessageCircle size={20} />
-            <span>Chats</span>
-          </button>
-          <button className="messenger-nav-item" type="button" aria-label="Notifications">
-            <Bell size={20} />
-            <span>Notifications</span>
-          </button>
-          <button className="messenger-nav-item" type="button" aria-label="Friends">
-            <UserRound size={20} />
-            <span>Friends</span>
-          </button>
-          <button className="messenger-nav-item" type="button" aria-label="Groups">
-            <UsersRound size={20} />
-            <span>Groups</span>
-          </button>
-          <button className="messenger-nav-item" type="button" aria-label="Saved">
-            <Bookmark size={20} />
-            <span>Saved</span>
-          </button>
-          <button className="messenger-nav-item" type="button" aria-label="Search">
-            <Search size={20} />
-            <span>Search</span>
-          </button>
-          <button className="messenger-nav-item" type="button" aria-label="Settings">
-            <Settings size={20} />
-            <span>Settings</span>
-          </button>
-        </nav>
-
-        <button className="messenger-new-button" type="button" onClick={() => setShowNewChat(true)}>
-          <MailPlus size={18} />
-          <span>New chat</span>
-        </button>
-      </aside>
-
-      <section className="messenger-list-pane">
-        <div className="messenger-list-header">
-          <h3>Chats</h3>
-          <div>
-            <button className="icon-btn" onClick={() => setShowNewChat(true)} title="New message" aria-label="New message"><MailPlus size={20} strokeWidth={1.5} aria-hidden="true" /></button>
-            <button className="icon-btn" onClick={() => setShowNewGroup(true)} title="New group" aria-label="New group"><UsersRound size={20} strokeWidth={1.5} aria-hidden="true" /></button>
+    <div className="cwschat messenger-page">
+      <div className="cwschat chat-shell">
+        <aside className="cwschat chat-sidebar">
+          <div className="cwschat sidebar-header">
+            <div className="cwschat brand-block">
+              <span className="cwschat brand-icon"><MessageSquareText size={18} /></span>
+              <span className="cwschat brand-name">CodeWithSiam</span>
+            </div>
+            <button type="button" className="cwschat ghost-button" aria-label="New chat" onClick={() => setNewChatOpen(true)}>
+              <Plus size={18} />
+            </button>
           </div>
-        </div>
-        <ConversationList activeId={convId} onSelect={(id) => navigate(`/messenger/${id}`)} />
-      </section>
 
-      <section className="messenger-chat-pane">
-        {convId ? (
-          <ChatWindow convId={convId} />
-        ) : (
-          <div className="chat-empty-state chat-window"><span className="chat-empty-icon"><MessageCircle size={38} /></span><h2>Select a conversation</h2><p>Choose a chat from the left to start messaging.</p><button className="btn btn-primary" type="button" onClick={() => navigate('/search')}>Find people</button></div>
-        )}
-      </section>
+          <div className="cwschat sidebar-profile">
+            <div className="cwschat profile-avatar-wrap">
+              {user?.photoURL ? (
+                <img src={user.photoURL} alt="Profile" className="cwschat profile-avatar" />
+              ) : (
+                <span className="cwschat profile-avatar fallback"><UserRound size={18} /></span>
+              )}
+            </div>
+            <div className="cwschat profile-meta">
+              <strong>{user?.displayName || 'Your chats'}</strong>
+              <span>Chat</span>
+            </div>
+          </div>
 
-      {showNewGroup && <NewGroupModal onClose={() => setShowNewGroup(false)} onCreated={(id) => { setShowNewGroup(false); navigate(`/messenger/${id}`); }} />}
-      {showNewChat && (
-        <div className="modal-overlay" onClick={() => setShowNewChat(false)}>
-          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-            <h3>New message</h3>
-            <UserSearchPicker onPick={startChatWith} excludeUids={[user?.uid]} />
-            <div className="modal-actions">
-              <button className="btn btn-ghost" onClick={() => setShowNewChat(false)}>Cancel</button>
+          <div className="cwschat sidebar-search">
+            <Search size={15} />
+            <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search chats" aria-label="Search chats" />
+          </div>
+
+          <ConversationList
+            chats={chats}
+            activeChatId={chatId}
+            currentUserUid={user?.uid}
+            usersMap={userMap}
+            onSelect={openChat}
+            onNewChat={() => setNewChatOpen(true)}
+          />
+        </aside>
+
+        <section className="cwschat chat-panel">
+          {activeChat ? (
+            <ChatWindow
+              chat={activeChat}
+              chatId={activeChat.id}
+              currentUser={user}
+              usersMap={userMap}
+              onBack={() => navigate('/messenger')}
+            />
+          ) : (
+            <div className="cwschat empty-chat-state">
+              <div className="cwschat empty-chat-badge">
+                <Sparkles size={28} />
+              </div>
+              <h2>CodeWithSiam Chat</h2>
+              <p>Choose a conversation to start messaging.</p>
+            </div>
+          )}
+        </section>
+      </div>
+
+      {newChatOpen && (
+        <div className="cwschat new-chat-overlay" onClick={() => setNewChatOpen(false)}>
+          <div className="cwschat new-chat-modal" onClick={(event) => event.stopPropagation()}>
+            <div className="cwschat modal-header">
+              <h3>New chat</h3>
+              <button type="button" className="cwschat close-button" aria-label="Close" onClick={() => setNewChatOpen(false)}>
+                <X size={17} />
+              </button>
+            </div>
+            <div className="cwschat modal-search">
+              <Search size={15} />
+              <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search people" aria-label="Search people" />
+            </div>
+            <div className="cwschat user-list">
+              {filteredUsers.length ? (
+                filteredUsers.map((person) => (
+                  <button key={person.id} type="button" className="cwschat user-row" onClick={() => createChat(person.id)}>
+                    <div className="cwschat user-avatar-wrap">
+                      {person.photoURL ? <img src={person.photoURL} alt="" className="cwschat user-avatar" /> : <span className="cwschat user-avatar fallback">{(person.displayName || person.id).slice(0, 1).toUpperCase()}</span>}
+                      {person.online && <span className="cwschat online-dot" />}
+                    </div>
+                    <div className="cwschat user-copy">
+                      <strong>{person.displayName || person.username || 'CodeWithSiam user'}</strong>
+                      <span>{person.online ? 'online' : 'offline'}</span>
+                    </div>
+                  </button>
+                ))
+              ) : (
+                <div className="cwschat empty-user-state">No people found.</div>
+              )}
             </div>
           </div>
         </div>

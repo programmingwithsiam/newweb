@@ -13,7 +13,7 @@ function loadFacebookSdk() {
     window.fbAsyncInit = () => {
       previousReady?.();
       if (window.FB) resolve(window.FB);
-      else reject(new Error('Facebook SDK did not initialize'));
+      else reject(new Error('Embedded video service did not initialize'));
     };
     if (existingScript) return;
 
@@ -23,7 +23,7 @@ function loadFacebookSdk() {
     script.defer = true;
     script.crossOrigin = 'anonymous';
     script.src = 'https://connect.facebook.net/en_US/sdk.js#xfbml=1&version=v25.0';
-    script.onerror = () => reject(new Error('Facebook embed could not load'));
+    script.onerror = () => reject(new Error('Embedded video could not load'));
     document.head.appendChild(script);
   });
 
@@ -63,9 +63,9 @@ export default function FacebookEmbed({ url }) {
   if (fallback) {
     return (
       <div className="facebook-embed facebook-embed-fallback">
-        <a href={url} target="_blank" rel="noreferrer" className="facebook-video-link" aria-label="Open Facebook video">
+        <a href={url} target="_blank" rel="noreferrer" className="facebook-video-link" aria-label="Open video">
           <span className="facebook-video-play">▶</span>
-          <span className="facebook-video-label">Open Facebook video</span>
+          <span className="facebook-video-label">Open video</span>
         </a>
       </div>
     );
