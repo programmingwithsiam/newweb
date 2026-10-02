@@ -4,6 +4,7 @@ import {
   collection,
   doc,
   getDoc,
+  limit,
   onSnapshot,
   orderBy,
   query,
@@ -30,6 +31,7 @@ export default function Messenger() {
   const [userList, setUserList] = useState([]);
   const [search, setSearch] = useState('');
   const [newChatOpen, setNewChatOpen] = useState(false);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     if (!user) return undefined;
@@ -89,14 +91,22 @@ export default function Messenger() {
       if (!chatId && next[0]) {
         navigate(`/messenger/${next[0].id}`, { replace: true });
       }
+    }, (chatError) => {
+      setError('Permission denied, check Firestore rules');
+      console.error('Chat listener failed', chatError);
     });
 
     return () => unsub();
   }, [user, chatId, navigate]);
 
   useEffect(() => {
-    const unsub = onSnapshot(collection(firestore, 'users'), (snapshot) => {
+    const usersQuery = query(collection(firestore, 'users'), limit(50));
+    const unsub = onSnapshot(usersQuery, (snapshot) => {
       setUserList(snapshot.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() })));
+      setError('');
+    }, (userError) => {
+      setError('Permission denied, check Firestore rules');
+      console.error('Users listener failed', userError);
     });
     return () => unsub();
   }, []);
@@ -107,11 +117,11 @@ export default function Messenger() {
 
   const filteredUsers = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return userList.filter((entry) => entry.id !== user?.uid);
     return userList.filter((entry) => {
       if (entry.id === user?.uid) return false;
-      const display = `${entry.displayName || ''} ${entry.username || ''}`.toLowerCase();
-      return display.includes(q);
+      const searchText = `${entry.displayName || ''} ${entry.username || ''} ${entry.searchName || ''} ${entry.email || ''}`.toLowerCase();
+      if (!q) return true;
+      return searchText.includes(q);
     });
   }, [search, user?.uid, userList]);
 
@@ -124,32 +134,43 @@ export default function Messenger() {
   async function createChat(targetUid) {
     if (!user || !targetUid || targetUid === user.uid) return;
 
-    const chatDocId = buildChatId(user.uid, targetUid);
-    const chatDocRef = doc(firestore, 'chats', chatDocId);
-    const chatSnap = await getDoc(chatDocRef);
+    try {
+      const chatDocId = buildChatId(user.uid, targetUid);
+      const chatDocRef = doc(firestore, 'chats', chatDocId);
+      const chatSnap = await getDoc(chatDocRef);
 
-    if (!chatSnap.exists()) {
-      await setDoc(chatDocRef, {
-        id: chatDocId,
-        members: [user.uid, targetUid],
-        unread: {
-          [user.uid]: 0,
-          [targetUid]: 0,
-        },
-        lastMessage: '',
-        lastMessageAt: serverTimestamp(),
-        createdAt: serverTimestamp(),
-      });
+      if (!chatSnap.exists()) {
+        await setDoc(chatDocRef, {
+          id: chatDocId,
+          members: [user.uid, targetUid],
+          unread: {
+            [user.uid]: 0,
+            [targetUid]: 0,
+          },
+          lastMessage: '',
+          lastMessageAt: serverTimestamp(),
+          createdAt: serverTimestamp(),
+        });
+      }
+
+      setError('');
+      setNewChatOpen(false);
+      navigate(`/messenger/${chatDocId}`);
+    } catch (chatError) {
+      console.error('Create chat failed', chatError);
+      setError('Permission denied, check Firestore rules');
     }
-
-    setNewChatOpen(false);
-    navigate(`/messenger/${chatDocId}`);
   }
 
   const activeChat = chats.find((chat) => chat.id === chatId) || null;
 
   return (
     <div className="cwschat messenger-page">
+      {error && (
+        <div className="cwschat chat-error-banner" role="alert">
+          {error}
+        </div>
+      )}
       <div className="cwschat chat-shell">
         <aside className="cwschat chat-sidebar">
           <div className="cwschat sidebar-header">

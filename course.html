@@ -19,7 +19,7 @@
   <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
   <link rel="apple-touch-icon" sizes="180x180" href="/assets/images/profile-siam-round.png?v=20260828">
   <link rel="manifest" href="/manifest.json">
-  <link rel="stylesheet" href="assets/css/style.css?v=20260824-payment-options-2">
+  <link rel="stylesheet" href="assets/css/style.css?v=20261002-mobile-player-13">
   <link rel="stylesheet" href="assets/css/course-learning.css">
   <style>
     .access-payment-panel,
@@ -2976,11 +2976,34 @@
       }
     }
   </style>
-  <link rel="stylesheet" href="assets/css/course-inspired-ui.css?v=20260915-action-box-1">
+  <link rel="stylesheet" href="assets/css/course-inspired-ui.css?v=20261002-mobile-split-1">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
 </head>
 
 <body class="course-learning-page">
+  <header id="mobileCourseTopbar" class="mobile-course-topbar">
+    <span class="mobile-course-menu-label">COURSE</span>
+    <button id="mobileCourseMenuButton" type="button" aria-label="Open course playlist"
+      aria-controls="mobileCourseOverlay" aria-expanded="false">
+      <span class="mobile-course-hamburger" aria-hidden="true"><span></span><span></span><span></span></span>
+    </button>
+  </header>
+  <section id="mobileCourseOverlay" class="mobile-course-overlay" role="dialog" aria-modal="true"
+    aria-labelledby="mobileCourseHeading" aria-hidden="true" inert>
+    <header class="mobile-course-overlay-header">
+      <span class="mobile-course-menu-label">COURSE</span>
+      <button id="mobileCourseCloseButton" type="button" aria-label="Close course playlist"><i class="fa-solid fa-xmark"
+          aria-hidden="true"></i></button>
+    </header>
+    <div class="mobile-course-summary">
+      <h1 id="mobileCourseHeading">Course</h1>
+      <div class="mobile-course-progress-label"><strong id="mobileCourseProgressText">0% COMPLETE</strong><span
+          id="mobileCourseProgressCount">0 / 0 lessons</span></div>
+      <div class="mobile-course-progress"><span id="mobileCourseProgressBar"></span></div>
+    </div>
+    <div id="mobileCourseLessonList" class="mobile-course-playlist"></div>
+  </section>
+
   <header class="learning-topbar">
     <a class="learning-brand" href="index.html"><img class="learning-brand-logo"
         src="assets/images/profile-siam-round.png" alt="CodeWithSiam logo"><span
@@ -3305,17 +3328,33 @@
     <section id="lessonPlayer" class="lesson-screen hidden">
       <div class="lesson-main">
         <div class="lesson-workspace-tools">
-          <div class="workspace-settings"><button type="button" class="workspace-settings-button"
-              id="workspaceSettingsButton" aria-expanded="false" aria-controls="workspaceSettingsMenu"><i
-                class="fa-solid fa-sliders"></i> Settings</button>
-            <div class="workspace-settings-menu" id="workspaceSettingsMenu" hidden><label
-                class="workspace-setting"><span>Show Sidebar</span><input type="checkbox" id="showSidebarToggle"
-                  checked></label><label class="workspace-setting"><span>Autoplay</span><input type="checkbox"
-                  id="autoplayToggle"></label><label class="workspace-setting"><span>Autocomplete</span><input
-                  type="checkbox" id="autocompleteToggle" checked></label></div>
+          <div class="player-toolbar-group">
+            <a class="mobile-player-action" href="index.html#course" aria-label="Back to courses" title="Courses"><i
+                class="fa-solid fa-house" aria-hidden="true"></i></a>
+            <div class="workspace-settings"><button type="button" class="workspace-settings-button"
+                id="workspaceSettingsButton" aria-label="Player settings" title="Settings" aria-expanded="false"
+                aria-controls="workspaceSettingsMenu"><i class="fa-solid fa-sliders" aria-hidden="true"></i><span
+                  class="workspace-settings-label">Settings</span></button>
+              <div class="workspace-settings-menu" id="workspaceSettingsMenu" hidden><label
+                  class="workspace-setting"><span>Show Sidebar</span><input type="checkbox" id="showSidebarToggle"
+                    checked></label><label class="workspace-setting"><span>Autoplay</span><input type="checkbox"
+                    id="autoplayToggle"></label><label class="workspace-setting"><span>Autocomplete</span><input
+                    type="checkbox" id="autocompleteToggle" checked></label></div>
+            </div>
+            <button id="mobilePlayerPlaylistButton" class="mobile-player-action" type="button"
+              aria-label="Toggle course playlist" title="Playlist" aria-expanded="true"><i class="fa-solid fa-list"
+                aria-hidden="true"></i></button>
+          </div>
+          <div class="player-toolbar-group">
+            <button id="mobilePlayerPreviousButton" class="mobile-player-action" type="button"
+              aria-label="Previous lesson" title="Previous lesson"><i class="fa-solid fa-chevron-left"
+                aria-hidden="true"></i></button>
+            <button id="mobilePlayerNextButton" class="mobile-player-action mobile-player-next-button" type="button"
+              aria-label="Next lesson" title="Next lesson"><i class="fa-solid fa-chevron-right"
+                aria-hidden="true"></i></button>
           </div>
         </div>
-        <div class="lesson-video-wrap"><iframe loading="lazy" id="lessonVideo" title="Course lesson video" tabindex="0"
+        <div class="lesson-video-wrap"><iframe loading="lazy" id="lessonVideo" title="Course lesson video" tabindex="-1"
             allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>
           <div class="youtube-click-shield left" aria-hidden="true"></div>
           <div class="youtube-click-shield right" aria-hidden="true"></div><video id="lessonMp4" controls playsinline
@@ -3391,7 +3430,7 @@
       });
     });
   </script>
-  <script type="module" src="assets/js/course-learning.js?v=20261001-auth-flow-1"></script>
+  <script type="module" src="assets/js/course-learning.js?v=20261002-mobile-player-7"></script>
 </body>
 
 </html>

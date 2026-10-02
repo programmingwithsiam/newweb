@@ -18,7 +18,7 @@ export default function AppLayout() {
     <div className="app-shell">
       <Navbar onMenu={() => setMobileNavOpen(true)} />
       <div className={`app-body${isMessengerRoute ? ' messenger-layout' : ''}`}>
-        <Sidebar mobileOpen={mobileNavOpen} onClose={() => setMobileNavOpen(false)} />
+        {!isMessengerRoute && <Sidebar mobileOpen={mobileNavOpen} onClose={() => setMobileNavOpen(false)} />}
         <main className="app-main">
           <Outlet />
         </main>
@@ -74,7 +74,7 @@ export default function AppLayout() {
           </div>
         )}
       </div>
-      <BottomNav onMenu={() => setMobileNavOpen(true)} />
+      {!isMessengerRoute && <BottomNav onMenu={() => setMobileNavOpen(true)} />}
     </div>
   );
 }

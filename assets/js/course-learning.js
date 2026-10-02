@@ -20,6 +20,105 @@ const workspaceSettings = (() => {
 })();
 
 const $ = id => document.getElementById(id);
+const mobileCourseMedia = window.matchMedia('(max-width: 768px)');
+let mobileCourseOverlayOpen = false;
+let mobileCourseHistoryEntry = false;
+let mobileCourseAutoOpened = false;
+let previousBodyOverflow = '';
+
+function setMobileCourseOverlayVisible(isOpen) {
+  const overlay = $('mobileCourseOverlay');
+  if (!overlay) return;
+  mobileCourseOverlayOpen = isOpen;
+  overlay.classList.toggle('is-open', isOpen);
+  overlay.setAttribute('aria-hidden', String(!isOpen));
+  overlay.inert = !isOpen;
+  $('mobileCourseMenuButton')?.setAttribute('aria-expanded', String(isOpen));
+  $('mobilePlayerPlaylistButton')?.setAttribute('aria-expanded', String(isOpen));
+  if (isOpen) {
+    previousBodyOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+  } else {
+    document.body.style.overflow = previousBodyOverflow;
+  }
+}
+
+function openMobileCourseOverlay() {
+  if (!mobileCourseMedia.matches || !course || mobileCourseOverlayOpen) return;
+  const state = history.state && typeof history.state === 'object' ? history.state : {};
+  history.pushState({ ...state, mobileCoursePlaylistOpen: true }, '', location.href);
+  mobileCourseHistoryEntry = true;
+  setMobileCourseOverlayVisible(true);
+  $('mobileCourseCloseButton')?.focus({ preventScroll: true });
+}
+
+function closeMobileCourseOverlay({ fromPopstate = false, force = false } = {}) {
+  if (!mobileCourseOverlayOpen) return;
+  if (mobileCourseHistoryEntry && !fromPopstate && !force) {
+    history.back();
+    return;
+  }
+  if (force && mobileCourseHistoryEntry) {
+    const state = history.state && typeof history.state === 'object' ? history.state : {};
+    history.replaceState({ ...state, mobileCoursePlaylistOpen: false }, '', location.href);
+  }
+  mobileCourseHistoryEntry = false;
+  setMobileCourseOverlayVisible(false);
+}
+
+function replaceMobileOverlayRoute(nextUrl) {
+  const state = history.state && typeof history.state === 'object' ? history.state : {};
+  history.replaceState({ ...state, mobileCoursePlaylistOpen: false }, '', nextUrl);
+  mobileCourseHistoryEntry = false;
+  setMobileCourseOverlayVisible(false);
+}
+
+function updateMobileCoursePlaylist() {
+  if (!course) return;
+  $('mobileCourseHeading').textContent = course.title || 'Course';
+  const total = Number(course.totalLessonCount || lessons.length || 0);
+  $('mobileCourseProgressText').textContent = `${percent()}% COMPLETE`;
+  $('mobileCourseProgressCount').textContent = `${completed().size} / ${total} lessons`;
+  $('mobileCourseProgressBar').style.width = `${percent()}%`;
+  playlist($('mobileCourseLessonList'), true, true);
+}
+
+function syncMobileCourseExperience() {
+  if (!mobileCourseMedia.matches) {
+    closeMobileCourseOverlay({ force: true });
+    return;
+  }
+  updateMobileCoursePlaylist();
+  if (!mobileCourseAutoOpened) {
+    mobileCourseAutoOpened = true;
+    openMobileCourseOverlay();
+  }
+}
+
+$('mobileCourseMenuButton')?.addEventListener('click', openMobileCourseOverlay);
+$('mobileCourseCloseButton')?.addEventListener('click', () => closeMobileCourseOverlay());
+
+function togglePlayerPlaylist() {
+  if (mobileCourseMedia.matches) {
+    openMobileCourseOverlay();
+    return;
+  }
+  const screen = $('lessonPlayer');
+  workspaceSettings.showSidebar = screen.classList.contains('sidebar-hidden');
+  screen.classList.toggle('sidebar-hidden', !workspaceSettings.showSidebar);
+  $('showSidebarToggle').checked = workspaceSettings.showSidebar;
+  $('mobilePlayerPlaylistButton').setAttribute('aria-expanded', String(workspaceSettings.showSidebar));
+  localStorage.setItem(workspaceSettingsKey, JSON.stringify(workspaceSettings));
+}
+
+$('mobilePlayerPlaylistButton')?.addEventListener('click', togglePlayerPlaylist);
+$('mobilePlayerPreviousButton')?.addEventListener('click', () => $('previousLesson')?.click());
+$('mobilePlayerNextButton')?.addEventListener('click', () => $('nextLesson')?.click());
+mobileCourseMedia.addEventListener('change', event => {
+  if (event.matches) syncMobileCourseExperience();
+  else closeMobileCourseOverlay({ force: true });
+});
+
 function withTimeout(promise, milliseconds = 15000) {
   let timer;
   const timeout = new Promise((_, reject) => {
@@ -64,13 +163,16 @@ const route = lessonId => lessonId
   : `course.html?course=${encodeURIComponent(course.id)}`;
 function go(lessonId = '') {
   const lesson = lessons.find(item => item.id === lessonId);
+  const selectingFromOverlay = mobileCourseOverlayOpen && mobileCourseMedia.matches;
   if (lessonId && lesson && !hasLessonAccess(lesson)) {
-    history.pushState({}, '', route(lessonId));
+    if (selectingFromOverlay) replaceMobileOverlayRoute(route(lessonId));
+    else history.pushState({}, '', route(lessonId));
     selectedLessonId = lessonId;
     renderLockedLesson(lesson);
     return;
   }
-  history.pushState({}, '', route(lessonId));
+  if (selectingFromOverlay) replaceMobileOverlayRoute(route(lessonId));
+  else history.pushState({}, '', route(lessonId));
   selectedLessonId = lessonId || null;
   render();
   if (lessonId) window.setTimeout(() => $('lessonVideo')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 0);
@@ -407,7 +509,7 @@ function ensureLessonVideoFrame() {
   frame.id = 'lessonVideo';
   frame.loading = 'lazy';
   frame.title = 'Course lesson video';
-  frame.tabIndex = 0;
+  frame.tabIndex = -1;
   frame.allow = 'autoplay; encrypted-media; picture-in-picture';
   frame.allowFullscreen = true;
   wrap.prepend(frame);
@@ -416,10 +518,12 @@ function ensureLessonVideoFrame() {
 function setProgress() {
   const total = Number(course?.totalLessonCount || lessons.length || 0);
   const value = total ? Math.round((completed().size / total) * 100) : 0;
-  ['overviewProgressBar', 'sidebarProgressBar'].forEach(id => { if ($(id)) $(id).style.width = `${value}%`; });
+  ['overviewProgressBar', 'sidebarProgressBar', 'mobileCourseProgressBar'].forEach(id => { if ($(id)) $(id).style.width = `${value}%`; });
   if ($('overviewProgressText')) $('overviewProgressText').textContent = `${value}% COMPLETE`;
   if ($('sidebarProgressText')) $('sidebarProgressText').textContent = `${value}% COMPLETE`;
   if ($('sidebarProgressCount')) $('sidebarProgressCount').textContent = `${completed().size} / ${total} lessons`;
+  if ($('mobileCourseProgressText')) $('mobileCourseProgressText').textContent = `${value}% COMPLETE`;
+  if ($('mobileCourseProgressCount')) $('mobileCourseProgressCount').textContent = `${completed().size} / ${total} lessons`;
 }
 function renderLockedLesson(lesson = currentLesson()) {
   $('learningLoading').classList.add('hidden');
@@ -459,6 +563,7 @@ function setupWorkspaceSettings() {
   const update = () => {
     screen.classList.toggle('sidebar-hidden', !workspaceSettings.showSidebar);
     sidebarToggle.checked = workspaceSettings.showSidebar;
+    $('mobilePlayerPlaylistButton')?.setAttribute('aria-expanded', String(workspaceSettings.showSidebar));
     autoplayToggle.checked = workspaceSettings.autoplay;
     autocompleteToggle.checked = workspaceSettings.autocomplete;
   };
@@ -469,10 +574,49 @@ function setupWorkspaceSettings() {
   autocompleteToggle.addEventListener('change', () => { workspaceSettings.autocomplete = autocompleteToggle.checked; save(); });
   update();
 }
-function playlist(target, compact = false) {
+function formatModuleDuration(groupLessons) {
+  const totalMinutes = groupLessons.reduce((total, lesson) => {
+    const duration = String(lesson.duration || '').trim().toLowerCase();
+    const clock = duration.match(/^(\d+):(\d{2})$/);
+    if (clock) return total + Number(clock[1]) + Number(clock[2]) / 60;
+    const minutes = duration.match(/(\d+(?:\.\d+)?)\s*(?:m|min|mins|minute|minutes)\b/);
+    if (minutes) return total + Number(minutes[1]);
+    const seconds = duration.match(/(\d+(?:\.\d+)?)\s*(?:s|sec|secs|second|seconds)\b/);
+    return seconds ? total + Number(seconds[1]) / 60 : total;
+  }, 0);
+  return totalMinutes ? `${Math.max(1, Math.round(totalMinutes))}m` : '';
+}
+
+function playlist(target, compact = false, mobileOverlay = false) {
   const groups = new Map();
   lessons.forEach(lesson => { if (!groups.has(lesson.moduleId)) groups.set(lesson.moduleId, { title: lesson.moduleTitle, lessons: [] }); groups.get(lesson.moduleId).lessons.push(lesson); });
-  target.innerHTML = [...groups.values()].map(group => `<section class="module-block"><div class="module-title">${group.title || 'Course Content'}</div>${group.lessons.map((lesson, index) => { const isComplete = completed().has(lesson.id); const isCurrent = lesson.id === selectedLessonId; const unlocked = hasLessonAccess(lesson); const action = unlocked ? (hasCourseAccess() ? (isComplete ? 'Review' : 'Start') : 'Start') : (course?.accessStatus === 'pending' ? 'Enrollment Pending' : 'Locked'); const state = isComplete ? '<i class="fa-solid fa-check" aria-hidden="true"></i>' : unlocked ? (isCurrent ? '<i class="fa-solid fa-play" aria-hidden="true"></i>' : '<i class="fa-regular fa-circle" aria-hidden="true"></i>') : '<i class="fa-solid fa-lock" aria-hidden="true"></i>'; return `<button class="lesson-row ${isCurrent ? 'current' : ''} ${isComplete ? 'complete' : ''} ${unlocked ? '' : 'is-locked'}" data-lesson-id="${lesson.id}" type="button"><span class="lesson-state">${state}</span><span class="lesson-row-title">${index + 1}. ${lesson.title}</span><span class="lesson-row-meta"><span>${lesson.duration || '0 min'}</span><span class="lesson-row-action">${action}</span></span></button>`; }).join('')}</section>`).join('');
+  target.innerHTML = [...groups.values()].map((group, groupIndex) => {
+    const rows = group.lessons.map((lesson, index) => {
+      const isComplete = completed().has(lesson.id);
+      const isCurrent = lesson.id === selectedLessonId;
+      const unlocked = hasLessonAccess(lesson);
+      const action = unlocked ? (hasCourseAccess() ? (isComplete ? 'Review' : 'Start') : 'Start') : (course?.accessStatus === 'pending' ? 'Enrollment Pending' : 'Locked');
+      const state = isComplete ? '<i class="fa-solid fa-check" aria-hidden="true"></i>' : unlocked ? (isCurrent ? '<i class="fa-solid fa-play" aria-hidden="true"></i>' : '<i class="fa-regular fa-circle" aria-hidden="true"></i>') : '<i class="fa-solid fa-lock" aria-hidden="true"></i>';
+      if (mobileOverlay) {
+        return `<div class="lesson-row mobile-course-lesson-row ${isCurrent ? 'current' : ''} ${isComplete ? 'complete' : ''} ${unlocked ? '' : 'is-locked'}"><button class="mobile-course-lesson-open" data-lesson-id="${lesson.id}" type="button"><span class="lesson-state">${state}</span><span class="mobile-course-lesson-copy"><span class="lesson-row-title">${index + 1}. ${lesson.title}</span><small class="mobile-course-lesson-duration">(${lesson.duration || '0 min'})</small></span></button><button class="mobile-course-lesson-action" data-lesson-id="${lesson.id}" type="button">${action}</button></div>`;
+      }
+      return `<button class="lesson-row ${isCurrent ? 'current' : ''} ${isComplete ? 'complete' : ''} ${unlocked ? '' : 'is-locked'}" data-lesson-id="${lesson.id}" type="button"><span class="lesson-state">${state}</span><span class="lesson-row-title">${index + 1}. ${lesson.title}</span><span class="lesson-row-meta"><span>${lesson.duration || '0 min'}</span><span class="lesson-row-action">${action}</span></span></button>`;
+    }).join('');
+
+    if (mobileOverlay) {
+      const completeCount = group.lessons.filter(lesson => completed().has(lesson.id)).length;
+      const sectionId = `mobile-course-module-${groupIndex}`;
+      const duration = formatModuleDuration(group.lessons);
+      return `<section class="module-block mobile-course-module"><button class="module-title mobile-course-module-toggle" data-module-toggle type="button" aria-expanded="true" aria-controls="${sectionId}"><span class="mobile-course-module-heading"><strong>${group.title || 'Course Content'}</strong>${duration ? `<small>(${duration})</small>` : ''}</span><span class="mobile-course-module-progress"><i class="fa-solid fa-check" aria-hidden="true"></i>${completeCount} / ${group.lessons.length} complete</span><i class="fa-solid fa-chevron-up mobile-course-module-chevron" aria-hidden="true"></i></button><div class="mobile-course-module-lessons" id="${sectionId}">${rows}</div></section>`;
+    }
+
+    return `<section class="module-block"><div class="module-title">${group.title || 'Course Content'}</div>${rows}</section>`;
+  }).join('');
+  target.querySelectorAll('[data-module-toggle]').forEach(button => button.addEventListener('click', () => {
+    const section = button.closest('.mobile-course-module');
+    const collapsed = section.classList.toggle('is-collapsed');
+    button.setAttribute('aria-expanded', String(!collapsed));
+  }));
   target.querySelectorAll('[data-lesson-id]').forEach(button => button.addEventListener('click', () => go(button.dataset.lessonId)));
 }
 function renderOverview() {
@@ -717,8 +861,11 @@ function renderPlayer() {
     $('lessonVideo').addEventListener('dblclick', event => enterFullscreen(event));
     $('lessonMp4').addEventListener('dblclick', event => enterFullscreen(event));
   }
-  $('previousLesson').disabled = lessons.indexOf(lesson) === 0;
-  $('nextLesson').disabled = lessons.indexOf(lesson) === lessons.length - 1;
+  const lessonIndex = lessons.indexOf(lesson);
+  $('previousLesson').disabled = lessonIndex === 0;
+  $('nextLesson').disabled = lessonIndex === lessons.length - 1;
+  $('mobilePlayerPreviousButton').disabled = lessonIndex === 0;
+  $('mobilePlayerNextButton').disabled = lessonIndex === lessons.length - 1;
   $('previousLesson').onclick = () => go(lessons[lessons.indexOf(lesson) - 1]?.id);
   $('nextLesson').onclick = () => go(lessons[lessons.indexOf(lesson) + 1]?.id);
   $('completeLesson').textContent = completed().has(lesson.id) ? 'Completed' : 'Complete and Continue';
@@ -728,6 +875,11 @@ function renderPlayer() {
   setProgress();
 }
 document.addEventListener('keydown', event => {
+  if (event.key === 'Escape' && mobileCourseOverlayOpen) {
+    event.preventDefault();
+    closeMobileCourseOverlay();
+    return;
+  }
   if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return;
   const video = $('lessonMp4');
   const usingMp4 = video && !video.classList.contains('hidden');
@@ -755,12 +907,14 @@ function render() {
   const routedLesson = currentLesson();
   if (hasLessonRoute && routedLesson && !hasLessonAccess(routedLesson)) {
     renderLockedLesson(routedLesson);
+    syncMobileCourseExperience();
     return;
   }
   $('lessonLocked').classList.add('hidden');
   $('courseOverview').classList.toggle('hidden', hasLessonRoute);
   $('lessonPlayer').classList.toggle('hidden', !hasLessonRoute);
   if (hasLessonRoute) renderPlayer(); else renderOverview();
+  syncMobileCourseExperience();
   document.title = `${course.title} | CodeWithSiam`;
   const description = document.querySelector('meta[name="description"]');
   if (description) description.content = course.description || `Learn ${course.title} with CodeWithSiam video lessons.`;
@@ -861,6 +1015,11 @@ async function compressPaymentScreenshot(file) {
   });
 }
 window.addEventListener('popstate', () => {
+  if (mobileCourseOverlayOpen) {
+    mobileCourseHistoryEntry = false;
+    setMobileCourseOverlayVisible(false);
+    return;
+  }
   const nextParams = new URLSearchParams(location.search);
   const nextPrettyPath = location.pathname.match(/^\/courses\/([^/]+)(?:\/lectures\/([^/]+))?\/?$/);
   selectedLessonId = nextParams.get('lesson') || nextPrettyPath?.[2] || null;

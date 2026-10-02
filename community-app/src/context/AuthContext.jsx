@@ -14,7 +14,8 @@ import {
   updatePassword
 } from 'firebase/auth';
 import { ref, set, get, onDisconnect, onValue, serverTimestamp, update, runTransaction } from 'firebase/database';
-import { auth, db, googleProvider } from '../firebase/config';
+import { doc, setDoc } from 'firebase/firestore';
+import { auth, db, firestore, googleProvider } from '../firebase/config';
 import { usernameToKey, validateUsername } from '../utils/helpers';
 
 function authApiBaseUrl() {
@@ -52,6 +53,35 @@ async function registrationRequest(path, payload) {
 
 const AuthContext = createContext(null);
 
+async function syncFirestoreUserProfile(fbUser, extra = {}) {
+  if (!fbUser?.uid) return;
+  const displayName = extra.displayName || fbUser.displayName || fbUser.email?.split('@')[0] || 'CodeWithSiam user';
+  const normalizedName = String(displayName || 'CodeWithSiam user').trim();
+  const searchName = normalizedName.toLowerCase();
+  const profileDoc = {
+    uid: fbUser.uid,
+    displayName: normalizedName,
+    photoURL: fbUser.photoURL || extra.photoURL || '',
+    email: fbUser.email || extra.email || '',
+    username: extra.username || '',
+    searchName,
+    online: true,
+    lastSeen: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  };
+
+  await setDoc(doc(firestore, 'users', fbUser.uid), profileDoc, { merge: true }).catch(() => undefined);
+}
+
+async function setFirestorePresence(uid, online) {
+  if (!uid) return;
+  await setDoc(doc(firestore, 'users', uid), {
+    online,
+    lastSeen: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  }, { merge: true }).catch(() => undefined);
+}
+
 export function useAuth() {
   return useContext(AuthContext);
 }
@@ -65,9 +95,12 @@ export function AuthProvider({ children }) {
 
   // Track auth state and mirror the user's own profile doc in real time.
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (fbUser) => {
-      const isVerified = fbUser?.emailVerified || fbUser?.providerData.some((provider) => provider.providerId === 'google.com');
+    const unsub = onAuthStateChanged(auth, async (fbUser) => {
+      const isVerified = fbUser?.emailVerified || fbUser?.providerData?.some((provider) => provider.providerId === 'google.com');
       setUser(isVerified ? fbUser : null);
+      if (isVerified && fbUser) {
+        await syncFirestoreUserProfile(fbUser);
+      }
       setLoading(false);
       if (!isVerified) {
         setProfile(null);
@@ -124,6 +157,25 @@ export function AuthProvider({ children }) {
     return unsub;
   }, [user]);
 
+  useEffect(() => {
+    if (!user?.uid) return undefined;
+
+    const syncOnlineState = () => {
+      const isVisible = document.visibilityState !== 'hidden';
+      setFirestorePresence(user.uid, isVisible);
+    };
+
+    syncOnlineState();
+    document.addEventListener('visibilitychange', syncOnlineState);
+    window.addEventListener('beforeunload', () => setFirestorePresence(user.uid, false));
+
+    return () => {
+      document.removeEventListener('visibilitychange', syncOnlineState);
+      window.removeEventListener('beforeunload', () => setFirestorePresence(user.uid, false));
+      setFirestorePresence(user.uid, false);
+    };
+  }, [user?.uid]);
+
   async function createProfileIfMissing(fbUser, extra = {}) {
     if (!fbUser.emailVerified && !fbUser.providerData.some((provider) => provider.providerId === 'google.com')) return;
     const userRef = ref(db, `users/${fbUser.uid}`);
@@ -167,6 +219,7 @@ export function AuthProvider({ children }) {
     // Email lives under a private subpath only the owner can read - it's
     // never needed for the public-facing directory/search features.
     await set(ref(db, `users/${fbUser.uid}/private/email`), fbUser.email || '');
+    await syncFirestoreUserProfile(fbUser, { username });
   }
 
   async function signup({ email, password, fullName, username }) {

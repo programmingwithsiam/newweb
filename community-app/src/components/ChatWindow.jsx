@@ -46,7 +46,7 @@ function formatDayChip(value) {
   return new Intl.DateTimeFormat('en', { month: 'short', day: 'numeric' }).format(date);
 }
 
-export default function ChatWindow({ chat, chatId, currentUser, usersMap, onBack }) {
+export default function ChatWindow({ chat, chatId, currentUser, usersMap, onBack, compact = false, onClose, onMinimize }) {
   const navigate = useNavigate();
   const { showToast } = useToast();
   const [messages, setMessages] = useState([]);
@@ -67,6 +67,25 @@ export default function ChatWindow({ chat, chatId, currentUser, usersMap, onBack
   }, [chat, currentUser]);
 
   const peerUser = peerUid ? usersMap?.[peerUid] || null : null;
+
+  useEffect(() => {
+    if (!chatId || !currentUser || !peerUid) return undefined;
+    const unseenRef = doc(firestore, 'chats', chatId);
+    const updateSeenState = async () => {
+      try {
+        await updateDoc(unseenRef, {
+          unread: {
+            ...(chat?.unread || {}),
+            [currentUser.uid]: 0,
+          },
+        });
+      } catch {
+        // ignore Firestore write errors here; the UI already surfaces any permission issue.
+      }
+    };
+    updateSeenState();
+    return undefined;
+  }, [chatId, currentUser, peerUid, chat?.unread]);
 
   useEffect(() => {
     if (!chatId) return undefined;
@@ -156,37 +175,62 @@ export default function ChatWindow({ chat, chatId, currentUser, usersMap, onBack
     const file = event.target.files?.[0];
     if (!file || !chatId || !currentUser) return;
 
-    const limit = 1_000_000;
-    if (file.size > limit) {
-      showToast('Image is too large. Please send a file under 1MB.', 'error');
+    if (!file.type.startsWith('image/')) {
+      showToast('Choose a valid image file.', 'error');
       event.target.value = '';
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = async () => {
-      try {
-        const messageRef = doc(collection(firestore, 'chats', chatId, 'messages'));
-        await setDoc(messageRef, {
-          senderId: currentUser.uid,
-          text: '',
-          imageData: String(reader.result || ''),
-          createdAt: serverTimestamp(),
-          status: 'sent',
-        });
-        const nextUnread = { ...(chat?.unread || {}), [currentUser.uid]: 0 };
-        if (peerUid) nextUnread[peerUid] = Number(nextUnread[peerUid] || 0) + 1;
-        await updateDoc(doc(firestore, 'chats', chatId), {
-          lastMessage: 'Image',
-          lastMessageAt: serverTimestamp(),
-          unread: nextUnread,
-        });
-      } catch (error) {
-        showToast('Image failed to send.', 'error');
+    try {
+      const bitmap = await createImageBitmap(file);
+      const scale = Math.min(1, 1600 / Math.max(bitmap.width, bitmap.height));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+      canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+      const context = canvas.getContext('2d');
+      if (!context) throw new Error('Image processing is unavailable.');
+      context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+      bitmap.close();
+
+      let quality = 0.82;
+      let blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', quality));
+      while (blob && blob.size > 650_000 && quality > 0.4) {
+        quality -= 0.12;
+        blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', quality));
       }
-    };
-    reader.readAsDataURL(file);
-    event.target.value = '';
+      if (!blob || blob.size > 650_000) {
+        throw new Error('Image is too large to send. Choose a smaller image.');
+      }
+
+      const imageData = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result || ''));
+        reader.onerror = () => reject(new Error('Could not read the selected image.'));
+        reader.readAsDataURL(blob);
+      });
+
+      const messageRef = doc(collection(firestore, 'chats', chatId, 'messages'));
+      await setDoc(messageRef, {
+        senderId: currentUser.uid,
+        text: '',
+        imageData,
+        createdAt: serverTimestamp(),
+        status: 'sent',
+      });
+      const nextUnread = { ...(chat?.unread || {}), [currentUser.uid]: 0 };
+      if (peerUid) nextUnread[peerUid] = Number(nextUnread[peerUid] || 0) + 1;
+      await updateDoc(doc(firestore, 'chats', chatId), {
+        lastMessage: 'Image',
+        lastMessageAt: serverTimestamp(),
+        unread: nextUnread,
+      });
+      showToast('Image sent.', 'success');
+    } catch (error) {
+      console.error('Image upload failed', error);
+      showToast(error.message || 'Image failed to send. Check your connection and try again.', 'error');
+    } finally {
+      event.target.value = '';
+    }
   }
 
   async function handleDelete(messageId, mode) {
@@ -219,12 +263,14 @@ export default function ChatWindow({ chat, chatId, currentUser, usersMap, onBack
   const loadMore = () => setMessageLimit((count) => count + 30);
 
   return (
-    <div className="cwschat chat-window-wrap">
+    <div className={`cwschat chat-window-wrap${compact ? ' compact' : ''}`}>
       <header className="cwschat chat-header">
         <div className="cwschat header-left">
-          <button type="button" className="cwschat back-button" onClick={onBack} aria-label="Back to list">
-            <ArrowLeft size={18} />
-          </button>
+          {!compact && onBack && (
+            <button type="button" className="cwschat back-button" onClick={onBack} aria-label="Back to list">
+              <ArrowLeft size={18} />
+            </button>
+          )}
           <div className="cwschat header-avatar-wrap">
             {peerUser?.photoURL ? (
               <img src={peerUser.photoURL} alt="" className="cwschat header-avatar" />
@@ -235,9 +281,20 @@ export default function ChatWindow({ chat, chatId, currentUser, usersMap, onBack
           </div>
           <div className="cwschat header-identify">
             <strong>{peerUser?.displayName || 'CodeWithSiam user'}</strong>
-            <span>{typing ? 'typing...' : peerUser?.online ? 'online' : 'offline'}</span>
+            <span>{typing ? 'typing...' : peerUser?.online ? 'Active now' : 'Last seen recently'}</span>
           </div>
         </div>
+
+        {compact && (
+          <div className="cwschat compact-tools">
+            <button type="button" className="cwschat tool-button" aria-label="Minimize chat" onClick={onMinimize}>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 12h12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
+            </button>
+            <button type="button" className="cwschat tool-button" aria-label="Close chat" onClick={onClose}>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
+            </button>
+          </div>
+        )}
       </header>
 
       <div className="cwschat chat-body" ref={scrollRef}>

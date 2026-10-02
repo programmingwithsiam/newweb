@@ -6,7 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { extractHashtags, isValidVideoUrl, getEmbedUrl, getEmbedProvider, isFacebookReelUrl } from '../utils/helpers';
 import FacebookEmbed from './FacebookEmbed';
-import { Camera, Image, MessageSquareText, Smile, UsersRound, X } from 'lucide-react';
+import { Camera, Image, MessageSquareText, Smile, UsersRound, Video, X } from 'lucide-react';
 
 function withTimeout(promise, message, milliseconds = 12000) {
   let timer;
@@ -25,6 +25,15 @@ export default function CreatePost({ onPosted }) {
   const [privacy, setPrivacy] = useState('public');
   const [busy, setBusy] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const [showVideoInput, setShowVideoInput] = useState(false);
+
+  function toggleVideoInput() {
+    setShowVideoInput((current) => {
+      const next = !current;
+      if (!next) setVideoUrl('');
+      return next;
+    });
+  }
 
   function handleFiles(e) {
     const list = Array.from(e.target.files || []).slice(0, 10);
@@ -86,6 +95,7 @@ export default function CreatePost({ onPosted }) {
       setText('');
       setFiles([]);
       setVideoUrl('');
+      setShowVideoInput(false);
       showToast('Posted!', 'success');
       onPosted?.();
     } catch (err) {
@@ -128,6 +138,9 @@ export default function CreatePost({ onPosted }) {
             <Image size={17} strokeWidth={1.8} aria-hidden="true" />
             <input type="file" accept="image/*" multiple hidden onChange={handleFiles} />
           </label>
+          <button className={`composer-tool${showVideoInput ? ' is-active' : ''}`} type="button" title="Add Facebook or YouTube video link" aria-label="Add Facebook or YouTube video link" onClick={toggleVideoInput}>
+            <Video size={17} strokeWidth={1.8} aria-hidden="true" />
+          </button>
           <button className="composer-tool" type="button" title="Camera" aria-label="Camera">
             <Camera size={17} strokeWidth={1.8} aria-hidden="true" />
           </button>
@@ -148,12 +161,21 @@ export default function CreatePost({ onPosted }) {
         </div>
       )}
 
-      <input
-        className="video-input"
-        value={videoUrl}
-        onChange={(e) => setVideoUrl(e.target.value)}
-        placeholder="Paste a social media or video link (optional)"
-      />
+      {showVideoInput && (
+        <div className="composer-video-link-row">
+          <input
+            className={`video-input${showVideoInput ? ' is-visible' : ''}`}
+            value={videoUrl}
+            onChange={(e) => setVideoUrl(e.target.value)}
+            placeholder="Paste a Facebook or YouTube video link"
+          />
+          {videoUrl.trim() && (
+            <button type="button" className="composer-video-clear" onClick={() => setVideoUrl('')}>
+              Clear
+            </button>
+          )}
+        </div>
+      )}
       {embedPreview && (
         <div className={`post-video preview${embedPreviewProvider === 'facebook' ? ' is-facebook' : ''}${isFacebookReelUrl(videoUrl.trim()) ? ' is-facebook-reel' : ''}`}>
           {embedPreviewProvider === 'facebook' ? (
@@ -223,10 +245,29 @@ export default function CreatePost({ onPosted }) {
                 <Image size={18} strokeWidth={1.9} aria-hidden="true" />
                 <input type="file" accept="image/*" multiple hidden onChange={handleFiles} />
               </label>
+              <button type="button" className={`composer-modal-mini-btn${showVideoInput ? ' is-active' : ''}`} aria-label="Add Facebook or YouTube video link" onClick={() => toggleVideoInput()}>
+                <Video size={18} strokeWidth={1.9} aria-hidden="true" />
+              </button>
               <button type="button" className="composer-modal-mini-btn" aria-label="Add feeling" onClick={() => document.querySelector('.composer-modal-textarea')?.focus()}>
                 <Smile size={18} strokeWidth={1.9} aria-hidden="true" />
               </button>
             </div>
+
+            {showVideoInput && (
+              <div className="composer-video-link-row modal-video-link-row">
+                <input
+                  className={`video-input${showVideoInput ? ' is-visible' : ''}`}
+                  value={videoUrl}
+                  onChange={(e) => setVideoUrl(e.target.value)}
+                  placeholder="Paste a Facebook or YouTube video link"
+                />
+                {videoUrl.trim() && (
+                  <button type="button" className="composer-video-clear" onClick={() => setVideoUrl('')}>
+                    Clear
+                  </button>
+                )}
+              </div>
+            )}
 
             {files.length > 0 && (
               <div className="create-post-previews modal-preview-grid">
@@ -243,6 +284,7 @@ export default function CreatePost({ onPosted }) {
                   <Image size={17} strokeWidth={1.8} aria-hidden="true" />
                   <input type="file" accept="image/*" multiple hidden onChange={handleFiles} />
                 </label>
+                <button type="button" className={`composer-tool${showVideoInput ? ' is-active' : ''}`} aria-label="Add Facebook or YouTube video link" onClick={toggleVideoInput}><Video size={17} strokeWidth={1.8} aria-hidden="true" /></button>
                 <button type="button" className="composer-tool" aria-label="Camera" onClick={() => document.querySelector('.composer-modal-textarea')?.focus()}><Camera size={17} strokeWidth={1.8} aria-hidden="true" /></button>
                 <button type="button" className="composer-tool" aria-label="Feeling" onClick={() => document.querySelector('.composer-modal-textarea')?.focus()}><Smile size={17} strokeWidth={1.8} aria-hidden="true" /></button>
               </div>
