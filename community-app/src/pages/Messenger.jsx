@@ -13,14 +13,14 @@ import {
   ArrowLeft,
   Bell,
   ChevronDown,
+  Ellipsis,
   Image as ImageIcon,
   LoaderCircle,
   LockKeyhole,
   MessageSquareText,
-  Palette,
-  Plus,
   Search,
-  UserRound,
+  SquarePen,
+  X,
 } from 'lucide-react';
 import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
@@ -33,7 +33,7 @@ import {
 } from '../utils/chatService';
 import ConversationList from '../components/ConversationList';
 import ChatWindow from '../components/ChatWindow';
-import '../styles/messenger.css';
+import '../styles/Messenger.css';
 
 export default function Messenger() {
   const { convId } = useParams();
@@ -53,11 +53,13 @@ export default function Messenger() {
   const [directProfile, setDirectProfile] = useState(null);
   const [people, setPeople] = useState([]);
   const [search, setSearch] = useState('');
+  const [activeFilter, setActiveFilter] = useState('all');
   const [peopleLoading, setPeopleLoading] = useState(false);
   const [error, setError] = useState('');
   const [peopleError, setPeopleError] = useState('');
   const [requestedConversationError, setRequestedConversationError] = useState('');
   const [requestedChatRetry, setRequestedChatRetry] = useState(0);
+  const [infoOpen, setInfoOpen] = useState(false);
   const chatsRef = useRef(chats);
   const conversationLoadVersion = useRef(0);
   const searchRef = useRef(null);
@@ -88,6 +90,10 @@ export default function Messenger() {
   useEffect(() => {
     chatsRef.current = chats;
   }, [chats]);
+
+  useEffect(() => {
+    setInfoOpen(false);
+  }, [convId]);
 
   useEffect(() => {
     const loadVersion = ++conversationLoadVersion.current;
@@ -199,6 +205,15 @@ export default function Messenger() {
     [chats, directChat]
   );
 
+  const visibleChats = useMemo(() => allChats.filter((chat) => {
+    if (activeFilter === 'unread') return Number(chat.unread?.[user?.uid] ?? chat.unreadCount ?? 0) > 0;
+    if (activeFilter === 'online') {
+      const peerUid = chat.members?.find((member) => member !== user?.uid);
+      return Boolean(peerUid && sharedProfiles[peerUid]?.online);
+    }
+    return true;
+  }), [activeFilter, allChats, sharedProfiles, user?.uid]);
+
   useEffect(() => {
     const term = search.trim().toLowerCase();
     if (authLoading || !term || !user || !pageVisible) {
@@ -291,8 +306,6 @@ export default function Messenger() {
   const activePeerPhoto = activePeer.photoURL || activePeerDetails.photoURL ||
     activePeerDetails.profilePicture ||
     (activeChat?.lastMessageSenderUid === activePeerUid ? activeChat?.lastMessageSenderPhotoURL : '') || '';
-  const totalUnread = allChats.reduce((sum, chat) => sum + Number(chat.unread?.[user?.uid] ?? chat.unreadCount ?? 0), 0);
-
   const focusSearch = useCallback(() => {
     searchRef.current?.focus();
   }, []);
@@ -328,13 +341,18 @@ export default function Messenger() {
   return (
     <section className="msgr-page" aria-label={messengerStrings.chatsTitle}>
       {error && <div className="msgr-error" role="alert">{error}</div>}
-      <div className={`msgr-shell${convId ? ' has-active-chat' : ''}${activeChat ? ' has-info-panel' : ''}`}>
+      <div className={`msgr-shell${convId ? ' has-active-chat' : ''}${activeChat ? ' has-info-panel' : ''}${infoOpen ? ' has-open-info' : ''}`}>
         <aside className="msgr-sidebar">
           <header className="msgr-sidebar-header">
-            <h1>{messengerStrings.chatsTitle}</h1>
-            <button type="button" className="msgr-icon-button" aria-label={messengerStrings.startNewChat} title={messengerStrings.newChat} onClick={focusSearch}>
-              <Plus size={21} />
-            </button>
+            <h1>Messages</h1>
+            <div className="msgr-header-actions">
+              <button type="button" className="msgr-icon-button" aria-label={messengerStrings.startNewChat} title={messengerStrings.newChat} onClick={focusSearch}>
+                <SquarePen size={19} />
+              </button>
+              <button type="button" className="msgr-icon-button" aria-label="Close messages" title="Close" onClick={() => navigate('/')}>
+                <X size={19} />
+              </button>
+            </div>
           </header>
 
           <label className="msgr-search">
@@ -343,14 +361,33 @@ export default function Messenger() {
               ref={searchRef}
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder={messengerStrings.searchChatsAndPeople}
-              aria-label={messengerStrings.searchChatsAndPeople}
+              placeholder="Search people or messages"
+              aria-label="Search people or messages"
             />
             {search && <button type="button" aria-label={messengerStrings.clearSearch} onClick={() => setSearch('')}>×</button>}
           </label>
 
+          <div className="msgr-filter-tabs" role="tablist" aria-label="Filter conversations">
+            {[
+              ['all', 'All'],
+              ['unread', 'Unread'],
+              ['online', 'Online'],
+            ].map(([filter, label]) => (
+              <button
+                type="button"
+                role="tab"
+                aria-selected={activeFilter === filter}
+                className={`msgr-filter-tab${activeFilter === filter ? ' active' : ''}`}
+                key={filter}
+                onClick={() => setActiveFilter(filter)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
           <div className="msgr-sidebar-scroll">
-            {(chatLoadError || requestedConversationError || profileError) && (
+            {((chatLoadError && !chatLoading) || requestedConversationError || (profileError && !chatLoading)) && (
               <div className="msgr-inline-error" role="alert">
                 <span>{requestedConversationError || (chatLoadError
                   ? messengerStrings.getChatLoadError(chatLoadError.code)
@@ -384,12 +421,8 @@ export default function Messenger() {
               </section>
             )}
 
-            <div className="msgr-list-heading">
-              <h2>{messengerStrings.recentChats}</h2>
-              <span>{totalUnread ? messengerStrings.unreadCount(totalUnread) : messengerStrings.yourConversations}</span>
-            </div>
             <ConversationList
-              chats={allChats}
+              chats={visibleChats}
               activeChatId={convId}
               currentUserUid={user?.uid}
               usersMap={userMap}
@@ -398,7 +431,7 @@ export default function Messenger() {
               searchTerm={search}
               loading={chatLoading && allChats.length === 0}
               variant="messenger"
-              emptyTitle={search.trim() ? messengerStrings.noMatchingChats : messengerStrings.noChatsYet}
+              emptyTitle={activeFilter === 'unread' ? 'No unread chats' : activeFilter === 'online' ? 'No one is online' : search.trim() ? messengerStrings.noMatchingChats : messengerStrings.noChatsYet}
               emptyDescription={messengerStrings.searchToStart}
             />
           </div>
@@ -412,6 +445,8 @@ export default function Messenger() {
               currentUser={user}
               usersMap={userMap}
               onBack={() => navigate('/messenger')}
+              onToggleInfo={() => setInfoOpen((open) => !open)}
+              infoOpen={infoOpen}
             />
           ) : convId ? (
             <div className="msgr-chat-empty">
@@ -424,7 +459,7 @@ export default function Messenger() {
           ) : (
             <div className="msgr-chat-empty">
               <div className="msgr-empty-icon"><MessageSquareText size={38} /></div>
-              <h2>{messengerStrings.selectChat}</h2>
+              <h2>Select a chat to start messaging</h2>
               <p>{messengerStrings.pickSomeoneToStart}</p>
             </div>
           )}
@@ -432,6 +467,14 @@ export default function Messenger() {
 
         {activeChat && (
           <aside className="msgr-info-panel" aria-label={messengerStrings.chatDetails}>
+            <button
+              type="button"
+              className="msgr-info-close"
+              onClick={() => setInfoOpen(false)}
+              aria-label={`${messengerStrings.closeOptions}: ${messengerStrings.chatDetails}`}
+            >
+              <ArrowLeft size={19} />
+            </button>
             <div className="msgr-info-person">
               <div className="msgr-info-avatar-wrap">
                 {activePeerPhoto
@@ -441,23 +484,15 @@ export default function Messenger() {
               </div>
               <h2>{activePeerName}</h2>
               <p>{activePeer.online ? messengerStrings.activeNow : messengerStrings.offline}</p>
+              <span className="msgr-encryption-badge"><LockKeyhole size={13} /> End-to-end encrypted</span>
             </div>
 
             <div className="msgr-info-actions" aria-label={messengerStrings.contactActions}>
-              <div><span><UserRound size={18} /></span><small>{messengerStrings.profile}</small></div>
               <div><span><Bell size={18} /></span><small>{messengerStrings.mute}</small></div>
               <div><span><Search size={18} /></span><small>{messengerStrings.search}</small></div>
             </div>
 
             <div className="msgr-info-sections">
-              <details>
-                <summary>{messengerStrings.chatInfo}<ChevronDown size={17} /></summary>
-                <p>{messengerStrings.chatInfoDescription}</p>
-              </details>
-              <details>
-                <summary>{messengerStrings.customizeChat}<ChevronDown size={17} /></summary>
-                <p className="msgr-info-option"><Palette size={17} />{messengerStrings.chatTheme}</p>
-              </details>
               <details>
                 <summary>{messengerStrings.mediaAndFiles}<ChevronDown size={17} /></summary>
                 <p className="msgr-info-option"><ImageIcon size={17} />{messengerStrings.sharedMedia}</p>

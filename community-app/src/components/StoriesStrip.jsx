@@ -1,5 +1,6 @@
 import { Plus, Sparkles } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import '../styles/StoriesStrip.css';
 
 const sampleStories = [
   { id: 1, name: 'Rafikul', image: 'https://images.unsplash.com/photo-1521119989659-a83eee488004?auto=format&fit=crop&w=900&q=80' },
@@ -28,6 +29,9 @@ export default function StoriesStrip() {
         {sampleStories.map((story) => (
           <button className="story-card" type="button" key={story.id} aria-label={`Open story from ${story.name}`}>
             <span className="story-card-image" style={{ backgroundImage: `url(${story.image})` }} />
+            <span className="story-card-ring" aria-hidden="true">
+              <span className="story-card-avatar" style={{ backgroundImage: `url(${story.image})` }} />
+            </span>
             <span className="story-card-name">{story.name}</span>
           </button>
         ))}

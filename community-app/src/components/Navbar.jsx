@@ -13,6 +13,7 @@ import {
   SquarePen,
   Store,
   Users,
+  X,
 } from 'lucide-react';
 import {
   endAt,
@@ -222,7 +223,10 @@ export default function Navbar({ onMenu }) {
     const term = debouncedChatSearch.toLowerCase();
     return chatRows.filter((chat) => {
       if (activeChatTab === 'unread' && !Number(chat.unread?.[user?.uid] ?? chat.unreadCount ?? 0)) return false;
-      if (activeChatTab === 'groups' && (chat.members?.length || 0) < 3) return false;
+      if (activeChatTab === 'online') {
+        const peerUids = (chat.members || []).filter((uid) => uid !== user?.uid);
+        if (!peerUids.some((uid) => userMap[uid]?.online)) return false;
+      }
       if (!term) return true;
       const title = getChatTitle(chat, user?.uid, userMap);
       const members = (chat.members || []).map((uid) => userMap[uid]?.username || '');
@@ -244,7 +248,7 @@ export default function Navbar({ onMenu }) {
     setMenuOpen(false);
     setNewMessageMode(false);
     setChatSearch('');
-    if (isMessengerRoute || window.matchMedia('(max-width: 768px)').matches) {
+    if (isMessengerRoute || window.matchMedia('(max-width: 767px)').matches) {
       navigate(`/messenger/${encodeURIComponent(chatId)}`);
       return;
     }
@@ -410,8 +414,22 @@ export default function Navbar({ onMenu }) {
             {panelOpen && (
               <section className="cwschat cwschat-topbar-panel" role="dialog" aria-label={messengerStrings.chatsTitle}>
                 <header className="cwschat cwschat-topbar-head">
-                  <h2>{messengerStrings.chatsTitle}</h2>
+                  <h2>Messages</h2>
                   <div className="cwschat dropdown-actions">
+                    <button
+                      type="button"
+                      className="cwschat-topbar-icon-button cwschat-mobile-home"
+                      aria-label="Back to website"
+                      title="Back to website"
+                      onClick={() => {
+                        setPanelOpen(false);
+                        setNewMessageMode(false);
+                        setMenuOpen(false);
+                        navigate('/');
+                      }}
+                    >
+                      <Home size={20} aria-hidden="true" />
+                    </button>
                     <button
                       type="button"
                       className="cwschat-topbar-icon-button"
@@ -438,6 +456,19 @@ export default function Navbar({ onMenu }) {
                       onClick={openNewMessage}
                     >
                       <SquarePen size={20} aria-hidden="true" />
+                    </button>
+                    <button
+                      type="button"
+                      className="cwschat-topbar-icon-button cwschat-mobile-close"
+                      aria-label="Close messages"
+                      title="Close"
+                      onClick={() => {
+                        setPanelOpen(false);
+                        setNewMessageMode(false);
+                        setMenuOpen(false);
+                      }}
+                    >
+                      <X size={20} aria-hidden="true" />
                     </button>
                   </div>
                   {menuOpen && (
@@ -479,7 +510,7 @@ export default function Navbar({ onMenu }) {
                   {[
                     ['all', messengerStrings.allChats],
                     ['unread', messengerStrings.unreadChats],
-                    ['groups', messengerStrings.groupChats],
+                    ['online', 'Online'],
                   ].map(([tab, label]) => (
                     <button
                       key={tab}
@@ -558,8 +589,8 @@ export default function Navbar({ onMenu }) {
                       <span className="cwschat dropdown-empty-icon"><MessageSquareText size={22} aria-hidden="true" /></span>
                       <strong>{activeChatTab === 'unread'
                         ? messengerStrings.noUnreadChats
-                        : activeChatTab === 'groups'
-                          ? messengerStrings.noGroupChats
+                        : activeChatTab === 'online'
+                          ? 'No one is online'
                           : debouncedChatSearch
                             ? messengerStrings.noMatchingChats
                             : messengerStrings.noChatsYet}</strong>

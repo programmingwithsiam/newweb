@@ -23,7 +23,6 @@ const $ = id => document.getElementById(id);
 const mobileCourseMedia = window.matchMedia('(max-width: 768px)');
 let mobileCourseOverlayOpen = false;
 let mobileCourseHistoryEntry = false;
-let mobileCourseAutoOpened = false;
 let previousBodyOverflow = '';
 
 function setMobileCourseOverlayVisible(isOpen) {
@@ -89,10 +88,6 @@ function syncMobileCourseExperience() {
     return;
   }
   updateMobileCoursePlaylist();
-  if (!mobileCourseAutoOpened) {
-    mobileCourseAutoOpened = true;
-    openMobileCourseOverlay();
-  }
 }
 
 $('mobileCourseMenuButton')?.addEventListener('click', openMobileCourseOverlay);

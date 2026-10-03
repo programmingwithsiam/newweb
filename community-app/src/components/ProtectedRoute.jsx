@@ -1,11 +1,21 @@
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import LoadingSpinner from './LoadingSpinner';
+import '../styles/MessengerLoading.css';
 
 export default function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
   const location = useLocation();
-  if (loading) return <LoadingSpinner full label="Checking session..." />;
+  if (loading) {
+    if (location.pathname.startsWith('/messenger')) {
+      return (
+        <div className="msgr-route-loading">
+          <LoadingSpinner full label="Checking session..." />
+        </div>
+      );
+    }
+    return <LoadingSpinner full label="Checking session..." />;
+  }
   if (!user) {
     const returnTo = `${location.pathname}${location.search}${location.hash}`;
     return (

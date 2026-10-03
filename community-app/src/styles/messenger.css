@@ -496,6 +496,7 @@
 }
 
 .msgr-info-panel {
+  position: relative;
   display: flex;
   min-width: 0;
   min-height: 0;
@@ -504,6 +505,10 @@
   padding: 16px;
   border-left: 1px solid var(--msgr-border);
   background: var(--msgr-panel);
+}
+
+.msgr-info-close {
+  display: none;
 }
 
 .msgr-info-person {
@@ -1421,6 +1426,10 @@
 }
 
 @media (max-width: 1100px) {
+  .msgr-shell {
+    position: relative;
+  }
+
   .msgr-shell,
   .msgr-shell.has-info-panel {
     grid-template-columns: 320px minmax(0, 1fr);
@@ -1428,6 +1437,49 @@
 
   .msgr-info-panel {
     display: none;
+  }
+
+  .msgr-shell.has-open-info .msgr-info-panel {
+    position: absolute;
+    z-index: 12;
+    inset: 0 0 0 auto;
+    display: flex;
+    width: min(360px, 100%);
+    padding: 16px;
+    border-left: 1px solid var(--msgr-border);
+    box-shadow: -12px 0 32px rgba(0, 0, 0, 0.32);
+  }
+
+  .msgr-info-close {
+    display: inline-flex;
+    width: 44px;
+    height: 44px;
+    flex: 0 0 44px;
+    align-items: center;
+    justify-content: center;
+    align-self: flex-start;
+    margin: 0 0 12px;
+    border: 0;
+    border-radius: 50%;
+    color: var(--msgr-text);
+    background: var(--msgr-panel-soft);
+    cursor: pointer;
+  }
+
+  .msgr-page .cwschat.chat-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .msgr-page .cwschat.msgr-details-toggle {
+    display: inline-flex;
+    color: #a7c7ff;
+    background: transparent;
+  }
+
+  .msgr-page .cwschat.msgr-details-toggle:hover {
+    background: rgba(255, 255, 255, 0.08);
   }
 }
 
@@ -1439,6 +1491,7 @@
   .msgr-shell {
     display: block;
     position: relative;
+    isolation: isolate;
   }
 
   .msgr-sidebar {
@@ -1461,9 +1514,45 @@
     display: flex;
   }
 
-  .msgr-page .cwschat.chat-header {
+  .msgr-shell.has-open-info .msgr-sidebar,
+  .msgr-shell.has-open-info .msgr-chat-panel {
+    display: none;
+  }
+
+  .msgr-shell.has-open-info .msgr-info-panel {
+    inset: 0;
+    width: 100%;
+    padding: 12px 18px max(20px, env(safe-area-inset-bottom));
+    border: 0;
+    box-shadow: none;
+  }
+
+  .msgr-sidebar-header {
     min-height: 62px;
-    padding: 6px 10px;
+    padding: 8px 16px;
+  }
+
+  .msgr-sidebar-header h1 {
+    font-size: 1.5rem;
+  }
+
+  .msgr-search {
+    min-height: 46px;
+    margin: 0 14px 12px;
+  }
+
+  .msgr-list-heading {
+    padding: 8px 10px 8px;
+  }
+
+  .msgr-page .cwschat.conversation-list-wrap .conversation-row {
+    min-height: 72px;
+    padding: 10px 8px;
+  }
+
+  .msgr-page .cwschat.chat-header {
+    min-height: 60px;
+    padding: 6px 8px;
   }
 
   .msgr-page .cwschat.back-button {
@@ -1507,8 +1596,47 @@
     padding-inline: 12px;
   }
 
+  .msgr-page .cwschat.chat-header-actions {
+    gap: 0;
+  }
+
+  .msgr-page .cwschat.msgr-details-toggle {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+  }
+
   .msgr-new-messages {
     bottom: 76px;
+  }
+}
+
+@media (max-width: 420px) {
+  .msgr-sidebar-header {
+    min-height: 58px;
+    padding-inline: 14px;
+  }
+
+  .msgr-sidebar-header h1 {
+    font-size: 1.4rem;
+  }
+
+  .msgr-page .cwschat.chat-header {
+    gap: 6px;
+  }
+
+  .msgr-page .cwschat.header-left {
+    gap: 8px;
+  }
+
+  .msgr-page .cwschat.header-avatar-wrap,
+  .msgr-page .cwschat.header-avatar {
+    width: 40px;
+    height: 40px;
+  }
+
+  .msgr-page .cwschat.header-avatar-wrap {
+    flex-basis: 40px;
   }
 }
 
