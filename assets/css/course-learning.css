@@ -2,16 +2,25 @@
 
 body.course-learning-page {
   min-height: 100dvh;
+  overflow: visible;
+  overscroll-behavior-y: auto;
+  touch-action: pan-y pinch-zoom;
+  -webkit-overflow-scrolling: touch;
+}
+
+html:has(body.course-learning-page) {
+  min-height: 100%;
+  overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior-y: auto;
-  touch-action: pan-y;
   -webkit-overflow-scrolling: touch;
+  touch-action: pan-y pinch-zoom;
 }
 
 @media (max-width: 768px) {
   body.course-learning-page,
   body.course-learning-page #learningApp {
-    touch-action: pan-y;
+    touch-action: pan-y pinch-zoom;
     -webkit-overflow-scrolling: touch;
   }
 
