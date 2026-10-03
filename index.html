@@ -54,9 +54,9 @@
     rel="stylesheet" />
 
   <!-- Styles -->
-  <link rel="stylesheet" href="/assets/css/style.css?v=20261002-mobile-nav-chat-1" />
+  <link rel="stylesheet" href="/assets/css/style.css?v=20261003-featured-projects-1" />
   <link rel="stylesheet" href="/assets/css/scroll-and-ui.css" />
-  <link rel="stylesheet" href="/assets/css/inspired-ui.css?v=20260915-smooth-scroll-1" />
+  <link rel="stylesheet" href="/assets/css/inspired-ui.css?v=20261003-project-3d-1" />
   <!-- Font Awesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" />
 
@@ -535,9 +535,20 @@
           Real <span class="accent">Projects</span>
         </h2>
         <p class="section-sub">
-          A few hands-on Python, data science, and machine learning builds from my learning journey.
+          A selection of things I’ve built, explored, and shared in public.
         </p>
-        <div class="projects-grid">
+        <div class="project-showcase-bar">
+          <p class="project-showcase-label">
+            <span class="project-live-dot" aria-hidden="true"></span>
+            OPEN SOURCE
+            <span class="project-repo-count" id="githubProjectCount">Loading projects...</span>
+          </p>
+          <a class="project-profile-link" href="https://github.com/programmingwithsiam" target="_blank"
+            rel="noopener noreferrer">
+            View GitHub profile <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i>
+          </a>
+        </div>
+        <div class="projects-grid" id="githubProjectsGrid" aria-live="polite">
           <div class="project-card tilt-card"
             data-project-url="https://github.com/programmingwithsiam/Advanced-Image-Classifier"
             onclick="window.open(this.dataset.projectUrl, '_blank', 'noopener,noreferrer')"
@@ -1497,7 +1508,7 @@
   </div>
   <!-- /siteRoot -->
 
-  <script type="module" src="/assets/js/script.js?v=20260915-public-course-render-1"></script>
+  <script type="module" src="/assets/js/script.js?v=20261003-project-3d-1"></script>
   <script type="module" src="/assets/js/auth-app.js?v=20261001-otp-flow-1"></script>
 </body>
 

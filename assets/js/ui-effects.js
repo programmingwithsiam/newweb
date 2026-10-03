@@ -236,20 +236,33 @@ export function initRevealOnScroll() {
 /* ---------- 3D tilt on cards with mouse move ---------- */
 export function initTiltCards() {
   const cards = document.querySelectorAll('.tilt-card');
+  const canTilt = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (!canTilt || reduceMotion) return;
+
   const maxTilt = 7;
 
   cards.forEach(card => {
-    card.addEventListener('mousemove', (e) => {
+    if (card.dataset.tiltInitialized === 'true') return;
+    card.dataset.tiltInitialized = 'true';
+
+    card.addEventListener('pointermove', (e) => {
       const rect = card.getBoundingClientRect();
+      if (!rect.width || !rect.height) return;
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
-      const cx = rect.width / 2, cy = rect.height / 2;
-      const rotX = ((y - cy) / cy) * -maxTilt;
-      const rotY = ((x - cx) / cx) * maxTilt;
-      card.style.transform = `perspective(800px) rotateX(${rotX}deg) rotateY(${rotY}deg) translateY(-4px)`;
+      const rotX = ((y / rect.height) * 2 - 1) * -maxTilt;
+      const rotY = ((x / rect.width) * 2 - 1) * maxTilt;
+      card.classList.add('is-tilting');
+      card.style.setProperty('--pointer-x', `${(x / rect.width) * 100}%`);
+      card.style.setProperty('--pointer-y', `${(y / rect.height) * 100}%`);
+      card.style.transform = `perspective(900px) rotateX(${rotX}deg) rotateY(${rotY}deg) translateY(-4px)`;
     });
-    card.addEventListener('mouseleave', () => {
-      card.style.transform = 'perspective(800px) rotateX(0) rotateY(0) translateY(0)';
+    card.addEventListener('pointerleave', () => {
+      card.classList.remove('is-tilting');
+      card.style.transform = '';
+      card.style.setProperty('--pointer-x', '50%');
+      card.style.setProperty('--pointer-y', '50%');
     });
   });
 }

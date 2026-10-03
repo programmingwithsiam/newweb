@@ -2910,6 +2910,10 @@ body.course-learning-page #lessonPlayer .mobile-player-next-button {
   cursor: pointer;
 }
 
+.project-card.is-featured {
+  border-color: rgba(130, 68, 255, 0.55);
+}
+
 .project-card:hover {
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
 }
@@ -3005,6 +3009,25 @@ body.course-learning-page #lessonPlayer .mobile-player-next-button {
 .badge-acc {
   color: var(--violet);
   border-color: rgba(75, 139, 190, 0.3);
+}
+
+.badge-featured,
+.badge-stars {
+  font-size: 0.74rem;
+  font-family: var(--font-mono);
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: var(--panel-2);
+}
+
+.badge-featured {
+  color: var(--accent-soft);
+  border: 1px solid rgba(130, 68, 255, 0.4);
+}
+
+.badge-stars {
+  color: var(--text);
+  border: 1px solid var(--line);
 }
 
 .project-links {
@@ -3520,10 +3543,6 @@ body,
 .course-card-price {
   color: var(--accent) !important;
   font-size: 1rem !important;
-}
-
-.projects-grid .project-card:nth-child(n + 6) {
-  display: none;
 }
 
 .course-payment-panel {

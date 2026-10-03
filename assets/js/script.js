@@ -12,7 +12,7 @@
    ========================================================= */
 
 // Import all modules
-import { initParticles, initHeader, initTypedText, initRevealOnScroll, initTiltCards, initMobileMenu, initSkillBars, initHero3dParallax, activateSection } from './ui-effects.js';
+import { initParticles, initHeader, initTypedText, initRevealOnScroll, initTiltCards, initMobileMenu, initSkillBars, initHero3dParallax, activateSection } from './ui-effects.js?v=20261003-project-3d-1';
 import { initStatCounters } from './animations.js';
 import { initCourseDeck, initLiveNotification, initLiveHub, setCurrentSignedInUid, loadCourses, syncCourseRoute, getCurrentCourse, getCourseProgress, getCourseRoute, pushCourseRoute, getCourseStateLabel, getCourseCardMeta, renderPublicCoursePreview, renderPublishedCourseCatalog, renderLanguageExplorer, bindCourseFilters, renderUpcomingCourses, updateHeroMetrics, updateProgressBar } from './page-renderers.js?v=20260914-hide-claude-index-1';
 import { getLessonVideoSource } from './courses-db.js';
@@ -93,6 +93,145 @@ function escapeHtml(value) {
   return String(value ?? '').replace(/[&<>"']/g, char => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
   }[char]));
+}
+
+const GITHUB_PROJECTS_USERNAME = 'programmingwithsiam';
+const GITHUB_PROJECTS_API_URL = `https://api.github.com/users/${GITHUB_PROJECTS_USERNAME}/repos?per_page=100&sort=updated`;
+
+function getProjectEmoji(name) {
+  const lower = String(name || '').toLowerCase();
+  if (/(image|vision|cv|face|detect|ocr)/.test(lower)) return '🖼️';
+  if (/(sentiment|text|nlp|language|chat|bot|assistant|llm|gen)/.test(lower)) return '💬';
+  if (/(dashboard|data|analytics|visual|plot|chart)/.test(lower)) return '📈';
+  if (/(house|price|estate|predict|regress)/.test(lower)) return '🏠';
+  if (/(game|snake|tetris|arcade|play)/.test(lower)) return '🎮';
+  if (/(website|portfolio|app|web|frontend|landing|site)/.test(lower)) return '🌐';
+  if (/(automation|scraper|bot|api|server|backend)/.test(lower)) return '🤖';
+  if (/(model|ml|deep|ai|learning|research)/.test(lower)) return '🧠';
+  return '🚀';
+}
+
+function getProjectGradient(name) {
+  const palettes = [
+    ['#0f2027', '#203a43', '#2c5364'],
+    ['#1a1a2e', '#16213e', '#0f3460'],
+    ['#0d0d0d', '#1a3a2a', '#0a5c36'],
+    ['#2d1b69', '#11998e', '#38ef7d'],
+    ['#3b1d72', '#7b2ff7', '#f107a3'],
+    ['#1f4037', '#99f2c8', '#2ed8a7'],
+    ['#141e30', '#243b55', '#4cc9f0'],
+    ['#000000', '#434343', '#bdbdbd']
+  ];
+  const hash = Array.from(String(name || '')).reduce((sum, char) => sum + char.charCodeAt(0), 0);
+  return palettes[hash % palettes.length];
+}
+
+function openProjectCard(url) {
+  if (!url) return;
+  window.open(url, '_blank', 'noopener,noreferrer');
+}
+
+async function initGitHubProjects() {
+  const grid = document.getElementById('githubProjectsGrid');
+  if (!grid) return;
+
+  const fallbackMarkup = `
+    <div class="empty-message">Loading GitHub projects...</div>
+  `;
+  grid.innerHTML = fallbackMarkup;
+
+  try {
+    const response = await fetch(GITHUB_PROJECTS_API_URL, {
+      headers: { Accept: 'application/vnd.github+json' }
+    });
+
+    if (!response.ok) {
+      throw new Error(`GitHub request failed: ${response.status}`);
+    }
+
+    const repos = await response.json();
+    const publicRepos = (Array.isArray(repos) ? repos : [])
+      .filter(repo => !repo.private && !repo.fork && repo.name);
+
+    if (!publicRepos.length) {
+      const count = document.getElementById('githubProjectCount');
+      if (count) count.textContent = 'No public repositories yet';
+      grid.innerHTML = '<div class="empty-message">No public projects available yet.</div>';
+      return;
+    }
+    const count = document.getElementById('githubProjectCount');
+    if (count) count.textContent = `${publicRepos.length} projects · popular picks first`;
+
+    const byPopularity = [...publicRepos].sort((a, b) =>
+      (b.stargazers_count || 0) - (a.stargazers_count || 0) ||
+      (b.forks_count || 0) - (a.forks_count || 0) ||
+      new Date(b.updated_at || b.pushed_at || 0) - new Date(a.updated_at || a.pushed_at || 0)
+    );
+    const featuredRepos = byPopularity.slice(0, 8);
+    const featuredNames = new Set(featuredRepos.map(repo => repo.name));
+    const remainingRepos = byPopularity.slice(8).sort((a, b) =>
+      new Date(b.updated_at || b.pushed_at || 0) - new Date(a.updated_at || a.pushed_at || 0)
+    );
+    const orderedRepos = [...featuredRepos, ...remainingRepos];
+
+    grid.innerHTML = orderedRepos.map(repo => {
+      const name = escapeHtml(repo.name || 'Project');
+      const description = escapeHtml(repo.description || 'Open-source project from Siam\'s GitHub profile.');
+      const projectUrl = `https://github.com/${GITHUB_PROJECTS_USERNAME}/${encodeURIComponent(repo.name)}`;
+      const tags = Array.isArray(repo.topics) && repo.topics.length ? repo.topics.slice(0, 3) : [repo.language || 'GitHub'];
+      const gradient = getProjectGradient(repo.name).map(color => ` ${color}`).join(', ');
+      const status = repo.archived ? 'Archived' : 'Public';
+      const emoji = getProjectEmoji(repo.name);
+      const isFeatured = featuredNames.has(repo.name);
+
+      return `
+        <article class="project-card tilt-card${isFeatured ? ' is-featured' : ''}"
+          data-project-url="${projectUrl}"
+          tabindex="0"
+          role="link"
+          aria-label="Open ${name} project on GitHub">
+          <div class="project-header" style="background: linear-gradient(135deg, ${gradient});">
+            <div class="project-emoji">${emoji}</div>
+          </div>
+          <div class="project-body">
+            <div class="project-tags">
+              ${tags.map(tag => `<span class="ptag">${escapeHtml(tag)}</span>`).join('')}
+            </div>
+            <h3>${name}</h3>
+            <p>${description}</p>
+            <div class="project-meta">
+              ${isFeatured ? '<span class="badge-featured">Featured</span>' : ''}
+              <span class="badge-acc">${status}</span>
+              <span class="badge-lang">${escapeHtml(repo.language || 'Code')}</span>
+              <span class="badge-stars" aria-label="${repo.stargazers_count || 0} stars">★ ${repo.stargazers_count || 0}</span>
+            </div>
+            <div class="project-links">
+              <a href="${projectUrl}" target="_blank" rel="noopener noreferrer" class="btn-sm">GitHub</a>
+              <a href="${projectUrl}" target="_blank" rel="noopener noreferrer" class="btn-sm btn-ghost">View Source</a>
+            </div>
+          </div>
+        </article>
+      `;
+    }).join('');
+
+    grid.querySelectorAll('.project-card').forEach(card => {
+      const url = card.dataset.projectUrl;
+      card.addEventListener('click', event => {
+        if (event.target.closest('a')) return;
+        openProjectCard(url);
+      });
+      card.addEventListener('keydown', event => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          openProjectCard(url);
+        }
+      });
+    });
+    initTiltCards();
+  } catch (error) {
+    console.error('Failed to load GitHub projects:', error);
+    grid.innerHTML = '<div class="empty-message">GitHub projects could not be loaded right now. Please try again in a moment.</div>';
+  }
 }
 
 function getCoursePercent(course) {
@@ -858,6 +997,7 @@ function initializePortfolio() {
   // (and therefore progress syncing / the admin link) is driven separately
   // by auth-app.js via window.handleAuthStateChange().
   initSiteEffects();
+  initGitHubProjects();
   const hasCourseRoute = new URLSearchParams(window.location.search).has('course') ||
     window.location.pathname.split('/').filter(Boolean)[0] === 'courses';
   activateSection(hasCourseRoute ? 'learn' : window.location.hash.slice(1) || 'home');
