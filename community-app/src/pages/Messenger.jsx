@@ -1,218 +1,410 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
-  collection,
-  doc,
-  getDoc,
-  limit,
-  onSnapshot,
-  orderBy,
+  endAt,
+  get,
+  limitToFirst,
+  orderByChild,
   query,
-  serverTimestamp,
-  setDoc,
-  updateDoc,
-  where,
-} from 'firebase/firestore';
-import { firestore } from '../firebase/config';
+  ref,
+  startAt,
+} from 'firebase/database';
+import {
+  ArrowLeft,
+  Bell,
+  ChevronDown,
+  Image as ImageIcon,
+  LoaderCircle,
+  LockKeyhole,
+  MessageSquareText,
+  Palette,
+  Plus,
+  Search,
+  UserRound,
+} from 'lucide-react';
+import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
+import { useChats } from '../context/ChatsContext';
+import { messengerStrings } from '../messenger-strings';
+import {
+  findOrCreateDirectChat,
+  normalizeConversation,
+  normalizeDisplayName,
+} from '../utils/chatService';
 import ConversationList from '../components/ConversationList';
 import ChatWindow from '../components/ChatWindow';
-import { MessageSquareText, Plus, Search, Sparkles, UserRound, X } from 'lucide-react';
-
-function buildChatId(uidA, uidB) {
-  return [uidA, uidB].sort().join('_');
-}
+import '../styles/messenger.css';
 
 export default function Messenger() {
-  const { chatId } = useParams();
+  const { convId } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const [chats, setChats] = useState([]);
-  const [userList, setUserList] = useState([]);
+  const { user, loading: authLoading } = useAuth();
+  const {
+    chats,
+    profiles: sharedProfiles,
+    loading: chatLoading,
+    error: chatLoadError,
+    profileError,
+    retry: retryChats,
+  } = useChats();
+  const [pageVisible, setPageVisible] = useState(document.visibilityState === 'visible');
+  const [directChat, setDirectChat] = useState(null);
+  const [directChatLoading, setDirectChatLoading] = useState(false);
+  const [directProfile, setDirectProfile] = useState(null);
+  const [people, setPeople] = useState([]);
   const [search, setSearch] = useState('');
-  const [newChatOpen, setNewChatOpen] = useState(false);
+  const [peopleLoading, setPeopleLoading] = useState(false);
   const [error, setError] = useState('');
+  const [peopleError, setPeopleError] = useState('');
+  const [requestedConversationError, setRequestedConversationError] = useState('');
+  const [requestedChatRetry, setRequestedChatRetry] = useState(0);
+  const chatsRef = useRef(chats);
+  const conversationLoadVersion = useRef(0);
+  const searchRef = useRef(null);
 
   useEffect(() => {
-    if (!user) return undefined;
-
-    const userDocRef = doc(firestore, 'users', user.uid);
-    setDoc(userDocRef, {
-      uid: user.uid,
-      displayName: user.displayName || user.email?.split('@')[0] || 'CodeWithSiam user',
-      photoURL: user.photoURL || '',
-      online: true,
-      lastSeen: serverTimestamp(),
-    }, { merge: true }).catch(() => undefined);
-
-    const handleVisibility = () => {
-      updateDoc(userDocRef, {
-        online: document.visibilityState === 'visible',
-        lastSeen: serverTimestamp(),
-      }).catch(() => undefined);
-    };
-
-    handleVisibility();
-    document.addEventListener('visibilitychange', handleVisibility);
-    const beforeUnload = () => {
-      updateDoc(userDocRef, {
-        online: false,
-        lastSeen: serverTimestamp(),
-      }).catch(() => undefined);
-    };
-    window.addEventListener('beforeunload', beforeUnload);
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibility);
-      window.removeEventListener('beforeunload', beforeUnload);
-      updateDoc(userDocRef, {
-        online: false,
-        lastSeen: serverTimestamp(),
-      }).catch(() => undefined);
-    };
-  }, [user]);
-
-  useEffect(() => {
-    if (!user) return undefined;
-
-    const chatsQuery = query(
-      collection(firestore, 'chats'),
-      where('members', 'array-contains', user.uid),
-      orderBy('lastMessageAt', 'desc')
-    );
-
-    const unsub = onSnapshot(chatsQuery, (snapshot) => {
-      const next = snapshot.docs.map((docSnap) => ({
-        id: docSnap.id,
-        ...docSnap.data(),
-      }));
-      setChats(next);
-
-      if (!chatId && next[0]) {
-        navigate(`/messenger/${next[0].id}`, { replace: true });
-      }
-    }, (chatError) => {
-      setError('Permission denied, check Firestore rules');
-      console.error('Chat listener failed', chatError);
-    });
-
-    return () => unsub();
-  }, [user, chatId, navigate]);
-
-  useEffect(() => {
-    const usersQuery = query(collection(firestore, 'users'), limit(50));
-    const unsub = onSnapshot(usersQuery, (snapshot) => {
-      setUserList(snapshot.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() })));
-      setError('');
-    }, (userError) => {
-      setError('Permission denied, check Firestore rules');
-      console.error('Users listener failed', userError);
-    });
-    return () => unsub();
+    const updateVisibility = () => setPageVisible(document.visibilityState === 'visible');
+    document.addEventListener('visibilitychange', updateVisibility);
+    return () => document.removeEventListener('visibilitychange', updateVisibility);
   }, []);
 
+  useEffect(() => {
+    const updateViewportHeight = () => {
+      const height = window.visualViewport?.height || window.innerHeight;
+      document.documentElement.style.setProperty('--msgr-vv-height', `${height}px`);
+    };
+    updateViewportHeight();
+    window.visualViewport?.addEventListener('resize', updateViewportHeight);
+    window.visualViewport?.addEventListener('scroll', updateViewportHeight);
+    window.addEventListener('resize', updateViewportHeight);
+    return () => {
+      window.visualViewport?.removeEventListener('resize', updateViewportHeight);
+      window.visualViewport?.removeEventListener('scroll', updateViewportHeight);
+      window.removeEventListener('resize', updateViewportHeight);
+      document.documentElement.style.removeProperty('--msgr-vv-height');
+    };
+  }, []);
+
+  useEffect(() => {
+    chatsRef.current = chats;
+  }, [chats]);
+
+  useEffect(() => {
+    const loadVersion = ++conversationLoadVersion.current;
+    if (!convId) {
+      setDirectChat(null);
+      setDirectChatLoading(false);
+      return undefined;
+    }
+
+    if (authLoading || !user || !pageVisible || chatLoading || directChat?.id === convId) {
+      setDirectChatLoading(false);
+      return undefined;
+    }
+
+    const listedChat = chatsRef.current.find((chat) => chat.id === convId);
+    if (listedChat) {
+      setDirectChat(null);
+      setDirectChatLoading(false);
+      return undefined;
+    }
+
+    let active = true;
+    setRequestedConversationError('');
+    setDirectChatLoading(true);
+    get(ref(db, `conversations/${convId}`))
+      .then((snapshot) => {
+        if (!active || loadVersion !== conversationLoadVersion.current) return;
+        setDirectChatLoading(false);
+        if (chatsRef.current.some((chat) => chat.id === convId)) return;
+        const conversation = snapshot.exists() ? normalizeConversation(convId, snapshot.val()) : null;
+        if (!conversation || !conversation.members.includes(user.uid)) {
+          setDirectChat(null);
+          navigate('/messenger', { replace: true });
+          return;
+        }
+        setDirectChat(conversation);
+      })
+      .catch((loadError) => {
+        console.error('Could not load the requested conversation:', {
+          code: loadError?.code || 'unknown',
+          message: loadError?.message || String(loadError),
+        });
+        if (!active || loadVersion !== conversationLoadVersion.current) return;
+        setDirectChatLoading(false);
+        if (chatsRef.current.some((chat) => chat.id === convId)) return;
+        if (['permission-denied', 'PERMISSION_DENIED'].includes(loadError?.code)) {
+          setDirectChat(null);
+          navigate('/messenger', { replace: true });
+          return;
+        }
+        setRequestedConversationError(messengerStrings.getChatLoadError(loadError?.code));
+      });
+
+    return () => {
+      active = false;
+      if (loadVersion === conversationLoadVersion.current) conversationLoadVersion.current += 1;
+    };
+  }, [authLoading, chatLoading, convId, directChat?.id, navigate, pageVisible, requestedChatRetry, user?.uid]);
+
+  const directPeerUid = directChat?.members?.find((member) => member !== user?.uid);
+  const directChatIsListed = chats.some((chat) => chat.id === directChat?.id);
+  const sharedPeerProfile = directPeerUid ? sharedProfiles[directPeerUid] : null;
+
+  useEffect(() => {
+    if (authLoading || !user || !pageVisible || !directChat?.id || directChatIsListed) {
+      if (!directChat?.id || directChatIsListed) setDirectProfile(null);
+      return undefined;
+    }
+    if (!directPeerUid || sharedPeerProfile) {
+      setDirectProfile(null);
+      setRequestedConversationError('');
+      return;
+    }
+
+    let active = true;
+    setRequestedConversationError('');
+    get(ref(db, `users/${directPeerUid}`))
+      .then((snapshot) => {
+        if (!active) return;
+        const profile = snapshot.val();
+        setDirectProfile(profile ? {
+          id: directPeerUid,
+          uid: directPeerUid,
+          displayName: normalizeDisplayName(
+            profile.fullName,
+            profile.displayName,
+            profile.name,
+            profile.username
+          ) || messengerStrings.communityMember,
+          photoURL: profile.photoURL || profile.profilePicture || '',
+          username: profile.username || '',
+        } : null);
+      })
+      .catch((profileLoadError) => {
+        console.error('Could not load the requested conversation profile:', {
+          code: profileLoadError?.code || 'unknown',
+          message: profileLoadError?.message || String(profileLoadError),
+        });
+        if (active) setRequestedConversationError(messengerStrings.profilesCouldNotLoad);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [authLoading, directChat?.id, directPeerUid, directChatIsListed, pageVisible, requestedChatRetry, sharedPeerProfile, user?.uid]);
+
+  const allChats = useMemo(
+    () => (directChat && !chats.some((chat) => chat.id === directChat.id) ? [...chats, directChat] : chats),
+    [chats, directChat]
+  );
+
+  useEffect(() => {
+    const term = search.trim().toLowerCase();
+    if (authLoading || !term || !user || !pageVisible) {
+      setPeople([]);
+      setPeopleLoading(false);
+      setPeopleError('');
+      return undefined;
+    }
+
+    let active = true;
+    setPeopleLoading(true);
+    setPeopleError('');
+    const timer = window.setTimeout(() => {
+      const peopleQueries = ['usernameLower', 'nameLower'].map((field) => query(
+        ref(db, 'users'),
+        orderByChild(field),
+        startAt(term),
+        endAt(`${term}\uf8ff`),
+        limitToFirst(20)
+      ));
+      Promise.all(peopleQueries.map((peopleQuery) => get(peopleQuery)))
+        .then((snapshots) => {
+          if (!active) return;
+          const result = new Map();
+          snapshots.forEach((snapshot) => snapshot.forEach((item) => {
+            if (item.key === user.uid || result.has(item.key)) return;
+            const profile = item.val() || {};
+            result.set(item.key, {
+              id: item.key,
+              uid: item.key,
+              displayName: normalizeDisplayName(
+                profile.fullName,
+                profile.displayName,
+                profile.name,
+                profile.username
+              ) || messengerStrings.communityMember,
+              photoURL: profile.photoURL || profile.profilePicture || '',
+              username: profile.username || '',
+            });
+          }));
+          setPeople([...result.values()].slice(0, 20));
+        })
+        .catch((searchError) => {
+          console.error('Messenger people search failed:', {
+            code: searchError?.code || 'unknown',
+            message: searchError?.message || String(searchError),
+          });
+          if (active) setPeopleError(messengerStrings.peopleSearchUnavailable);
+        })
+        .finally(() => {
+          if (active) setPeopleLoading(false);
+        });
+    }, 250);
+
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+    };
+  }, [authLoading, pageVisible, search, user]);
+
   const userMap = useMemo(() => {
-    return Object.fromEntries(userList.map((entry) => [entry.id, entry]));
-  }, [userList]);
-
-  const filteredUsers = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return userList.filter((entry) => {
-      if (entry.id === user?.uid) return false;
-      const searchText = `${entry.displayName || ''} ${entry.username || ''} ${entry.searchName || ''} ${entry.email || ''}`.toLowerCase();
-      if (!q) return true;
-      return searchText.includes(q);
+    const next = { ...sharedProfiles };
+    if (directProfile?.id) next[directProfile.id] = directProfile;
+    people.forEach((person) => {
+      next[person.id] = person;
     });
-  }, [search, user?.uid, userList]);
+    if (user) {
+      next[user.uid] = {
+        uid: user.uid,
+        displayName: user.displayName || user.email?.split('@')[0] || messengerStrings.you,
+        photoURL: user.photoURL || '',
+      };
+    }
+    return next;
+  }, [directProfile, people, sharedProfiles, user]);
 
-  const totalUnread = chats.reduce((sum, chat) => sum + Number(chat.unread?.[user?.uid] || 0), 0);
+  const activeChat = allChats.find((chat) => chat.id === convId) || null;
+  const activePeerUid = activeChat?.members?.find((member) => member !== user?.uid);
+  const activePeer = activePeerUid ? userMap[activePeerUid] || {} : {};
+  const activePeerDetails = activePeerUid ? activeChat?.memberProfiles?.[activePeerUid] || {} : {};
+  const activePeerName = normalizeDisplayName(
+    activePeer.displayName,
+    activePeer.fullName,
+    activePeer.username,
+    activePeerDetails.displayName,
+    activePeerDetails.fullName,
+    activePeerDetails.name,
+    activeChat?.lastMessageSenderUid === activePeerUid ? activeChat?.lastMessageSenderName : ''
+  ) || messengerStrings.communityMember;
+  const activePeerPhoto = activePeer.photoURL || activePeerDetails.photoURL ||
+    activePeerDetails.profilePicture ||
+    (activeChat?.lastMessageSenderUid === activePeerUid ? activeChat?.lastMessageSenderPhotoURL : '') || '';
+  const totalUnread = allChats.reduce((sum, chat) => sum + Number(chat.unread?.[user?.uid] ?? chat.unreadCount ?? 0), 0);
 
-  const openChat = (chatDocId) => {
-    navigate(`/messenger/${chatDocId}`);
-  };
+  const focusSearch = useCallback(() => {
+    searchRef.current?.focus();
+  }, []);
+
+  const openChat = useCallback((chatId) => {
+    setError('');
+    navigate(`/messenger/${encodeURIComponent(chatId)}`);
+  }, [navigate]);
 
   async function createChat(targetUid) {
-    if (!user || !targetUid || targetUid === user.uid) return;
-
+    if (authLoading || !user || !targetUid || targetUid === user.uid) return;
     try {
-      const chatDocId = buildChatId(user.uid, targetUid);
-      const chatDocRef = doc(firestore, 'chats', chatDocId);
-      const chatSnap = await getDoc(chatDocRef);
-
-      if (!chatSnap.exists()) {
-        await setDoc(chatDocRef, {
-          id: chatDocId,
-          members: [user.uid, targetUid],
-          unread: {
-            [user.uid]: 0,
-            [targetUid]: 0,
-          },
-          lastMessage: '',
-          lastMessageAt: serverTimestamp(),
-          createdAt: serverTimestamp(),
-        });
-      }
-
+      const conversation = await findOrCreateDirectChat(user.uid, targetUid, allChats);
+      if (!chats.some((chat) => chat.id === conversation.id)) setDirectChat(conversation);
       setError('');
-      setNewChatOpen(false);
-      navigate(`/messenger/${chatDocId}`);
-    } catch (chatError) {
-      console.error('Create chat failed', chatError);
-      setError('Permission denied, check Firestore rules');
+      openChat(conversation.id);
+    } catch (createError) {
+      console.error('Could not create or open conversation:', {
+        code: createError?.code || 'unknown',
+        message: createError?.message || String(createError),
+      });
+      setError(messengerStrings.couldNotStartChat);
     }
   }
 
-  const activeChat = chats.find((chat) => chat.id === chatId) || null;
+  function retryConversationLoad() {
+    setError('');
+    setRequestedConversationError('');
+    setRequestedChatRetry((version) => version + 1);
+    retryChats();
+  }
 
   return (
-    <div className="cwschat messenger-page">
-      {error && (
-        <div className="cwschat chat-error-banner" role="alert">
-          {error}
-        </div>
-      )}
-      <div className="cwschat chat-shell">
-        <aside className="cwschat chat-sidebar">
-          <div className="cwschat sidebar-header">
-            <div className="cwschat brand-block">
-              <span className="cwschat brand-icon"><MessageSquareText size={18} /></span>
-              <span className="cwschat brand-name">CodeWithSiam</span>
-            </div>
-            <button type="button" className="cwschat ghost-button" aria-label="New chat" onClick={() => setNewChatOpen(true)}>
-              <Plus size={18} />
+    <section className="msgr-page" aria-label={messengerStrings.chatsTitle}>
+      {error && <div className="msgr-error" role="alert">{error}</div>}
+      <div className={`msgr-shell${convId ? ' has-active-chat' : ''}${activeChat ? ' has-info-panel' : ''}`}>
+        <aside className="msgr-sidebar">
+          <header className="msgr-sidebar-header">
+            <h1>{messengerStrings.chatsTitle}</h1>
+            <button type="button" className="msgr-icon-button" aria-label={messengerStrings.startNewChat} title={messengerStrings.newChat} onClick={focusSearch}>
+              <Plus size={21} />
             </button>
-          </div>
+          </header>
 
-          <div className="cwschat sidebar-profile">
-            <div className="cwschat profile-avatar-wrap">
-              {user?.photoURL ? (
-                <img src={user.photoURL} alt="Profile" className="cwschat profile-avatar" />
-              ) : (
-                <span className="cwschat profile-avatar fallback"><UserRound size={18} /></span>
-              )}
+          <label className="msgr-search">
+            <Search size={18} aria-hidden="true" />
+            <input
+              ref={searchRef}
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder={messengerStrings.searchChatsAndPeople}
+              aria-label={messengerStrings.searchChatsAndPeople}
+            />
+            {search && <button type="button" aria-label={messengerStrings.clearSearch} onClick={() => setSearch('')}>×</button>}
+          </label>
+
+          <div className="msgr-sidebar-scroll">
+            {(chatLoadError || requestedConversationError || profileError) && (
+              <div className="msgr-inline-error" role="alert">
+                <span>{requestedConversationError || (chatLoadError
+                  ? messengerStrings.getChatLoadError(chatLoadError.code)
+                  : messengerStrings.profilesCouldNotLoad)}</span>
+                <button type="button" onClick={retryConversationLoad}>{messengerStrings.retry}</button>
+              </div>
+            )}
+            {search.trim() && (
+              <section className="msgr-people-section" aria-label={messengerStrings.people}>
+                <h2>{messengerStrings.people}</h2>
+                {peopleLoading ? (
+                  <p className="msgr-search-status"><LoaderCircle size={16} className="msgr-spin" /> {messengerStrings.searchingPeople}</p>
+                ) : peopleError ? (
+                  <p className="msgr-search-status" role="status">{peopleError}</p>
+                ) : people.length ? (
+                  people.map((person) => (
+                    <button type="button" className="msgr-person-row" key={person.id} onClick={() => createChat(person.id)}>
+                      <span className="msgr-avatar-wrap">
+                        {person.photoURL
+                          ? <img src={person.photoURL} alt="" className="msgr-avatar" />
+                          : <span className="msgr-avatar msgr-avatar-fallback">{(person.displayName || person.username || '?').slice(0, 1).toUpperCase()}</span>}
+                        {person.online && <span className="msgr-online-dot" />}
+                      </span>
+                      <span className="msgr-person-name">{person.displayName || person.username || messengerStrings.communityMember}</span>
+                      <span className="msgr-person-action">{messengerStrings.messageAction}</span>
+                    </button>
+                  ))
+                ) : (
+                  <p className="msgr-search-status">{messengerStrings.noPeopleForSearch(search.trim())}</p>
+                )}
+              </section>
+            )}
+
+            <div className="msgr-list-heading">
+              <h2>{messengerStrings.recentChats}</h2>
+              <span>{totalUnread ? messengerStrings.unreadCount(totalUnread) : messengerStrings.yourConversations}</span>
             </div>
-            <div className="cwschat profile-meta">
-              <strong>{user?.displayName || 'Your chats'}</strong>
-              <span>Chat</span>
-            </div>
+            <ConversationList
+              chats={allChats}
+              activeChatId={convId}
+              currentUserUid={user?.uid}
+              usersMap={userMap}
+              onSelect={openChat}
+              onNewChat={focusSearch}
+              searchTerm={search}
+              loading={chatLoading && allChats.length === 0}
+              variant="messenger"
+              emptyTitle={search.trim() ? messengerStrings.noMatchingChats : messengerStrings.noChatsYet}
+              emptyDescription={messengerStrings.searchToStart}
+            />
           </div>
-
-          <div className="cwschat sidebar-search">
-            <Search size={15} />
-            <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search chats" aria-label="Search chats" />
-          </div>
-
-          <ConversationList
-            chats={chats}
-            activeChatId={chatId}
-            currentUserUid={user?.uid}
-            usersMap={userMap}
-            onSelect={openChat}
-            onNewChat={() => setNewChatOpen(true)}
-          />
         </aside>
 
-        <section className="cwschat chat-panel">
+        <main className="msgr-chat-panel">
           {activeChat ? (
             <ChatWindow
               chat={activeChat}
@@ -221,52 +413,63 @@ export default function Messenger() {
               usersMap={userMap}
               onBack={() => navigate('/messenger')}
             />
+          ) : convId ? (
+            <div className="msgr-chat-empty">
+              <button type="button" className="msgr-mobile-back" onClick={() => navigate('/messenger')} aria-label={messengerStrings.backToChats}>
+                <ArrowLeft size={19} />
+              </button>
+              <LoaderCircle size={28} className="msgr-spin" />
+              <p>{chatLoading || directChatLoading ? messengerStrings.openingConversation : messengerStrings.conversationUnavailable}</p>
+            </div>
           ) : (
-            <div className="cwschat empty-chat-state">
-              <div className="cwschat empty-chat-badge">
-                <Sparkles size={28} />
-              </div>
-              <h2>CodeWithSiam Chat</h2>
-              <p>Choose a conversation to start messaging.</p>
+            <div className="msgr-chat-empty">
+              <div className="msgr-empty-icon"><MessageSquareText size={38} /></div>
+              <h2>{messengerStrings.selectChat}</h2>
+              <p>{messengerStrings.pickSomeoneToStart}</p>
             </div>
           )}
-        </section>
-      </div>
+        </main>
 
-      {newChatOpen && (
-        <div className="cwschat new-chat-overlay" onClick={() => setNewChatOpen(false)}>
-          <div className="cwschat new-chat-modal" onClick={(event) => event.stopPropagation()}>
-            <div className="cwschat modal-header">
-              <h3>New chat</h3>
-              <button type="button" className="cwschat close-button" aria-label="Close" onClick={() => setNewChatOpen(false)}>
-                <X size={17} />
-              </button>
+        {activeChat && (
+          <aside className="msgr-info-panel" aria-label={messengerStrings.chatDetails}>
+            <div className="msgr-info-person">
+              <div className="msgr-info-avatar-wrap">
+                {activePeerPhoto
+                  ? <img src={activePeerPhoto} alt="" className="msgr-info-avatar" />
+                  : <span className="msgr-info-avatar msgr-info-avatar-fallback">{activePeerName.slice(0, 1).toUpperCase()}</span>}
+                {activePeer.online && <span className="msgr-info-online" />}
+              </div>
+              <h2>{activePeerName}</h2>
+              <p>{activePeer.online ? messengerStrings.activeNow : messengerStrings.offline}</p>
             </div>
-            <div className="cwschat modal-search">
-              <Search size={15} />
-              <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search people" aria-label="Search people" />
+
+            <div className="msgr-info-actions" aria-label={messengerStrings.contactActions}>
+              <div><span><UserRound size={18} /></span><small>{messengerStrings.profile}</small></div>
+              <div><span><Bell size={18} /></span><small>{messengerStrings.mute}</small></div>
+              <div><span><Search size={18} /></span><small>{messengerStrings.search}</small></div>
             </div>
-            <div className="cwschat user-list">
-              {filteredUsers.length ? (
-                filteredUsers.map((person) => (
-                  <button key={person.id} type="button" className="cwschat user-row" onClick={() => createChat(person.id)}>
-                    <div className="cwschat user-avatar-wrap">
-                      {person.photoURL ? <img src={person.photoURL} alt="" className="cwschat user-avatar" /> : <span className="cwschat user-avatar fallback">{(person.displayName || person.id).slice(0, 1).toUpperCase()}</span>}
-                      {person.online && <span className="cwschat online-dot" />}
-                    </div>
-                    <div className="cwschat user-copy">
-                      <strong>{person.displayName || person.username || 'CodeWithSiam user'}</strong>
-                      <span>{person.online ? 'online' : 'offline'}</span>
-                    </div>
-                  </button>
-                ))
-              ) : (
-                <div className="cwschat empty-user-state">No people found.</div>
-              )}
+
+            <div className="msgr-info-sections">
+              <details>
+                <summary>{messengerStrings.chatInfo}<ChevronDown size={17} /></summary>
+                <p>{messengerStrings.chatInfoDescription}</p>
+              </details>
+              <details>
+                <summary>{messengerStrings.customizeChat}<ChevronDown size={17} /></summary>
+                <p className="msgr-info-option"><Palette size={17} />{messengerStrings.chatTheme}</p>
+              </details>
+              <details>
+                <summary>{messengerStrings.mediaAndFiles}<ChevronDown size={17} /></summary>
+                <p className="msgr-info-option"><ImageIcon size={17} />{messengerStrings.sharedMedia}</p>
+              </details>
+              <details>
+                <summary>{messengerStrings.privacyAndSupport}<ChevronDown size={17} /></summary>
+                <p className="msgr-info-option"><LockKeyhole size={17} />{messengerStrings.privacyAndSafety}</p>
+              </details>
             </div>
-          </div>
-        </div>
-      )}
-    </div>
+          </aside>
+        )}
+      </div>
+    </section>
   );
 }

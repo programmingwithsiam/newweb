@@ -9,6 +9,7 @@ import ReactionBar from './ReactionBar';
 import CommentSection from './CommentSection';
 import ConfirmDialog from './ConfirmDialog';
 import FacebookEmbed from './FacebookEmbed';
+import { getCloudinaryDeliveryUrl } from '../config/cloudinary';
 import { Flag, Globe2, Link2, LockKeyhole, MessageCircle, MoreHorizontal, UsersRound } from 'lucide-react';
 
 const PRIVACY_ICON = { public: Globe2, friends: UsersRound, private: LockKeyhole };
@@ -252,7 +253,7 @@ export default function PostCard({ postId, post }) {
   return (
     <article className="post-card">
       <header className="post-header">
-        <img className="avatar-sm" src={post.authorPhoto || '/default-avatar.png'} alt="" onClick={() => navigate(`/profile/${post.uid}`)} />
+        <img className="avatar-sm" src={post.authorPhoto || '/community/default-avatar.png'} alt="" onClick={() => navigate(`/profile/${post.uid}`)} />
         <div className="post-header-text">
           <Link to={`/profile/${post.uid}`} className="post-author">{post.authorName}</Link>
           <div className="muted small">
@@ -299,7 +300,9 @@ export default function PostCard({ postId, post }) {
       {post.images && (
         <div className={`post-images count-${Math.min(Object.keys(post.images).length, 4)}`}>
           {Object.values(post.images).map((url, i) => (
-            <img key={i} src={url} alt="" loading="lazy" />
+            <a key={i} href={getCloudinaryDeliveryUrl(url, 1600)} target="_blank" rel="noopener noreferrer">
+              <img src={getCloudinaryDeliveryUrl(url, 1200)} alt="" loading="lazy" />
+            </a>
           ))}
         </div>
       )}
@@ -309,7 +312,7 @@ export default function PostCard({ postId, post }) {
           {embedUrl ? (
             <>
               <div className="community-video-brand" aria-label="Community video">
-                <img src={post.authorPhoto || '/default-avatar.png'} alt="" />
+                <img src={post.authorPhoto || '/community/default-avatar.png'} alt="" />
                 <div>
                   <strong>{post.authorName || 'Community member'}</strong>
                   <span>Community video</span>

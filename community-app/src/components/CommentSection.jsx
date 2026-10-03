@@ -30,7 +30,7 @@ function CommentItem({ postId, postOwnerUid, comment, id, onReply }) {
 
   return (
     <div className={comment.parentId ? 'comment comment-reply' : 'comment'}>
-      <img className="avatar-sm" src={comment.authorPhoto || '/default-avatar.png'} alt="" />
+      <img className="avatar-sm" src={comment.authorPhoto || '/community/default-avatar.png'} alt="" />
       <div className="comment-body">
         <div className="comment-bubble">
           <strong>{comment.authorName}</strong>

@@ -78,7 +78,7 @@ export default function Search() {
           <div className="friends-grid">
             {users.map((u) => (
               <a key={u.uid} className="friend-card" href={`/profile/${u.uid}`}>
-                <img src={u.photoURL || '/default-avatar.png'} alt="" />
+                <img src={u.photoURL || '/community/default-avatar.png'} alt="" />
                 <span>{u.fullName}<br /><span className="muted small">@{u.username}</span></span>
               </a>
             ))}

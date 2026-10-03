@@ -1,10 +1,14 @@
-import { useState } from 'react';
-import { ref as dbRef, push, set, serverTimestamp } from 'firebase/database';
+import { useEffect, useMemo, useState } from 'react';
+import { ref as dbRef, push, remove, set, update, serverTimestamp } from 'firebase/database';
 import { db } from '../firebase/config';
-import { uploadCommunityImage } from '../supabase/client';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { extractHashtags, isValidVideoUrl, getEmbedUrl, getEmbedProvider, isFacebookReelUrl } from '../utils/helpers';
+import {
+  prepareCloudinaryImage,
+  uploadCloudinaryImage,
+  validateCloudinaryImage,
+} from '../config/cloudinary';
 import FacebookEmbed from './FacebookEmbed';
 import { Camera, Image, MessageSquareText, Smile, UsersRound, Video, X } from 'lucide-react';
 
@@ -24,8 +28,13 @@ export default function CreatePost({ onPosted }) {
   const [videoUrl, setVideoUrl] = useState('');
   const [privacy, setPrivacy] = useState('public');
   const [busy, setBusy] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadingImages, setUploadingImages] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [showVideoInput, setShowVideoInput] = useState(false);
+  const filePreviewUrls = useMemo(() => files.map((file) => URL.createObjectURL(file)), [files]);
+
+  useEffect(() => () => filePreviewUrls.forEach((url) => URL.revokeObjectURL(url)), [filePreviewUrls]);
 
   function toggleVideoInput() {
     setShowVideoInput((current) => {
@@ -36,17 +45,20 @@ export default function CreatePost({ onPosted }) {
   }
 
   function handleFiles(e) {
+    if (busy) return;
     const list = Array.from(e.target.files || []).slice(0, 10);
-    const tooBig = list.find((f) => f.size > 8 * 1024 * 1024);
-    if (tooBig) {
-      showToast('Each image must be under 8MB', 'error');
-      return;
+    e.target.value = '';
+    try {
+      list.forEach(validateCloudinaryImage);
+      setFiles(list);
+    } catch (error) {
+      showToast(error.message, 'error');
     }
-    setFiles(list);
   }
 
   async function submit(e) {
     e.preventDefault();
+    if (busy) return;
     if (!user) {
       requestSignIn('Sign in to create a community post.');
       return;
@@ -63,15 +75,20 @@ export default function CreatePost({ onPosted }) {
     try {
       const postRef = push(dbRef(db, 'posts'));
       const images = {};
+      setUploadingImages(true);
       for (let i = 0; i < files.length; i++) {
-        images[i] = await uploadCommunityImage(files[i], `postImages/${user.uid}/${postRef.key}`);
+        const prepared = await prepareCloudinaryImage(files[i]);
+        const uploaded = await uploadCloudinaryImage(prepared.file, {
+          onProgress: (progress) => setUploadProgress(Math.round(((i + progress / 100) / files.length) * 100)),
+        });
+        images[i] = uploaded.secureUrl;
       }
+      setUploadingImages(false);
 
       const hashtags = extractHashtags(text);
       const hashtagMap = {};
       hashtags.forEach((h) => (hashtagMap[h] = true));
-
-      await withTimeout(set(postRef, {
+      const postData = {
         uid: user.uid,
         authorName: profile?.fullName || 'User',
         authorPhoto: profile?.photoURL || '',
@@ -83,24 +100,61 @@ export default function CreatePost({ onPosted }) {
         reactionsCount: 0,
         commentCount: 0,
         hashtags: Object.keys(hashtagMap).length ? hashtagMap : null
-      }), 'Post save timed out. Check your Firebase Realtime Database URL.');
-      await withTimeout(set(dbRef(db, `userPosts/${user.uid}/${postRef.key}`), true), 'Post index save timed out.');
+      };
+      const indexUpdates = {
+        [`userPosts/${user.uid}/${postRef.key}`]: true,
+      };
       if (privacy === 'public') {
-        await withTimeout(set(dbRef(db, `publicPostsIndex/${postRef.key}`), { uid: user.uid, createdAt: Date.now() }), 'Public post index save timed out.');
+        indexUpdates[`publicPostsIndex/${postRef.key}`] = { uid: user.uid, createdAt: Date.now() };
       }
       for (const tag of hashtags) {
-        await withTimeout(set(dbRef(db, `hashtags/${tag}/${postRef.key}`), true), 'Hashtag save timed out.');
+        indexUpdates[`hashtags/${tag}/${postRef.key}`] = true;
+      }
+
+      await withTimeout(set(postRef, postData), 'Post save timed out. Check your Firebase Realtime Database URL.');
+      try {
+        await withTimeout(update(dbRef(db), indexUpdates), 'Post index save timed out.');
+      } catch (indexError) {
+        try {
+          await remove(postRef);
+        } catch (rollbackError) {
+          console.error('Could not roll back a partially indexed community post:', {
+            code: rollbackError?.code || 'unknown',
+            message: rollbackError?.message || String(rollbackError),
+          });
+        }
+        throw indexError;
       }
 
       setText('');
       setFiles([]);
+      setUploadProgress(0);
       setVideoUrl('');
       setShowVideoInput(false);
       showToast('Posted!', 'success');
       onPosted?.();
     } catch (err) {
-      showToast(err.message, 'error');
+      console.error('Community image or post save failed:', {
+        code: err?.code || 'unknown',
+        message: err?.message || String(err),
+      });
+      const uploadErrorCodes = new Set([
+        'INVALID_IMAGE_TYPE',
+        'IMAGE_TOO_LARGE',
+        'IMAGE_PROCESSING_FAILED',
+        'CLOUDINARY_INVALID_RESPONSE',
+        'CLOUDINARY_UPLOAD_FAILED',
+        'CLOUDINARY_NETWORK_ERROR',
+        'CLOUDINARY_TIMEOUT',
+      ]);
+      showToast(
+        uploadErrorCodes.has(err?.code)
+          ? err.message
+          : 'Your post could not be published. Please try again.',
+        'error'
+      );
     } finally {
+      setUploadingImages(false);
       setBusy(false);
     }
   }
@@ -123,7 +177,7 @@ export default function CreatePost({ onPosted }) {
     <>
       <div className="composer-main-row">
         <div className="composer-avatar-wrap">
-          <img className="avatar-sm composer-avatar" src={profile?.photoURL || '/default-avatar.png'} alt="" />
+          <img className="avatar-sm composer-avatar" src={profile?.photoURL || '/community/default-avatar.png'} alt="" />
         </div>
         <textarea
           value={text}
@@ -136,7 +190,7 @@ export default function CreatePost({ onPosted }) {
         <div className="composer-tools">
           <label className="composer-tool" title="Add photo" aria-label="Add photo">
             <Image size={17} strokeWidth={1.8} aria-hidden="true" />
-            <input type="file" accept="image/*" multiple hidden onChange={handleFiles} />
+            <input type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" multiple hidden disabled={busy} onChange={handleFiles} />
           </label>
           <button className={`composer-tool${showVideoInput ? ' is-active' : ''}`} type="button" title="Add Facebook or YouTube video link" aria-label="Add Facebook or YouTube video link" onClick={toggleVideoInput}>
             <Video size={17} strokeWidth={1.8} aria-hidden="true" />
@@ -155,9 +209,15 @@ export default function CreatePost({ onPosted }) {
 
       {files.length > 0 && (
         <div className="create-post-previews">
-          {files.map((f, i) => (
-            <img key={i} src={URL.createObjectURL(f)} alt="" />
+          {files.map((file, i) => (
+            <img key={`${file.name}-${i}`} src={filePreviewUrls[i]} alt="" />
           ))}
+        </div>
+      )}
+      {busy && files.length > 0 && (
+        <div className="cloudinary-upload-status" role="status">
+          <span>{uploadingImages ? `Uploading images ${uploadProgress}%` : 'Publishing post...'}</span>
+          {uploadingImages && <progress max="100" value={uploadProgress} aria-label="Image upload progress" />}
         </div>
       )}
 
@@ -221,7 +281,7 @@ export default function CreatePost({ onPosted }) {
             </div>
 
             <div className="composer-modal-user-row">
-              <img className="avatar-sm composer-avatar" src={profile?.photoURL || '/default-avatar.png'} alt="" />
+              <img className="avatar-sm composer-avatar" src={profile?.photoURL || '/community/default-avatar.png'} alt="" />
               <div className="composer-modal-user-meta">
                 <span className="composer-modal-name">{profile?.fullName || 'Siam Ahmed'}</span>
                 <div className="composer-modal-privacy-row">
@@ -243,7 +303,7 @@ export default function CreatePost({ onPosted }) {
             <div className="composer-modal-action-row">
               <label type="button" className="composer-modal-mini-btn" aria-label="Add image">
                 <Image size={18} strokeWidth={1.9} aria-hidden="true" />
-                <input type="file" accept="image/*" multiple hidden onChange={handleFiles} />
+                <input type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" multiple hidden disabled={busy} onChange={handleFiles} />
               </label>
               <button type="button" className={`composer-modal-mini-btn${showVideoInput ? ' is-active' : ''}`} aria-label="Add Facebook or YouTube video link" onClick={() => toggleVideoInput()}>
                 <Video size={18} strokeWidth={1.9} aria-hidden="true" />
@@ -271,9 +331,15 @@ export default function CreatePost({ onPosted }) {
 
             {files.length > 0 && (
               <div className="create-post-previews modal-preview-grid">
-                {files.map((f, i) => (
-                  <img key={i} src={URL.createObjectURL(f)} alt="" />
+                {files.map((file, i) => (
+                  <img key={`${file.name}-${i}`} src={filePreviewUrls[i]} alt="" />
                 ))}
+              </div>
+            )}
+            {busy && files.length > 0 && (
+              <div className="cloudinary-upload-status" role="status">
+                <span>{uploadingImages ? `Uploading images ${uploadProgress}%` : 'Publishing post...'}</span>
+                {uploadingImages && <progress max="100" value={uploadProgress} aria-label="Image upload progress" />}
               </div>
             )}
 
@@ -282,7 +348,7 @@ export default function CreatePost({ onPosted }) {
               <div className="composer-modal-icons">
                 <label className="composer-tool" title="Add photo" aria-label="Add photo">
                   <Image size={17} strokeWidth={1.8} aria-hidden="true" />
-                  <input type="file" accept="image/*" multiple hidden onChange={handleFiles} />
+                  <input type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" multiple hidden disabled={busy} onChange={handleFiles} />
                 </label>
                 <button type="button" className={`composer-tool${showVideoInput ? ' is-active' : ''}`} aria-label="Add Facebook or YouTube video link" onClick={toggleVideoInput}><Video size={17} strokeWidth={1.8} aria-hidden="true" /></button>
                 <button type="button" className="composer-tool" aria-label="Camera" onClick={() => document.querySelector('.composer-modal-textarea')?.focus()}><Camera size={17} strokeWidth={1.8} aria-hidden="true" /></button>

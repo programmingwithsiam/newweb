@@ -1,8 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { collection, onSnapshot, orderBy, query, where } from 'firebase/firestore';
 import { useAuth } from '../context/AuthContext';
-import { firestore } from '../firebase/config';
+import { useChats } from '../context/ChatsContext';
 import { Bell, Bookmark, BookOpen, Clock3, Gamepad2, Home, MessageCircle, PlusCircle, Search, Settings, ShieldCheck, Store, User, Users, UserRound, Video, X } from 'lucide-react';
 
 const links = [
@@ -31,19 +30,10 @@ const iconProps = { size: 20, strokeWidth: 1.5, 'aria-hidden': true };
 
 export default function Sidebar({ mobileOpen = false, onClose }) {
   const [showMore, setShowMore] = useState(false);
-  const [unreadTotal, setUnreadTotal] = useState(0);
   const { user, profile } = useAuth();
+  const { chats } = useChats();
+  const unreadTotal = chats.reduce((sum, chat) => sum + Number(chat.unread?.[user?.uid] || 0), 0);
   const isAdmin = user?.email?.toLowerCase() === 'mdsiamahmmedloselovestroy@gmail.com';
-
-  useEffect(() => {
-    if (!user) return undefined;
-    const chatsQuery = query(collection(firestore, 'chats'), where('members', 'array-contains', user.uid), orderBy('lastMessageAt', 'desc'));
-    const unsub = onSnapshot(chatsQuery, (snapshot) => {
-      const total = snapshot.docs.reduce((sum, docSnap) => sum + Number(docSnap.data()?.unread?.[user.uid] || 0), 0);
-      setUnreadTotal(total);
-    });
-    return () => unsub();
-  }, [user]);
 
   return (
     <>

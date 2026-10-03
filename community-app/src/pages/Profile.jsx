@@ -117,7 +117,7 @@ export default function Profile() {
       </div>
       <div className="profile-header">
         <div className="profile-avatar-wrap">
-          <img className="profile-avatar" src={profile.photoURL || '/default-avatar.png'} alt={profile.fullName} />
+          <img className="profile-avatar" src={profile.photoURL || '/community/default-avatar.png'} alt={profile.fullName} />
           {isMe && (
             <label className="avatar-edit-btn">
               📷
@@ -191,7 +191,7 @@ function FriendCard({ uid }) {
   if (!p) return null;
   return (
     <a className="friend-card" href={`/profile/${uid}`}>
-      <img src={p.photoURL || '/default-avatar.png'} alt="" />
+      <img src={p.photoURL || '/community/default-avatar.png'} alt="" />
       <span>{p.fullName}</span>
     </a>
   );

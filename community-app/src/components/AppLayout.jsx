@@ -5,19 +5,22 @@ import Sidebar from './Sidebar';
 import BottomNav from './BottomNav';
 import ConversationList from './ConversationList';
 import { useAuth } from '../context/AuthContext';
+import { ChatsProvider, useChats } from '../context/ChatsContext';
 import { UserRound, ChevronRight, Megaphone } from 'lucide-react';
+import { messengerStrings } from '../messenger-strings';
 
-export default function AppLayout() {
+function AppLayoutContent() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { chats, profiles, loading: chatsLoading } = useChats();
   const isMessengerRoute = pathname.startsWith('/messenger');
 
   return (
     <div className="app-shell">
       <Navbar onMenu={() => setMobileNavOpen(true)} />
-      <div className={`app-body${isMessengerRoute ? ' messenger-layout' : ''}`}>
+      <div className={`app-body${isMessengerRoute ? ' msgr-layout' : ''}`}>
         {!isMessengerRoute && <Sidebar mobileOpen={mobileNavOpen} onClose={() => setMobileNavOpen(false)} />}
         <main className="app-main">
           <Outlet />
@@ -41,11 +44,22 @@ export default function AppLayout() {
                 <p className="muted">No birthdays today.</p>
               </section>
               <section className="rail-card cwsfb-contacts">
-                <div className="rail-card-heading"><h4>Contacts</h4></div>
+                <div className="rail-card-heading"><h4>{messengerStrings.contactsTitle}</h4></div>
                 {user ? (
-                  <ConversationList activeId="" onSelect={(convId) => navigate(`/messenger/${convId}`)} />
+                  <ConversationList
+                    chats={chats}
+                    activeId=""
+                    currentUserUid={user.uid}
+                    usersMap={profiles}
+                    loading={chatsLoading && chats.length === 0}
+                    variant="contacts"
+                    emptyTitle={messengerStrings.noContacts}
+                    emptyDescription={messengerStrings.searchToStart}
+                    onSelect={(convId) => navigate(`/messenger/${convId}`)}
+                    onNewChat={() => navigate('/messenger')}
+                  />
                 ) : (
-                  <p className="muted">Sign in to see your contacts.</p>
+                  <p className="muted">{messengerStrings.signInToSeeContacts}</p>
                 )}
               </section>
               <section className="rail-card sponsored-card">
@@ -76,5 +90,13 @@ export default function AppLayout() {
       </div>
       {!isMessengerRoute && <BottomNav onMenu={() => setMobileNavOpen(true)} />}
     </div>
+  );
+}
+
+export default function AppLayout() {
+  return (
+    <ChatsProvider>
+      <AppLayoutContent />
+    </ChatsProvider>
   );
 }

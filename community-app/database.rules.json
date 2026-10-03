@@ -9,15 +9,12 @@
     "users": {
       ".read": "auth != null && auth.token.email_verified === true",
       ".indexOn": [
-        "usernameLower"
+        "usernameLower",
+        "nameLower"
       ],
       "$uid": {
         ".write": "auth != null && auth.token.email_verified === true && auth.uid === $uid",
         ".validate": "newData.hasChildren(['fullName','username','usernameLower'])",
-        "private": {
-          ".read": "auth != null && auth.token.email_verified === true && auth.uid === $uid",
-          ".write": "auth != null && auth.token.email_verified === true && auth.uid === $uid"
-        },
         "followersCount": {
           ".write": "auth != null && auth.token.email_verified === true",
           ".validate": "newData.isNumber() && newData.val() >= 0 && (!data.exists() ? newData.val() === 0 || newData.val() === 1 : (newData.val() === data.val() + 1 || newData.val() === data.val() - 1))"
@@ -32,6 +29,15 @@
         },
         "notifPrefs": {
           ".write": "auth != null && auth.token.email_verified === true && auth.uid === $uid"
+        }
+      }
+    },
+    "privateUsers": {
+      "$uid": {
+        ".read": "auth != null && auth.token.email_verified === true && auth.uid === $uid",
+        ".write": "auth != null && auth.token.email_verified === true && auth.uid === $uid",
+        "email": {
+          ".validate": "newData.isString() && newData.val().length <= 320"
         }
       }
     },
@@ -144,10 +150,49 @@
     "conversations": {
       "$convId": {
         ".read": "auth != null && auth.token.email_verified === true && data.child('members').child(auth.uid).exists()",
-        ".write": "auth != null && auth.token.email_verified === true && (!data.exists() ? newData.child('members').child(auth.uid).exists() : data.child('members').child(auth.uid).exists())",
+        ".write": "auth != null && auth.token.email_verified === true && !data.exists() && newData.child('members').child(auth.uid).exists()",
         "members": {
           "$memberUid": {
             ".write": "auth != null && auth.token.email_verified === true && (auth.uid === $memberUid || root.child('groupMembers').child($convId).child(auth.uid).child('role').val() === 'admin' || !root.child('groupMembers').child($convId).exists())"
+          }
+        },
+        "lastMessage": {
+          ".write": "auth != null && auth.token.email_verified === true && data.parent().child('members').child(auth.uid).exists()",
+          ".validate": "newData.isString() && newData.val().length <= 2010"
+        },
+        "lastMessageAt": {
+          ".write": "auth != null && auth.token.email_verified === true && data.parent().child('members').child(auth.uid).exists()",
+          ".validate": "newData.isNumber()"
+        },
+        "lastMessageOrder": {
+          ".write": "auth != null && auth.token.email_verified === true && data.parent().child('members').child(auth.uid).exists()",
+          ".validate": "newData.isNumber()"
+        },
+        "lastMessageId": {
+          ".write": "auth != null && auth.token.email_verified === true && data.parent().child('members').child(auth.uid).exists()",
+          ".validate": "newData.isString() && newData.val().length <= 128"
+        },
+        "lastMessageSenderUid": {
+          ".write": "auth != null && auth.token.email_verified === true && data.parent().child('members').child(auth.uid).exists()",
+          ".validate": "newData.val() === auth.uid || (newData.val() === '' && newData.parent().child('lastMessage').val() === '')"
+        },
+        "lastMessageSenderName": {
+          ".write": "auth != null && auth.token.email_verified === true && data.parent().child('members').child(auth.uid).exists()",
+          ".validate": "newData.isString() && newData.val().length <= 120"
+        },
+        "lastMessageSenderPhotoURL": {
+          ".write": "auth != null && auth.token.email_verified === true && data.parent().child('members').child(auth.uid).exists()",
+          ".validate": "newData.isString() && newData.val().length <= 2048"
+        },
+        "unreadByUid": {
+          ".write": "auth != null && auth.token.email_verified === true && data.parent().child('members').child(auth.uid).exists()",
+          "$uid": {
+            ".write": "auth != null && auth.token.email_verified === true && data.parent().parent().child('members').child(auth.uid).exists()"
+          }
+        },
+        "readAt": {
+          "$uid": {
+            ".write": "auth != null && auth.token.email_verified === true && auth.uid === $uid && data.parent().parent().child('members').child(auth.uid).exists()"
           }
         }
       }
@@ -155,8 +200,54 @@
     "userConversations": {
       "$uid": {
         ".read": "auth != null && auth.token.email_verified === true && auth.uid === $uid",
+        ".indexOn": [
+          "lastMessageAt",
+          "lastMessageOrder"
+        ],
         "$convId": {
-          ".write": "auth != null && auth.token.email_verified === true && root.child('conversations').child($convId).child('members').child(auth.uid).exists()"
+          "members": {
+            ".write": "auth != null && auth.token.email_verified === true && root.child('conversations').child($convId).child('members').child(auth.uid).exists()"
+          },
+          "lastMessage": {
+            ".write": "auth != null && auth.token.email_verified === true && root.child('conversations').child($convId).child('members').child(auth.uid).exists()",
+            ".validate": "newData.isString() && newData.val().length <= 2010"
+          },
+          "lastMessageAt": {
+            ".write": "auth != null && auth.token.email_verified === true && root.child('conversations').child($convId).child('members').child(auth.uid).exists()",
+            ".validate": "newData.isNumber()"
+          },
+          "lastMessageOrder": {
+            ".write": "auth != null && auth.token.email_verified === true && root.child('conversations').child($convId).child('members').child(auth.uid).exists()",
+            ".validate": "newData.isNumber()"
+          },
+          "lastMessageId": {
+            ".write": "auth != null && auth.token.email_verified === true && root.child('conversations').child($convId).child('members').child(auth.uid).exists()",
+            ".validate": "newData.isString() && newData.val().length <= 128"
+          },
+          "lastMessageSenderUid": {
+            ".write": "auth != null && auth.token.email_verified === true && root.child('conversations').child($convId).child('members').child(auth.uid).exists()",
+            ".validate": "newData.val() === auth.uid || (newData.val() === '' && newData.parent().child('lastMessage').val() === '')"
+          },
+          "lastMessageSenderName": {
+            ".write": "auth != null && auth.token.email_verified === true && root.child('conversations').child($convId).child('members').child(auth.uid).exists()",
+            ".validate": "newData.isString() && newData.val().length <= 120"
+          },
+          "lastMessageSenderPhotoURL": {
+            ".write": "auth != null && auth.token.email_verified === true && root.child('conversations').child($convId).child('members').child(auth.uid).exists()",
+            ".validate": "newData.isString() && newData.val().length <= 2048"
+          },
+          "unreadCount": {
+            ".write": "auth != null && auth.token.email_verified === true && root.child('conversations').child($convId).child('members').child(auth.uid).exists()",
+            ".validate": "newData.isNumber() && newData.val() >= 0"
+          },
+          "unreadByUid": {
+            ".write": "auth != null && auth.token.email_verified === true && root.child('conversations').child($convId).child('members').child(auth.uid).exists()"
+          },
+          "readAt": {
+            "$readerUid": {
+              ".write": "auth != null && auth.token.email_verified === true && auth.uid === $readerUid && root.child('conversations').child($convId).child('members').child(auth.uid).exists()"
+            }
+          }
         }
       }
     },
@@ -164,10 +255,12 @@
       "$convId": {
         ".read": "auth != null && auth.token.email_verified === true && root.child('conversations').child($convId).child('members').child(auth.uid).exists()",
         ".indexOn": [
-          "createdAt"
+          "createdAt",
+          "createdAtOrder"
         ],
         "$msgId": {
-          ".write": "auth != null && auth.token.email_verified === true && root.child('conversations').child($convId).child('members').child(auth.uid).exists() && (!data.exists() ? newData.child('senderId').val() === auth.uid : data.child('senderId').val() === auth.uid)",
+          ".write": "auth != null && auth.token.email_verified === true && root.child('conversations').child($convId).child('members').child(auth.uid).exists() && (!data.exists() ? newData.child('senderId').val() === auth.uid && newData.child('createdAt').val() === now && newData.child('createdAtOrder').val() === now && (root.child('conversations').child($convId).child('lastMessageSenderUid').val() !== auth.uid || root.child('conversations').child($convId).child('lastMessageAt').val() <= now - 1000) : data.child('senderId').val() === auth.uid)",
+          ".validate": "newData.child('senderId').val() === auth.uid && newData.child('createdAt').val() === (data.exists() ? data.child('createdAt').val() : now) && newData.child('createdAtOrder').val() === (data.exists() ? data.child('createdAtOrder').val() : now) && (!newData.child('text').exists() || (newData.child('text').isString() && newData.child('text').val().length <= 2000)) && (!newData.child('caption').exists() || (newData.child('caption').isString() && newData.child('caption').val().length <= 2000)) && (newData.child('type').val() !== 'image' || newData.child('deletedForEveryone').val() === true || (newData.child('imageUrl').isString() && newData.child('imageUrl').val().beginsWith('https://res.cloudinary.com/fyelzeqn/') && newData.child('width').isNumber() && newData.child('height').isNumber()) || (data.exists() && !data.child('imageUrl').exists() && newData.child('imageUrl').val() === data.child('imageUrl').val()))",
           "seenBy": {
             "$uid": {
               ".write": "auth != null && auth.token.email_verified === true && auth.uid === $uid && root.child('conversations').child($convId).child('members').child(auth.uid).exists()"

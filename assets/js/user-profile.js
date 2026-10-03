@@ -18,11 +18,70 @@ function initials(name) { return String(name || 'Member').trim().split(/\s+/).sl
 function relativeTime(value) { const date = value?.toDate?.() || new Date(value || 0); const diff = Date.now() - date.getTime(); const days = Math.floor(diff / 86400000); if (days === 0) return 'Today'; if (days === 1) return 'Yesterday'; if (days < 7) return `${days} days ago`; if (days < 30) return `${Math.floor(days / 7)} weeks ago`; return `${Math.floor(days / 30)} months ago`; }
 
 async function getUserProfile(userId) {
-  const { doc, getDoc } = await import('https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js');
+  const { doc, getDoc, setDoc, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js');
   try {
-    const userRef = doc(db, 'users', userId);
-    const userSnap = await getDoc(userRef);
-    return userSnap.exists() ? { id: userSnap.id, ...userSnap.data() } : null;
+    const publicRef = doc(db, 'publicProfiles', userId);
+    const publicSnap = await getDoc(publicRef);
+    if (publicSnap.exists()) {
+      const profile = publicSnap.data();
+      if (currentUser?.uid === userId) {
+        const directoryRef = doc(db, 'publicDirectory', userId);
+        const directorySnap = await getDoc(directoryRef);
+        if (!directorySnap.exists()) {
+          const name = String(profile.displayName || profile.name || 'Member').trim().slice(0, 120);
+          await setDoc(directoryRef, {
+            uid: userId,
+            displayName: name,
+            photoURL: profile.profilePicture || profile.photoURL || '',
+            username: String(profile.username || '').slice(0, 30),
+            searchName: String(profile.searchName || name.toLowerCase()).slice(0, 120),
+            online: Boolean(profile.online),
+            lastSeen: profile.lastSeen || serverTimestamp(),
+            updatedAt: serverTimestamp(),
+          }, { merge: true });
+        }
+      }
+      return { id: publicSnap.id, ...profile };
+    }
+    if (currentUser?.uid !== userId) return null;
+
+    const privateSnap = await getDoc(doc(db, 'users', userId));
+    if (!privateSnap.exists()) return null;
+    const privateProfile = privateSnap.data();
+    const name = String(privateProfile.name || currentUser.displayName || 'Member').trim().slice(0, 120);
+    const publicProfile = {
+      uid: userId,
+      name,
+      displayName: name,
+      photoURL: privateProfile.photoURL || currentUser.photoURL || '',
+      profilePicture: privateProfile.profilePicture || privateProfile.photoURL || currentUser.photoURL || '',
+      coverPhoto: privateProfile.coverPhoto || '',
+      coverURL: privateProfile.coverURL || '',
+      username: String(privateProfile.username || '').slice(0, 30),
+      searchName: name.toLowerCase(),
+      bio: privateProfile.bio || '',
+      location: privateProfile.location || '',
+      website: privateProfile.website || '',
+      learningRole: privateProfile.learningRole || '',
+      skills: Array.isArray(privateProfile.skills) ? privateProfile.skills : [],
+      followers: Array.isArray(privateProfile.followers) ? privateProfile.followers : [],
+      following: Array.isArray(privateProfile.following) ? privateProfile.following : [],
+      totalProjects: privateProfile.totalProjects || 0,
+      createdAt: privateProfile.createdAt || new Date(),
+      updatedAt: serverTimestamp(),
+    };
+    await setDoc(publicRef, publicProfile, { merge: true });
+    await setDoc(doc(db, 'publicDirectory', userId), {
+      uid: userId,
+      displayName: name,
+      photoURL: publicProfile.profilePicture || publicProfile.photoURL,
+      username: publicProfile.username,
+      searchName: publicProfile.searchName,
+      online: true,
+      lastSeen: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    }, { merge: true });
+    return { id: userId, ...publicProfile };
   } catch (error) {
     console.error('Error fetching user profile:', error);
     return null;
@@ -72,7 +131,7 @@ async function isUserFollowing(followerUid, followeeUid) {
   if (!followerUid || !followeeUid) return false;
   const { doc, getDoc } = await import('https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js');
   try {
-    const userRef = doc(db, 'users', followerUid);
+    const userRef = doc(db, 'publicProfiles', followerUid);
     const userSnap = await getDoc(userRef);
     if (userSnap.exists()) {
       const following = userSnap.data().following || [];
@@ -90,12 +149,12 @@ async function followUser(followerUid, followeeUid) {
   const { doc, updateDoc, arrayUnion, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js');
   try {
     // Add to follower's following list
-    await updateDoc(doc(db, 'users', followerUid), {
+    await updateDoc(doc(db, 'publicProfiles', followerUid), {
       following: arrayUnion(followeeUid),
       updatedAt: serverTimestamp()
     });
     // Add to followee's followers list
-    await updateDoc(doc(db, 'users', followeeUid), {
+    await updateDoc(doc(db, 'publicProfiles', followeeUid), {
       followers: arrayUnion(followerUid),
       updatedAt: serverTimestamp()
     });
@@ -111,12 +170,12 @@ async function unfollowUser(followerUid, followeeUid) {
   const { doc, updateDoc, arrayRemove, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js');
   try {
     // Remove from follower's following list
-    await updateDoc(doc(db, 'users', followerUid), {
+    await updateDoc(doc(db, 'publicProfiles', followerUid), {
       following: arrayRemove(followeeUid),
       updatedAt: serverTimestamp()
     });
     // Remove from followee's followers list
-    await updateDoc(doc(db, 'users', followeeUid), {
+    await updateDoc(doc(db, 'publicProfiles', followeeUid), {
       followers: arrayRemove(followerUid),
       updatedAt: serverTimestamp()
     });
@@ -353,12 +412,14 @@ async function saveProfileChanges() {
     const username = document.getElementById('editUsername').value.trim().toLowerCase();
     const website = document.getElementById('editWebsite').value.trim();
     if (displayName.length < 2) throw new Error('Display name must be at least 2 characters.');
+    if (displayName.length > 120) throw new Error('Display name must be 120 characters or fewer.');
     if (!/^[a-z0-9_]{3,30}$/.test(username)) throw new Error('Username must be 3-30 characters: letters, numbers, and underscores only.');
     if (website && !/^https?:\/\//i.test(website)) throw new Error('Website must start with https:// or http://.');
-    const usernameMatches = await getDocs(query(collection(db, 'users'), where('username', '==', username)));
+    const usernameMatches = await getDocs(query(collection(db, 'publicDirectory'), where('username', '==', username)));
     if (usernameMatches.docs.some(profile => profile.id !== currentUser.uid)) throw new Error('That username is already taken.');
     const storage = getStorage();
     const updates = {
+      uid: currentUser.uid,
       name: displayName,
       username,
       bio: document.getElementById('editBio').value.trim(),
@@ -407,6 +468,35 @@ async function saveProfileChanges() {
     // Update user profile in Firestore
     const userRef = doc(db, 'users', currentUser.uid);
     await setDoc(userRef, updates, { merge: true });
+    const publicUpdates = {
+      uid: currentUser.uid,
+      name: displayName,
+      displayName,
+      username,
+      searchName: displayName.toLowerCase().slice(0, 120),
+      bio: updates.bio,
+      location: updates.location,
+      website: updates.website,
+      learningRole: updates.learningRole,
+      skills: updates.skills,
+      updatedAt: serverTimestamp()
+    };
+    if (updates.profilePicture) {
+      publicUpdates.profilePicture = updates.profilePicture;
+      publicUpdates.photoURL = updates.profilePicture;
+    }
+    if (updates.coverPhoto) publicUpdates.coverPhoto = updates.coverPhoto;
+    await setDoc(doc(db, 'publicProfiles', currentUser.uid), publicUpdates, { merge: true });
+    await setDoc(doc(db, 'publicDirectory', currentUser.uid), {
+      uid: currentUser.uid,
+      displayName,
+      photoURL: updates.profilePicture || userProfileData.profilePicture || userProfileData.photoURL || currentUser.photoURL || '',
+      username,
+      searchName: displayName.toLowerCase().slice(0, 120),
+      online: true,
+      lastSeen: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    }, { merge: true });
     const { updateProfile } = await import('https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js');
     await updateProfile(currentUser, { displayName, photoURL: updates.profilePicture || currentUser.photoURL || null });
 

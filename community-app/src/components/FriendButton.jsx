@@ -5,6 +5,7 @@ import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { notify } from '../utils/notify';
+import { findOrCreateDirectChat } from '../utils/chatService';
 import ConfirmDialog from './ConfirmDialog';
 
 export default function FriendButton({ targetUid }) {
@@ -104,21 +105,8 @@ export default function FriendButton({ targetUid }) {
 
   async function startChat() {
     try {
-      const convId = [user.uid, targetUid].sort().join('_');
-      await set(ref(db, `conversations/${convId}`), {
-        type: 'private',
-        members: { [user.uid]: true, [targetUid]: true },
-        createdAt: serverTimestamp()
-      });
-      const summary = {
-        members: { [user.uid]: true, [targetUid]: true },
-        lastMessage: '',
-        lastMessageAt: Date.now(),
-        unreadCount: 0
-      };
-      await set(ref(db, `userConversations/${user.uid}/${convId}`), summary);
-      await set(ref(db, `userConversations/${targetUid}/${convId}`), summary);
-      navigate(`/messenger/${convId}`);
+      const conversation = await findOrCreateDirectChat(user.uid, targetUid);
+      navigate(`/messenger/${conversation.id}`);
     } catch (err) {
       showToast(`Could not open chat: ${err.message}`, 'error');
     }

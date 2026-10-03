@@ -14,8 +14,7 @@ import {
   updatePassword
 } from 'firebase/auth';
 import { ref, set, get, onDisconnect, onValue, serverTimestamp, update, runTransaction } from 'firebase/database';
-import { doc, setDoc } from 'firebase/firestore';
-import { auth, db, firestore, googleProvider } from '../firebase/config';
+import { auth, db, googleProvider } from '../firebase/config';
 import { usernameToKey, validateUsername } from '../utils/helpers';
 
 function authApiBaseUrl() {
@@ -53,33 +52,61 @@ async function registrationRequest(path, payload) {
 
 const AuthContext = createContext(null);
 
-async function syncFirestoreUserProfile(fbUser, extra = {}) {
+async function syncRealtimeUserProfile(fbUser) {
   if (!fbUser?.uid) return;
-  const displayName = extra.displayName || fbUser.displayName || fbUser.email?.split('@')[0] || 'CodeWithSiam user';
-  const normalizedName = String(displayName || 'CodeWithSiam user').trim();
-  const searchName = normalizedName.toLowerCase();
-  const profileDoc = {
-    uid: fbUser.uid,
-    displayName: normalizedName,
-    photoURL: fbUser.photoURL || extra.photoURL || '',
-    email: fbUser.email || extra.email || '',
-    username: extra.username || '',
-    searchName,
-    online: true,
-    lastSeen: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-  };
+  try {
+    await set(ref(db, `privateUsers/${fbUser.uid}/email`), fbUser.email || '');
+    console.info(`[msgr] profile sync ok privateUsers/${fbUser.uid}/email`);
+  } catch (error) {
+    console.error('Could not sync private account data:', {
+      code: error?.code || 'unknown',
+      message: error?.message || String(error),
+    });
+  }
 
-  await setDoc(doc(firestore, 'users', fbUser.uid), profileDoc, { merge: true }).catch(() => undefined);
-}
-
-async function setFirestorePresence(uid, online) {
-  if (!uid) return;
-  await setDoc(doc(firestore, 'users', uid), {
-    online,
-    lastSeen: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-  }, { merge: true }).catch(() => undefined);
+  try {
+    const userProfileRef = ref(db, `users/${fbUser.uid}`);
+    const snapshot = await get(userProfileRef);
+    if (!snapshot.exists()) return;
+    const profile = snapshot.val() || {};
+    const fallbackName = fbUser.email?.split('@')[0] || `user${fbUser.uid.slice(0, 6)}`;
+    const name = profile.fullName || profile.name || fbUser.displayName || fallbackName;
+    let username = profile.username || '';
+    let usernameLower = profile.usernameLower || (username ? usernameToKey(username) : '');
+    if (!username) {
+      const usernameBase = fallbackName.replace(/[^a-zA-Z0-9_.]/g, '').slice(0, 20) ||
+        `user${fbUser.uid.slice(0, 6)}`;
+      let reserved = false;
+      for (let attempt = 0; attempt < 8; attempt += 1) {
+        const suffix = attempt === 0 ? '' : attempt.toString(36);
+        const candidate = `${usernameBase.slice(0, 20 - suffix.length)}${suffix}`;
+        const candidateKey = usernameToKey(candidate);
+        const reservation = await runTransaction(ref(db, `usernames/${candidateKey}`), (current) => {
+          if (current === null || current === fbUser.uid) return fbUser.uid;
+          return;
+        });
+        if (reservation.committed) {
+          username = candidate;
+          usernameLower = candidateKey;
+          reserved = true;
+          break;
+        }
+      }
+      if (!reserved) throw new Error('A unique username could not be reserved for profile backfill.');
+    }
+    const updates = {
+      fullName: name,
+      username,
+      usernameLower,
+      name,
+      nameLower: name.toLowerCase(),
+      photoURL: profile.photoURL || fbUser.photoURL || '',
+    };
+    await update(userProfileRef, updates);
+    Object.keys(updates).forEach((field) => console.info(`[msgr] profile sync ok users/${fbUser.uid}/${field}`));
+  } catch (error) {
+    console.error(`[msgr] profile sync FAILED users/${fbUser.uid} ${error?.code || 'unknown'}`, error?.message || String(error));
+  }
 }
 
 export function useAuth() {
@@ -99,7 +126,7 @@ export function AuthProvider({ children }) {
       const isVerified = fbUser?.emailVerified || fbUser?.providerData?.some((provider) => provider.providerId === 'google.com');
       setUser(isVerified ? fbUser : null);
       if (isVerified && fbUser) {
-        await syncFirestoreUserProfile(fbUser);
+        await syncRealtimeUserProfile(fbUser);
       }
       setLoading(false);
       if (!isVerified) {
@@ -141,40 +168,30 @@ export function AuthProvider({ children }) {
     };
   }, [user]);
 
-  // Presence: mark online while connected, offline (with lastSeen) on disconnect.
+  // Presence is stored in Realtime Database and expires on disconnect.
   useEffect(() => {
     if (!user) return;
     const myStatusRef = ref(db, `presence/${user.uid}`);
     const connectedRef = ref(db, '.info/connected');
+    console.info(`[msgr] listen attach .info/connected`);
     const unsub = onValue(connectedRef, (snap) => {
       if (snap.val() === false) return;
       onDisconnect(myStatusRef)
-        .set({ state: 'offline', lastChanged: serverTimestamp() })
+        .set({ state: 'offline', online: false, lastChanged: serverTimestamp() })
         .then(() => {
-          set(myStatusRef, { state: 'online', lastChanged: serverTimestamp() });
+          console.info(`[msgr] onDisconnect registered presence/${user.uid}`);
+          return set(myStatusRef, { state: 'online', online: true, lastChanged: serverTimestamp() })
+            .then(() => console.info(`[msgr] presence ok presence/${user.uid}`));
+        })
+        .catch((error) => {
+          console.error(`[msgr] presence FAILED presence/${user.uid} ${error?.code || 'unknown'}`, error?.message || String(error));
         });
     });
-    return unsub;
-  }, [user]);
-
-  useEffect(() => {
-    if (!user?.uid) return undefined;
-
-    const syncOnlineState = () => {
-      const isVisible = document.visibilityState !== 'hidden';
-      setFirestorePresence(user.uid, isVisible);
-    };
-
-    syncOnlineState();
-    document.addEventListener('visibilitychange', syncOnlineState);
-    window.addEventListener('beforeunload', () => setFirestorePresence(user.uid, false));
-
     return () => {
-      document.removeEventListener('visibilitychange', syncOnlineState);
-      window.removeEventListener('beforeunload', () => setFirestorePresence(user.uid, false));
-      setFirestorePresence(user.uid, false);
+      unsub();
+      console.info(`[msgr] listen detach .info/connected`);
     };
-  }, [user?.uid]);
+  }, [user]);
 
   async function createProfileIfMissing(fbUser, extra = {}) {
     if (!fbUser.emailVerified && !fbUser.providerData.some((provider) => provider.providerId === 'google.com')) return;
@@ -202,9 +219,12 @@ export function AuthProvider({ children }) {
     }
     if (!reserved) throw new Error('A unique username could not be reserved. Please try again.');
 
+    const fullName = extra.fullName || fbUser.displayName || username;
     await set(userRef, {
       uid: fbUser.uid,
-      fullName: extra.fullName || fbUser.displayName || username,
+      fullName,
+      name: fullName,
+      nameLower: fullName.toLowerCase(),
       username,
       usernameLower: usernameKey,
       bio: '',
@@ -216,10 +236,7 @@ export function AuthProvider({ children }) {
       friendsCount: 0,
       isPrivate: false
     });
-    // Email lives under a private subpath only the owner can read - it's
-    // never needed for the public-facing directory/search features.
-    await set(ref(db, `users/${fbUser.uid}/private/email`), fbUser.email || '');
-    await syncFirestoreUserProfile(fbUser, { username });
+    await syncRealtimeUserProfile(fbUser);
   }
 
   async function signup({ email, password, fullName, username }) {

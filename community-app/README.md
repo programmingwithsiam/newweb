@@ -1,8 +1,10 @@
 # My Community
 
-A social media web app built with **React + Vite** and **Firebase** —
-**Authentication, Realtime Database, and Storage only** (no Cloud Firestore,
-no Cloud Functions, no paid services required).
+A social media web app built with **React + Vite** and Firebase
+Authentication and Realtime Database. Community posts and Messenger
+conversations use Realtime Database. Community and
+Messenger images are hosted on Cloudinary rather than Firebase Storage. The
+app does not require Cloud Functions or a paid service.
 
 Covers: profiles, a home feed (text/photo/multi-photo/video-link posts),
 reactions, comments + replies, friend requests, follow/unfollow, a
@@ -19,7 +21,7 @@ no real calling is implemented.
 ```
 my-community/
   src/
-    firebase/config.js        Firebase app initialization (Auth/RTDB/Storage)
+    firebase/config.js        Firebase app initialization (Auth/RTDB)
     context/                  AuthContext, ThemeContext, ToastContext
     components/                Navbar, Sidebar, BottomNav, PostCard, CreatePost,
                                ReactionBar, CommentSection, FriendButton,
@@ -28,11 +30,11 @@ my-community/
     pages/                     Login, Signup, ForgotPassword, Home, Profile,
                                Messenger, Notifications, Search, Hashtag,
                                Settings, PostPage, CreatePostPage
+    config/cloudinary.js       Public Cloudinary cloud name + unsigned preset
     utils/                     helpers.js (formatting, hashtags, video-embed
                                parsing), notify.js (notification writer)
     styles/global.css         Theme tokens (light/dark) + full responsive CSS
   database.rules.json         Realtime Database security rules
-  storage.rules                Storage security rules
   firebase.json / .firebaserc  Deploy config
   .env.example                 Firebase web config template
 ```
@@ -50,11 +52,11 @@ RTDB's real constraints, while still having genuine security rules (not just
 UI-level hiding).
 
 ```
-users/{uid}                     fullName, username, usernameLower, bio,
-                                 photoURL, coverURL, createdAt,
+users/{uid}                     fullName, name, nameLower, username,
+                                 usernameLower, bio, photoURL, coverURL, createdAt,
                                  followersCount, followingCount,
                                  friendsCount, isPrivate, notifPrefs
-users/{uid}/private/email       email, readable only by the owner
+privateUsers/{uid}/email        email, readable only by the owner
 
 usernames/{usernameLower}       -> uid   (uniqueness + username lookup index)
 
@@ -90,13 +92,18 @@ blockedUsers/{uid}/{blockedUid}      { createdAt }
 
 conversations/{convId}          type:'private'|'group', members:{uid:true},
                                  name/photoURL (groups only), lastMessage,
-                                 lastMessageAt, ownerId (groups only)
+                                 lastMessageAt, lastMessageOrder,
+                                 lastMessageId, lastMessageSenderUid,
+                                 unreadByUid, readAt, ownerId (groups only)
                                  Private chat IDs are the two members' uids,
                                  sorted and joined with "_", so either side
                                  can deterministically find/create the chat.
-userConversations/{uid}/{convId}     unreadCount, lastMessageAt   (per-user
-                                 view used to render the chat list badge)
-messages/{convId}/{msgId}       senderId, text|imageUrl, createdAt,
+userConversations/{uid}/{convId}     unreadCount, unreadByUid, readAt,
+                                 lastMessage, lastMessageAt,
+                                 lastMessageOrder, lastMessageId
+messages/{convId}/{msgId}       senderId, senderName, type, text|imageUrl,
+                                 createdAt (server milliseconds),
+                                 createdAtOrder (numeric ordering key),
                                  seenBy:{uid:true}
 groupMembers/{convId}/{uid}     { role:'admin'|'member', joinedAt }
                                  NOTE: this project stores group metadata
@@ -132,6 +139,14 @@ hashtags/{tag}/{postId}         true   (index for hashtag pages; tag is
   `userConversations` holds the *personal* view (unread count) so a badge
   can be shown without scanning every message, `messages` holds the actual
   message log, `typing` and `presence` are ephemeral and cheap to write.
+  The client keeps one bounded conversation-list subscription and attaches
+  bounded message child listeners only while a chat is open and the tab is
+  focused. New messages use server timestamps plus a numeric ordering key so
+  legacy ISO/seconds timestamps do not exclude fresh messages from the latest
+  page. Read receipts are written only by the reader and only while the chat
+  is visible and focused. Existing public profiles gain `name`/`nameLower`
+  on their next successful login; the update preserves their other profile
+  fields and never copies email into the public profile.
 
 ---
 
@@ -144,12 +159,18 @@ hashtags/{tag}/{postId}         true   (index for hashtag pages; tag is
 3. **Realtime Database** → Create database → start in **locked mode** (we
    deploy our own rules in step 6, so the default rules don't matter) →
    pick a region close to your users.
-4. **Storage** → Get started → also start locked (same reason).
-5. **Project settings → General → Your apps** → add a **Web app** → copy
+4. **Project settings → General → Your apps** → add a **Web app** → copy
    the config values into your local `.env` (see below).
-6. Deploy the rules in this repo (see Section 5) so real access control is
+5. Deploy the Realtime Database rules in this repo (see Section 5) so real access control is
    in place before anyone uses the app — do **not** ship with the Firebase
    default "everything denied" or a wide-open `.read/.write: true` rule set.
+
+### Cloudinary images
+
+Use the unsigned `codewithsiam_images` upload preset for the `fyelzeqn`
+Cloudinary cloud. Configure the desired asset folder in that preset: uploads
+send only `file` and `upload_preset`, so Community and Messenger use the same
+preset folder. The frontend config is public and contains no API secret.
 
 ---
 
@@ -167,9 +188,9 @@ npm run dev
 
 The app runs at http://localhost:5173. The Firebase web config values in
 `.env` are **not secret credentials** (they're public client identifiers) —
-real access control comes entirely from `database.rules.json` and
-`storage.rules`, which is why those files, not the `.env`, are what you must
-get right and deploy.
+real access control comes from `database.rules.json`, which is why those
+rules, not the `.env`, must be deployed before launch.
+Cloudinary does not require a frontend secret or environment variable.
 
 ---
 
@@ -180,16 +201,16 @@ npm install -g firebase-tools   # once
 firebase login
 firebase use --add              # pick your project, or edit .firebaserc directly
 
-# Deploy just the security rules (do this first, and any time you change them):
-firebase deploy --only database,storage
+# Deploy Realtime Database rules:
+firebase deploy --only database
 
 # Build and deploy the web app to Firebase Hosting:
-npm run build
+npm --prefix community-app run build
 firebase deploy --only hosting
 ```
 
-You can also run `firebase deploy` with no `--only` flag to do all three at
-once after the first successful `firebase use`.
+Run Firebase CLI commands from the repository root. You can also run
+`firebase deploy` without `--only` after checking every configured target.
 
 ---
 
@@ -198,7 +219,7 @@ once after the first successful `firebase use`.
 - [x] No `.read: true` / `.write: true` anywhere — every top-level path in
       `database.rules.json` has an explicit, narrower rule.
 - [x] A user can only write their own `users/{uid}` profile node.
-- [x] Email is stored under `users/{uid}/private/email`, readable only by
+- [x] Email is stored under `privateUsers/{uid}/email`, readable only by
       the owner — never exposed in the public user-directory reads that
       power search/friend suggestions.
 - [x] Only the post author can edit/delete a post's own fields
@@ -218,12 +239,11 @@ once after the first successful `firebase use`.
 - [x] Notifications can only be created by the actual actor
       (`fromUid === auth.uid`) and only marked-read/deleted by the
       recipient.
-- [x] Storage uploads are size- and content-type-restricted, and
-      avatar/cover/post-image paths are scoped to the uploading user's own
-      uid segment.
+- [x] Realtime Database chat reads and writes are restricted to conversation
+      members; the client stores Cloudinary image URLs, never image binaries.
 
-### Known limitations to be aware of (by design, given the "RTDB + Storage
-    only, free-tier, no Cloud Functions" constraint) — please read before
+### Known limitations to be aware of (by design, given the "RTDB
+    plus Cloudinary, free-tier, no Cloud Functions" constraint) — please read before
     launching publicly:
 
 1. **Reaction/comment counts are client-maintained counters**, validated
@@ -235,18 +255,10 @@ once after the first successful `firebase use`.
    fully-correct fix is a Cloud Function trigger that recomputes counts
    server-side — that requires the Blaze (pay-as-you-go) plan, which this
    project intentionally avoids.
-2. **Storage rules cannot read Realtime Database.** For `chatImages/` and
-   `groupPhotos/`, Storage rules can confirm someone is *signed in* but not
-   that they're actually a member of that specific conversation/group
-   (Storage rules have no way to look at `conversations/{id}/members` in
-   RTDB). Practically: a signed-in user who somehow knew or guessed a
-   conversation ID could read/write images in that path. Private-chat IDs
-   are `sortedUid1_sortedUid2`, so they're guessable if you know both
-   users' UIDs (UIDs themselves are not secret, but aren't trivially
-   discoverable either). This is a real gap; closing it fully needs either
-   Cloud Functions (paid) or a signed-URL upload proxy. For a small/trusted
-   community this is a reasonable trade-off; flag it if you're taking this
-   to a large public audience.
+2. **Cloudinary unsigned uploads are public-client uploads.** The upload
+   preset is intentionally not a secret; restrict allowed formats and
+   resource size in Cloudinary as well as in the client, and monitor the
+   free-plan quota. The browser checks can be bypassed by a custom client.
 3. **`reactions`, `comments`, and `hashtags` are readable by any signed-in
    user**, regardless of the parent post's privacy. So the *list of who
    reacted* or *comment text* on a friends-only/private post is technically
@@ -273,15 +285,14 @@ once after the first successful `firebase use`.
   document rewrites.
 - `presence` uses `onDisconnect()` so you don't need a background job (which
   would need Cloud Functions) to detect users going offline.
-- Chat pagination is capped (`limitToLast(100)`) instead of loading a whole
-  conversation's history at once.
-- Image uploads are client-resized to browser-default quality only (no
-  transformation pipeline); if storage cost/egress becomes a concern later,
-  add client-side compression before upload (e.g. `browser-image-compression`)
-  — not included here to avoid an unnecessary dependency for an MVP.
-- No Cloud Functions, no scheduled jobs, no Firestore — Spark (free) plan
-  covers Authentication, Realtime Database, Storage, and Hosting at the
-  usage levels a small/medium community would generate.
+- Messenger listens to the latest 30 messages and loads older messages in
+  pages instead of loading a full conversation history.
+- Cloudinary hosts Community and Messenger images; large non-GIF images are
+  resized client-side before upload and delivered with automatic format and
+  quality transformations.
+- No Cloud Functions or scheduled jobs are required. Firebase Spark covers
+  Authentication, Realtime Database, and Hosting within Firebase's
+  free-tier limits; Cloudinary has its own free-plan quotas.
 
 ---
 
@@ -291,4 +302,5 @@ once after the first successful `firebase use`.
   auto-embed and a plain link fallback for anything else.
 - Voice/video call buttons exist in the chat header but are disabled and
   show a "Coming soon" tooltip — no WebRTC/calling logic is wired up.
-- No Cloud Firestore anywhere in the codebase or rules.
+- Community posts and Messenger data are stored in Realtime Database. Image
+  binaries are hosted on Cloudinary, not stored in Firebase.

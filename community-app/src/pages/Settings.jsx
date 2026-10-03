@@ -16,7 +16,7 @@ function BlockedUserRow({ uid, onUnblock }) {
   if (!p) return null;
   return (
     <div className="member-row">
-      <img className="avatar-sm" src={p.photoURL || '/default-avatar.png'} alt="" />
+      <img className="avatar-sm" src={p.photoURL || '/community/default-avatar.png'} alt="" />
       <span>{p.fullName}</span>
       <button className="link-btn" onClick={() => onUnblock(uid)}>Unblock</button>
     </div>

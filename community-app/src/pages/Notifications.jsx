@@ -44,7 +44,7 @@ function NotificationRow({ id, n, onClick }) {
   return (
     <button className={`notification-row${n.read ? '' : ' unread'}`} onClick={() => onClick(id, n)}>
       <span className="notification-type-icon" aria-hidden="true"><TypeIcon size={20} strokeWidth={1.5} /></span>
-      <img className="avatar-sm" src={fromPhoto || '/default-avatar.png'} alt="" />
+      <img className="avatar-sm" src={fromPhoto || '/community/default-avatar.png'} alt="" />
       <span className="notification-copy">
         <span className="notification-message">{LABELS[n.type] ? LABELS[n.type]({ ...n, fromName }) : 'New notification'}</span>
         <span className="notification-time">{timeAgo(n.createdAt)}</span>

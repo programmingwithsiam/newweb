@@ -65,24 +65,76 @@ function friendlyAuthError(error) {
 /* ---------- ensure a user profile document exists ---------- */
 async function ensureUserProfile(user) {
   if (!db || !user) return;
-  const { doc, getDoc, setDoc, updateDoc, serverTimestamp } = await loadFirestoreModule();
+  const { doc, getDoc, setDoc, serverTimestamp } = await loadFirestoreModule();
   const ref = doc(db, 'users', user.uid);
   const snap = await getDoc(ref);
 
   // Determine the role: admin if email matches ADMIN_EMAIL, otherwise student
   const defaultRole = user.email?.toLowerCase() === ADMIN_EMAIL ? 'admin' : 'student';
+  let privateProfile = snap.exists() ? snap.data() : {};
 
   if (!snap.exists()) {
-    await setDoc(ref, {
+    privateProfile = {
+      uid: user.uid,
       name: user.displayName || user.email?.split('@')[0] || 'Student',
       email: user.email || null,
       photoURL: user.photoURL || null,
       role: defaultRole,
       createdAt: serverTimestamp(),
-    });
-  } else if (user.photoURL && snap.data().photoURL !== user.photoURL) {
-    await updateDoc(ref, { photoURL: user.photoURL, name: user.displayName || snap.data().name || 'Student' });
+    };
+    await setDoc(ref, privateProfile);
+  } else {
+    const privateUpdates = { uid: user.uid };
+    if (user.photoURL && snap.data().photoURL !== user.photoURL) {
+      privateProfile = {
+        ...privateProfile,
+        photoURL: user.photoURL,
+        name: user.displayName || snap.data().name || 'Student',
+      };
+      privateUpdates.photoURL = privateProfile.photoURL;
+      privateUpdates.name = privateProfile.name;
+    }
+    privateProfile.uid = user.uid;
+    await setDoc(ref, privateUpdates, { merge: true });
   }
+
+  const publicRef = doc(db, 'publicProfiles', user.uid);
+  const publicSnap = await getDoc(publicRef);
+  const existingPublic = publicSnap.exists() ? publicSnap.data() : {};
+  const name = String(user.displayName || existingPublic.name || privateProfile.name || 'Student').trim().slice(0, 120);
+  await setDoc(publicRef, {
+    uid: user.uid,
+    name,
+    displayName: name,
+    photoURL: user.photoURL || existingPublic.photoURL || privateProfile.photoURL || '',
+    profilePicture: existingPublic.profilePicture || privateProfile.profilePicture || user.photoURL || '',
+    coverPhoto: existingPublic.coverPhoto || privateProfile.coverPhoto || '',
+    coverURL: existingPublic.coverURL || privateProfile.coverURL || '',
+    username: String(existingPublic.username || privateProfile.username || '').slice(0, 30),
+    searchName: name.toLowerCase(),
+    bio: existingPublic.bio ?? privateProfile.bio ?? '',
+    location: existingPublic.location ?? privateProfile.location ?? '',
+    website: existingPublic.website ?? privateProfile.website ?? '',
+    learningRole: existingPublic.learningRole ?? privateProfile.learningRole ?? '',
+    skills: Array.isArray(existingPublic.skills) ? existingPublic.skills : Array.isArray(privateProfile.skills) ? privateProfile.skills : [],
+    followers: Array.isArray(existingPublic.followers) ? existingPublic.followers : Array.isArray(privateProfile.followers) ? privateProfile.followers : [],
+    following: Array.isArray(existingPublic.following) ? existingPublic.following : Array.isArray(privateProfile.following) ? privateProfile.following : [],
+    totalProjects: existingPublic.totalProjects ?? privateProfile.totalProjects ?? 0,
+    createdAt: existingPublic.createdAt || privateProfile.createdAt || serverTimestamp(),
+    online: true,
+    lastSeen: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  }, { merge: true });
+  await setDoc(doc(db, 'publicDirectory', user.uid), {
+    uid: user.uid,
+    displayName: name,
+    photoURL: existingPublic.profilePicture || existingPublic.photoURL || privateProfile.photoURL || user.photoURL || '',
+    username: String(existingPublic.username || privateProfile.username || '').slice(0, 30),
+    searchName: name.toLowerCase(),
+    online: true,
+    lastSeen: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  }, { merge: true });
 }
 
 /* ---------- public API ---------- */

@@ -815,6 +815,21 @@ textarea {
   box-shadow: 0 6px 18px rgba(0, 0, 0, .12);
 }
 
+.cloudinary-upload-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 8px 4px;
+  color: var(--text-muted);
+  font-size: .78rem;
+}
+
+.cloudinary-upload-status progress {
+  width: min(180px, 45%);
+  height: 5px;
+  accent-color: var(--primary);
+}
+
 .video-input {
   margin-top: 8px;
 }
