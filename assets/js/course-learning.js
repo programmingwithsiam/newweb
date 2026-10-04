@@ -1,12 +1,14 @@
-import { fetchAllCourses, saveUserCourseProgress, createPaymentSubmission, createFreeCourseEnrollment, uploadPaymentScreenshot, updatePaymentScreenshot, fetchUserPayments, getLessonVideoSource } from './courses-db.js?v=20261001-auth-flow-1';
+import { fetchAllCourses, saveUserCourseProgress, createPaymentSubmission, createFreeCourseEnrollment, uploadPaymentScreenshot, updatePaymentScreenshot, fetchUserPayments, getLessonVideoSource } from './courses-db.js?v=20261004-checkout-email-1';
 import { observeAuthState, redirectToAuthPrompt } from './auth.js?v=20261001-auth-flow-1';
 
 const progressKey = 'siam_portfolio_course_progress';
 const params = new URLSearchParams(location.search);
 const prettyCoursePath = location.pathname.match(/^\/courses\/([^/]+)(?:\/lectures\/([^/]+))?\/?$/);
 const courseId = params.get('course') || (prettyCoursePath ? decodeURIComponent(prettyCoursePath[1]) : null);
-const startsEnrollment = params.get('enroll') === '1';
 let user = null;
+let authLoadGeneration = 0;
+let checkoutActive = false;
+let checkoutStep = 1;
 let course = null;
 let lessons = [];
 let selectedLessonId = params.get('lesson') || (prettyCoursePath?.[2] ? decodeURIComponent(prettyCoursePath[2]) : null);
@@ -121,6 +123,13 @@ function withTimeout(promise, milliseconds = 15000) {
   });
   return Promise.race([promise, timeout]).finally(() => window.clearTimeout(timer));
 }
+function scrollToCourseSection(element, offset = 88) {
+  if (!element) return;
+  const targetTop = Math.max(0, element.getBoundingClientRect().top + window.scrollY - offset);
+  requestAnimationFrame(() => {
+    window.scrollTo({ top: targetTop, left: 0, behavior: 'smooth' });
+  });
+}
 function togglePlayerFullscreen(target) {
   if (document.fullscreenElement || document.webkitFullscreenElement) {
     const exit = document.exitFullscreen || document.webkitExitFullscreen;
@@ -170,7 +179,7 @@ function go(lessonId = '') {
   else history.pushState({}, '', route(lessonId));
   selectedLessonId = lessonId || null;
   render();
-  if (lessonId) window.setTimeout(() => $('lessonVideo')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 0);
+  if (lessonId) window.setTimeout(() => scrollToCourseSection($('lessonVideo'), 90), 0);
 }
 function orderedLessons(data) {
   const modules = Array.isArray(data?.modules) ? data.modules : [];
@@ -220,6 +229,104 @@ function renderPaymentQrPanel(panelId, payment = {}, selectedMethod = 'bkash') {
   image.addEventListener('error', () => panel.replaceChildren(), { once: true });
   panel.appendChild(image);
 }
+const paymentMethods = {
+  bkash: { label: 'bKash', mark: 'bKash', color: '#e2136e', type: 'Mobile wallet' },
+  rocket: { label: 'Rocket', mark: 'ROCKET', color: '#8c3494', type: 'DBBL wallet' },
+  nagad: { label: 'Nagad', mark: 'NAGAD', color: '#f6921e', type: 'Mobile wallet' },
+  bank: { label: 'Bank transfer', mark: 'BANK', color: '#3b82f6', type: 'Bank transfer' },
+  upi: { label: 'UPI', mark: 'UPI', color: '#6b46c1', type: 'Instant payment' },
+  visa: { label: 'Visa', mark: 'VISA', color: '#1a1f71', type: 'Card payment' },
+  debit_card: { label: 'Debit card', mark: 'DEBIT', color: '#14b8a6', type: 'Card payment' },
+  credit_card: { label: 'Credit card', mark: 'CARD', color: '#eb5757', type: 'Card payment' },
+  paypal: { label: 'PayPal', mark: 'PAYPAL', color: '#0070ba', type: 'Online payment' }
+};
+function availablePaymentMethods() {
+  const countryCode = getCheckoutCountry().code;
+  if (countryCode === '+880') return ['bkash', 'nagad', 'rocket', 'bank'];
+  if (countryCode === '+91') return ['upi', 'paypal', 'visa', 'debit_card', 'credit_card'];
+  return ['paypal', 'visa', 'debit_card', 'credit_card'];
+}
+function renderPaymentOptions() {
+  const options = $('checkoutPaymentOptions');
+  const select = $('checkoutPaymentMethod');
+  if (!options || !select) return;
+  const methods = availablePaymentMethods();
+  if (!methods.includes(select.value)) select.value = methods[0];
+  options.innerHTML = methods.map(method => {
+    const details = paymentMethods[method];
+    const selected = select.value === method;
+    return `<button class="checkout-payment-choice${selected ? ' selected' : ''}" type="button" data-payment-choice="${method}" aria-pressed="${selected}" style="--choice-color:${details.color}"><span class="checkout-payment-mark">${details.mark}</span><span><b>${details.label}</b><small>${details.type}</small></span></button>`;
+  }).join('');
+  renderSelectedPaymentDetails();
+}
+function renderSelectedPaymentDetails() {
+  if (!course) return;
+  const method = $('checkoutPaymentMethod')?.value || 'bkash';
+  const details = paymentMethods[method] || paymentMethods.bkash;
+  const amount = Number(course.discountPrice) > 0 && Number(course.discountPrice) < Number(course.price)
+    ? Number(course.discountPrice)
+    : Number(course.price) || 0;
+  const recipients = {
+    bkash: course.payment?.bkash || '01644171751',
+    rocket: course.payment?.rocket || '01644171751',
+    nagad: course.payment?.nagad || '01644171751',
+    bank: course.payment?.bank || 'Contact us on WhatsApp for bank details',
+    upi: 'Contact us on WhatsApp for UPI payment details',
+    visa: 'Contact us on WhatsApp for secure card payment details',
+    debit_card: 'Contact us on WhatsApp for secure card payment details',
+    credit_card: 'Contact us on WhatsApp for secure card payment details',
+    paypal: 'Contact us on WhatsApp for PayPal details'
+  };
+  const isInternational = !['bkash', 'rocket', 'nagad', 'bank'].includes(method);
+  const recipient = recipients[method];
+  const paymentPhone = isInternational || method === 'bank' ? '' : recipient;
+  $('checkoutPaymentLogo').textContent = details.mark;
+  $('checkoutPaymentLogo').style.background = details.color;
+  $('checkoutPaymentName').textContent = details.label;
+  $('checkoutPaymentType').textContent = details.type;
+  $('checkoutPaymentAmount').textContent = amount > 0 ? `৳${amount.toLocaleString('en-BD')}` : 'Free';
+  $('checkoutRecipientLabel').textContent = isInternational ? 'PAYMENT DETAILS' : method === 'bank' ? 'BANK DETAILS' : 'SEND TO';
+  $('checkoutRecipient').textContent = recipient;
+  $('checkoutRecipient').dataset.copyable = String(Boolean(paymentPhone));
+  $('checkoutCopyRecipient').classList.toggle('hidden', !paymentPhone);
+  $('checkoutPaymentInstructions').innerHTML = isInternational
+    ? '<li>Contact Siam on WhatsApp to receive the current payment instructions.</li><li>Complete the payment and keep the transaction reference.</li><li>Return here to submit your payment reference.</li>'
+    : method === 'bank'
+      ? '<li>Contact us on WhatsApp for bank account details.</li><li>Transfer the exact amount and keep your payment reference.</li><li>Return here to submit your payment reference.</li>'
+      : `<li>Open the <b>${details.label}</b> app and choose <b>Send Money</b>.</li><li>Send the exact amount to the number above.</li><li>Confirm the payment and copy the transaction ID.</li>`;
+  $('checkoutPaymentInstruction').textContent = isInternational || method === 'bank'
+    ? 'Payment details are confirmed directly with CodeWithSiam before you pay.'
+    : 'Please use Send Money, not Cash Out.';
+  $('checkoutPaymentHelp').href = `https://wa.me/8801644171751?text=${encodeURIComponent(`Hi Siam, I need ${details.label} payment details for ${course.title}.`)}`;
+  $('checkoutOrderTotal').textContent = amount > 0 ? `৳${amount.toLocaleString('en-BD')}` : 'Free';
+  $('checkoutConfirmAmount').textContent = amount > 0 ? `৳${amount.toLocaleString('en-BD')}` : 'Free';
+}
+function beginCheckout() {
+  if (!user) {
+    const next = new URL(location.href);
+    next.searchParams.set('enroll', '1');
+    history.replaceState(history.state, '', next);
+    showAccessGate();
+    return;
+  }
+  checkoutActive = true;
+  $('learningLogin').classList.add('hidden');
+  $('courseOverview').classList.add('hidden');
+  $('lessonPlayer').classList.add('hidden');
+  $('lessonLocked').classList.add('hidden');
+  $('courseCheckout').classList.remove('hidden');
+  setCheckoutStep(1);
+  $('checkoutStudentName').focus({ preventScroll: true });
+}
+function leaveCheckout() {
+  checkoutActive = false;
+  $('courseCheckout').classList.add('hidden');
+  $('courseOverview').classList.remove('hidden');
+  const next = new URL(location.href);
+  next.searchParams.delete('enroll');
+  history.replaceState(history.state, '', next);
+  render();
+}
 function selectPaymentMethod(method) {
   $('paymentMethod').value = method;
   document.querySelectorAll('.payment-method-choice').forEach(button => button.classList.toggle('active', button.dataset.paymentMethod === method));
@@ -227,11 +334,21 @@ function selectPaymentMethod(method) {
   renderPaymentQrPanel('accessPaymentQrPanel', course?.payment, method);
 }
 function setCheckoutStep(step) {
-  document.querySelectorAll('.checkout-progress [data-step]').forEach(item => {
-    const isActive = Number(item.dataset.step) <= step;
-    item.classList.toggle('active', isActive);
-    item.setAttribute('aria-current', Number(item.dataset.step) === step ? 'step' : 'false');
+  checkoutStep = step;
+  document.querySelectorAll('#courseCheckout [data-checkout-pane]').forEach(pane => {
+    pane.classList.toggle('active', Number(pane.dataset.checkoutPane) === step);
   });
+  document.querySelectorAll('#courseCheckout .checkout-progress [data-step]').forEach(item => {
+    const itemStep = Number(item.dataset.step);
+    item.classList.toggle('active', itemStep === step);
+    item.classList.toggle('complete', itemStep < step);
+    item.setAttribute('aria-current', itemStep === step ? 'step' : 'false');
+    item.querySelector('i').textContent = itemStep < step ? '✓' : String(itemStep);
+  });
+  $('courseCheckout').querySelector('.checkout-progress').classList.toggle('hidden', step === 4);
+  if (step < 4) {
+    requestAnimationFrame(() => scrollToCourseSection($('courseCheckout'), 20));
+  }
 }
 function renderAccessPayment() {
   if (!course) return;
@@ -534,14 +651,9 @@ function renderLockedLesson(lesson = currentLesson()) {
   $('lessonEnrollBtn').disabled = pending;
   $('lessonEnrollBtn').onclick = () => {
     if (pending) return;
-    if (!user) {
-      showAccessGate({ signedIn: false });
-      return;
-    }
     selectedLessonId = null;
-    render();
-    $('courseCheckout')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    $('checkoutStudentName')?.focus();
+    history.replaceState(history.state, '', route(''));
+    beginCheckout();
   };
   document.title = `${lesson?.title || 'Locked class'} | ${course?.title || 'Course'}`;
 }
@@ -645,14 +757,7 @@ function renderOverview() {
   $('overviewEnrollBtn').textContent = course.accessStatus === 'pending' ? 'Enrollment Pending' : 'Enroll Now';
   $('overviewEnrollBtn').classList.toggle('hidden', hasAccess);
   $('overviewEnrollBtn').disabled = !lesson || course.accessStatus === 'pending';
-  $('overviewEnrollBtn').onclick = () => {
-    if (!user) {
-      showAccessGate();
-      return;
-    }
-    $('courseCheckout')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    $('checkoutStudentName')?.focus();
-  };
+  $('overviewEnrollBtn').onclick = beginCheckout;
   $('courseEnrollmentStatus').textContent = hasAccess ? "✓ You're enrolled" : course.accessStatus === 'pending' ? 'Enrollment Pending' : 'First 2 classes are free to watch';
   $('courseEnrollmentStatus').classList.remove('hidden');
   renderCheckout(discountPrice, originalPrice, hasAccess);
@@ -667,7 +772,7 @@ function renderCheckout(finalPrice, originalPrice, hasAccess) {
   const checkout = $('courseCheckout');
   if (!checkout) return;
   const isFree = finalPrice <= 0;
-  checkout.classList.toggle('hidden', hasAccess);
+  checkout.classList.toggle('hidden', hasAccess || !checkoutActive);
   checkout.classList.toggle('free-enrollment', isFree);
   $('checkoutFinalPrice').textContent = finalPrice > 0 ? `৳${finalPrice.toLocaleString('en-BD')}` : 'Free';
   $('checkoutOriginalPrice').textContent = `৳${originalPrice.toLocaleString('en-BD')}`;
@@ -678,35 +783,23 @@ function renderCheckout(finalPrice, originalPrice, hasAccess) {
   $('checkoutCourseDescription').textContent = course.description || 'Practical lessons from CodeWithSiam.';
   $('checkoutCourseInstructor').textContent = `Instructor: ${course.instructor || 'CodeWithSiam'}`;
   $('checkoutStudentName').value = $('checkoutStudentName').value || user?.displayName || '';
-  $('checkoutStudentEmail').value = user?.email || '';
+  $('checkoutStudentEmail').value = $('checkoutStudentEmail').value || user?.email || '';
   $('checkoutAccountBadge').textContent = user ? `Signed in as ${user.email || 'student'}` : 'Sign in required';
-  $('checkoutAccountHint').textContent = user ? 'Your Firebase account details are filled in. You can edit your name before submitting.' : 'Sign in with Google before submitting your enrollment request.';
+  $('checkoutAccountHint').textContent = user ? 'Your signed-in account will be linked to this enrollment request.' : 'Sign in with Google to enroll in this course.';
   $('checkoutOriginalSummary').textContent = originalPrice > 0 ? `৳${originalPrice.toLocaleString('en-BD')}` : 'Free';
   $('checkoutDiscountSummary').textContent = originalPrice > finalPrice ? `-৳${(originalPrice - finalPrice).toLocaleString('en-BD')}` : '-৳0';
   $('checkoutTotalSummary').textContent = finalPrice > 0 ? `৳${finalPrice.toLocaleString('en-BD')}` : 'Free';
-  $('checkoutOrderTotal').textContent = finalPrice > 0 ? `৳${finalPrice.toLocaleString('en-BD')}` : 'Free';
-  const duration = course.duration || `${lessons.reduce((sum, item) => sum + parseInt(String(item.duration).match(/\d+/)?.[0] || '0', 10), 0)} min`;
-  const benefits = [`${Number(course.totalLessonCount || lessons.length || 0)} lectures`, duration];
-  if (course.accessDuration) benefits.push(`Access on mobile and desktop (${course.accessDuration})`);
-  if (course.certificateAvailable === true) benefits.push('Certificate of completion');
-  $('checkoutBenefits').innerHTML = benefits.map(item => `<span class="checkout-benefit">✓ ${item}</span>`).join('');
-  const method = $('checkoutPaymentMethod').value;
-  const instructions = {
-    bkash: `bKash: ${course.payment?.bkash || 'Contact admin for payment instructions'}`,
-    rocket: `Rocket: ${course.payment?.rocket || 'Contact admin for payment instructions'}`,
-    nagad: `Nagad: ${course.payment?.nagad || 'Contact admin for payment instructions'}`,
-    bank: course.payment?.bank || 'Bank transfer details will be provided by the admin.',
-    visa: 'Visa payment details will be provided by the admin.',
-    debit_card: 'Debit card payment details will be provided by the admin.',
-    credit_card: 'Credit card payment details will be provided by the admin.',
-    paypal: 'PayPal payment details will be provided by the admin.'
-  };
-  $('checkoutPaymentInstruction').textContent = instructions[method] || 'Contact admin for payment instructions';
-  $('checkoutPayBtn').textContent = isFree ? 'Enroll Free' : `Confirm Enrollment · ৳${finalPrice.toLocaleString('en-BD')}`;
-  ['checkoutPaymentMethod', 'checkoutTransactionId', 'checkoutPaymentScreenshot', 'checkoutPaymentConfirm'].forEach(id => $(id)?.closest('label')?.classList.toggle('hidden', isFree));
-  $('checkoutPaymentInstruction')?.classList.toggle('hidden', isFree);
-  $('checkoutCheckoutPaymentHeading')?.classList.toggle('hidden', isFree);
-  [...checkout.querySelectorAll('.checkout-section-heading')].find(item => item.textContent.includes('Payment method'))?.classList.toggle('hidden', isFree);
+  renderPaymentOptions();
+  $('checkoutContinuePayment').textContent = isFree ? 'Enroll free' : 'Continue';
+  $('checkoutPaymentOptions').closest('label')?.classList.toggle('hidden', isFree);
+  $('checkoutOrderNote').textContent = isFree ? 'No payment required · Instant enrollment' : 'One-time payment · Manual verification';
+  $('checkoutTransactionId').required = !isFree;
+  $('checkoutTransactionId').closest('label').classList.toggle('hidden', isFree);
+  $('checkoutPaymentDetails').classList.toggle('hidden', isFree);
+  $('checkoutPaymentHelp').classList.toggle('hidden', isFree);
+  $('checkoutUpload').classList.toggle('hidden', isFree);
+  $('checkoutPaymentConfirm').closest('label').classList.toggle('hidden', isFree);
+  $('checkoutPayBtn').textContent = isFree ? 'Enroll free' : 'Confirm enrollment';
 }
 function getCheckoutCountry() {
   const select = $('checkoutCountry');
@@ -724,79 +817,224 @@ function validCheckoutPhone(value, countryCode) {
   const localDigits = digits.startsWith('0') ? digits.slice(1) : digits;
   return /^[1-9]\d{6,14}$/.test(localDigits);
 }
+function validCheckoutEmail(value) {
+  const email = String(value || '').trim();
+  return email.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
 function bindCheckout() {
   const phone = $('checkoutPhone');
   const transaction = $('checkoutTransactionId');
   const pay = $('checkoutPayBtn');
   const name = $('checkoutStudentName');
+  const email = $('checkoutStudentEmail');
   const confirmation = $('checkoutPaymentConfirm');
-  if (!phone || !transaction || !pay || !name || !confirmation || pay.dataset.bound) return;
+  if (!phone || !transaction || !pay || !name || !email || !confirmation || pay.dataset.bound) return;
   pay.dataset.bound = 'true';
-  const update = () => {
+  const isFree = () => {
+    const price = Number(course?.price) || 0;
+    const discount = Number(course?.discountPrice) || 0;
+    return (discount > 0 && discount < price ? discount : price) <= 0;
+  };
+  const updatePayButton = () => {
     const selected = getCheckoutCountry();
     const validPhone = validCheckoutPhone(phone.value, selected.code);
-    const validName = name.value.trim().length >= 2;
-    const isFree = Number(course?.price || 0) <= 0;
-    $('checkoutPhoneError').textContent = phone.value && !validPhone ? `Please enter a valid ${selected.country} phone number` : '';
-    pay.disabled = Boolean(pay.dataset.processing) || Boolean(user && (!validName || (!isFree && (!validPhone || !transaction.value.trim() || !confirmation.checked))));
+    pay.disabled = Boolean(pay.dataset.processing)
+      || !user
+      || name.value.trim().length < 2
+      || !validCheckoutEmail(email.value)
+      || (!isFree() && (!validPhone || !transaction.value.trim() || !confirmation.checked));
   };
-  name.addEventListener('input', update);
-  phone.addEventListener('input', update);
-  transaction.addEventListener('input', update);
-  confirmation.addEventListener('change', update);
-  $('checkoutCountry').addEventListener('change', () => { const selected = getCheckoutCountry(); phone.placeholder = selected.placeholder; phone.value = ''; $('checkoutPhoneError').textContent = ''; update(); });
-  $('checkoutPaymentMethod').addEventListener('change', () => renderCheckout(Number(course.discountPrice) || Number(course.price) || 0, Number(course.price) || 0, false));
-  pay.addEventListener('click', async () => {
-    update();
+  const validateStudentDetails = () => {
+    const selected = getCheckoutCountry();
+    const validName = name.value.trim().length >= 2;
+    const validEmail = validCheckoutEmail(email.value);
+    const validPhone = isFree() || validCheckoutPhone(phone.value, selected.code);
+    $('checkoutNameError').textContent = validName ? '' : 'Please enter your full name.';
+    $('checkoutEmailError').textContent = validEmail ? '' : 'Please enter a valid email address.';
+    $('checkoutPhoneError').textContent = validPhone ? '' : `Please enter a valid ${selected.country} phone number.`;
+    if (!validName) name.focus();
+    else if (!validEmail) email.focus();
+    else if (!validPhone) phone.focus();
+    return validName && validEmail && validPhone;
+  };
+  const setPaymentMethod = method => {
+    const select = $('checkoutPaymentMethod');
+    if (!paymentMethods[method] || !availablePaymentMethods().includes(method)) return;
+    select.value = method;
+    $('checkoutPaymentOptions').querySelectorAll('[data-payment-choice]').forEach(button => {
+      const selected = button.dataset.paymentChoice === method;
+      button.classList.toggle('selected', selected);
+      button.setAttribute('aria-pressed', String(selected));
+    });
+    renderSelectedPaymentDetails();
+  };
+  const submitEnrollment = async () => {
+    updatePayButton();
     if (pay.disabled) return;
-    if (!user) { $('checkoutStatus').textContent = 'Login to continue.'; showAccessGate(); return; }
-    pay.dataset.processing = 'true'; pay.disabled = true; pay.textContent = 'Processing...';
+    if (!user) {
+      showAccessGate();
+      return;
+    }
+    pay.dataset.processing = 'true';
+    pay.disabled = true;
+    pay.textContent = isFree() ? 'Enrolling...' : 'Submitting request...';
     try {
-      const amount = Number(course.discountPrice) > 0 && Number(course.discountPrice) < Number(course.price) ? Number(course.discountPrice) : Number(course.price);
-      if (amount <= 0) {
+      if (isFree()) {
         const enrollment = await createFreeCourseEnrollment(user.uid, course.id);
         course.accessStatus = 'approved';
         course.accessSource = 'free';
         $('checkoutRequestId').textContent = enrollment.id;
-        $('checkoutStatus').textContent = '';
-        $('checkoutSuccess').classList.remove('hidden');
-        pay.textContent = 'Enrolled Successfully';
-        render();
+        $('checkoutSuccessTitle').textContent = "You're enrolled!";
+        $('checkoutSuccessText').textContent = 'Free enrollment is complete. Return to the course to start learning.';
+        $('checkoutWhatsappBtn').classList.add('hidden');
+        setCheckoutStep(4);
         return;
       }
-      const payment = await createPaymentSubmission({ userId: user.uid, studentName: name.value.trim(), courseId: course.id, courseTitle: course.title, amount, method: $('checkoutPaymentMethod').value, transactionId: transaction.value.trim(), phone: normalizeCheckoutPhone(phone.value, getCheckoutCountry().code) });
+      const amount = Number(course.discountPrice) > 0 && Number(course.discountPrice) < Number(course.price)
+        ? Number(course.discountPrice)
+        : Number(course.price);
       const screenshot = await compressPaymentScreenshot($('checkoutPaymentScreenshot')?.files?.[0]);
+      const payment = await createPaymentSubmission({
+        userId: user.uid,
+        studentName: name.value.trim(),
+        studentEmail: email.value.trim(),
+        courseId: course.id,
+        courseTitle: course.title,
+        amount,
+        method: $('checkoutPaymentMethod').value,
+        transactionId: transaction.value.trim(),
+        phone: normalizeCheckoutPhone(phone.value, getCheckoutCountry().code)
+      });
+      let screenshotWarning = '';
       if (screenshot) {
-        const screenshotUrl = await uploadPaymentScreenshot(screenshot, user.uid, payment.id);
-        await updatePaymentScreenshot(payment.id, screenshotUrl);
+        try {
+          const screenshotUrl = await uploadPaymentScreenshot(screenshot, user.uid, payment.id);
+          await updatePaymentScreenshot(payment.id, screenshotUrl);
+        } catch (error) {
+          screenshotWarning = `Your request was received, but the screenshot could not be uploaded: ${error.message || 'upload failed'}. You can send it by WhatsApp.`;
+        }
       }
-      $('checkoutStatus').textContent = '';
       $('checkoutRequestId').textContent = payment.id;
-      $('checkoutSuccess').classList.remove('hidden');
-      pay.textContent = 'Enrollment request submitted';
-      $('checkoutStudentName').disabled = true;
-      $('checkoutPhone').disabled = true;
-      $('checkoutTransactionId').disabled = true;
-      $('checkoutPaymentConfirm').disabled = true;
-    } catch (error) { $('checkoutStatus').textContent = error.message || 'Payment could not be submitted.'; pay.dataset.processing = ''; pay.textContent = `Pay ৳${(Number(course.discountPrice) > 0 && Number(course.discountPrice) < Number(course.price) ? Number(course.discountPrice) : Number(course.price)).toLocaleString('en-BD')}`; update(); }
+      course.accessStatus = 'pending';
+      $('checkoutSuccessTitle').textContent = 'Enrollment request received!';
+      $('checkoutSuccessText').textContent = screenshotWarning || "We'll verify your payment and unlock the course shortly.";
+      $('checkoutWhatsappBtn').classList.remove('hidden');
+      setCheckoutStep(4);
+      name.disabled = true;
+      phone.disabled = true;
+      transaction.disabled = true;
+      confirmation.disabled = true;
+    } catch (error) {
+      $('checkoutStatus').textContent = error.message || 'Payment could not be submitted.';
+      if (isFree()) $('checkoutFreeStatus').textContent = error.message || 'Free enrollment could not be completed.';
+      pay.dataset.processing = '';
+      pay.textContent = isFree() ? 'Enroll free' : 'Confirm enrollment';
+      updatePayButton();
+    }
+  };
+
+  name.addEventListener('input', () => {
+    if (name.value.trim().length >= 2) $('checkoutNameError').textContent = '';
+    updatePayButton();
   });
+  email.addEventListener('input', () => {
+    $('checkoutEmailError').textContent = email.value && !validCheckoutEmail(email.value)
+      ? 'Please enter a valid email address.'
+      : '';
+    updatePayButton();
+  });
+  phone.addEventListener('input', () => {
+    const selected = getCheckoutCountry();
+    $('checkoutPhoneError').textContent = phone.value && !validCheckoutPhone(phone.value, selected.code)
+      ? `Please enter a valid ${selected.country} phone number.`
+      : '';
+    updatePayButton();
+  });
+  transaction.addEventListener('input', () => {
+    $('checkoutTransactionError').textContent = checkoutStep === 3 && !transaction.value.trim()
+      ? 'Enter the transaction ID from your payment receipt.'
+      : '';
+    updatePayButton();
+  });
+  confirmation.addEventListener('change', updatePayButton);
+  $('checkoutCountry').addEventListener('change', () => {
+    const selected = getCheckoutCountry();
+    phone.placeholder = selected.placeholder;
+    phone.value = '';
+    $('checkoutPhoneError').textContent = '';
+    renderPaymentOptions();
+    updatePayButton();
+  });
+  $('checkoutPaymentOptions').addEventListener('click', event => {
+    const choice = event.target.closest('[data-payment-choice]');
+    if (choice) setPaymentMethod(choice.dataset.paymentChoice);
+  });
+  $('checkoutPaymentMethod').addEventListener('change', renderSelectedPaymentDetails);
+  $('checkoutContinueDetails').addEventListener('click', () => {
+    $('checkoutFreeStatus').textContent = '';
+    if (!validateStudentDetails()) return;
+    $('checkoutPaymentOptions').classList.toggle('hidden', isFree());
+    $('checkoutPaymentOptions').closest('label')?.classList.toggle('hidden', isFree());
+    $('checkoutPaymentFreeNote')?.classList.toggle('hidden', !isFree());
+    $('checkoutContinuePayment').textContent = isFree() ? 'Enroll free' : 'Continue';
+    setCheckoutStep(2);
+  });
+  $('checkoutContinuePayment').addEventListener('click', () => {
+    if (isFree()) {
+      $('checkoutFreeStatus').textContent = '';
+      submitEnrollment();
+      return;
+    }
+    renderSelectedPaymentDetails();
+    $('checkoutTransactionError').textContent = '';
+    setCheckoutStep(3);
+  });
+  document.querySelectorAll('[data-checkout-back]').forEach(button => {
+    button.addEventListener('click', () => setCheckoutStep(Number(button.dataset.checkoutBack)));
+  });
+  $('checkoutBackBtn').addEventListener('click', leaveCheckout);
+  $('checkoutReturnCourse').addEventListener('click', leaveCheckout);
+  $('checkoutCopyRecipient').addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText($('checkoutRecipient').textContent.trim());
+      $('checkoutCopyRecipient').textContent = 'Copied';
+      window.setTimeout(() => { $('checkoutCopyRecipient').textContent = 'Copy'; }, 1500);
+    } catch (error) {
+      $('checkoutStatus').textContent = error.message || 'Could not copy payment details. Please copy them manually.';
+    }
+  });
+  $('checkoutCopyReference').addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText($('checkoutRequestId').textContent.trim());
+      $('checkoutCopyReference').textContent = 'Copied';
+      window.setTimeout(() => { $('checkoutCopyReference').textContent = 'Copy'; }, 1500);
+    } catch (error) {
+      $('checkoutSuccessText').textContent = error.message || 'Could not copy the reference. Please select and copy it manually.';
+    }
+  });
+  $('checkoutPaymentScreenshot').addEventListener('change', () => {
+    const file = $('checkoutPaymentScreenshot').files?.[0];
+    $('checkoutScreenshotName').textContent = file?.name || 'Tap to choose an image · PNG or JPG';
+  });
+  pay.addEventListener('click', submitEnrollment);
   $('checkoutWhatsappBtn')?.addEventListener('click', () => {
     const amount = Number(course.discountPrice) > 0 && Number(course.discountPrice) < Number(course.price) ? Number(course.discountPrice) : Number(course.price);
     const method = $('checkoutPaymentMethod').value;
     const proofText = [
       'Hello Siam, I submitted a course payment.',
-      `Student: ${user?.displayName || 'Student'}`,
-      `Gmail: ${user?.email || ''}`,
+      `Student: ${name.value.trim() || user?.displayName || 'Student'}`,
+      `Gmail: ${email.value.trim()}`,
       `Course: ${course.title}`,
       `Amount: ৳${amount.toLocaleString('en-BD')}`,
-      `Payment method: ${method}`,
+      `Payment method: ${paymentMethods[method]?.label || method}`,
       `Transaction ID: ${transaction.value.trim() || 'Not entered yet'}`,
       '',
-      'I will attach my payment screenshot manually in this chat.'
+      `Enrollment reference: ${$('checkoutRequestId').textContent}`,
+      'I will attach my payment screenshot in this chat.'
     ].join('\n');
     window.open(`https://wa.me/8801644171751?text=${encodeURIComponent(proofText)}`, '_blank', 'noopener,noreferrer');
   });
-  $('checkoutShareBtn')?.addEventListener('click', async () => { const url = location.href; if (navigator.share) await navigator.share({ title: course.title, url }).catch(() => { }); else { await navigator.clipboard?.writeText(url); $('checkoutStatus').textContent = 'Link copied!'; } });
+  updatePayButton();
 }
 function renderPlayer() {
   const lesson = currentLesson();
@@ -924,8 +1162,9 @@ async function complete() {
   const next = lessons[lessons.indexOf(lesson) + 1];
   if (next) go(next.id); else render();
 }
-async function load() {
+async function load(generation = authLoadGeneration) {
   const all = await withTimeout(fetchAllCourses({ includeLessons: true }));
+  if (generation !== authLoadGeneration) return;
   const requestedCourseId = courseId || null;
   course = all.find(item => item.id === requestedCourseId)
     || all.find(item => item.id === 'python-for-beginners-bangla')
@@ -949,6 +1188,7 @@ async function load() {
   if (user) {
     const cloud = (await import('./courses-db.js')).fetchUserProgress;
     const cloudProgress = await cloud(user.uid).catch(() => ({}));
+    if (generation !== authLoadGeneration) return;
     progress = { ...progress, ...cloudProgress };
   }
   localStorage.setItem(progressKey, JSON.stringify(progress));
@@ -956,6 +1196,10 @@ async function load() {
   if (!selectedLessonId && user && hasCourseAccess()) selectedLessonId = progress[course.id]?.lastLessonId || lessons.find(lesson => !completed().has(lesson.id))?.id || lessons[0]?.id;
   $('learningLoading').classList.add('hidden');
   render();
+  if (user && new URLSearchParams(location.search).get('enroll') === '1'
+    && !hasCourseAccess() && course.accessStatus !== 'pending') {
+    beginCheckout();
+  }
 }
 $('learningGoogleBtn').onclick = () => redirectToAuthPrompt('Sign in or create an account to enroll and access private lessons.');
 $('refreshAccessBtn')?.addEventListener('click', async () => {
@@ -964,7 +1208,7 @@ $('refreshAccessBtn')?.addEventListener('click', async () => {
   $('learningAuthStatus').textContent = 'Checking the latest access...';
   try {
     await user?.reload();
-    await load();
+    await load(authLoadGeneration);
   } catch (error) {
     $('learningAuthStatus').textContent = error.message || 'Access could not be refreshed.';
   } finally {
@@ -1021,8 +1265,20 @@ window.addEventListener('popstate', () => {
   render();
 });
 observeAuthState(nextUser => {
+  if (user?.uid !== nextUser?.uid) {
+    $('checkoutStudentEmail').value = nextUser?.email || '';
+    $('checkoutEmailError').textContent = '';
+  }
   user = nextUser;
-  load().catch(error => {
+  const generation = ++authLoadGeneration;
+  if (!nextUser) {
+    checkoutActive = false;
+    resetLessonVideoSurface();
+    $('lessonPlayer').classList.add('hidden');
+    $('learningLoading').classList.remove('hidden');
+  }
+  load(generation).catch(error => {
+    if (generation !== authLoadGeneration) return;
     const isPermissionError = error?.code === 'permission-denied'
       || /permission|insufficient/i.test(error?.message || '');
     $('learningLoading').innerHTML = isPermissionError

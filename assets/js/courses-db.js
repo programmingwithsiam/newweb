@@ -160,7 +160,8 @@ function sortByOrder(items) {
 }
 
 const CACHE_TTL_MS = 5 * 60 * 1000;
-const COURSE_CACHE_KEY = 'siam_course_catalog_cache_v2';
+const COURSE_CACHE_KEY = 'siam_course_catalog_cache_v3';
+const LEGACY_COURSE_CACHE_KEY = 'siam_course_catalog_cache_v2';
 const LIVE_CACHE_KEY = 'siam_live_archive_cache_v1';
 const DEFAULT_COURSE = {
   id: 'python-for-beginners-bangla',
@@ -195,6 +196,9 @@ const PUBLIC_PREVIEW_VIDEO_OVERRIDES = {
   }
 };
 
+try { localStorage.removeItem(LEGACY_COURSE_CACHE_KEY); } catch {}
+try { sessionStorage.removeItem(LEGACY_COURSE_CACHE_KEY); } catch {}
+
 export function getDefaultCourses() {
   const fallbackModules = DEFAULT_COURSE.modules.map(module => ({ ...module, lessons: module.lessonCatalog }));
   return [{ ...DEFAULT_COURSE, modules: fallbackModules, lessons: fallbackModules.flatMap(module => module.lessons) }];
@@ -217,7 +221,44 @@ function writeSessionCache(key, value) {
   }
 }
 
+function readCourseCatalogCache() {
+  const checkStorage = storageApi => {
+    try {
+      const cached = JSON.parse(storageApi.getItem(COURSE_CACHE_KEY) || 'null');
+      return cached && Date.now() - cached.timestamp < CACHE_TTL_MS ? cached.value : null;
+    } catch {
+      return null;
+    }
+  };
+  return checkStorage(localStorage) || checkStorage(sessionStorage) || readSessionCache(COURSE_CACHE_KEY);
+}
+
+function writeCourseCatalogCache(value) {
+  const publicCatalog = value.map(course => {
+    const publicCourse = Object.fromEntries(Object.entries(course).filter(([key]) => (
+      !['videoUrl', 'youtubeUrl', 'youtubeVideoId', 'videoId', 'accessStatus', 'accessSource', 'accessDenied', 'lessons'].includes(key)
+    )));
+    return {
+      ...publicCourse,
+      accessStatus: 'not_enrolled',
+      accessSource: '',
+      accessDenied: true,
+      modules: (course.modules || []).map(module => ({
+        ...Object.fromEntries(Object.entries(module).filter(([key]) => key !== 'lessons' && key !== 'lessonCatalog')),
+        lessons: [],
+        lessonCatalog: (module.lessonCatalog || []).map(lesson => Object.fromEntries(
+          Object.entries(lesson).filter(([key]) => (
+            !['videoUrl', 'youtubeUrl', 'youtubeVideoId', 'videoId', 'youtubeId', 'youtube', 'video'].includes(normalizedFieldName(key))
+          ))
+        ))
+      }))
+    };
+  });
+  writeSessionCache(COURSE_CACHE_KEY, publicCatalog);
+}
+
 function clearSessionCache(...keys) {
+  try { keys.forEach(key => localStorage.removeItem(key)); } catch { }
   try { keys.forEach(key => sessionStorage.removeItem(key)); } catch { }
 }
 
@@ -231,138 +272,166 @@ export async function fetchCourseEnrollment(uid, courseId) {
 /* ---------- READ: public course metadata plus authorized lesson videos ---------- */
 export async function fetchAllCourses({ includeLessons = true } = {}) {
   if (!isFirebaseConfigured || !db) return getDefaultCourses();
-  if (!includeLessons) {
-    const cached = readSessionCache(COURSE_CACHE_KEY);
+  const currentUser = auth?.currentUser || null;
+  if (!includeLessons && !currentUser) {
+    const cached = readCourseCatalogCache();
     if (cached) return cached;
   }
-  const { collection, doc, getDoc, getDocs, limit, query } = await loadFirestore();
 
-  const coursesSnap = await getDocs(query(collection(db, 'courses'), limit(100)));
-  if (coursesSnap.empty) {
-    const fallback = getDefaultCourses();
-    if (!includeLessons) writeSessionCache(COURSE_CACHE_KEY, fallback);
-    return fallback;
-  }
-  const currentUser = auth?.currentUser || null;
-  const isAdminUser = currentUser?.email?.toLowerCase() === 'mdsiamahmmedloselovestroy@gmail.com';
-  const isVerifiedUser = currentUser?.emailVerified === true;
-  let emailAccess = false;
-  let courseAccessIds = [];
-  if (isVerifiedUser && currentUser.email) {
-    try {
-      const { doc, getDoc } = await loadFirestore();
-      const accessSnap = await getDoc(doc(db, 'authorized_users', currentUser.email.toLowerCase()));
-      if (accessSnap.exists()) {
-        const accessData = accessSnap.data();
-        emailAccess = accessData.access === 'granted';
-        courseAccessIds = Array.isArray(accessData.courseIds) ? accessData.courseIds : [];
-      }
-    } catch (error) {
-      console.warn('Email authorization unavailable:', error.code || error.message);
+  const loadFromFirestore = async () => {
+    const { collection, doc, getDoc, getDocs, limit, query } = await loadFirestore();
+    const coursesSnap = await Promise.race([
+      getDocs(query(collection(db, 'courses'), limit(100))),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('Course catalog timed out while loading.')), 3500))
+    ]);
+
+    if (coursesSnap.empty) {
+      const fallback = getDefaultCourses();
+      writeCourseCatalogCache(fallback);
+      return fallback;
     }
-  }
-  const courses = await Promise.all(sortByOrder(coursesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }))).map(async (course) => {
-    const enrollment = currentUser ? await fetchCourseEnrollment(currentUser.uid, course.id).catch(() => null) : null;
-    const legacyAccess = isVerifiedUser && emailAccess && (!courseAccessIds.length || courseAccessIds.includes(course.id));
-    const hasAccess = isAdminUser || enrollment?.status === 'approved' || (legacyAccess && enrollment?.status !== 'revoked');
-    const accessStatus = isAdminUser || hasAccess ? 'approved' : enrollment?.status || 'not_enrolled';
-    // Course-level video URLs are legacy fields and must never be sent to learners without access.
-    if (!hasAccess) delete course.videoUrl;
-    course.accessStatus = accessStatus;
-    course.accessSource = enrollment?.accessSource || (legacyAccess ? 'legacy' : '');
-    course.accessDenied = !hasAccess;
 
-    const modulesSnap = await getDocs(query(collection(db, 'courses', course.id, 'modules'), limit(100)));
-    const modules = [];
-    let allLessons = [];
-    let previewLessonIndex = 0;
-    let totalLessonCount = 0;
-
-    for (const moduleDoc of sortByOrder(modulesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })))) {
-      const moduleData = { ...moduleDoc };
-      const catalog = Array.isArray(moduleDoc.lessonCatalog)
-        ? sortByOrder(moduleDoc.lessonCatalog.map(normalizeLessonCatalogEntry).filter(Boolean))
-        : [];
-      const lessonMetadata = catalog.map(lesson => {
-        const isFreePreview = previewLessonIndex < 2;
-        previewLessonIndex += 1;
-        return { ...lesson, isFreePreview, freePreview: isFreePreview, moduleId: moduleDoc.id, moduleTitle: moduleDoc.title };
-      });
-      totalLessonCount += lessonMetadata.length;
-      let lessons = lessonMetadata;
-      if (includeLessons && (hasAccess || lessonMetadata.some(lesson => lesson.freePreview) || catalog.length)) {
-        try {
-          const lessonsSnap = await getDocs(query(collection(db, 'courses', course.id, 'modules', moduleDoc.id, 'lessons'), limit(200)));
-          const actualLessons = lessonsSnap.docs.map(snapshot => ({
-            id: snapshot.id,
-            moduleId: moduleDoc.id,
-            moduleTitle: moduleDoc.title,
-            ...snapshot.data(),
-          }));
-
-          if (actualLessons.length) {
-            lessons = buildModuleLessonList(moduleDoc, actualLessons, catalog);
-          } else if (hasAccess) {
-            lessons = lessonMetadata;
-          } else {
-            lessons = lessonMetadata.filter(lesson => lesson.freePreview).map(lesson => ({ ...lesson }));
-          }
-        } catch (error) {
-          const previewLessons = lessonMetadata.filter(lesson => lesson.freePreview);
-          lessons = await Promise.all(previewLessons.map(async (lesson) => {
-            try {
-              const previewSnapshot = await getDoc(doc(
-                db,
-                'courses',
-                course.id,
-                'modules',
-                moduleDoc.id,
-                'lessons',
-                lesson.id
-              ));
-              return previewSnapshot.exists()
-                ? { ...lesson, ...previewSnapshot.data(), id: lesson.id, moduleId: moduleDoc.id, moduleTitle: moduleDoc.title, isFreePreview: true, freePreview: true }
-                : { ...lesson };
-            } catch {
-              return { ...lesson };
-            }
-          }));
-          console.warn(`Lessons unavailable for course ${course.id}:`, error.code || error.message);
+    const currentUser = auth?.currentUser || null;
+    const isAdminUser = currentUser?.email?.toLowerCase() === 'mdsiamahmmedloselovestroy@gmail.com';
+    const isVerifiedUser = currentUser?.emailVerified === true;
+    let emailAccess = false;
+    let courseAccessIds = [];
+    if (isVerifiedUser && currentUser.email) {
+      try {
+        const accessSnap = await Promise.race([
+          getDoc(doc(db, 'authorized_users', currentUser.email.toLowerCase())),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Authorized user access timed out.')), 2500))
+        ]);
+        if (accessSnap.exists()) {
+          const accessData = accessSnap.data();
+          emailAccess = accessData.access === 'granted';
+          courseAccessIds = Array.isArray(accessData.courseIds) ? accessData.courseIds : [];
         }
+      } catch (error) {
+        console.warn('Email authorization unavailable:', error.code || error.message);
       }
-      moduleData.lessons = lessons;
-      moduleData.lessonCatalog = lessonMetadata.length ? lessonMetadata : catalog;
-      modules.push(moduleData);
-      allLessons = allLessons.concat(lessons);
     }
 
-    course.modules = modules;
-    course.lessons = allLessons; // flattened, ordered by module then lesson order
-    const previewOverrides = PUBLIC_PREVIEW_VIDEO_OVERRIDES[course.id] || {};
-    course.lessons = course.lessons.map(lesson => {
-      const videoUrl = previewOverrides[lesson.id];
-      if (!videoUrl || getLessonVideoSource(lesson)) return lesson;
-      return {
-        ...lesson,
-        videoUrl,
-        youtubeUrl: videoUrl,
-        youtubeVideoId: extractYoutubeId(videoUrl)
-      };
-    });
-    course.modules = course.modules.map(module => ({
-      ...module,
-      lessons: (module.lessons || []).map(lesson => {
+    const courses = await Promise.all(sortByOrder(coursesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }))).map(async (course) => {
+      const enrollment = currentUser ? await fetchCourseEnrollment(currentUser.uid, course.id).catch(() => null) : null;
+      const legacyAccess = isVerifiedUser && emailAccess && (!courseAccessIds.length || courseAccessIds.includes(course.id));
+      const hasAccess = isAdminUser || enrollment?.status === 'approved' || (legacyAccess && enrollment?.status !== 'revoked');
+      const accessStatus = isAdminUser || hasAccess ? 'approved' : enrollment?.status || 'not_enrolled';
+      if (!hasAccess) delete course.videoUrl;
+      course.accessStatus = accessStatus;
+      course.accessSource = enrollment?.accessSource || (legacyAccess ? 'legacy' : '');
+      course.accessDenied = !hasAccess;
+
+      const modulesSnap = await Promise.race([
+        getDocs(query(collection(db, 'courses', course.id, 'modules'), limit(100))),
+        new Promise((_, reject) => setTimeout(() => reject(new Error(`Modules for ${course.id} timed out.`)), 2500))
+      ]);
+      const modules = [];
+      let allLessons = [];
+      let previewLessonIndex = 0;
+      let totalLessonCount = 0;
+
+      for (const moduleDoc of sortByOrder(modulesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })))) {
+        const moduleData = { ...moduleDoc };
+        const catalog = Array.isArray(moduleDoc.lessonCatalog)
+          ? sortByOrder(moduleDoc.lessonCatalog.map(normalizeLessonCatalogEntry).filter(Boolean))
+          : [];
+        const lessonMetadata = catalog.map(lesson => {
+          const isFreePreview = previewLessonIndex < 2;
+          previewLessonIndex += 1;
+          return { ...lesson, isFreePreview, freePreview: isFreePreview, moduleId: moduleDoc.id, moduleTitle: moduleDoc.title };
+        });
+        totalLessonCount += lessonMetadata.length;
+        let lessons = lessonMetadata;
+        if (includeLessons && (hasAccess || lessonMetadata.some(lesson => lesson.freePreview) || catalog.length)) {
+          try {
+            const lessonsSnap = await Promise.race([
+              getDocs(query(collection(db, 'courses', course.id, 'modules', moduleDoc.id, 'lessons'), limit(200))),
+              new Promise((_, reject) => setTimeout(() => reject(new Error(`Lessons for ${moduleDoc.id} timed out.`)), 2500))
+            ]);
+            const actualLessons = lessonsSnap.docs.map(snapshot => ({
+              id: snapshot.id,
+              moduleId: moduleDoc.id,
+              moduleTitle: moduleDoc.title,
+              ...snapshot.data(),
+            }));
+
+            if (actualLessons.length) {
+              lessons = buildModuleLessonList(moduleDoc, actualLessons, catalog);
+            } else if (hasAccess) {
+              lessons = lessonMetadata;
+            } else {
+              lessons = lessonMetadata.filter(lesson => lesson.freePreview).map(lesson => ({ ...lesson }));
+            }
+          } catch (error) {
+            const previewLessons = lessonMetadata.filter(lesson => lesson.freePreview);
+            lessons = await Promise.all(previewLessons.map(async (lesson) => {
+              try {
+                const previewSnapshot = await getDoc(doc(
+                  db,
+                  'courses',
+                  course.id,
+                  'modules',
+                  moduleDoc.id,
+                  'lessons',
+                  lesson.id
+                ));
+                return previewSnapshot.exists()
+                  ? { ...lesson, ...previewSnapshot.data(), id: lesson.id, moduleId: moduleDoc.id, moduleTitle: moduleDoc.title, isFreePreview: true, freePreview: true }
+                  : { ...lesson };
+              } catch {
+                return { ...lesson };
+              }
+            }));
+            console.warn(`Lessons unavailable for course ${course.id}:`, error.code || error.message);
+          }
+        }
+        moduleData.lessons = lessons;
+        moduleData.lessonCatalog = lessonMetadata.length ? lessonMetadata : catalog;
+        modules.push(moduleData);
+        allLessons = allLessons.concat(lessons);
+      }
+
+      course.modules = modules;
+      course.lessons = allLessons;
+      const previewOverrides = PUBLIC_PREVIEW_VIDEO_OVERRIDES[course.id] || {};
+      course.lessons = course.lessons.map(lesson => {
         const videoUrl = previewOverrides[lesson.id];
         if (!videoUrl || getLessonVideoSource(lesson)) return lesson;
-        return { ...lesson, videoUrl, youtubeUrl: videoUrl, youtubeVideoId: extractYoutubeId(videoUrl) };
-      })
+        return {
+          ...lesson,
+          videoUrl,
+          youtubeUrl: videoUrl,
+          youtubeVideoId: extractYoutubeId(videoUrl)
+        };
+      });
+      course.modules = course.modules.map(module => ({
+        ...module,
+        lessons: (module.lessons || []).map(lesson => {
+          const videoUrl = previewOverrides[lesson.id];
+          if (!videoUrl || getLessonVideoSource(lesson)) return lesson;
+          return { ...lesson, videoUrl, youtubeUrl: videoUrl, youtubeVideoId: extractYoutubeId(videoUrl) };
+        })
+      }));
+      course.totalLessonCount = totalLessonCount;
+      return course;
     }));
-    course.totalLessonCount = totalLessonCount;
-    return course;
-  }));
 
-  if (!includeLessons) writeSessionCache(COURSE_CACHE_KEY, courses);
-  return courses;
+    if (!includeLessons && !currentUser) writeCourseCatalogCache(courses);
+    return courses;
+  };
+
+  try {
+    const courses = await loadFromFirestore();
+    return courses;
+  } catch (error) {
+    console.warn('Course catalog failed to load; using cached fallback:', error.message || error);
+    const fallback = !includeLessons && !currentUser
+      ? readCourseCatalogCache() || getDefaultCourses()
+      : getDefaultCourses();
+    if (!includeLessons && !currentUser) writeCourseCatalogCache(fallback);
+    return fallback;
+  }
 }
 
 /* ---------- ADMIN WRITES (rejected server-side by firestore.rules unless role=='admin') ---------- */
@@ -446,7 +515,7 @@ export async function createPaymentSubmission(paymentData) {
   const payment = await addDoc(collection(db, 'payments'), {
     userId: auth.currentUser.uid,
     studentName: paymentData.studentName || auth.currentUser.displayName || '',
-    studentEmail: auth.currentUser.email || '',
+    studentEmail: String(paymentData.studentEmail || auth.currentUser.email || '').trim(),
     courseId: paymentData.courseId || '',
     courseTitle: paymentData.courseTitle || '',
     amount: Number(paymentData.amount) || 0,
@@ -840,4 +909,3 @@ export async function saveUserCourseProgress(uid, courseId, data) {
     { merge: true }
   );
 }
-

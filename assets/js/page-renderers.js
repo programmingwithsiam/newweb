@@ -62,6 +62,14 @@ function escapeHtml(value) {
   }[char]));
 }
 
+function scrollToElementWithOffset(element, offset = 88) {
+  if (!element) return;
+  const targetTop = Math.max(0, element.getBoundingClientRect().top + window.scrollY - offset);
+  requestAnimationFrame(() => {
+    window.scrollTo({ top: targetTop, left: 0, behavior: 'smooth' });
+  });
+}
+
 export function getYoutubeEmbedUrl(url) {
   if (!url) return null;
   const value = String(url).trim();
@@ -384,7 +392,7 @@ export function renderPublicCoursePreview(course) {
   platform?.classList.remove('hidden');
   gate?.classList.remove('hidden');
   player?.classList.add('hidden');
-  platform?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  scrollToElementWithOffset(platform, 96);
 }
 
 /* Course rendering continues with more functions... */

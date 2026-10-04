@@ -411,8 +411,11 @@ service cloud.firestore {
       allow create: if isVerifiedUser() &&
         request.resource.data.keys().hasOnly(['userId', 'studentName', 'studentEmail', 'courseId', 'courseTitle', 'amount', 'method', 'transactionId', 'phone', 'paymentDate', 'screenshotUrl', 'status', 'submittedAt']) &&
         request.resource.data.userId == request.auth.uid &&
+        request.resource.data.studentEmail is string &&
+        request.resource.data.studentEmail.size() <= 254 &&
+        request.resource.data.studentEmail.matches('^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$') &&
         request.resource.data.courseId is string && request.resource.data.courseId.size() > 0 &&
-        request.resource.data.method in ['bkash', 'rocket', 'nagad', 'bank', 'visa', 'debit_card', 'credit_card', 'paypal'] &&
+        request.resource.data.method in ['bkash', 'rocket', 'nagad', 'bank', 'upi', 'visa', 'debit_card', 'credit_card', 'paypal'] &&
         request.resource.data.transactionId is string &&
         request.resource.data.transactionId.size() > 0 &&
         request.resource.data.phone is string &&
