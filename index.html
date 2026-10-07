@@ -56,7 +56,7 @@
   <!-- Styles -->
   <link rel="stylesheet" href="/assets/css/style.css?v=20261003-featured-projects-1" />
   <link rel="stylesheet" href="/assets/css/scroll-and-ui.css" />
-  <link rel="stylesheet" href="/assets/css/inspired-ui.css?v=20261003-project-3d-1" />
+  <link rel="stylesheet" href="/assets/css/inspired-ui.css?v=20261007-project-hover-5" />
   <!-- Font Awesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" />
 
@@ -537,23 +537,24 @@
         <p class="section-sub">
           A selection of things I’ve built, explored, and shared in public.
         </p>
-        <div class="project-showcase-bar">
-          <p class="project-showcase-label">
-            <span class="project-live-dot" aria-hidden="true"></span>
-            OPEN SOURCE
-            <span class="project-repo-count" id="githubProjectCount">Loading projects...</span>
-          </p>
-          <a class="project-profile-link" href="https://github.com/programmingwithsiam" target="_blank"
-            rel="noopener noreferrer">
-            View GitHub profile <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i>
-          </a>
-        </div>
-        <div class="projects-grid" id="githubProjectsGrid" aria-live="polite">
-          <div class="project-card tilt-card"
-            data-project-url="https://github.com/programmingwithsiam/Advanced-Image-Classifier"
-            onclick="window.open(this.dataset.projectUrl, '_blank', 'noopener,noreferrer')"
-            onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); window.open(this.dataset.projectUrl, '_blank', 'noopener,noreferrer'); }"
-            tabindex="0" role="link" aria-label="Open Advanced Image Classifier project on GitHub">
+        <div id="githubProjectsList">
+          <div class="project-showcase-bar">
+            <p class="project-showcase-label">
+              <span class="project-live-dot" aria-hidden="true"></span>
+              OPEN SOURCE
+              <span class="project-repo-count" id="githubProjectCount">Loading projects...</span>
+            </p>
+            <a class="project-profile-link" href="https://github.com/programmingwithsiam" target="_blank"
+              rel="noopener noreferrer">
+              View GitHub profile <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i>
+            </a>
+          </div>
+          <div class="projects-grid" id="githubProjectsGrid" aria-live="polite">
+            <div class="project-card tilt-card"
+              data-project-url="https://github.com/programmingwithsiam/Advanced-Image-Classifier"
+              onclick="window.open(this.dataset.projectUrl, '_blank', 'noopener,noreferrer')"
+              onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); window.open(this.dataset.projectUrl, '_blank', 'noopener,noreferrer'); }"
+              tabindex="0" role="link" aria-label="Open Advanced Image Classifier project on GitHub">
             <div class="project-header" style="
                   background: linear-gradient(
                     135deg,
@@ -584,9 +585,9 @@
                   class="btn-sm btn-ghost">View Source</a>
               </div>
             </div>
-          </div>
+            </div>
 
-          <div class="project-card tilt-card"
+            <div class="project-card tilt-card"
             data-project-url="https://github.com/programmingwithsiam/Advanced-Sentiment-analyzer"
             onclick="window.open(this.dataset.projectUrl, '_blank', 'noopener,noreferrer')"
             onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); window.open(this.dataset.projectUrl, '_blank', 'noopener,noreferrer'); }"
@@ -600,7 +601,7 @@
                   );
                 ">
               <div class="project-emoji">💬</div>
-            </div>
+              </div>
             <div class="project-body">
               <div class="project-tags">
                 <span class="ptag">NLP</span><span class="ptag">BERT</span><span class="ptag">FastAPI</span>
@@ -623,7 +624,7 @@
             </div>
           </div>
 
-          <div class="project-card tilt-card"
+            <div class="project-card tilt-card"
             data-project-url="https://github.com/programmingwithsiam/Advanced-Data-Dashboard"
             onclick="window.open(this.dataset.projectUrl, '_blank', 'noopener,noreferrer')"
             onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); window.open(this.dataset.projectUrl, '_blank', 'noopener,noreferrer'); }"
@@ -637,7 +638,7 @@
                   );
                 ">
               <div class="project-emoji">📈</div>
-            </div>
+              </div>
             <div class="project-body">
               <div class="project-tags">
                 <span class="ptag">Pandas</span><span class="ptag">Plotly</span><span class="ptag">Dash</span>
@@ -660,7 +661,7 @@
             </div>
           </div>
 
-          <div class="project-card tilt-card"
+            <div class="project-card tilt-card"
             data-project-url="https://github.com/programmingwithsiam/House-price-predictor-"
             onclick="window.open(this.dataset.projectUrl, '_blank', 'noopener,noreferrer')"
             onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); window.open(this.dataset.projectUrl, '_blank', 'noopener,noreferrer'); }"
@@ -674,7 +675,7 @@
                   );
                 ">
               <div class="project-emoji">🏠</div>
-            </div>
+              </div>
             <div class="project-body">
               <div class="project-tags">
                 <span class="ptag">XGBoost</span><span class="ptag">scikit-learn</span><span class="ptag">Pandas</span>
@@ -697,7 +698,7 @@
             </div>
           </div>
 
-          <div class="project-card tilt-card"
+            <div class="project-card tilt-card"
             data-project-url="https://github.com/programmingwithsiam/Advanced-Text-generator-"
             onclick="window.open(this.dataset.projectUrl, '_blank', 'noopener,noreferrer')"
             onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); window.open(this.dataset.projectUrl, '_blank', 'noopener,noreferrer'); }"
@@ -711,7 +712,7 @@
                   );
                 ">
               <div class="project-emoji">✍️</div>
-            </div>
+              </div>
             <div class="project-body">
               <div class="project-tags">
                 <span class="ptag">LSTM</span><span class="ptag">Keras</span><span class="ptag">NLP</span>
@@ -735,7 +736,7 @@
             </div>
           </div>
 
-          <div class="project-card tilt-card">
+            <div class="project-card tilt-card">
             <div class="project-header" style="
                   background: linear-gradient(
                     135deg,
@@ -745,7 +746,7 @@
                   );
                 ">
               <div class="project-emoji">🔢</div>
-            </div>
+              </div>
             <div class="project-body">
               <div class="project-tags">
                 <span class="ptag">CNN</span><span class="ptag">MNIST</span><span class="ptag">OpenCV</span>
@@ -769,7 +770,7 @@
             </div>
           </div>
 
-          <div class="project-card tilt-card">
+            <div class="project-card tilt-card">
             <div class="project-header" style="
                   background: linear-gradient(
                     135deg,
@@ -779,7 +780,7 @@
                   );
                 ">
               <div class="project-emoji">🤖</div>
-            </div>
+              </div>
             <div class="project-body">
               <div class="project-tags">
                 <span class="ptag">Transformer</span><span class="ptag">GPT</span><span class="ptag">FastAPI</span>
@@ -803,7 +804,7 @@
             </div>
           </div>
 
-          <div class="project-card tilt-card">
+            <div class="project-card tilt-card">
             <div class="project-header" style="
                   background: linear-gradient(
                     135deg,
@@ -813,7 +814,7 @@
                   );
                 ">
               <div class="project-emoji">📰</div>
-            </div>
+              </div>
             <div class="project-body">
               <div class="project-tags">
                 <span class="ptag">NLP</span><span class="ptag">TF-IDF</span><span class="ptag">scikit-learn</span>
@@ -905,6 +906,8 @@
             </div>
           </div>
         </div>
+        </div>
+        <div id="githubProjectDetail" class="github-project-detail" hidden aria-live="polite"></div>
       </div>
     </section>
 
@@ -1508,7 +1511,7 @@
   </div>
   <!-- /siteRoot -->
 
-  <script type="module" src="/assets/js/script.js?v=20261003-project-3d-1"></script>
+  <script type="module" src="/assets/js/script.js?v=20261007-project-details-4"></script>
   <script type="module" src="/assets/js/auth-app.js?v=20261001-otp-flow-1"></script>
 </body>
 

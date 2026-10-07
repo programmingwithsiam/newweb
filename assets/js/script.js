@@ -12,7 +12,7 @@
    ========================================================= */
 
 // Import all modules
-import { initParticles, initHeader, initTypedText, initRevealOnScroll, initTiltCards, initMobileMenu, initSkillBars, initHero3dParallax, activateSection } from './ui-effects.js?v=20261003-project-3d-1';
+import { initParticles, initHeader, initTypedText, initRevealOnScroll, initTiltCards, initMobileMenu, initSkillBars, initHero3dParallax, activateSection } from './ui-effects.js?v=20261007-project-details-4';
 import { initStatCounters } from './animations.js';
 import { initCourseDeck, initLiveNotification, initLiveHub, setCurrentSignedInUid, loadCourses, syncCourseRoute, getCurrentCourse, getCourseProgress, getCourseRoute, pushCourseRoute, getCourseStateLabel, getCourseCardMeta, renderPublicCoursePreview, renderPublishedCourseCatalog, renderLanguageExplorer, bindCourseFilters, renderUpcomingCourses, updateHeroMetrics, updateProgressBar } from './page-renderers.js?v=20260914-hide-claude-index-1';
 import { getLessonVideoSource } from './courses-db.js';
@@ -97,6 +97,18 @@ function escapeHtml(value) {
 
 const GITHUB_PROJECTS_USERNAME = 'programmingwithsiam';
 const GITHUB_PROJECTS_API_URL = `https://api.github.com/users/${GITHUB_PROJECTS_USERNAME}/repos?per_page=100&sort=updated`;
+const githubProjectDetails = new Map();
+const PROJECT_DETAIL_HASH_PREFIX = '#project/';
+let projectReadmeRequestId = 0;
+
+const PROJECT_DESCRIPTION_FALLBACKS = {
+  'siam-portfolio': 'My personal portfolio website. It introduces me, showcases the projects I have built, and helps visitors get in touch.',
+  'newweb': 'A JavaScript website project focused on a responsive layout and interactive page behavior.',
+  'Lenden-': 'A Dart mobile app for tracking money given and received, including who owes what.',
+  'Advanced-Text-generator-': 'A Python project that generates text from a prompt and explores natural language processing.',
+  'House-price-predictor-': 'A Python machine-learning model that predicts house prices from features such as size, rooms, and location.',
+  'Advanced-Sentiment-analyzer-': 'A Python natural-language-processing project that classifies text sentiment as positive or negative.'
+};
 
 function getProjectEmoji(name) {
   const lower = String(name || '').toLowerCase();
@@ -126,14 +138,203 @@ function getProjectGradient(name) {
   return palettes[hash % palettes.length];
 }
 
-function openProjectCard(url) {
-  if (!url) return;
-  window.open(url, '_blank', 'noopener,noreferrer');
+function getProjectThumbnailArt(name) {
+  const lower = String(name || '').toLowerCase();
+  if (/(house|price|estate|predict|regress)/.test(lower)) {
+    return '<path class="thumb-fill" d="M24 62 62 29l38 33v39H24z"/><path class="thumb-line" d="M43 101V72h20v29M31 59V43h12"/><path class="thumb-fill" d="M119 25h31l11 12-11 12h-31z"/><path class="thumb-line" d="m118 99 17-18 13 9 25-27m-11 0h11v11"/><text class="thumb-text" x="139" y="42">$</text>';
+  }
+  if (/(sentiment|mood|emotion)/.test(lower)) {
+    return '<circle class="thumb-fill" cx="60" cy="57" r="34"/><circle class="thumb-eye" cx="49" cy="49" r="3"/><circle class="thumb-eye" cx="71" cy="49" r="3"/><path class="thumb-line" d="M45 66q15 15 30 0"/><circle class="thumb-fill" cx="143" cy="54" r="25"/><circle class="thumb-eye" cx="135" cy="48" r="2.5"/><circle class="thumb-eye" cx="151" cy="48" r="2.5"/><path class="thumb-line" d="M133 65q10-10 20 0"/><rect class="thumb-track" x="27" y="102" width="146" height="9" rx="4.5"/><rect class="thumb-fill" x="27" y="102" width="91" height="9" rx="4.5"/>';
+  }
+  if (/(lenden|mobile|phone|app)/.test(lower)) {
+    return '<rect class="thumb-device" x="38" y="8" width="57" height="104" rx="10"/><path class="thumb-line" d="M57 17h18"/><rect class="thumb-fill" x="47" y="30" width="39" height="17" rx="3"/><rect class="thumb-card" x="47" y="54" width="39" height="17" rx="3"/><rect class="thumb-fill" x="47" y="78" width="39" height="17" rx="3"/><circle class="thumb-fill" cx="145" cy="39" r="20"/><text class="thumb-text" x="145" y="46">৳</text><path class="thumb-line" d="M111 78h54m-9-8 9 8-9 8m7 19h-53m8-8-8 8 8 8"/>';
+  }
+  if (/(text|sentiment|chat|language|generator|nlp|news)/.test(lower)) {
+    return '<path class="thumb-fill" d="M22 17h124a7 7 0 0 1 7 7v48a7 7 0 0 1-7 7H75L55 96V79H22a7 7 0 0 1-7-7V24a7 7 0 0 1 7-7z"/><path class="thumb-line" d="M31 35h94M31 49h70M31 64h48"/><rect class="thumb-cursor" x="103" y="57" width="6" height="17"/><path class="thumb-line" d="M171 20v16m-8-8h16m-10 30v10m-5-5h10"/>';
+  }
+  if (/(dashboard|data|analytics|visual|plot|chart|stock)/.test(lower)) {
+    return '<rect class="thumb-window" x="14" y="12" width="172" height="96" rx="6"/><path class="thumb-line" d="M14 30h172"/><circle class="thumb-dot" cx="26" cy="21" r="2.5"/><circle class="thumb-dot" cx="35" cy="21" r="2.5"/><rect class="thumb-card" x="26" y="39" width="42" height="24" rx="3"/><rect class="thumb-fill" x="76" y="39" width="42" height="24" rx="3"/><rect class="thumb-card" x="126" y="39" width="42" height="24" rx="3"/><path class="thumb-line" d="m29 91 22-15 18 7 26-17 19 12 22-22 25 10"/>';
+  }
+  if (/(image|vision|classifier|recogn|face|detect|digit)/.test(lower)) {
+    return '<rect class="thumb-window" x="14" y="12" width="172" height="96" rx="6"/><path class="thumb-line" d="M14 30h172"/><circle class="thumb-dot" cx="26" cy="21" r="2.5"/><circle class="thumb-dot" cx="35" cy="21" r="2.5"/><rect class="thumb-card" x="26" y="40" width="58" height="53" rx="4"/><circle class="thumb-fill" cx="55" cy="61" r="13"/><path class="thumb-line" d="M34 86q21-24 42 0m16-36h52m-52 13h42m-42 13h48"/>';
+  }
+  return '<rect class="thumb-window" x="14" y="12" width="172" height="96" rx="6"/><path class="thumb-line" d="M14 30h172"/><circle class="thumb-dot" cx="26" cy="21" r="2.5"/><circle class="thumb-dot" cx="35" cy="21" r="2.5"/><circle class="thumb-fill" cx="47" cy="58" r="14"/><path class="thumb-line" d="M72 50h62M72 62h44"/><rect class="thumb-card" x="30" y="82" width="36" height="18" rx="3"/><rect class="thumb-card" x="74" y="82" width="36" height="18" rx="3"/><rect class="thumb-card" x="118" y="82" width="36" height="18" rx="3"/>';
+}
+
+function renderProjectThumbnail(name, language, index = 0, large = false) {
+  const palettes = [
+    { background: '#3b2113', accent: '#ff9b6b', short: 'HTML' },
+    { background: '#0f2f2a', accent: '#5fe0b7', short: 'JS' },
+    { background: '#10303f', accent: '#6cc7ff', short: 'DART' },
+    { background: '#14213f', accent: '#8fb0ff', short: 'PY' },
+    { background: '#2e1740', accent: '#e0a3ff', short: 'AI' },
+    { background: '#40161f', accent: '#ff8fa3', short: 'ML' }
+  ];
+  const paletteIndex = Array.from(String(name || '')).reduce((sum, char) => sum + char.charCodeAt(0), 0) % palettes.length;
+  const palette = palettes[paletteIndex];
+  const direction = index % 2 === 1 ? ' is-reversed' : '';
+  const clip = index % 3 === 2;
+  const note = String(name || 'project').replace(/[-_]+/g, ' ').split(' ').slice(0, 2).join(' ');
+  const caption = String(name || 'Project').replace(/[-_]+/g, ' ').replace(/\s+/g, ' ').trim();
+
+  return `
+    <div class="project-header${direction}${large ? ' is-large' : ''}"
+      style="--project-bg:${palette.background};--project-accent:${palette.accent}">
+      <span class="project-hand-note">${escapeHtml(note)}</span>
+      <svg class="project-hand-arrow" viewBox="0 0 92 60" aria-hidden="true"><path d="M3 6C30 2 58 12 72 40"/><path d="m62 36 11 6 3-13"/></svg>
+      <div class="project-polaroid">
+        ${clip
+          ? '<svg class="project-paper-clip" viewBox="0 0 18 46" aria-hidden="true"><path d="M5 14v21a4 4 0 0 0 8 0V9a6 6 0 0 0-12 0v24"/></svg>'
+          : `<span class="project-tape${index % 3 === 1 ? ' is-cool' : ''}" aria-hidden="true"></span>`}
+        <div class="project-preview-art">
+          <svg viewBox="0 0 200 120" role="img" aria-label="${escapeHtml(caption)} project preview">
+            <g class="project-art-illustration">${getProjectThumbnailArt(name)}</g>
+          </svg>
+        </div>
+        <span class="project-polaroid-caption">${escapeHtml(caption)}</span>
+      </div>
+      <span class="project-language-sticker">${escapeHtml(palette.short || language || 'CODE')}</span>
+      <svg class="project-doodle" viewBox="0 0 46 24" aria-hidden="true"><path d="M2 16q5-12 10 0t10 0 10 0 10 0"/><path d="M40 3v6M37 6h6"/></svg>
+    </div>
+  `;
+}
+
+function getProjectDetailName() {
+  if (!window.location.hash.startsWith(PROJECT_DETAIL_HASH_PREFIX)) return '';
+  try {
+    return decodeURIComponent(window.location.hash.slice(PROJECT_DETAIL_HASH_PREFIX.length));
+  } catch (error) {
+    console.error('Invalid project detail route:', error);
+    return '';
+  }
+}
+
+function getReadmeSummary(markdown) {
+  const blocks = String(markdown || '')
+    .replace(/<!--[\s\S]*?-->/g, ' ')
+    .replace(/```[\s\S]*?```/g, ' ')
+    .replace(/!\[[^\]]*]\([^)]*\)/g, ' ')
+    .split(/\n\s*\n/)
+    .map(block => block
+      .replace(/<img\b[^>]*>/gi, ' ')
+      .replace(/\[([^\]]+)]\([^)]*\)/g, '$1')
+      .replace(/`([^`]+)`/g, '$1')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/^#{1,6}\s.*$/gm, ' ')
+      .replace(/^\s*(?:[-*+]|\d+\.)\s+/gm, '')
+      .replace(/^\s*>+\s?/gm, '')
+      .replace(/\s+/g, ' ')
+      .trim())
+      .filter(block => block.length > 35 && !/^https?:\/\//i.test(block));
+  return blocks[0]?.slice(0, 520) || '';
+}
+
+async function loadProjectReadmeSummary(repo, fallbackDescription) {
+  if (fallbackDescription) return;
+  const requestId = ++projectReadmeRequestId;
+  const target = document.querySelector('#githubProjectDetail .project-detail-description');
+  if (!target) return;
+  target.textContent = 'Loading project summary from its README…';
+
+  try {
+    const url = `https://api.github.com/repos/${GITHUB_PROJECTS_USERNAME}/${encodeURIComponent(repo.name)}/readme`;
+    const response = await fetch(url, { headers: { Accept: 'application/vnd.github+json' } });
+    if (!response.ok) throw new Error(`README request failed: ${response.status}`);
+
+    const readme = await response.json();
+    const binary = atob(String(readme.content || '').replace(/\s/g, ''));
+    const bytes = Uint8Array.from(binary, character => character.charCodeAt(0));
+    const summary = getReadmeSummary(new TextDecoder().decode(bytes));
+    if (requestId !== projectReadmeRequestId || !target.isConnected) return;
+    target.textContent = summary || 'This repository does not have a short project description. Open the source code to explore it.';
+  } catch (error) {
+    if (requestId !== projectReadmeRequestId || !target.isConnected) return;
+    target.textContent = 'A project summary is not available yet. Open the source code to see how the project works.';
+    console.warn(`Could not load README summary for ${repo.name}:`, error);
+  }
+}
+
+function renderGitHubProjectDetail(repo) {
+  const list = document.getElementById('githubProjectsList');
+  const detail = document.getElementById('githubProjectDetail');
+  if (!list || !detail) return;
+
+  const repoName = String(repo.name || 'Project');
+  const repoUrl = `https://github.com/${GITHUB_PROJECTS_USERNAME}/${encodeURIComponent(repoName)}`;
+  const sourceUrl = `https://github.dev/${GITHUB_PROJECTS_USERNAME}/${encodeURIComponent(repoName)}`;
+  const topics = Array.isArray(repo.topics) ? repo.topics.filter(Boolean) : [];
+  const description = String(repo.description || PROJECT_DESCRIPTION_FALLBACKS[repoName] || '').trim();
+  const gradient = getProjectGradient(repoName).join(', ');
+  const highlights = topics.length
+    ? topics.map(topic => `<li>${escapeHtml(topic)}</li>`).join('')
+    : `<li>${repo.language ? `Written in ${escapeHtml(repo.language)}.` : 'Browse the repository source to explore how it is built.'}</li>`;
+
+  detail.innerHTML = `
+    <a class="project-detail-back" href="#projects"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> All projects</a>
+    ${renderProjectThumbnail(repoName, repo.language, 0, true)}
+    <div class="project-detail-layout">
+      <div class="project-detail-copy">
+        <p class="project-detail-eyebrow">PROJECT DETAILS</p>
+        <h2>${escapeHtml(repoName)}</h2>
+        <h3>What this project does</h3>
+        <p class="project-detail-description">${escapeHtml(description || 'Loading project summary from its README…')}</p>
+        <h3>Technologies and topics</h3>
+        <ul class="project-detail-highlights">${highlights}</ul>
+      </div>
+      <aside class="project-detail-source">
+        <p class="project-detail-eyebrow">SOURCE CODE</p>
+        <div class="project-detail-stats">
+          <span><strong>${Number(repo.stargazers_count) || 0}</strong> stars</span>
+          <span><strong>${Number(repo.forks_count) || 0}</strong> forks</span>
+          <span><strong>${escapeHtml(repo.archived ? 'Archived' : 'Public')}</strong> repository</span>
+        </div>
+        <div class="project-detail-topics">
+          ${(topics.length ? topics : [repo.language || 'Open source'])
+            .map(topic => `<span>${escapeHtml(topic)}</span>`).join('')}
+        </div>
+        <div class="project-detail-actions">
+          <a class="btn-sm" href="${repoUrl}" target="_blank" rel="noopener noreferrer">
+            GitHub repository <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i>
+          </a>
+          <a class="btn-sm btn-ghost" href="${sourceUrl}" target="_blank" rel="noopener noreferrer">
+            View Source <i class="fa-solid fa-code" aria-hidden="true"></i>
+          </a>
+        </div>
+      </aside>
+    </div>
+  `;
+
+  list.hidden = true;
+  detail.hidden = false;
+  loadProjectReadmeSummary(repo, description);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function showGitHubProjectList() {
+  projectReadmeRequestId += 1;
+  const list = document.getElementById('githubProjectsList');
+  const detail = document.getElementById('githubProjectDetail');
+  if (!list || !detail) return;
+  list.hidden = false;
+  detail.hidden = true;
+  detail.replaceChildren();
+}
+
+function renderProjectRoute() {
+  const projectName = getProjectDetailName();
+  if (!projectName) {
+    showGitHubProjectList();
+    return;
+  }
+
+  const repo = githubProjectDetails.get(projectName);
+  if (repo) renderGitHubProjectDetail(repo);
 }
 
 async function initGitHubProjects() {
   const grid = document.getElementById('githubProjectsGrid');
   if (!grid) return;
+  window.addEventListener('hashchange', renderProjectRoute);
 
   const fallbackMarkup = `
     <div class="empty-message">Loading GitHub projects...</div>
@@ -173,26 +374,26 @@ async function initGitHubProjects() {
       new Date(b.updated_at || b.pushed_at || 0) - new Date(a.updated_at || a.pushed_at || 0)
     );
     const orderedRepos = [...featuredRepos, ...remainingRepos];
+    orderedRepos.forEach(repo => githubProjectDetails.set(repo.name, repo));
 
     grid.innerHTML = orderedRepos.map(repo => {
       const name = escapeHtml(repo.name || 'Project');
       const description = escapeHtml(repo.description || 'Open-source project from Siam\'s GitHub profile.');
       const projectUrl = `https://github.com/${GITHUB_PROJECTS_USERNAME}/${encodeURIComponent(repo.name)}`;
+      const sourceUrl = `https://github.dev/${GITHUB_PROJECTS_USERNAME}/${encodeURIComponent(repo.name)}`;
       const tags = Array.isArray(repo.topics) && repo.topics.length ? repo.topics.slice(0, 3) : [repo.language || 'GitHub'];
-      const gradient = getProjectGradient(repo.name).map(color => ` ${color}`).join(', ');
       const status = repo.archived ? 'Archived' : 'Public';
-      const emoji = getProjectEmoji(repo.name);
       const isFeatured = featuredNames.has(repo.name);
+      const projectIndex = orderedRepos.indexOf(repo);
 
       return `
         <article class="project-card tilt-card${isFeatured ? ' is-featured' : ''}"
+          data-project-name="${name}"
           data-project-url="${projectUrl}"
           tabindex="0"
           role="link"
-          aria-label="Open ${name} project on GitHub">
-          <div class="project-header" style="background: linear-gradient(135deg, ${gradient});">
-            <div class="project-emoji">${emoji}</div>
-          </div>
+          aria-label="View details for ${name}">
+          ${renderProjectThumbnail(repo.name, repo.language, projectIndex)}
           <div class="project-body">
             <div class="project-tags">
               ${tags.map(tag => `<span class="ptag">${escapeHtml(tag)}</span>`).join('')}
@@ -205,29 +406,27 @@ async function initGitHubProjects() {
               <span class="badge-lang">${escapeHtml(repo.language || 'Code')}</span>
               <span class="badge-stars" aria-label="${repo.stargazers_count || 0} stars">★ ${repo.stargazers_count || 0}</span>
             </div>
-            <div class="project-links">
-              <a href="${projectUrl}" target="_blank" rel="noopener noreferrer" class="btn-sm">GitHub</a>
-              <a href="${projectUrl}" target="_blank" rel="noopener noreferrer" class="btn-sm btn-ghost">View Source</a>
-            </div>
           </div>
         </article>
       `;
     }).join('');
 
     grid.querySelectorAll('.project-card').forEach(card => {
-      const url = card.dataset.projectUrl;
+      const repo = githubProjectDetails.get(card.dataset.projectName);
+      if (!repo) return;
       card.addEventListener('click', event => {
         if (event.target.closest('a')) return;
-        openProjectCard(url);
+        window.location.hash = `${PROJECT_DETAIL_HASH_PREFIX}${encodeURIComponent(repo.name)}`;
       });
       card.addEventListener('keydown', event => {
-        if (event.key === 'Enter' || event.key === ' ') {
+        if ((event.key === 'Enter' || event.key === ' ') && !event.target.closest('a')) {
           event.preventDefault();
-          openProjectCard(url);
+          window.location.hash = `${PROJECT_DETAIL_HASH_PREFIX}${encodeURIComponent(repo.name)}`;
         }
       });
     });
     initTiltCards();
+    renderProjectRoute();
   } catch (error) {
     console.error('Failed to load GitHub projects:', error);
     grid.innerHTML = '<div class="empty-message">GitHub projects could not be loaded right now. Please try again in a moment.</div>';

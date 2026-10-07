@@ -93,6 +93,11 @@ function bindSingleSectionNavigation() {
   let initialized = false;
   const updatePage = () => {
     const route = decodeURIComponent(window.location.hash.slice(1));
+    if (route.startsWith('project/')) {
+      renderPortfolioPage('projects');
+      initialized = true;
+      return;
+    }
     if (route === 'community') {
       window.location.replace('/community/index.html');
       return;

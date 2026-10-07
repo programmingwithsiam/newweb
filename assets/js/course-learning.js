@@ -732,29 +732,47 @@ function renderOverview() {
   const totalLessonCount = Number(course.totalLessonCount || lessons.length || 0);
   $('courseTitle').textContent = course.title;
   $('courseDescription').textContent = course.description || '';
-  $('courseInstructor').textContent = `Instructor: ${course.instructor || 'CodeWithSiam'}`;
+  $('courseCategory').textContent = `Course · ${course.category || 'Programming with AI'}`;
+  $('courseInstructor').textContent = course.instructor || 'CodeWithSiam';
   $('courseLessonCount').textContent = `${totalLessonCount} lessons`;
   $('courseDuration').textContent = `${lessons.reduce((sum, item) => sum + parseInt(String(item.duration).match(/\d+/)?.[0] || '0', 10), 0)} min`;
+  $('courseLevel').textContent = course.level || 'All levels';
   const bkash = course.payment?.bkash || '01644171751';
   const rocket = course.payment?.rocket || '01644171751';
   const bank = course.payment?.bank || 'Contact for bank details';
   const originalPrice = Number(course.price) || 0;
   const discountPrice = Number(course.discountPrice) > 0 && Number(course.discountPrice) < originalPrice ? Number(course.discountPrice) : originalPrice;
   $('coursePaymentPrice').textContent = discountPrice > 0 ? `৳${discountPrice.toLocaleString('en-BD')}` : 'Free';
+  $('courseDisplayPrice').textContent = discountPrice > 0 ? `৳${discountPrice.toLocaleString('en-BD')}` : 'Free';
+  $('courseOriginalPrice').textContent = `৳${originalPrice.toLocaleString('en-BD')}`;
+  $('courseOriginalPrice').classList.toggle('hidden', originalPrice <= discountPrice);
+  const hasDiscount = originalPrice > discountPrice && discountPrice > 0;
+  $('courseDiscountBadge').textContent = hasDiscount ? `${Math.round((originalPrice - discountPrice) / originalPrice * 100)}% off` : '';
+  $('courseDiscountBadge').classList.toggle('hidden', !hasDiscount);
+  $('courseSavingNote').textContent = hasDiscount
+    ? `· you save ৳${(originalPrice - discountPrice).toLocaleString('en-BD')} · one-time payment`
+    : '';
+  $('courseSavingNote').classList.toggle('hidden', !hasDiscount);
   $('coursePaymentPanel')?.classList.add('hidden');
   $('coursePaymentBkash').textContent = bkash;
   $('coursePaymentRocket').textContent = rocket;
   $('coursePaymentBank').textContent = bank;
   $('courseEnrollmentStatus').textContent = "✓ You're enrolled";
   $('coursePaymentBkashLink')?.closest('.course-payment-panel')?.classList.add('hidden');
-  $('courseThumbnail').src = course.thumbnail || '';
-  $('courseThumbnail').alt = `${course.title} thumbnail`;
+  const thumbnail = $('courseThumbnail');
+  thumbnail.onload = () => applyThumbnailAccent(thumbnail);
+  thumbnail.onerror = () => console.warn(`Could not load course thumbnail for accent color: ${course.title}`);
+  thumbnail.src = course.thumbnail || '';
+  thumbnail.alt = `${course.title} thumbnail`;
+  if (thumbnail.complete && thumbnail.naturalWidth) applyThumbnailAccent(thumbnail);
   $('overviewLessonTitle').textContent = lesson?.title || 'No lessons published yet';
   $('overviewStartBtn').textContent = hasAccess && lesson && completed().has(lesson.id) ? 'Review Lesson' : 'Watch First Class';
   $('overviewStartBtn').classList.toggle('hidden', !hasAccess);
   $('overviewStartBtn').disabled = !hasAccess || !lesson;
   $('overviewStartBtn').onclick = () => hasAccess && lesson && go(lesson.id);
-  $('overviewEnrollBtn').textContent = course.accessStatus === 'pending' ? 'Enrollment Pending' : 'Enroll Now';
+  $('overviewEnrollBtn').textContent = course.accessStatus === 'pending'
+    ? 'Enrollment Pending'
+    : `Enroll now · ${discountPrice > 0 ? `৳${discountPrice.toLocaleString('en-BD')}` : 'Free'}`;
   $('overviewEnrollBtn').classList.toggle('hidden', hasAccess);
   $('overviewEnrollBtn').disabled = !lesson || course.accessStatus === 'pending';
   $('overviewEnrollBtn').onclick = beginCheckout;
@@ -768,6 +786,85 @@ function renderOverview() {
   }
   setProgress();
 }
+
+function applyThumbnailAccent(image) {
+  const overview = $('courseOverview');
+  if (!overview || !image.naturalWidth || !image.naturalHeight) return;
+
+  try {
+    if (course.accentColor && CSS.supports('color', course.accentColor)) {
+      setCourseAccent(overview, course.accentColor);
+      return;
+    }
+
+    const canvas = document.createElement('canvas');
+    canvas.width = 48;
+    canvas.height = 27;
+    const context = canvas.getContext('2d', { willReadFrequently: true });
+    if (!context) {
+      console.warn('Could not sample course thumbnail: canvas context unavailable.');
+      return;
+    }
+    context.drawImage(image, 0, 0, canvas.width, canvas.height);
+    const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data;
+    const hues = Array.from({ length: 24 }, () => ({ weight: 0, red: 0, green: 0, blue: 0, count: 0 }));
+
+    for (let index = 0; index < pixels.length; index += 4) {
+      const red = pixels[index];
+      const green = pixels[index + 1];
+      const blue = pixels[index + 2];
+      const maximum = Math.max(red, green, blue);
+      const minimum = Math.min(red, green, blue);
+      const lightness = (maximum + minimum) / 2;
+      const delta = maximum - minimum;
+      const saturation = delta === 0 ? 0 : delta / (255 - Math.abs(2 * lightness - 255));
+      if (saturation < .24 || lightness < 36 || lightness > 244) continue;
+
+      let hue = 0;
+      if (delta > 0) {
+        if (maximum === red) hue = 60 * (((green - blue) / delta) % 6);
+        else if (maximum === green) hue = 60 * ((blue - red) / delta + 2);
+        else hue = 60 * ((red - green) / delta + 4);
+      }
+      if (hue < 0) hue += 360;
+
+      const bucket = hues[Math.floor(hue / 15) % hues.length];
+      const weight = saturation;
+      bucket.weight += weight;
+      bucket.red += red * weight;
+      bucket.green += green * weight;
+      bucket.blue += blue * weight;
+      bucket.count += 1;
+    }
+
+    const dominant = hues.reduce((best, bucket) => bucket.weight > best.weight ? bucket : best, hues[0]);
+    if (!dominant.count) return;
+    const red = dominant.red / dominant.weight;
+    const green = dominant.green / dominant.weight;
+    const blue = dominant.blue / dominant.weight;
+    const hue = Math.round((Math.atan2(Math.sqrt(3) * (green - blue), 2 * red - green - blue) * 180 / Math.PI + 360) % 360);
+    const saturation = 72;
+    setCourseAccent(overview, `hsl(${hue} ${saturation}% 48%)`);
+  } catch (error) {
+    const courseDetails = `${course.title || ''} ${course.category || ''} ${course.thumbnail || ''}`;
+    if (/\b(sql|database)\b/i.test(courseDetails)) {
+      setCourseAccent(overview, '#17c9bd');
+      console.warn(`Thumbnail color sampling is blocked for ${course.title}; using its SQL/database accent.`);
+      return;
+    }
+    console.warn(`Could not sample course thumbnail color for ${course.title}:`, error);
+  }
+}
+
+function setCourseAccent(overview, color) {
+  const targets = [overview, $('courseCheckout')].filter(Boolean);
+  targets.forEach(target => {
+    target.style.setProperty('--course-accent', color);
+    target.style.setProperty('--course-accent-hover', `color-mix(in srgb, ${color} 78%, black)`);
+    target.style.setProperty('--course-accent-glow', `color-mix(in srgb, ${color} 22%, transparent)`);
+  });
+}
+
 function renderCheckout(finalPrice, originalPrice, hasAccess) {
   const checkout = $('courseCheckout');
   if (!checkout) return;
