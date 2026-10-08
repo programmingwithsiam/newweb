@@ -3445,6 +3445,10 @@
       display: none;
     }
 
+    body.course-learning-page:has(#courseCheckout:not(.hidden)) .learning-topbar .learning-brand {
+      visibility: hidden;
+    }
+
     #courseCheckout {
       width: min(100%, 512px);
       display: none;
@@ -5347,7 +5351,10 @@
         font-style: normal;
       }
     }
+
   </style>
+  <link rel="stylesheet" href="assets/css/course-enrollment.css?v=20261008-enrollment-flow-15">
+  <link rel="stylesheet" href="assets/css/course-page-design.css?v=20261008-reference-layout-1">
 </head>
 
 <body class="course-learning-page">
@@ -5375,10 +5382,8 @@
   </section>
 
   <header class="learning-topbar">
-    <a class="learning-brand" href="index.html"><img class="learning-brand-logo"
-        src="assets/images/profile-siam-round.png" alt="CodeWithSiam logo"><span
-        class="learning-brand-name">CodeWithSiam</span></a>
-    <a class="learning-back" href="index.html"><i class="fa-solid fa-arrow-left"></i> Back to courses</a>
+    <a class="learning-brand" href="index.html"><span class="learning-brand-name">CODE<b>WITH</b>SIAM</span></a>
+    <a class="learning-back" href="index.html">← All courses</a>
   </header>
 
   <main id="learningApp" class="learning-app">
@@ -5476,11 +5481,20 @@
           <h1 id="courseTitle">Course</h1>
           <p id="courseDescription"></p>
         </div>
-        <a class="learning-back" href="index.html"><i class="fa-solid fa-grid-2"></i> All courses</a>
       </div>
       <div class="overview-summary">
         <div class="course-cover-3d" id="courseCover3d">
-          <img id="courseThumbnail" src="" alt="Course thumbnail">
+          <img id="courseThumbnail" src="" alt="" aria-hidden="true">
+          <div class="course-cover-fallback" aria-hidden="true">
+            <div class="course-cover-art">
+              <strong id="courseCoverTitle">COURSE<br>PREVIEW</strong>
+              <span id="courseCoverSubtitle">CODEWITHSIAM</span>
+            </div>
+          </div>
+          <button id="coursePreviewButton" class="course-preview-button" type="button">
+            <span><i class="fa-solid fa-play" aria-hidden="true"></i></span>Watch free preview
+          </button>
+          <span id="coursePreviewDuration" class="course-preview-duration">Preview</span>
         </div>
         <div class="overview-details">
           <div class="course-price-line">
@@ -5535,168 +5549,138 @@
               <span class="checkout-progress-line"></span>
               <div data-step="3"><i>3</i><span>Confirm</span></div>
             </div>
-            <div class="checkout-shell">
-              <div class="checkout-header">
-                <div>
-                  <p class="checkout-kicker">SECURE ENROLLMENT</p>
-                  <h2>Complete your enrollment</h2>
-                  <p id="checkoutAccountHint">Your signed-in account will be linked to this request.</p>
-                </div>
-                <span class="checkout-account-badge" id="checkoutAccountBadge">Secure checkout</span>
+            <div class="checkout-pane active" data-checkout-pane="1">
+              <p class="checkout-step-label">STEP 1 OF 3</p>
+              <h3>Your details</h3>
+              <p class="checkout-step-copy">We'll use these to unlock your course.</p>
+              <div class="checkout-student-grid">
+                <label class="checkout-label">Full name<input id="checkoutStudentName" type="text" autocomplete="name"
+                    placeholder="Your full name"></label>
+                <label class="checkout-label">Email<input id="checkoutStudentEmail" type="email" autocomplete="email"
+                    placeholder="you@example.com" maxlength="254" required></label>
               </div>
-              <div class="checkout-course-summary">
-                <img id="checkoutCourseThumbnail" src="" alt="Course thumbnail">
-                <div>
-                  <p class="checkout-kicker">YOUR COURSE</p>
-                  <h3 id="checkoutCourseTitle">Course</h3>
-                  <p id="checkoutCourseDescription"></p>
-                  <span id="checkoutCourseInstructor"></span>
-                </div>
-              </div>
-              <div class="checkout-order-summary">
-                <span>Course price</span><strong id="checkoutOriginalSummary">৳0</strong>
-                <span>Discount</span><strong id="checkoutDiscountSummary">-৳0</strong>
-                <span class="checkout-total-label">Total</span><strong class="checkout-total" id="checkoutTotalSummary">Free</strong>
-              </div>
-              <div class="checkout-price"><strong id="checkoutFinalPrice">Free</strong><del id="checkoutOriginalPrice"
-                  class="hidden">৳0</del><span>one-time payment</span></div>
+              <p id="checkoutEmailError" class="checkout-error" role="alert"></p>
+              <label class="checkout-label checkout-phone-label">Phone number
+                <span class="checkout-phone-row"><select id="checkoutCountry" aria-label="Country code">
+                    <option value="+880" data-placeholder="1XXXXXXXXX" data-country="Bangladesh">🇧🇩 +880 BD</option>
+                    <option value="+91" data-placeholder="XXXXXXXXXX" data-country="India">🇮🇳 +91</option>
+                    <option value="+92" data-placeholder="XXXXXXXXXX" data-country="Pakistan">🇵🇰 +92</option>
+                    <option value="+977" data-placeholder="XXXXXXXXXX" data-country="Nepal">🇳🇵 +977</option>
+                    <option value="+94" data-placeholder="XXXXXXXXX" data-country="Sri Lanka">🇱🇰 +94</option>
+                    <option value="+971" data-placeholder="5XXXXXXXX" data-country="UAE">🇦🇪 +971</option>
+                    <option value="+966" data-placeholder="5XXXXXXXX" data-country="Saudi Arabia">🇸🇦 +966</option>
+                    <option value="+60" data-placeholder="1XXXXXXXX" data-country="Malaysia">🇲🇾 +60</option>
+                    <option value="+65" data-placeholder="XXXXXXXX" data-country="Singapore">🇸🇬 +65</option>
+                    <option value="+44" data-placeholder="7XXXXXXXXX" data-country="United Kingdom">🇬🇧 +44</option>
+                    <option value="+1" data-placeholder="XXXXXXXXXX" data-country="United States">🇺🇸 +1</option>
+                    <option value="+1" data-placeholder="XXXXXXXXXX" data-country="Canada">🇨🇦 +1</option>
+                    <option value="+61" data-placeholder="4XXXXXXXX" data-country="Australia">🇦🇺 +61</option>
+                    <option value="+49" data-placeholder="15XXXXXXXX" data-country="Germany">🇩🇪 +49</option>
+                    <option value="+974" data-placeholder="XXXXXXXX" data-country="Qatar">🇶🇦 +974</option>
+                    <option value="+965" data-placeholder="XXXXXXXX" data-country="Kuwait">🇰🇼 +965</option>
+                    <option value="+968" data-placeholder="XXXXXXXX" data-country="Oman">🇴🇲 +968</option>
+                  </select><input id="checkoutPhone" type="tel" inputmode="numeric" maxlength="15"
+                    placeholder="1XXXXXXXXX" autocomplete="tel" aria-label="Phone number"></span>
+              </label>
+              <p id="checkoutPhoneError" class="checkout-error" role="alert"></p>
+              <p id="checkoutNameError" class="checkout-error" role="alert"></p>
+              <button id="checkoutContinueDetails" class="checkout-next" type="button">Continue to payment</button>
+            </div>
 
-              <div class="checkout-pane active" data-checkout-pane="1">
-                <p class="checkout-step-label">STEP 1 OF 3</p>
-                <h3>Your details</h3>
-                <p class="checkout-step-copy">We'll use these details to link the enrollment to your account.</p>
-                <div class="checkout-student-grid">
-                  <label class="checkout-label">Full name<input id="checkoutStudentName" type="text" autocomplete="name"
-                      placeholder="Your full name"></label>
-                  <label class="checkout-label">Email address<input id="checkoutStudentEmail" type="email" autocomplete="email"
-                      placeholder="you@example.com" maxlength="254" required></label>
-                </div>
-                <p id="checkoutEmailError" class="checkout-error" role="alert"></p>
-                <label class="checkout-label checkout-phone-label">Phone number
-                  <span class="checkout-phone-row"><select id="checkoutCountry" aria-label="Country code">
-                      <option value="+880" data-placeholder="01XXXXXXXXX" data-country="Bangladesh">🇧🇩 +880</option>
-                      <option value="+91" data-placeholder="XXXXXXXXXX" data-country="India">🇮🇳 +91</option>
-                      <option value="+92" data-placeholder="XXXXXXXXXX" data-country="Pakistan">🇵🇰 +92</option>
-                      <option value="+977" data-placeholder="XXXXXXXXXX" data-country="Nepal">🇳🇵 +977</option>
-                      <option value="+94" data-placeholder="XXXXXXXXX" data-country="Sri Lanka">🇱🇰 +94</option>
-                      <option value="+971" data-placeholder="5XXXXXXXX" data-country="UAE">🇦🇪 +971</option>
-                      <option value="+966" data-placeholder="5XXXXXXXX" data-country="Saudi Arabia">🇸🇦 +966</option>
-                      <option value="+60" data-placeholder="1XXXXXXXX" data-country="Malaysia">🇲🇾 +60</option>
-                      <option value="+65" data-placeholder="XXXXXXXX" data-country="Singapore">🇸🇬 +65</option>
-                      <option value="+44" data-placeholder="7XXXXXXXXX" data-country="United Kingdom">🇬🇧 +44</option>
-                      <option value="+1" data-placeholder="XXXXXXXXXX" data-country="United States">🇺🇸 +1</option>
-                      <option value="+1" data-placeholder="XXXXXXXXXX" data-country="Canada">🇨🇦 +1</option>
-                      <option value="+61" data-placeholder="4XXXXXXXX" data-country="Australia">🇦🇺 +61</option>
-                      <option value="+49" data-placeholder="15XXXXXXXX" data-country="Germany">🇩🇪 +49</option>
-                      <option value="+974" data-placeholder="XXXXXXXX" data-country="Qatar">🇶🇦 +974</option>
-                      <option value="+965" data-placeholder="XXXXXXXX" data-country="Kuwait">🇰🇼 +965</option>
-                      <option value="+968" data-placeholder="XXXXXXXX" data-country="Oman">🇴🇲 +968</option>
-                    </select><input id="checkoutPhone" type="tel" inputmode="numeric" maxlength="15"
-                      placeholder="01XXXXXXXXX" autocomplete="tel" autocorrect="off" spellcheck="false"
-                      aria-label="Phone number"></span>
-                  <small class="checkout-phone-hint">Use the phone number linked to your payment account.</small>
-                </label>
-                <p id="checkoutPhoneError" class="checkout-error" role="alert"></p>
-                <p id="checkoutNameError" class="checkout-error" role="alert"></p>
-                <button id="checkoutContinueDetails" class="checkout-next" type="button">Continue to payment <i
+            <div class="checkout-pane" data-checkout-pane="2">
+              <p class="checkout-step-label">STEP 2 OF 3</p>
+              <h3>Choose payment method</h3>
+              <p class="checkout-step-copy">Methods shown are available in your country.</p>
+              <label class="checkout-label checkout-payment-label"><span class="checkout-field-title">Payment method</span>
+                <span id="checkoutPaymentOptions" class="checkout-payment-options" role="group"
+                  aria-label="Choose a payment method"></span>
+              </label>
+              <p id="checkoutPaymentFreeNote" class="checkout-step-copy hidden">No payment is needed. Confirm to enroll
+                for free and get instant access.</p>
+              <select id="checkoutPaymentMethod" class="hidden" aria-hidden="true" tabindex="-1">
+                <option value="bkash">bKash</option><option value="rocket">Rocket</option>
+                <option value="nagad">Nagad</option><option value="bank">Bank Transfer</option>
+                <option value="upi">UPI</option><option value="visa">Visa</option>
+                <option value="debit_card">Debit Card</option><option value="credit_card">Credit Card</option>
+                <option value="paypal">PayPal</option>
+              </select>
+              <div class="checkout-order-card">
+                <div><span>Total payable</span><strong id="checkoutOrderTotal">Free</strong></div>
+                <span id="checkoutOrderNote">One-time payment · Manual verification</span>
+              </div>
+              <p id="checkoutFreeStatus" class="checkout-note" role="status"></p>
+              <div class="checkout-navigation">
+                <button class="checkout-secondary" data-checkout-back="1" type="button">Back</button>
+                <button id="checkoutContinuePayment" class="checkout-next" type="button">Continue <i
                     class="fa-solid fa-arrow-right"></i></button>
               </div>
+            </div>
 
-              <div class="checkout-pane" data-checkout-pane="2">
-                <p class="checkout-step-label">STEP 2 OF 3</p>
-                <h3>Choose payment method</h3>
-                <p class="checkout-step-copy">Available options are based on your selected country.</p>
-                <label class="checkout-label">Payment options
-                  <span id="checkoutPaymentOptions" class="checkout-payment-options" role="group"
-                    aria-label="Choose a payment method"></span>
-                </label>
-                <p id="checkoutPaymentFreeNote" class="checkout-step-copy hidden">No payment is needed. Confirm to enroll
-                  for free and get instant access.</p>
-                <select id="checkoutPaymentMethod" class="hidden" aria-hidden="true" tabindex="-1">
-                  <option value="bkash">bKash</option><option value="rocket">Rocket</option>
-                  <option value="nagad">Nagad</option><option value="bank">Bank Transfer</option>
-                  <option value="upi">UPI</option>
-                  <option value="visa">Visa</option><option value="debit_card">Debit Card</option>
-                  <option value="credit_card">Credit Card</option><option value="paypal">PayPal</option>
-                </select>
-                <div class="checkout-order-card">
-                  <div><span>Total payable</span><strong id="checkoutOrderTotal">Free</strong></div>
-                  <span id="checkoutOrderNote">One-time payment · Manual verification</span>
+            <div class="checkout-pane" data-checkout-pane="3">
+              <p class="checkout-step-label">STEP 3 OF 3</p>
+              <h3>Complete your payment</h3>
+              <p class="checkout-step-copy">Pay the exact amount, then enter your transaction ID.</p>
+              <div id="checkoutPaymentDetails" class="checkout-payment-details">
+                <div><span id="checkoutPaymentLogo" class="checkout-payment-logo">bK</span>
+                  <div><strong id="checkoutPaymentName">bKash</strong><small id="checkoutPaymentType">Mobile wallet</small></div>
+                  <div class="checkout-payment-amount"><small>Amount</small><strong id="checkoutPaymentAmount">৳0</strong></div>
                 </div>
-                <p id="checkoutFreeStatus" class="checkout-note" role="status"></p>
-                <div class="checkout-navigation">
-                  <button class="checkout-secondary" data-checkout-back="1" type="button">Back</button>
-                  <button id="checkoutContinuePayment" class="checkout-next" type="button">Continue <i
-                      class="fa-solid fa-arrow-right"></i></button>
+                <div class="checkout-recipient"><small id="checkoutRecipientLabel">SEND TO</small>
+                  <span><strong id="checkoutRecipient">01644171751</strong><button id="checkoutCopyRecipient"
+                      type="button">Copy number</button></span>
                 </div>
+                <ol id="checkoutPaymentInstructions"></ol>
+                <p id="checkoutPaymentInstruction" class="checkout-note"></p>
               </div>
+              <a id="checkoutPaymentHelp" class="checkout-payment-help" target="_blank" rel="noopener noreferrer"
+                href="https://wa.me/8801644171751">Need help? WhatsApp</a>
+              <label class="checkout-label checkout-transaction-label">Transaction ID
+                <input id="checkoutTransactionId" type="text" maxlength="80" placeholder="Enter transaction ID"
+                  autocomplete="off" autocorrect="off" spellcheck="false">
+              </label>
+              <p id="checkoutTransactionError" class="checkout-error" role="alert"></p>
+              <label id="checkoutUpload" class="checkout-upload">
+                <input id="checkoutPaymentScreenshot" type="file" accept="image/jpeg,image/png,image/webp">
+                <i class="fa-solid fa-cloud-arrow-up"></i><strong>Upload payment screenshot <em>(optional)</em></strong>
+                <small id="checkoutScreenshotName">Tap to choose an image · PNG or JPG</small>
+              </label>
+              <label class="checkout-confirmation"><input id="checkoutPaymentConfirm" type="checkbox"><span>I've
+                  completed the payment of <b id="checkoutConfirmAmount">৳0</b> and the details above are correct.</span></label>
+              <div class="checkout-navigation">
+                <button class="checkout-secondary" data-checkout-back="2" type="button">Back</button>
+                <button id="checkoutPayBtn" class="checkout-next" type="button" disabled>Confirm enrollment</button>
+              </div>
+              <p id="checkoutStatus" class="checkout-note" role="status"></p>
+            </div>
 
-              <div class="checkout-pane" data-checkout-pane="3">
-                <p class="checkout-step-label">STEP 3 OF 3</p>
-                <h3>Complete your payment</h3>
-                <p class="checkout-step-copy">Send the exact amount, then provide the payment reference below.</p>
-                <div id="checkoutPaymentDetails" class="checkout-payment-details">
-                  <div><span id="checkoutPaymentLogo" class="checkout-payment-logo">bK</span>
-                    <div><strong id="checkoutPaymentName">bKash</strong><small id="checkoutPaymentType">Mobile wallet</small></div>
-                    <div class="checkout-payment-amount"><small>Amount</small><strong id="checkoutPaymentAmount">৳0</strong></div>
-                  </div>
-                  <div class="checkout-recipient"><small id="checkoutRecipientLabel">SEND TO</small>
-                    <span><strong id="checkoutRecipient">01644171751</strong><button id="checkoutCopyRecipient"
-                        type="button">Copy</button></span>
-                  </div>
-                  <ol id="checkoutPaymentInstructions"></ol>
-                  <p id="checkoutPaymentInstruction" class="checkout-note"></p>
-                </div>
-                <a id="checkoutPaymentHelp" class="checkout-payment-help" target="_blank" rel="noopener noreferrer"
-                  href="https://wa.me/8801644171751">Need payment details? Contact us on WhatsApp</a>
-                <label class="checkout-label checkout-transaction-label">Transaction ID
-                  <input id="checkoutTransactionId" type="text" maxlength="80" placeholder="Enter transaction ID"
-                    autocomplete="off" autocorrect="off" spellcheck="false">
-                </label>
-                <p id="checkoutTransactionError" class="checkout-error" role="alert"></p>
-                <label id="checkoutUpload" class="checkout-upload">
-                  <input id="checkoutPaymentScreenshot" type="file" accept="image/jpeg,image/png,image/webp">
-                  <i class="fa-solid fa-cloud-arrow-up"></i><strong>Upload payment screenshot <em>(optional)</em></strong>
-                  <small id="checkoutScreenshotName">Tap to choose an image · PNG or JPG</small>
-                </label>
-                <label class="checkout-confirmation"><input id="checkoutPaymentConfirm" type="checkbox"><span>I confirm
-                    that I have completed the payment of <b id="checkoutConfirmAmount">৳0</b> and entered the correct details.</span></label>
-                <div class="checkout-navigation">
-                  <button class="checkout-secondary" data-checkout-back="2" type="button">Back</button>
-                  <button id="checkoutPayBtn" class="checkout-next" type="button" disabled>Confirm enrollment</button>
-                </div>
-                <p id="checkoutStatus" class="checkout-note" role="status"></p>
+            <div id="checkoutSuccess" class="checkout-pane checkout-success" data-checkout-pane="4" role="status">
+              <div class="checkout-success-icon"><i class="fa-solid fa-check"></i></div>
+              <p class="checkout-step-label">REQUEST RECEIVED</p>
+              <h3 id="checkoutSuccessTitle">Enrollment request received!</h3>
+              <p id="checkoutSuccessText">We'll verify your payment and unlock the course shortly.</p>
+              <div class="checkout-reference"><small>YOUR REFERENCE</small><span><strong
+                    id="checkoutRequestId"></strong><button id="checkoutCopyReference" type="button">Copy</button></span></div>
+              <div class="checkout-next-steps">
+                <div><i>1</i><span><b>Verification</b><small>We check your payment</small></span></div>
+                <div><i>2</i><span><b>Access unlocked</b><small>Course opens in your account</small></span></div>
+                <div><i>3</i><span><b>Start learning</b><small>Watch from lesson one</small></span></div>
               </div>
-
-              <div id="checkoutSuccess" class="checkout-pane checkout-success" data-checkout-pane="4" role="status">
-                <div class="checkout-success-icon"><i class="fa-solid fa-check"></i></div>
-                <p class="checkout-step-label">REQUEST RECEIVED</p>
-                <h3 id="checkoutSuccessTitle">Enrollment request received!</h3>
-                <p id="checkoutSuccessText">We'll verify your payment and unlock the course shortly.</p>
-                <div class="checkout-reference"><small>YOUR REFERENCE</small><span><strong
-                      id="checkoutRequestId"></strong><button id="checkoutCopyReference" type="button">Copy</button></span></div>
-                <div class="checkout-next-steps">
-                  <div><i>1</i><span><b>Verification</b><small>We check your payment</small></span></div>
-                  <div><i>2</i><span><b>Access unlocked</b><small>Course opens in your account</small></span></div>
-                  <div><i>3</i><span><b>Start learning</b><small>Watch from lesson one</small></span></div>
-                </div>
-                <button id="checkoutWhatsappBtn" class="checkout-whatsapp" type="button"><i
-                    class="fa-brands fa-whatsapp"></i> Send payment proof via WhatsApp</button>
-                <button id="checkoutReturnCourse" class="checkout-secondary" type="button">Back to course</button>
-              </div>
+              <button id="checkoutWhatsappBtn" class="checkout-whatsapp" type="button"><i
+                  class="fa-brands fa-whatsapp"></i> Send payment proof via WhatsApp</button>
+              <button id="checkoutReturnCourse" class="checkout-secondary" type="button">Back to course</button>
             </div>
           </section>
         </div>
       </div>
 
       <section class="course-learning-outcomes" aria-labelledby="courseOutcomesTitle">
-        <p class="learning-eyebrow">WHAT YOU’LL LEARN</p>
-        <h2 id="courseOutcomesTitle">Build real projects with confidence</h2>
+        <p class="learning-eyebrow">OUTCOMES</p>
+        <h2 id="courseOutcomesTitle">What you'll learn</h2>
         <ul class="course-outcome-list">
-          <li>Plan and build practical projects with a clear workflow.</li>
-          <li>Use modern developer tools to work faster and smarter.</li>
-          <li>Turn ideas into working applications step by step.</li>
-          <li>Understand, review, and improve the code you create.</li>
+          <li>Plan and structure real projects with AI assistance</li>
+          <li>Write, review and test code that is safe to ship</li>
+          <li>Work in Python, ML and AI projects you can explain</li>
+          <li>Deploy production-grade apps end to end</li>
         </ul>
       </section>
 
@@ -5704,8 +5688,8 @@
         <section class="playlist-panel">
           <div class="panel-heading">
             <div>
-              <p class="learning-eyebrow">COURSE CONTENT</p>
-              <h2>Course Content</h2>
+                <p class="learning-eyebrow">CURRICULUM</p>
+                <h2>Course content</h2>
             </div><span id="playlistCount">0 lessons</span>
           </div>
           <div id="overviewPlaylist" class="overview-playlist"></div>
@@ -5713,49 +5697,45 @@
       </div>
 
       <section class="course-instructor-section" aria-labelledby="courseInstructorTitle">
-        <p class="learning-eyebrow">YOUR INSTRUCTOR</p>
+        <p class="learning-eyebrow">INSTRUCTOR</p>
         <h2 id="courseInstructorTitle">Taught by Siam</h2>
         <div class="course-instructor-card">
-          <img src="assets/images/profile-siam.jpeg" alt="Siam, course instructor" loading="lazy">
-          <p>Siam is a software developer and educator who makes practical programming, Python, machine learning, and AI approachable for learners at every stage.</p>
+          <div class="course-instructor-avatar" aria-hidden="true">S</div>
+          <p>Md Siam Ahmmed is a student developer from Bangladesh who builds practical Python, machine learning and AI projects and shares everything in public through tutorials and courses.</p>
         </div>
       </section>
 
       <section class="course-audience-section" aria-labelledby="courseAudienceTitle">
-        <p class="learning-eyebrow">WHO IT’S FOR</p>
+        <p class="learning-eyebrow">AUDIENCE</p>
         <h2 id="courseAudienceTitle">Who it’s for</h2>
         <div class="course-audience-cards">
-          <article><strong>Beginners</strong>Start learning with clear, practical explanations.</article>
-          <article><strong>Builders</strong>Move from tutorials to projects you can make your own.</article>
-          <article><strong>Developers</strong>Explore modern tools and strengthen your everyday workflow.</article>
+          <article><strong>Beginners</strong><span>A friendly, practical path with no scattered theory.</span></article>
+          <article><strong>Students</strong><span>Move from tutorials to building real AI projects.</span></article>
+          <article><strong>Builders</strong><span>Anyone who wants a structured, step-by-step plan.</span></article>
         </div>
       </section>
 
       <div class="faq-panel">
         <div class="faq-header">
           <p class="learning-eyebrow">FAQ</p>
-          <h3>Frequently asked questions</h3>
+          <h3>Questions</h3>
         </div>
         <div class="faq-list">
           <details open>
             <summary>Do I get instant access after payment?</summary>
-            <p>After your payment is verified, the course access is granted manually. This keeps the process transparent
-              and helps prevent mistakes.</p>
+            <p>Access is granted after your payment is verified manually. This keeps things transparent and prevents mistakes.</p>
           </details>
           <details>
             <summary>Can I learn even if I’m a beginner?</summary>
-            <p>Yes. The course is designed to help you learn progressively, with clear lessons and practical examples
-              instead of overwhelming theory.</p>
+            <p>Yes. The course starts from the basics and moves step by step.</p>
           </details>
           <details>
             <summary>What payment methods are supported?</summary>
-            <p>You can pay through bKash, Rocket, or bank transfer. All instructions are provided directly on the
-              enrollment panel.</p>
+            <p>bKash, Nagad, Rocket and bank in Bangladesh; PayPal and cards worldwide.</p>
           </details>
           <details>
             <summary>Is there a free preview?</summary>
-            <p>Some lessons are marked as free preview, so you can sample the teaching style and content before
-              enrolling in the full course.</p>
+            <p>Yes — the first 2 classes are free to watch.</p>
           </details>
         </div>
       </div>
