@@ -14,7 +14,7 @@ authentication, Firestore data, and protected file storage.
 - Media: Firebase Storage and YouTube, depending on the feature.
 - Registration email codes: a separate Express service in `server/`.
 
-## Project map
+## Project structure
 
 | Path | Purpose |
 | --- | --- |
@@ -22,16 +22,25 @@ authentication, Firestore data, and protected file storage.
 | `course.html` | Course details, enrollment, and lesson player |
 | `live.html` | Live sessions, replays, and chat |
 | `admin.html` | Admin dashboard for courses, enrollment, payments, and live settings |
+| `stories.html`, `user-profile.html`, `404.html` | Live story, profile, and not-found pages |
 | `community/` | Built community site served at `/community` |
-| `community.html` | Legacy URL redirected to `/community/` |
-| `user-profile.html`, `stories.html` | Standalone profile and story experiences |
-| `blog/` | Static blog landing page and content |
+| `blog/index.html` | Static blog landing page |
 | `assets/css/`, `assets/js/`, `assets/images/` | Shared styles, browser modules, and media |
-| `server/` | Express email-code registration API |
+| `server/src/`, `server/package.json`, `server/package-lock.json` | Express email-code registration API |
+| `database.rules.json`, `firestore.rules`, `storage.rules` | Firebase Realtime Database, Firestore, and Storage access rules |
+| `firebase.json`, `firestore.indexes.json` | Firebase CLI rule and index deployment config |
+| `package.json`, `package-lock.json`, `.gitignore` | Root scripts, dependencies, and ignore rules |
+| `.env.example`, `server/.env.example` | Safe configuration templates |
+| `favicon.ico`, `googlee9474dff469dbb67.html` | Site icon and search verification |
 | `PROJECT_NOTES.md` | Current folder map, maintenance rules, and known limitations |
-| `firestore.rules`, `storage.rules`, `database.rules.json` | Firebase access-control rules |
 | `manifest.json`, `sitemap.xml`, `robots.txt` | PWA and search-engine metadata |
 | `vercel.json` | Deployment headers and public URL rewrites |
+| `serve.json` | Local `npm run dev` route rewrites |
+| `README.md`, `SECURITY.md`, `FIREBASE_SETUP.md`, `CHANGELOG.md` | Required setup and maintenance documentation |
+
+The community app is deployed from the static build in `community/`. Its
+editable source is not part of this production-only tree; recover it from Git
+history before making community application changes.
 
 ## Run locally
 
@@ -62,7 +71,9 @@ code or Git.
 Vercel serves the static pages and applies the rewrites in `vercel.json`.
 Keep these public routes intact: `/admin`, `/course`, `/courses/:courseId`,
 `/courses/:courseId/lectures/:lessonId`, `/blog`, `/blog/:slug`, and
-`/community` (as well as the direct `.html` pages).
+`/community` (as well as the direct `.html` pages). Legacy paths
+`/community.html`, `/admin/`, `/admin/index.html`, and `/course/index.html`
+redirect to their active pages.
 
 The deployed community files are in `community/`. Their original build source
 is not retained in this production-only repository; restore it from Git
@@ -100,8 +111,8 @@ client behavior. Run `npm run check` and verify affected public routes.
 
 `npm run check` runs Node syntax checks for the six listed first-party browser
 modules. It is a syntax check, not a full browser, Firebase-rules, or community
-build test. Community and server packages have separate dependencies and
-scripts; see their package manifests and READMEs before changing them.
+build test. The email-code API has its own dependencies in `server/`; use its
+package manifest and `server/.env.example` when maintaining that service.
 
 For the current folder map and maintenance constraints, see
 [`PROJECT_NOTES.md`](./PROJECT_NOTES.md).
