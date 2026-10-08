@@ -496,6 +496,12 @@
       opacity: 1;
     }
 
+    .lesson-video-wrap.is-custom-player .custom-video-controls.is-auto-hidden,
+    .lesson-video-wrap.is-youtube-player .youtube-video-controls.is-auto-hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
     .custom-video-progress {
       width: 100%;
       accent-color: #9347ff;
@@ -613,15 +619,17 @@
       pointer-events: auto;
     }
 
+    .lesson-video-wrap:fullscreen .youtube-video-controls.is-auto-hidden,
+    .lesson-video-wrap:fullscreen .custom-video-controls.is-auto-hidden,
+    .lesson-video-wrap:-webkit-full-screen .youtube-video-controls.is-auto-hidden,
+    .lesson-video-wrap:-webkit-full-screen .custom-video-controls.is-auto-hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
     .lesson-video-wrap:fullscreen .youtube-center-play,
     .lesson-video-wrap:-webkit-full-screen .youtube-center-play {
       z-index: 11;
-    }
-
-    .lesson-video-wrap.is-touch-controls .youtube-video-controls,
-    .lesson-video-wrap.is-touch-controls .custom-video-controls {
-      opacity: 1 !important;
-      pointer-events: auto !important;
     }
 
     .youtube-video-controls button,
@@ -6050,7 +6058,7 @@
       });
     })();
   </script>
-  <script type="module" src="assets/js/course-learning.js?v=20261008-video-center-play-1"></script>
+  <script type="module" src="assets/js/course-learning.js?v=20261008-video-center-play-4"></script>
 </body>
 
 </html>

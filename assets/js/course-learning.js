@@ -155,18 +155,15 @@ async function togglePlayerFullscreen(target, fallbackTarget) {
   if (typeof enterVideoFullscreen === 'function') enterVideoFullscreen.call(fallbackTarget);
 }
 function setupPlayerAutoHide(wrap, controls, isPlaying) {
-  if (!wrap || !controls || wrap.dataset.autoHideReady) return;
+  if (!wrap || !controls) return;
+  wrap.isPlayerPlaying = isPlaying;
+  if (wrap.dataset.autoHideReady) return;
   wrap.dataset.autoHideReady = 'true';
   let timer = 0;
-  const touchDevice = window.matchMedia('(pointer: coarse)').matches;
   const show = () => {
     controls.classList.remove('is-auto-hidden');
     window.clearTimeout(timer);
-    if (touchDevice) {
-      wrap.classList.add('is-touch-controls');
-      return;
-    }
-    if (isPlaying()) timer = window.setTimeout(() => controls.classList.add('is-auto-hidden'), 2000);
+    if (wrap.isPlayerPlaying?.()) timer = window.setTimeout(() => controls.classList.add('is-auto-hidden'), 2000);
   };
   const interact = event => { if (!event.target.closest('button, input, select, a')) show(); };
   wrap.addEventListener('pointermove', show, { passive: true });
@@ -594,7 +591,7 @@ function setupYoutubePlayer(videoId, youtubeUrl, autoplay = false) {
           youtubePlayer.loadVideoById(videoId);
           updateTime();
           updateIcons();
-          if (centerPlayButton) centerPlayButton.hidden = false;
+          if (centerPlayButton) centerPlayButton.hidden = wrap.dataset.hasStartedPlayback === 'true';
           if (autoplay) {
             youtubePlayer.unMute();
             youtubePlayer.setVolume(100);
@@ -604,7 +601,8 @@ function setupYoutubePlayer(videoId, youtubeUrl, autoplay = false) {
         onStateChange: event => {
           updateTime();
           updateIcons();
-          if (centerPlayButton) centerPlayButton.hidden = event.data === 1;
+          if (event.data === 1) wrap.dataset.hasStartedPlayback = 'true';
+          if (centerPlayButton) centerPlayButton.hidden = wrap.dataset.hasStartedPlayback === 'true';
           setupPlayerAutoHide(wrap, controls, () => event.data === 1);
           wrap.showPlayerControls?.();
         }
@@ -641,6 +639,7 @@ function resetLessonVideoSurface() {
   const video = $('lessonMp4');
   const wrap = frame?.closest('.lesson-video-wrap');
   resetYoutubeControls();
+  if (wrap) delete wrap.dataset.hasStartedPlayback;
   wrap?.querySelector('.youtube-center-play')?.setAttribute('hidden', '');
   wrap?.querySelector('.lesson-video-unavailable')?.remove();
   if (frame) {
