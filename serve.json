@@ -1,6 +1,7 @@
 {
   "cleanUrls": false,
   "rewrites": [
+    { "source": "/", "destination": "/index.html" },
     { "source": "/admin", "destination": "/admin.html" },
     { "source": "/admin/", "destination": "/admin.html" },
     { "source": "/admin/index.html", "destination": "/admin.html" },
@@ -8,20 +9,15 @@
     { "source": "/course", "destination": "/course.html" },
     { "source": "/course/", "destination": "/course.html" },
     { "source": "/course/index.html", "destination": "/course.html" },
+    { "source": "/courses/:courseId", "destination": "/course.html" },
+    { "source": "/courses/:courseId/lectures/:lessonId", "destination": "/course.html" },
     { "source": "/community.html", "destination": "/community/index.html" },
     { "source": "/community", "destination": "/community/index.html" },
-    { "source": "/community/", "destination": "/community/index.html" },
+    { "source": "/community/*", "destination": "/community/index.html" },
     { "source": "/community-app", "destination": "/community/index.html" },
     { "source": "/community-app/*", "destination": "/community/index.html" },
-    { "source": "/community/login", "destination": "/community/index.html" },
-    { "source": "/community/signup", "destination": "/community/index.html" },
-    { "source": "/community/forgot-password", "destination": "/community/index.html" },
-    { "source": "/community/profile/*", "destination": "/community/index.html" },
-    { "source": "/community/messenger/*", "destination": "/community/index.html" },
-    { "source": "/community/search", "destination": "/community/index.html" },
-    { "source": "/community/notifications", "destination": "/community/index.html" },
-    { "source": "/community/settings", "destination": "/community/index.html" },
-    { "source": "/community/post/*", "destination": "/community/index.html" },
-    { "source": "/community/create", "destination": "/community/index.html" }
+    { "source": "/blog", "destination": "/blog/index.html" },
+    { "source": "/blog/*", "destination": "/blog/index.html" },
+    { "source": "**", "destination": "/index.html" }
   ]
 }

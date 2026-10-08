@@ -27,6 +27,7 @@ authentication, Firestore data, and protected file storage.
 | `blog/index.html` | Static blog landing page |
 | `assets/css/`, `assets/js/`, `assets/images/` | Shared styles, browser modules, and media |
 | `server/src/`, `server/package.json`, `server/package-lock.json` | Express email-code registration API |
+| `docs/ARCHITECTURE.md` | Runtime ownership and Firebase data-flow map |
 | `database.rules.json`, `firestore.rules`, `storage.rules` | Firebase Realtime Database, Firestore, and Storage access rules |
 | `firebase.json`, `firestore.indexes.json` | Firebase CLI rule and index deployment config |
 | `package.json`, `package-lock.json`, `.gitignore` | Root scripts, dependencies, and ignore rules |
@@ -51,7 +52,8 @@ npm run check
 npm run dev
 ```
 
-`npm run dev` serves the repository root; use the URL printed by the server.
+`npm run dev` serves the repository root and applies the aliases in `serve.json`;
+use the URL printed by the server.
 Useful entry points include `/`, `/course.html`, `/live.html`, `/admin.html`,
 `/community/`, `/blog/`, `/user-profile.html`, and `/stories.html`. Firebase
 features require a configured Firebase project and authorized local domain.
@@ -115,4 +117,5 @@ build test. The email-code API has its own dependencies in `server/`; use its
 package manifest and `server/.env.example` when maintaining that service.
 
 For the current folder map and maintenance constraints, see
-[`PROJECT_NOTES.md`](./PROJECT_NOTES.md).
+[`PROJECT_NOTES.md`](./PROJECT_NOTES.md). For runtime ownership and data flows,
+see [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md).

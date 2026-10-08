@@ -1,3 +1,3 @@
 # Changelog
 
-- 2026-10-08: Removed unused reports and experiments, kept live routes working, and documented the production file map.
+- 2026-10-08: Removed duplicate community sources, unused reports/styles and backends; preserved public routes, fixed local routing, and documented production structure.

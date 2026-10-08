@@ -9,6 +9,7 @@
 - `community/` is the deployable community application served at `/community`.
 - `blog/` contains the static blog entry point.
 - `server/` contains the separate Express email-code registration API.
+- `docs/ARCHITECTURE.md` documents runtime modules and data flows.
 - `database.rules.json`, `firestore.rules`, and `storage.rules` define Firebase
   access; `firebase.json` connects these rules for deployment.
 - `firebase.json`, `firestore.indexes.json`, `vercel.json`, and `serve.json`
