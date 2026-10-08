@@ -55,7 +55,7 @@
    - Reduced motion support (accessibility)
    - Smooth state transitions
 
-4. **[community.html](community.html)** (1 line change)
+4. **[community.html](../../community.html)** (1 line change)
    - Linked new community-animations.css
 
 ---
