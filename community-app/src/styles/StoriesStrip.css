@@ -1,3 +1,4 @@
+/* Responsive story-strip layout for the community feed. */
 @media (max-width: 768px) {
   .feed .stories-strip {
     margin: 12px -12px 4px;

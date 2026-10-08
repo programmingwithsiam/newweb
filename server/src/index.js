@@ -1,3 +1,4 @@
+// Configures the Express auth API, middleware, and health endpoint.
 import './env.js';
 import { randomUUID } from 'node:crypto';
 import cors from 'cors';

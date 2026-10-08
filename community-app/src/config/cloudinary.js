@@ -1,3 +1,4 @@
+// Cloudinary upload settings used by community media uploads.
 const CLOUDINARY_NAME = 'fyelzeqn';
 
 export const CLOUDINARY_CONFIG = Object.freeze({

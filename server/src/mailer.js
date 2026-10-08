@@ -1,3 +1,4 @@
+// Sends registration verification codes through the configured SMTP provider.
 import './env.js';
 import nodemailer from 'nodemailer';
 

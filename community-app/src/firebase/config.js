@@ -1,3 +1,4 @@
+// Firebase client initialization for the React community application.
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 import { getDatabase } from 'firebase/database';

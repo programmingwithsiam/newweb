@@ -1,3 +1,4 @@
+// Client wrapper for the separate email-code registration API.
 const API_BASE_URL = (() => {
     const configured = typeof window !== 'undefined'
         ? (window.__APP_CONFIG__?.apiBaseUrl || window.__APP_CONFIG__?.apiUrl || window.CODEWITHSIAM_AUTH_API || window.CWS_API_BASE_URL)

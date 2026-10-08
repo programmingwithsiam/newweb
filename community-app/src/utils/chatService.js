@@ -1,3 +1,4 @@
+// Firestore and Realtime Database operations used by community chat.
 import {
   get,
   ref,

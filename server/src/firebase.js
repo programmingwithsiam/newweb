@@ -1,3 +1,4 @@
+// Initializes Firebase Admin authentication and Realtime Database clients.
 import './env.js';
 import { readFileSync } from 'node:fs';
 import { dirname, isAbsolute, resolve } from 'node:path';

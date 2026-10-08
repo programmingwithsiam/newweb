@@ -1,3 +1,4 @@
+// Realtime Database notification helpers for the community application.
 import { push, ref, serverTimestamp } from 'firebase/database';
 import { db } from '../firebase/config';
 

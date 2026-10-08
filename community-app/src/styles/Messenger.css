@@ -1,3 +1,4 @@
+/* Conversation list and active messenger page styling. */
 .app-shell:has(> .app-body .app-main > .msgr-page) {
   height: 100dvh;
   gap: 0;

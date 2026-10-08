@@ -1,3 +1,4 @@
+// Loads and updates signed-in and public learner profile pages.
 import { auth, db } from './firebase-init.js';
 import { observeAuthState, redirectToAuthPrompt } from './auth.js?v=20261001-auth-flow-1';
 import { fetchAllCourses, fetchUserPayments } from './courses-db.js';

@@ -1,3 +1,4 @@
+// User-facing message and error strings shared by community chat components.
 const chatLoadErrors = {
   'permission-denied': "You don't have permission to load chats",
   'failed-precondition': 'Setting things up, please try again in a few minutes',

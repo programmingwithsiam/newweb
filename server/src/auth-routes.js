@@ -1,3 +1,4 @@
+// Express routes for email-code account registration and verification.
 import { createHash, createHmac, randomInt, timingSafeEqual } from 'node:crypto';
 import { Router } from 'express';
 import rateLimit from 'express-rate-limit';

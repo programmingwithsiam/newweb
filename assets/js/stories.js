@@ -1,3 +1,4 @@
+// Wires the standalone story viewer and creation UI to the story manager.
 import { getActiveStories, addStoryView, renderStoryViewer } from './story-manager.js?v=20260901-index-fix-1';
 
 const content = document.getElementById('storyContent');

@@ -1,3 +1,4 @@
+// Course catalog, enrollment, and lesson-player page controller.
 import { fetchAllCourses, saveUserCourseProgress, createPaymentSubmission, createFreeCourseEnrollment, uploadPaymentScreenshot, updatePaymentScreenshot, fetchUserPayments, getLessonVideoSource } from './courses-db.js?v=20261001-auth-flow-1';
 import { observeAuthState, redirectToAuthPrompt } from './auth.js?v=20261001-auth-flow-1';
 
