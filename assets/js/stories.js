@@ -147,7 +147,7 @@ async function init() {
   }
 }
 
-closeButton?.addEventListener('click', () => { window.location.href = 'community.html'; });
+closeButton?.addEventListener('click', () => { window.location.href = '/community/'; });
 previousButton?.addEventListener('click', () => { if (selectedIndex > 0) { selectedIndex -= 1; renderSelectedStory(); } });
 nextButton?.addEventListener('click', () => { if (selectedIndex < stories.length - 1) { selectedIndex += 1; renderSelectedStory(); } });
 closeSidebarButton?.addEventListener('click', () => viewerSidebar?.classList.add('hidden'));

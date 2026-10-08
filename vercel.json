@@ -1,4 +1,36 @@
 {
+  "redirects": [
+    {
+      "source": "/community.html",
+      "destination": "/community/",
+      "permanent": true
+    },
+    {
+      "source": "/admin/",
+      "destination": "/admin.html?route=clean",
+      "permanent": true
+    },
+    {
+      "source": "/admin/index.html",
+      "destination": "/admin.html?route=clean",
+      "permanent": true
+    },
+    {
+      "source": "/course/index.html",
+      "destination": "/course.html",
+      "permanent": true
+    },
+    {
+      "source": "/community-app",
+      "destination": "/community/",
+      "permanent": true
+    },
+    {
+      "source": "/community-app/(.*)",
+      "destination": "/community/",
+      "permanent": true
+    }
+  ],
   "headers": [
     {
       "source": "/assets/(.*)",

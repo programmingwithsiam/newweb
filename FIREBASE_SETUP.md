@@ -93,7 +93,7 @@ Use this checklist after deploying:
 
 The Story music picker uses the official YouTube Data API for in-site search.
 Create a browser API key in Google Cloud, restrict it to the YouTube Data API
-and your deployed domains, then expose it before loading `community.html` as
+and your deployed domains, then expose it before loading `/community/` as
 `window.YOUTUBE_API_KEY`. Direct YouTube links work without this key. The site
 never downloads or re-uploads YouTube media.
 - [ ] Try opening `/admin.html` while signed in as a non-admin — see "Access Denied", redirected home.

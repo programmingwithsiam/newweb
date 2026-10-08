@@ -2,7 +2,7 @@
 
 Small Express API for email-code registration. Firebase Auth accounts are created disabled and unverified at registration start, then enabled only after a valid email code. The user's password is sent directly to Firebase Admin over HTTPS and is never written to the pending-registration database record or logs.
 
-Pending codes and rate-limit metadata are stored in Firebase Realtime Database under `authRegistrationPending/{sha256(normalizedEmail)}`. The code is HMAC-SHA256 hashed, expires after ten minutes, and accepts at most five incorrect attempts. Firebase Admin bypasses Realtime Database rules; client SDK access is explicitly denied by `community-app/database.rules.json`.
+Pending codes and rate-limit metadata are stored in Firebase Realtime Database under `authRegistrationPending/{sha256(normalizedEmail)}`. The code is HMAC-SHA256 hashed, expires after ten minutes, and accepts at most five incorrect attempts. Firebase Admin bypasses Realtime Database rules; client SDK access is explicitly denied by `database.rules.json`.
 
 ## Configure
 

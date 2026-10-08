@@ -1,3 +1,3 @@
 # Changelog
 
-- 2026-10-08: Archived historical reports, removed confirmed unused assets, and documented the project architecture.
+- 2026-10-08: Removed unused reports and experiments, kept live routes working, and documented the production file map.

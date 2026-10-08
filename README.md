@@ -8,13 +8,11 @@ authentication, Firestore data, and protected file storage.
 ## Technology
 
 - Public pages: HTML, CSS, and browser JavaScript modules.
-- Community: React/Vite source in `community-app/`; its generated static site
-  is deployed from `community/`.
+- Community: deployable static site in `community/`.
 - Hosting and route rewrites: Vercel (`vercel.json`).
 - Identity and application data: Firebase Authentication and Firestore.
 - Media: Firebase Storage and YouTube, depending on the feature.
 - Registration email codes: a separate Express service in `server/`.
-- Optional experiments: Django in `python-backend/` and PHP in `php-backend/`.
 
 ## Project map
 
@@ -25,15 +23,13 @@ authentication, Firestore data, and protected file storage.
 | `live.html` | Live sessions, replays, and chat |
 | `admin.html` | Admin dashboard for courses, enrollment, payments, and live settings |
 | `community/` | Built community site served at `/community` |
-| `community-app/` | Editable React/Vite community source |
-| `community.html` | Compatibility page that forwards to the community app |
+| `community.html` | Legacy URL redirected to `/community/` |
 | `user-profile.html`, `stories.html` | Standalone profile and story experiences |
 | `blog/` | Static blog landing page and content |
 | `assets/css/`, `assets/js/`, `assets/images/` | Shared styles, browser modules, and media |
 | `server/` | Express email-code registration API |
-| `python-backend/`, `php-backend/` | Optional standalone API experiments |
-| `docs/` | Architecture notes and archived project reports |
-| `firestore.rules`, `storage.rules` | Firebase access-control rules |
+| `PROJECT_NOTES.md` | Current folder map, maintenance rules, and known limitations |
+| `firestore.rules`, `storage.rules`, `database.rules.json` | Firebase access-control rules |
 | `manifest.json`, `sitemap.xml`, `robots.txt` | PWA and search-engine metadata |
 | `vercel.json` | Deployment headers and public URL rewrites |
 
@@ -51,9 +47,9 @@ Useful entry points include `/`, `/course.html`, `/live.html`, `/admin.html`,
 `/community/`, `/blog/`, `/user-profile.html`, and `/stories.html`. Firebase
 features require a configured Firebase project and authorized local domain.
 
-For email-code registration, configure and run the separate service using
-[`server/README.md`](./server/README.md). It needs its own environment values
-and Firebase Admin credentials; do not commit those values or credential files.
+Email-code registration uses the separate Express service in `server/`. Run it
+with `npm --prefix server run dev` after configuring its environment from
+`server/.env.example` and providing Firebase Admin credentials outside Git.
 
 ## Firebase and deployment
 
@@ -68,9 +64,9 @@ Keep these public routes intact: `/admin`, `/course`, `/courses/:courseId`,
 `/courses/:courseId/lectures/:lessonId`, `/blog`, `/blog/:slug`, and
 `/community` (as well as the direct `.html` pages).
 
-The community build is configured by `community-app/vite.config.js` to write
-to `community/`. Edit the source in `community-app/`, then use that package's
-existing build script before deploying changes to the community experience.
+The deployed community files are in `community/`. Their original build source
+is not retained in this production-only repository; restore it from Git
+history before changing the community application.
 
 ## Common development tasks
 
@@ -96,7 +92,7 @@ make a course-access change in client code alone.
 
 Identify the owning page and module first. Keep page-specific UI in that
 page/module, shared browser behavior in `assets/js/` or `assets/css/`, and
-community features in `community-app/src/`. If the feature reads or writes
+community routes in `community/`. If the feature reads or writes
 Firebase data, update and test the matching security rules together with the
 client behavior. Run `npm run check` and verify affected public routes.
 
@@ -107,5 +103,5 @@ modules. It is a syntax check, not a full browser, Firebase-rules, or community
 build test. Community and server packages have separate dependencies and
 scripts; see their package manifests and READMEs before changing them.
 
-For system ownership and data flow, see
-[`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md).
+For the current folder map and maintenance constraints, see
+[`PROJECT_NOTES.md`](./PROJECT_NOTES.md).

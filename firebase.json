@@ -1,6 +1,6 @@
 {
   "database": {
-    "rules": "community-app/database.rules.json"
+    "rules": "database.rules.json"
   },
   "firestore": {
     "rules": "firestore.rules",
