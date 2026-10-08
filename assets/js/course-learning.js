@@ -130,21 +130,42 @@ function scrollToCourseSection(element, offset = 88) {
     window.scrollTo({ top: targetTop, left: 0, behavior: 'smooth' });
   });
 }
-function togglePlayerFullscreen(target) {
+async function togglePlayerFullscreen(target, fallbackTarget) {
   if (document.fullscreenElement || document.webkitFullscreenElement) {
     const exit = document.exitFullscreen || document.webkitExitFullscreen;
-    return exit?.call(document);
+    await exit?.call(document);
+    return;
   }
-  const enter = target?.requestFullscreen || target?.webkitRequestFullscreen;
-  return enter?.call(target);
+  const request = element => element?.requestFullscreen || element?.webkitRequestFullscreen;
+  const enterTarget = request(target);
+  if (enterTarget) {
+    try {
+      await enterTarget.call(target);
+      return;
+    } catch (error) {
+      if (!request(fallbackTarget) && typeof fallbackTarget?.webkitEnterFullscreen !== 'function') throw error;
+    }
+  }
+  const enterFallback = request(fallbackTarget);
+  if (enterFallback) {
+    await enterFallback.call(fallbackTarget);
+    return;
+  }
+  const enterVideoFullscreen = fallbackTarget?.webkitEnterFullscreen;
+  if (typeof enterVideoFullscreen === 'function') enterVideoFullscreen.call(fallbackTarget);
 }
 function setupPlayerAutoHide(wrap, controls, isPlaying) {
   if (!wrap || !controls || wrap.dataset.autoHideReady) return;
   wrap.dataset.autoHideReady = 'true';
   let timer = 0;
+  const touchDevice = window.matchMedia('(pointer: coarse)').matches;
   const show = () => {
     controls.classList.remove('is-auto-hidden');
     window.clearTimeout(timer);
+    if (touchDevice) {
+      wrap.classList.add('is-touch-controls');
+      return;
+    }
     if (isPlaying()) timer = window.setTimeout(() => controls.classList.add('is-auto-hidden'), 2000);
   };
   const interact = event => { if (!event.target.closest('button, input, select, a')) show(); };
@@ -468,6 +489,7 @@ function setupYoutubePlayer(videoId, youtubeUrl, autoplay = false) {
   const wrap = $('lessonVideo')?.closest('.lesson-video-wrap');
   const controls = wrap?.querySelector('.youtube-video-controls');
   const brand = wrap?.querySelector('.youtube-video-brand');
+  const centerPlayButton = wrap?.querySelector('.youtube-center-play');
   const progressInput = controls?.querySelector('.youtube-video-progress');
   const playButton = controls?.querySelector('[data-youtube-action="play"] i');
   const muteButton = controls?.querySelector('[data-youtube-action="mute"] i');
@@ -516,6 +538,13 @@ function setupYoutubePlayer(videoId, youtubeUrl, autoplay = false) {
       youtubePlayer?.playVideo?.();
     }
   };
+  if (centerPlayButton) {
+    centerPlayButton.onclick = () => {
+      youtubePlayer?.unMute?.();
+      youtubePlayer?.setVolume?.(100);
+      youtubePlayer?.playVideo?.();
+    };
+  }
   controls.querySelector('[data-youtube-action="seek-back"]').onclick = () => youtubePlayer?.seekTo?.(Math.max(0, (youtubePlayer.getCurrentTime?.() || 0) - 10), true);
   controls.querySelector('[data-youtube-action="seek-forward"]').onclick = () => youtubePlayer?.seekTo?.(Math.min(youtubePlayer.getDuration?.() || Infinity, (youtubePlayer.getCurrentTime?.() || 0) + 10), true);
   controls.querySelector('[data-youtube-action="mute"]').onclick = () => {
@@ -523,7 +552,7 @@ function setupYoutubePlayer(videoId, youtubeUrl, autoplay = false) {
     else youtubePlayer?.mute();
     updateIcons();
   };
-  controls.querySelector('[data-youtube-action="fullscreen"]').onclick = () => togglePlayerFullscreen(wrap);
+  controls.querySelector('[data-youtube-action="fullscreen"]').onclick = () => togglePlayerFullscreen(wrap, $('lessonVideo'));
   controls.querySelector('[data-youtube-action="settings"]')?.addEventListener('click', () => $('workspaceSettingsButton')?.click());
   controls.querySelector('[data-youtube-action="pip"]')?.addEventListener('click', async () => {
     const video = $('lessonMp4');
@@ -565,6 +594,7 @@ function setupYoutubePlayer(videoId, youtubeUrl, autoplay = false) {
           youtubePlayer.loadVideoById(videoId);
           updateTime();
           updateIcons();
+          if (centerPlayButton) centerPlayButton.hidden = false;
           if (autoplay) {
             youtubePlayer.unMute();
             youtubePlayer.setVolume(100);
@@ -574,6 +604,7 @@ function setupYoutubePlayer(videoId, youtubeUrl, autoplay = false) {
         onStateChange: event => {
           updateTime();
           updateIcons();
+          if (centerPlayButton) centerPlayButton.hidden = event.data === 1;
           setupPlayerAutoHide(wrap, controls, () => event.data === 1);
           wrap.showPlayerControls?.();
         }
@@ -610,6 +641,7 @@ function resetLessonVideoSurface() {
   const video = $('lessonMp4');
   const wrap = frame?.closest('.lesson-video-wrap');
   resetYoutubeControls();
+  wrap?.querySelector('.youtube-center-play')?.setAttribute('hidden', '');
   wrap?.querySelector('.lesson-video-unavailable')?.remove();
   if (frame) {
     frame.classList.add('hidden');
@@ -1223,22 +1255,47 @@ function renderPlayer() {
 
   if (videoWrap && !videoWrap.dataset.controlsReady) {
     videoWrap.dataset.controlsReady = 'true';
+    videoWrap.addEventListener('click', event => {
+      if (event.target.closest('.youtube-video-controls, .custom-video-controls, button, input, select, a')) return;
+      const video = $('lessonMp4');
+      if (video && !video.classList.contains('hidden')) {
+        if (video.paused) video.play().catch(() => { });
+        else video.pause();
+        return;
+      }
+      if (!youtubePlayer) return;
+      if (youtubePlayer.getPlayerState?.() === 1) youtubePlayer.pauseVideo();
+      else {
+        youtubePlayer.unMute?.();
+        youtubePlayer.setVolume?.(100);
+        youtubePlayer.playVideo?.();
+      }
+    });
     const requestFullscreen = async target => {
       const method = target?.requestFullscreen || target?.webkitRequestFullscreen;
       if (method) await method.call(target).catch(() => { });
     };
     const enterFullscreen = async event => {
       event?.preventDefault();
+      event?.stopPropagation();
+      window.getSelection()?.removeAllRanges();
       if (document.fullscreenElement || document.webkitFullscreenElement) {
         const exit = document.exitFullscreen || document.webkitExitFullscreen;
         if (exit) await exit.call(document).catch(() => { });
         return;
       }
       await requestFullscreen(videoWrap);
+      if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+        const frame = $('lessonVideo');
+        const enterFrameFullscreen = frame?.requestFullscreen || frame?.webkitRequestFullscreen;
+        if (enterFrameFullscreen) await enterFrameFullscreen.call(frame);
+        else {
+          const enterVideoFullscreen = $('lessonMp4')?.webkitEnterFullscreen;
+          enterVideoFullscreen?.call($('lessonMp4'));
+        }
+      }
     };
     videoWrap.addEventListener('dblclick', enterFullscreen);
-    $('lessonVideo').addEventListener('dblclick', event => enterFullscreen(event));
-    $('lessonMp4').addEventListener('dblclick', event => enterFullscreen(event));
   }
   const lessonIndex = lessons.indexOf(lesson);
   $('previousLesson').disabled = lessonIndex === 0;

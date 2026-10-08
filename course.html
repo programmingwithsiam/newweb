@@ -468,6 +468,12 @@
       background: #000;
     }
 
+    .lesson-video-wrap {
+      -webkit-tap-highlight-color: transparent;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
     .custom-video-controls,
     .youtube-video-controls {
       position: absolute;
@@ -566,6 +572,104 @@
       z-index: 2;
       opacity: 1;
       background: linear-gradient(transparent, rgba(12, 15, 20, .96) 34%);
+    }
+
+    .lesson-video-wrap:fullscreen,
+    .lesson-video-wrap:-webkit-full-screen {
+      display: grid;
+      width: 100vw !important;
+      max-width: none !important;
+      height: 100vh !important;
+      height: 100dvh !important;
+      max-height: none !important;
+      aspect-ratio: auto !important;
+      place-items: center;
+      border: 0 !important;
+      border-radius: 0 !important;
+      background: #000;
+    }
+
+    .lesson-video-wrap:fullscreen iframe,
+    .lesson-video-wrap:fullscreen video,
+    .lesson-video-wrap:-webkit-full-screen iframe,
+    .lesson-video-wrap:-webkit-full-screen video {
+      position: absolute;
+      inset: 0;
+      width: 100% !important;
+      height: 100% !important;
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      transform: none !important;
+    }
+
+    .lesson-video-wrap:fullscreen .youtube-video-controls,
+    .lesson-video-wrap:fullscreen .custom-video-controls,
+    .lesson-video-wrap:-webkit-full-screen .youtube-video-controls,
+    .lesson-video-wrap:-webkit-full-screen .custom-video-controls {
+      z-index: 10;
+      padding-bottom: max(12px, env(safe-area-inset-bottom));
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .lesson-video-wrap:fullscreen .youtube-center-play,
+    .lesson-video-wrap:-webkit-full-screen .youtube-center-play {
+      z-index: 11;
+    }
+
+    .lesson-video-wrap.is-touch-controls .youtube-video-controls,
+    .lesson-video-wrap.is-touch-controls .custom-video-controls {
+      opacity: 1 !important;
+      pointer-events: auto !important;
+    }
+
+    .youtube-video-controls button,
+    .youtube-video-controls input,
+    .custom-video-controls button,
+    .custom-video-controls input,
+    .custom-video-controls select {
+      touch-action: manipulation;
+    }
+
+    @media (pointer: coarse) {
+      .youtube-video-toolbar button,
+      .custom-video-toolbar button {
+        min-width: 42px;
+        min-height: 42px;
+      }
+
+      .youtube-video-progress,
+      .custom-video-progress {
+        min-height: 32px;
+        touch-action: pan-x;
+      }
+    }
+
+    .youtube-center-play {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      z-index: 4;
+      display: grid;
+      width: 76px;
+      height: 76px;
+      place-items: center;
+      border: 1px solid rgba(255, 255, 255, .28);
+      border-radius: 50%;
+      color: #fff;
+      background: rgba(0, 0, 0, .62);
+      font-size: 1.8rem;
+      cursor: pointer;
+      transform: translate(-50%, -50%);
+    }
+
+    .youtube-center-play:hover {
+      background: rgba(0, 0, 0, .82);
+    }
+
+    .youtube-center-play[hidden] {
+      display: none;
     }
 
     .youtube-video-progress {
@@ -5014,8 +5118,8 @@
     }
 
     #learningApp {
-      width: min(860px, calc(100% - 40px));
-      max-width: 860px;
+      width: min(1280px, calc(100% - 40px));
+      max-width: 1280px;
       padding: 40px 0 90px;
     }
 
@@ -5781,6 +5885,9 @@
         </div>
         <div class="lesson-video-wrap"><iframe loading="lazy" id="lessonVideo" title="Course lesson video" tabindex="-1"
             allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>
+          <button class="youtube-center-play" type="button" aria-label="Play video" hidden>
+            <i class="fa-solid fa-play" aria-hidden="true"></i>
+          </button>
           <div class="youtube-click-shield left" aria-hidden="true"></div>
           <div class="youtube-click-shield right" aria-hidden="true"></div><video id="lessonMp4" controls playsinline
             preload="metadata"></video>
@@ -5943,7 +6050,7 @@
       });
     })();
   </script>
-  <script type="module" src="assets/js/course-learning.js?v=20261004-checkout-email-1"></script>
+  <script type="module" src="assets/js/course-learning.js?v=20261008-video-center-play-1"></script>
 </body>
 
 </html>
