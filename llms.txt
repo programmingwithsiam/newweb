@@ -5,7 +5,7 @@
 ## Main pages
 
 - [Portfolio](https://codewithsiam.vercel.app/): Projects, skills, and background.
-- [Courses](https://codewithsiam.vercel.app/course): Project-based Python, data science, and AI learning.
+- [Courses](https://codewithsiam.vercel.app/course.html): Project-based Python, data science, and AI learning.
 - [Live Learning](https://codewithsiam.vercel.app/live): Live sessions and replays.
 - [Community](https://codewithsiam.vercel.app/community/): Community posts and learner discussions.
 - [Privacy Policy](https://codewithsiam.vercel.app/privacy): Account and data practices.
