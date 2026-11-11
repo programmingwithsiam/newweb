@@ -3602,7 +3602,7 @@
       }
     }
   </style>
-  <link rel="stylesheet" href="assets/css/course-inspired-ui.css?v=20261111-mobile-control-spacing-1">
+  <link rel="stylesheet" href="assets/css/course-inspired-ui.css?v=20261112-hotmart-controls-volume-exit-2">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
   <style>
     body.course-learning-page:has(#courseCheckout:not(.hidden)) {
@@ -5959,26 +5959,41 @@
             preload="metadata"></video>
           <div class="youtube-video-brand" hidden><i class="fa-solid fa-play"></i><span>CodeWithSiam Player</span></div>
           <div class="youtube-video-controls" hidden>
-            <div class="youtube-video-timeline"><span class="youtube-video-current-time">0:00</span><input
-                class="youtube-video-progress" type="range" min="0" max="100" value="0"
-                aria-label="Video progress"><span class="youtube-video-total-time">0:00</span></div>
+            <div class="youtube-video-timeline"><span class="youtube-video-current-time">0:00</span><div
+                class="youtube-video-progress-wrap"><input class="youtube-video-progress" type="range" min="0"
+                  max="100" value="0" aria-label="Video progress"><span class="youtube-video-time-preview"
+                  aria-hidden="true" hidden></span></div><span class="youtube-video-total-time">0:00</span></div>
             <div class="youtube-video-toolbar">
               <div class="youtube-video-toolbar-left"><button type="button" data-youtube-action="play"
                   aria-label="Play or pause"><i class="fa-solid fa-play"></i></button><button type="button"
                   data-youtube-action="seek-back" aria-label="Rewind 10 seconds"><i
                     class="fa-solid fa-rotate-left"></i><small>10</small></button><button type="button"
                   data-youtube-action="seek-forward" aria-label="Forward 10 seconds"><i
-                    class="fa-solid fa-rotate-right"></i><small>10</small></button><button type="button"
-                  data-youtube-action="mute" aria-label="Mute or unmute"><i
-                    class="fa-solid fa-volume-high"></i></button></div>
+                    class="fa-solid fa-rotate-right"></i><small>10</small></button><div class="youtube-volume-control">
+                  <button type="button" data-youtube-action="mute" aria-label="Mute or unmute"><i
+                      class="fa-solid fa-volume-high"></i></button><input class="youtube-volume-slider" type="range"
+                    min="0" max="100" value="100" aria-label="Volume"><output class="youtube-volume-value"
+                    aria-live="polite">100%</output></div></div>
               <div class="youtube-video-toolbar-right"><button type="button" class="video-caption-button"
                   data-video-captions aria-label="Toggle subtitles"><i
                     class="fa-solid fa-closed-captioning"></i></button><button type="button"
                   data-youtube-action="settings" aria-label="Player settings"><i
-                    class="fa-solid fa-sliders"></i></button><button type="button" data-youtube-action="pip"
-                  aria-label="Picture in picture"><i class="fa-solid fa-clone"></i></button><button type="button"
-                  data-youtube-action="fullscreen" aria-label="Fullscreen"><i class="fa-solid fa-expand"></i></button>
+                    class="fa-solid fa-gear"></i></button><button type="button" data-youtube-action="pip"
+                  aria-label="Picture in picture"><i class="fa-solid fa-window-restore"></i></button><button
+                  type="button" data-youtube-action="fullscreen" aria-label="Fullscreen"><i
+                    class="fa-solid fa-expand"></i></button>
               </div>
+            </div>
+            <div class="youtube-player-settings" hidden>
+              <strong>Settings</strong>
+              <label>Playback speed<select data-video-speed aria-label="Playback speed">
+                  <option value="0.5">0.5x</option><option value="0.75">0.75x</option>
+                  <option value="1" selected>1x - Normal</option><option value="1.25">1.25x</option>
+                  <option value="1.5">1.5x</option><option value="1.75">1.75x</option><option value="2">2x</option>
+                </select></label>
+              <label>Quality<select data-video-quality aria-label="Video quality">
+                  <option value="default">Auto</option>
+                </select></label>
             </div>
           </div>
         </div>
@@ -6116,7 +6131,7 @@
       });
     })();
   </script>
-  <script type="module" src="assets/js/course-learning.js?v=20261111-remove-python-bangla-1"></script>
+  <script type="module" src="assets/js/course-learning.js?v=20261112-hotmart-controls-volume-exit-2"></script>
 </body>
 
 </html>

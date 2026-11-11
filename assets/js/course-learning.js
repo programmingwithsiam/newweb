@@ -132,6 +132,86 @@ function scrollToCourseSection(element, offset = 88) {
     window.scrollTo({ top: targetTop, left: 0, behavior: 'smooth' });
   });
 }
+function setPlayerButtonTooltip(button, label) {
+  if (!button) return;
+  button.dataset.tooltip = label;
+  button.removeAttribute('title');
+}
+function setupPlayerTooltips(controls) {
+  if (!controls || controls.dataset.tooltipsReady) return;
+  controls.dataset.tooltipsReady = 'true';
+  controls.querySelectorAll('button').forEach(button => {
+    const action = button.dataset.youtubeAction || button.dataset.videoAction;
+    const label = {
+      play: 'Play',
+      'seek-back': 'Rewind 10 seconds',
+      'seek-forward': 'Forward 10 seconds',
+      mute: 'Mute',
+      settings: 'Settings',
+      pip: 'Picture in picture',
+      fullscreen: 'Fullscreen'
+    }[action] || (button.matches('[data-video-captions]') ? 'Subtitles' : button.getAttribute('aria-label'));
+    if (label) setPlayerButtonTooltip(button, label);
+  });
+}
+function setupPlayerTimelinePreview(controls, getDuration) {
+  const progress = controls?.querySelector('.youtube-video-progress, .custom-video-progress');
+  const progressWrap = progress?.closest('.youtube-video-progress-wrap') || progress?.parentElement;
+  const preview = controls?.querySelector('.youtube-video-time-preview');
+  if (!progress || !progressWrap || !preview || progress.dataset.previewReady) return;
+  progress.dataset.previewReady = 'true';
+  const formatTime = seconds => {
+    const wholeSeconds = Math.floor(seconds);
+    const minutes = Math.floor(wholeSeconds / 60);
+    const secondsPart = String(wholeSeconds % 60).padStart(2, '0');
+    return minutes >= 60
+      ? `${Math.floor(minutes / 60)}:${String(minutes % 60).padStart(2, '0')}:${secondsPart}`
+      : `${minutes}:${secondsPart}`;
+  };
+  progressWrap.addEventListener('pointermove', event => {
+    if (event.pointerType === 'touch') return;
+    const rect = progress.getBoundingClientRect();
+    const duration = Number(getDuration()) || 0;
+    if (!rect.width || !duration) return;
+    const x = Math.max(0, Math.min(rect.width, event.clientX - rect.left));
+    preview.textContent = formatTime((x / rect.width) * duration);
+    preview.style.left = `${x}px`;
+    preview.hidden = false;
+  });
+  progressWrap.addEventListener('pointerleave', () => { preview.hidden = true; });
+  progress.addEventListener('focus', () => {
+    const duration = Number(getDuration()) || 0;
+    if (duration) {
+      preview.textContent = formatTime((Number(progress.value) / 100) * duration);
+      preview.style.left = `${(Number(progress.value) / 100) * progress.clientWidth}px`;
+      preview.hidden = false;
+    }
+  });
+  progress.addEventListener('blur', () => { preview.hidden = true; });
+}
+function setupPlayerSettingsMenu(wrap, controls) {
+  const settingsButton = controls?.querySelector('[data-youtube-action="settings"], [data-video-action="settings"]');
+  const menu = controls?.querySelector('.youtube-player-settings');
+  if (!wrap || !settingsButton || !menu || settingsButton.dataset.menuReady) return;
+  settingsButton.dataset.menuReady = 'true';
+  settingsButton.addEventListener('click', () => {
+    menu.hidden = !menu.hidden;
+    settingsButton.setAttribute('aria-expanded', String(!menu.hidden));
+  });
+  wrap.addEventListener('click', event => {
+    if (!menu.hidden && !menu.contains(event.target) && event.target !== settingsButton && !settingsButton.contains(event.target)) {
+      menu.hidden = true;
+      settingsButton.setAttribute('aria-expanded', 'false');
+    }
+  });
+  wrap.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && !menu.hidden) {
+      menu.hidden = true;
+      settingsButton.setAttribute('aria-expanded', 'false');
+      settingsButton.focus();
+    }
+  });
+}
 async function togglePlayerFullscreen(target, fallbackTarget) {
   const isCssFullscreen = target?.classList.contains('is-mobile-fullscreen');
   if (isCssFullscreen) {
@@ -219,7 +299,7 @@ function syncPlayerFullscreenState() {
     const icon = button.querySelector('i');
     const label = nativeFullscreen || cssFullscreen ? 'Exit fullscreen' : 'Fullscreen';
     button.setAttribute('aria-label', label);
-    button.title = label;
+    setPlayerButtonTooltip(button, label);
     if (icon) icon.className = nativeFullscreen || cssFullscreen ? 'fa-solid fa-compress' : 'fa-solid fa-expand';
   });
   if (!nativeFullscreen && !cssFullscreen) fullscreenPlayerWrap = null;
@@ -230,6 +310,7 @@ document.addEventListener('fullscreenchange', syncPlayerFullscreenState);
 document.addEventListener('webkitfullscreenchange', syncPlayerFullscreenState);
 function setupPlayerAutoHide(wrap, controls, isPlaying) {
   if (!wrap || !controls) return;
+  setupPlayerTooltips(controls);
   wrap.isPlayerPlaying = isPlaying;
   if (wrap.dataset.autoHideReady) return;
   wrap.dataset.autoHideReady = 'true';
@@ -247,6 +328,136 @@ function setupPlayerAutoHide(wrap, controls, isPlaying) {
   controls.addEventListener('click', event => { event.stopPropagation(); show(); });
   wrap.showPlayerControls = show;
   show();
+}
+function toggleVideoSurfacePlayback(wrap) {
+  const video = $('lessonMp4');
+  if (video && !video.classList.contains('hidden')) {
+    if (video.paused) video.play().catch(() => { });
+    else video.pause();
+    return;
+  }
+  if (!youtubePlayer || !wrap) return;
+  if (youtubePlayer.getPlayerState?.() === 1) youtubePlayer.pauseVideo();
+  else {
+    youtubePlayer.unMute?.();
+    youtubePlayer.setVolume?.(100);
+    youtubePlayer.playVideo?.();
+  }
+}
+function setupPlayerSwipeFullscreen(wrap) {
+  if (!wrap || wrap.dataset.swipeFullscreenReady) return;
+  wrap.dataset.swipeFullscreenReady = 'true';
+  let touchStart = null;
+  let pendingTap = null;
+  let suppressClickUntil = 0;
+  let indicatorTimer = 0;
+  const indicators = ['backward', 'forward'].map(direction => {
+    const indicator = document.createElement('div');
+    indicator.className = `video-seek-indicator ${direction}`;
+    indicator.setAttribute('aria-hidden', 'true');
+    indicator.innerHTML = `<i class="fa-solid fa-rotate-${direction === 'backward' ? 'left' : 'right'}"></i><span>10 seconds</span>`;
+    wrap.appendChild(indicator);
+    return indicator;
+  });
+  const flushPendingTap = () => {
+    if (!pendingTap) return;
+    window.clearTimeout(pendingTap.timer);
+    pendingTap = null;
+    toggleVideoSurfacePlayback(wrap);
+  };
+  const seek = direction => {
+    const video = $('lessonMp4');
+    const amount = direction === 'backward' ? -10 : 10;
+    if (video && !video.classList.contains('hidden')) {
+      video.currentTime = Math.max(0, Math.min(video.duration || Infinity, video.currentTime + amount));
+    } else if (youtubePlayer) {
+      const currentTime = youtubePlayer.getCurrentTime?.() || 0;
+      const duration = youtubePlayer.getDuration?.() || Infinity;
+      youtubePlayer.seekTo(Math.max(0, Math.min(duration, currentTime + amount)), true);
+    }
+    const indicator = indicators[direction === 'backward' ? 0 : 1];
+    indicator.querySelector('span').textContent = `${direction === 'backward' ? '−' : '+'}10 seconds`;
+    indicators.forEach(item => item.classList.remove('visible'));
+    indicator.classList.add('visible');
+    wrap.showPlayerControls?.();
+    window.clearTimeout(indicatorTimer);
+    indicatorTimer = window.setTimeout(() => indicator.classList.remove('visible'), 650);
+  };
+  wrap.addEventListener('pointerdown', event => {
+    if (event.pointerType !== 'touch') {
+      suppressClickUntil = 0;
+      touchStart = null;
+      return;
+    }
+    if (!mobileCourseMedia.matches) {
+      touchStart = null;
+      return;
+    }
+    if (event.target.closest('.youtube-video-controls, .custom-video-controls, button, input, select, a')) {
+      touchStart = null;
+      if (pendingTap) {
+        window.clearTimeout(pendingTap.timer);
+        pendingTap = null;
+        toggleVideoSurfacePlayback(wrap);
+      }
+      suppressClickUntil = 0;
+      return;
+    }
+    touchStart = { x: event.clientX, y: event.clientY, pointerId: event.pointerId };
+  });
+  wrap.addEventListener('pointerup', event => {
+    if (!touchStart || event.pointerId !== touchStart.pointerId) return;
+    if (event.target.closest('.youtube-video-controls, .custom-video-controls, button, input, select, a')) {
+      touchStart = null;
+      return;
+    }
+    const deltaX = event.clientX - touchStart.x;
+    const deltaY = event.clientY - touchStart.y;
+    touchStart = null;
+    if (Math.abs(deltaY) >= 70 && Math.abs(deltaY) >= Math.abs(deltaX) * 1.25) {
+      const activeElement = document.fullscreenElement || document.webkitFullscreenElement;
+      const isFullscreen = wrap.classList.contains('is-mobile-fullscreen')
+        || Boolean(activeElement && (activeElement === wrap || wrap.contains(activeElement)));
+      if (deltaY < 0 && !isFullscreen) {
+        flushPendingTap();
+        suppressClickUntil = Date.now() + 500;
+        event.preventDefault();
+        void togglePlayerFullscreen(wrap, $('lessonVideo'));
+      } else if (deltaY > 0 && isFullscreen) {
+        flushPendingTap();
+        suppressClickUntil = Date.now() + 500;
+        event.preventDefault();
+        void togglePlayerFullscreen(wrap, $('lessonVideo'));
+      }
+      return;
+    }
+    if (Math.hypot(deltaX, deltaY) > 24) return;
+    const now = Date.now();
+    const tap = { x: event.clientX, y: event.clientY, time: now };
+    suppressClickUntil = now + 450;
+    event.preventDefault();
+    if (pendingTap && now - pendingTap.time <= 320 && Math.hypot(tap.x - pendingTap.x, tap.y - pendingTap.y) <= 80) {
+      window.clearTimeout(pendingTap.timer);
+      pendingTap = null;
+      const direction = tap.x < wrap.getBoundingClientRect().left + wrap.getBoundingClientRect().width / 2 ? 'backward' : 'forward';
+      seek(direction);
+    } else {
+      flushPendingTap();
+      const timer = window.setTimeout(() => {
+        if (pendingTap?.timer !== timer) return;
+        pendingTap = null;
+        toggleVideoSurfacePlayback(wrap);
+      }, 320);
+      pendingTap = { ...tap, timer };
+    }
+  });
+  wrap.addEventListener('pointercancel', () => { touchStart = null; });
+  wrap.addEventListener('click', event => {
+    if (event.target.closest('.youtube-video-controls, .custom-video-controls, button, input, select, a')) return;
+    if (Date.now() > suppressClickUntil) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+  }, true);
 }
 const getLocalProgress = () => { try { return JSON.parse(localStorage.getItem(progressKey) || '{}'); } catch { return {}; } };
 const completed = () => new Set(progress[course?.id]?.completedLessons || []);
@@ -398,6 +609,7 @@ function renderSelectedPaymentDetails() {
   $('checkoutConfirmAmount').textContent = amount > 0 ? `৳${amount.toLocaleString('en-BD')}` : 'Free';
 }
 function beginCheckout() {
+  resetLessonVideoSurface();
   if (!user) {
     const next = new URL(location.href);
     next.searchParams.set('enroll', '1');
@@ -507,14 +719,50 @@ function setupCustomVideoPlayer(enabled = true) {
   video.removeAttribute('controls');
   const controls = document.createElement('div');
   controls.className = 'custom-video-controls';
-  controls.innerHTML = '<input class="custom-video-progress" type="range" min="0" max="100" value="0" aria-label="Video progress"><div class="custom-video-toolbar"><button type="button" data-video-action="play" aria-label="Play or pause"><i class="fa-solid fa-play"></i></button><button type="button" data-video-action="seek-back" aria-label="Rewind 10 seconds"><i class="fa-solid fa-rotate-left"></i><small>10</small></button><button type="button" data-video-action="seek-forward" aria-label="Forward 10 seconds"><i class="fa-solid fa-rotate-right"></i><small>10</small></button><button type="button" data-video-action="mute" aria-label="Mute or unmute"><i class="fa-solid fa-volume-high"></i></button><select data-video-speed aria-label="Playback speed"><option value="0.5">0.5x</option><option value="1" selected>1x</option><option value="1.25">1.25x</option><option value="1.5">1.5x</option><option value="2">2x</option><option value="4">4x</option></select><button type="button" class="video-caption-button" data-video-captions aria-label="Toggle subtitles" disabled>CC</button><span class="custom-video-time">0:00 / 0:00</span><button type="button" data-video-action="fullscreen" aria-label="Fullscreen"><i class="fa-solid fa-expand"></i></button></div>';
+  controls.innerHTML = `
+    <div class="custom-video-timeline youtube-video-timeline">
+      <span class="custom-video-current-time">0:00</span>
+      <div class="youtube-video-progress-wrap">
+        <input class="custom-video-progress" type="range" min="0" max="100" value="0" aria-label="Video progress">
+        <span class="youtube-video-time-preview" aria-hidden="true" hidden></span>
+      </div>
+      <span class="custom-video-total-time">0:00</span>
+    </div>
+    <div class="custom-video-toolbar youtube-video-toolbar">
+      <div class="youtube-video-toolbar-left">
+        <button type="button" data-video-action="play" aria-label="Play or pause"><i class="fa-solid fa-play"></i></button>
+        <button type="button" data-video-action="seek-back" aria-label="Rewind 10 seconds"><i class="fa-solid fa-rotate-left"></i><small>10</small></button>
+        <button type="button" data-video-action="seek-forward" aria-label="Forward 10 seconds"><i class="fa-solid fa-rotate-right"></i><small>10</small></button>
+        <div class="youtube-volume-control">
+          <button type="button" data-video-action="mute" aria-label="Mute or unmute"><i class="fa-solid fa-volume-high"></i></button>
+          <input class="youtube-volume-slider" type="range" min="0" max="100" value="100" aria-label="Volume">
+          <output class="youtube-volume-value" aria-live="polite">100%</output>
+        </div>
+      </div>
+      <div class="youtube-video-toolbar-right">
+        <button type="button" data-video-action="settings" aria-label="Player settings" aria-expanded="false"><i class="fa-solid fa-gear"></i></button>
+        <button type="button" data-video-action="fullscreen" aria-label="Fullscreen"><i class="fa-solid fa-expand"></i></button>
+      </div>
+    </div>
+    <div class="youtube-player-settings" hidden>
+      <strong>Settings</strong>
+      <label>Playback speed<select data-video-speed aria-label="Playback speed">
+        <option value="0.5">0.5x</option><option value="0.75">0.75x</option>
+        <option value="1" selected>1x - Normal</option><option value="1.25">1.25x</option>
+        <option value="1.5">1.5x</option><option value="1.75">1.75x</option><option value="2">2x</option>
+      </select></label>
+      <label>Quality<select data-video-quality aria-label="Video quality" disabled><option>Source quality</option></select></label>
+    </div>`;
   wrap.appendChild(controls);
   const progressInput = controls.querySelector('.custom-video-progress');
   const playButton = controls.querySelector('[data-video-action="play"]');
   const playIcon = playButton.querySelector('i');
   const muteButton = controls.querySelector('[data-video-action="mute"]');
   const muteIcon = muteButton.querySelector('i');
-  const timeLabel = controls.querySelector('.custom-video-time');
+  const volumeSlider = controls.querySelector('.youtube-volume-slider');
+  const volumeValue = controls.querySelector('.youtube-volume-value');
+  const currentTimeLabel = controls.querySelector('.custom-video-current-time');
+  const totalTimeLabel = controls.querySelector('.custom-video-total-time');
   const speedSelect = controls.querySelector('[data-video-speed]');
   const formatTime = value => `${Math.floor(value / 60)}:${String(Math.floor(value % 60)).padStart(2, '0')}`;
   video.onwebkitendfullscreen = () => {
@@ -526,23 +774,50 @@ function setupCustomVideoPlayer(enabled = true) {
   };
   const updateTime = () => {
     progressInput.value = video.duration ? (video.currentTime / video.duration) * 100 : 0;
-    timeLabel.textContent = `${formatTime(video.currentTime)} / ${formatTime(video.duration || 0)}`;
+    currentTimeLabel.textContent = formatTime(video.currentTime);
+    totalTimeLabel.textContent = formatTime(video.duration || 0);
   };
   playButton.addEventListener('click', () => video.paused ? video.play() : video.pause());
   controls.querySelector('[data-video-action="seek-back"]')?.addEventListener('click', () => { video.currentTime = Math.max(0, video.currentTime - 10); });
   controls.querySelector('[data-video-action="seek-forward"]')?.addEventListener('click', () => { video.currentTime = Math.min(video.duration || video.currentTime + 10, video.currentTime + 10); });
-  muteButton.addEventListener('click', () => { video.muted = !video.muted; muteIcon.className = video.muted ? 'fa-solid fa-volume-xmark' : 'fa-solid fa-volume-high'; });
+  muteButton.addEventListener('click', () => {
+    video.muted = !video.muted;
+    muteIcon.className = video.muted ? 'fa-solid fa-volume-xmark' : 'fa-solid fa-volume-high';
+    volumeSlider.value = video.muted ? 0 : String(Math.round(video.volume * 100));
+    if (volumeValue) volumeValue.textContent = `${volumeSlider.value}%`;
+    setPlayerButtonTooltip(muteButton, video.muted ? 'Unmute' : 'Mute');
+  });
   controls.querySelector('[data-video-action="fullscreen"]').addEventListener('click', () => togglePlayerFullscreen(wrap, video));
   progressInput.addEventListener('input', () => { if (video.duration) video.currentTime = (progressInput.value / 100) * video.duration; });
   speedSelect?.addEventListener('change', () => { video.playbackRate = Number(speedSelect.value); });
-  video.addEventListener('play', () => { playIcon.className = 'fa-solid fa-pause'; });
-  video.addEventListener('pause', () => { playIcon.className = 'fa-solid fa-play'; });
+  volumeSlider.addEventListener('input', () => {
+    video.volume = Number(volumeSlider.value) / 100;
+    video.muted = video.volume === 0;
+    if (volumeValue) volumeValue.textContent = `${volumeSlider.value}%`;
+    muteIcon.className = video.muted ? 'fa-solid fa-volume-xmark' : video.volume < .5 ? 'fa-solid fa-volume-low' : 'fa-solid fa-volume-high';
+    setPlayerButtonTooltip(muteButton, video.muted ? 'Unmute' : 'Mute');
+  });
+  video.addEventListener('volumechange', () => {
+    volumeSlider.value = video.muted ? 0 : String(Math.round(video.volume * 100));
+    if (volumeValue) volumeValue.textContent = `${volumeSlider.value}%`;
+    muteIcon.className = video.muted ? 'fa-solid fa-volume-xmark' : video.volume < .5 ? 'fa-solid fa-volume-low' : 'fa-solid fa-volume-high';
+  });
+  video.addEventListener('play', () => {
+    playIcon.className = 'fa-solid fa-pause';
+    setPlayerButtonTooltip(playButton, 'Pause');
+  });
+  video.addEventListener('pause', () => {
+    playIcon.className = 'fa-solid fa-play';
+    setPlayerButtonTooltip(playButton, 'Play');
+  });
   video.addEventListener('timeupdate', updateTime);
   video.addEventListener('loadedmetadata', updateTime);
   video.addEventListener('loadedmetadata', () => {
     video.muted = false;
     if (video.volume === 0) video.volume = 1;
   });
+  setupPlayerTimelinePreview(controls, () => video.duration);
+  setupPlayerSettingsMenu(wrap, controls);
   setupPlayerAutoHide(wrap, controls, () => !video.paused && !video.ended);
 }
 function loadYoutubeApi() {
@@ -571,6 +846,8 @@ function setupYoutubePlayer(videoId, youtubeUrl, autoplay = false) {
   const progressInput = controls?.querySelector('.youtube-video-progress');
   const playButton = controls?.querySelector('[data-youtube-action="play"] i');
   const muteButton = controls?.querySelector('[data-youtube-action="mute"] i');
+  const volumeSlider = controls?.querySelector('.youtube-volume-slider');
+  const volumeValue = controls?.querySelector('.youtube-volume-value');
   const currentTimeLabel = controls?.querySelector('.youtube-video-current-time');
   const totalTimeLabel = controls?.querySelector('.youtube-video-total-time');
   const speedSelect = controls?.querySelector('[data-video-speed]');
@@ -578,10 +855,66 @@ function setupYoutubePlayer(videoId, youtubeUrl, autoplay = false) {
   const captionsButton = controls?.querySelector('[data-video-captions]');
   const externalButton = controls?.querySelector('#youtubeExternalButton');
   if (!wrap || !controls || !brand || !progressInput || !currentTimeLabel || !totalTimeLabel) return;
-  if (captionsButton) {
+  let captionTracks = [];
+  let captionsEnabled = false;
+  let captionsModuleLoading = false;
+  let pendingCaptionEnable = false;
+
+  const updateCaptionsButton = () => {
+    if (!captionsButton) return;
     captionsButton.disabled = false;
+    captionsButton.dataset.enabled = String(captionsEnabled);
+    captionsButton.classList.toggle('is-active', captionsEnabled);
+    captionsButton.setAttribute('aria-pressed', String(captionsEnabled));
+    captionsButton.setAttribute('aria-disabled', String(!captionTracks.length && !captionsModuleLoading));
+    const label = captionsModuleLoading
+      ? 'Loading subtitles'
+      : captionsEnabled
+        ? 'Turn subtitles off'
+        : captionTracks.length
+          ? 'Turn subtitles on'
+          : 'No subtitles available';
+    captionsButton.setAttribute('aria-label', label);
+    setPlayerButtonTooltip(captionsButton, label);
+  };
+  const refreshCaptionTracks = () => {
+    if (!youtubePlayer?.getOption) return;
+    const tracks = youtubePlayer.getOption('captions', 'tracklist');
+    captionTracks = Array.isArray(tracks)
+      ? tracks.filter(track => typeof (track.languageCode || track.language_code) === 'string')
+      : [];
+    captionsModuleLoading = false;
+    if (pendingCaptionEnable && captionTracks.length) {
+      const selectedTrack = captionTracks[0];
+      const languageCode = selectedTrack.languageCode || selectedTrack.language_code;
+      youtubePlayer.setOption('captions', 'track', {
+        languageCode,
+        ...(selectedTrack.vssId ? { vssId: selectedTrack.vssId } : {})
+      });
+      captionsEnabled = true;
+      pendingCaptionEnable = false;
+    } else if (pendingCaptionEnable) {
+      pendingCaptionEnable = false;
+    }
+    updateCaptionsButton();
+  };
+  const loadCaptionsModule = () => {
+    if (!youtubePlayer?.loadModule || captionsModuleLoading) return;
+    captionsModuleLoading = true;
+    updateCaptionsButton();
+    youtubePlayer.loadModule('captions');
+    [300, 900, 1800].forEach(delay => {
+      window.setTimeout(() => {
+        if (youtubePlayer) refreshCaptionTracks();
+      }, delay);
+    });
+  };
+
+  if (captionsButton) {
     captionsButton.dataset.enabled = 'false';
     captionsButton.setAttribute('aria-pressed', 'false');
+    captionsButton.setAttribute('aria-disabled', 'true');
+    setPlayerButtonTooltip(captionsButton, 'Loading subtitles');
   }
 
   youtubePlayer?.destroy?.();
@@ -594,6 +927,7 @@ function setupYoutubePlayer(videoId, youtubeUrl, autoplay = false) {
   }
   wrap.classList.add('is-youtube-player');
   controls.hidden = false;
+  setupPlayerTooltips(controls);
   brand.hidden = false;
   if (externalButton) externalButton.href = youtubeUrl;
   const formatTime = value => `${Math.floor(value / 60)}:${String(Math.floor(value % 60)).padStart(2, '0')}`;
@@ -605,8 +939,21 @@ function setupYoutubePlayer(videoId, youtubeUrl, autoplay = false) {
     totalTimeLabel.textContent = formatTime(duration);
   };
   const updateIcons = () => {
-    if (playButton) playButton.className = youtubePlayer?.getPlayerState?.() === 1 ? 'fa-solid fa-pause' : 'fa-solid fa-play';
-    if (muteButton) muteButton.className = youtubePlayer?.isMuted?.() ? 'fa-solid fa-volume-xmark' : 'fa-solid fa-volume-high';
+    const isPlaying = youtubePlayer?.getPlayerState?.() === 1;
+    const isMuted = youtubePlayer?.isMuted?.();
+    const volume = youtubePlayer?.getVolume?.() ?? 100;
+    if (playButton) {
+      playButton.className = isPlaying ? 'fa-solid fa-pause' : 'fa-solid fa-play';
+      setPlayerButtonTooltip(playButton.closest('button'), isPlaying ? 'Pause' : 'Play');
+    }
+    if (muteButton) {
+      muteButton.className = isMuted || volume === 0 ? 'fa-solid fa-volume-xmark' : volume < 50 ? 'fa-solid fa-volume-low' : 'fa-solid fa-volume-high';
+      setPlayerButtonTooltip(muteButton.closest('button'), isMuted ? 'Unmute' : 'Mute');
+    }
+    if (volumeSlider) {
+      volumeSlider.value = isMuted ? '0' : String(volume);
+      if (volumeValue) volumeValue.textContent = `${volumeSlider.value}%`;
+    }
   };
   controls.querySelector('[data-youtube-action="play"]').onclick = () => {
     if (youtubePlayer?.getPlayerState?.() === 1) youtubePlayer.pauseVideo();
@@ -630,8 +977,16 @@ function setupYoutubePlayer(videoId, youtubeUrl, autoplay = false) {
     else youtubePlayer?.mute();
     updateIcons();
   };
+  volumeSlider?.addEventListener('input', () => {
+    const volume = Number(volumeSlider.value);
+    if (volume === 0) youtubePlayer?.mute?.();
+    else {
+      youtubePlayer?.unMute?.();
+      youtubePlayer?.setVolume?.(volume);
+    }
+    updateIcons();
+  });
   controls.querySelector('[data-youtube-action="fullscreen"]').onclick = () => togglePlayerFullscreen(wrap, $('lessonVideo'));
-  controls.querySelector('[data-youtube-action="settings"]')?.addEventListener('click', () => $('workspaceSettingsButton')?.click());
   controls.querySelector('[data-youtube-action="pip"]')?.addEventListener('click', async () => {
     const video = $('lessonMp4');
     const frame = $('lessonVideo');
@@ -649,18 +1004,48 @@ function setupYoutubePlayer(videoId, youtubeUrl, autoplay = false) {
   if (speedSelect) speedSelect.onchange = () => youtubePlayer?.setPlaybackRate?.(Number(speedSelect.value));
   if (qualitySelect) qualitySelect.onchange = () => youtubePlayer?.setPlaybackQuality?.(qualitySelect.value);
   if (captionsButton) captionsButton.onclick = () => {
-    if (!youtubePlayer?.setOption || captionsButton.disabled) return;
-    const enabled = captionsButton.dataset.enabled !== 'true';
-    const languageCode = captionsButton.dataset.captionLanguage || undefined;
-    if (enabled) youtubePlayer.loadModule?.('captions');
-    youtubePlayer.setOption('captions', 'track', enabled ? { languageCode } : null);
-    captionsButton.dataset.enabled = String(enabled);
-    captionsButton.classList.toggle('is-active', enabled);
-    captionsButton.setAttribute('aria-pressed', String(enabled));
+    if (!youtubePlayer?.setOption) return;
+    if (captionsEnabled) {
+      youtubePlayer.unloadModule('captions');
+      captionsEnabled = false;
+      captionTracks = [];
+      pendingCaptionEnable = false;
+      captionsModuleLoading = false;
+    } else {
+      pendingCaptionEnable = true;
+      if (captionTracks.length) {
+        const selectedTrack = captionTracks[0];
+        const languageCode = selectedTrack.languageCode || selectedTrack.language_code;
+        if (languageCode) {
+          youtubePlayer.setOption('captions', 'track', {
+            languageCode,
+            ...(selectedTrack.vssId ? { vssId: selectedTrack.vssId } : {})
+          });
+          captionsEnabled = true;
+          pendingCaptionEnable = false;
+        }
+      } else if (!captionsModuleLoading) {
+        loadCaptionsModule();
+      }
+    }
+    updateCaptionsButton();
   };
   progressInput.oninput = () => {
     const duration = youtubePlayer?.getDuration?.() || 0;
     if (duration) youtubePlayer.seekTo((Number(progressInput.value) / 100) * duration, true);
+  };
+  setupPlayerTimelinePreview(controls, () => youtubePlayer?.getDuration?.());
+  setupPlayerSettingsMenu(wrap, controls);
+
+  const updateQualityOptions = () => {
+    if (!qualitySelect) return;
+    const selected = qualitySelect.value;
+    const levels = youtubePlayer?.getAvailableQualityLevels?.() || [];
+    const levelLabels = { hd2160: '2160p', hd1440: '1440p', hd1080: '1080p', hd720: '720p', large: '480p', medium: '360p', small: '240p', tiny: '144p' };
+    qualitySelect.replaceChildren(new Option('Auto', 'default'));
+    levels.forEach(level => qualitySelect.add(new Option(levelLabels[level] || level.toUpperCase(), level)));
+    if ([...qualitySelect.options].some(option => option.value === selected)) qualitySelect.value = selected;
+    qualitySelect.disabled = false;
   };
 
   loadYoutubeApi().then(YT => {
@@ -670,8 +1055,10 @@ function setupYoutubePlayer(videoId, youtubeUrl, autoplay = false) {
       events: {
         onReady: () => {
           youtubePlayer.loadVideoById(videoId);
+          if (captionsButton) loadCaptionsModule();
           updateTime();
           updateIcons();
+          updateQualityOptions();
           if (centerPlayButton) centerPlayButton.hidden = wrap.dataset.hasStartedPlayback === 'true';
           if (autoplay) {
             youtubePlayer.unMute();
@@ -682,6 +1069,7 @@ function setupYoutubePlayer(videoId, youtubeUrl, autoplay = false) {
         onStateChange: event => {
           updateTime();
           updateIcons();
+          updateQualityOptions();
           if (event.data === 1) wrap.dataset.hasStartedPlayback = 'true';
           if (centerPlayButton) centerPlayButton.hidden = wrap.dataset.hasStartedPlayback === 'true';
           setupPlayerAutoHide(wrap, controls, () => event.data === 1);
@@ -691,17 +1079,13 @@ function setupYoutubePlayer(videoId, youtubeUrl, autoplay = false) {
       playerVars: { controls: 0, rel: 0, playsinline: 1, modestbranding: 1, iv_load_policy: 3, fs: 0, cc_load_policy: 0 }
     });
     youtubePlayer.addEventListener('onApiChange', () => {
-      const tracks = youtubePlayer.getOption?.('captions', 'tracklist') || [];
-      if (captionsButton) {
-        captionsButton.disabled = false;
-        captionsButton.setAttribute('aria-disabled', String(tracks.length === 0));
-        captionsButton.dataset.captionLanguage = tracks[0]?.languageCode || '';
-      }
-      if (qualitySelect) qualitySelect.innerHTML = '<option value="auto">Auto</option>' + (youtubePlayer.getAvailableQualityLevels?.() || []).map(level => `<option value="${level}">${level.toUpperCase()}</option>`).join('');
+      refreshCaptionTracks();
+      updateQualityOptions();
     });
     youtubeTimer = window.setInterval(() => {
       if (!youtubePlayer || !document.body.contains(wrap)) { window.clearInterval(youtubeTimer); youtubeTimer = null; return; }
       updateTime();
+      updateIcons();
     }, 500);
     setupPlayerAutoHide(wrap, controls, () => youtubePlayer?.getPlayerState?.() === 1);
   });
@@ -760,6 +1144,7 @@ function setProgress() {
   if ($('mobileCourseProgressCount')) $('mobileCourseProgressCount').textContent = `${completed().size} / ${total} lessons`;
 }
 function renderLockedLesson(lesson = currentLesson()) {
+  resetLessonVideoSurface();
   $('learningLoading').classList.add('hidden');
   $('learningLogin').classList.add('hidden');
   $('courseOverview').classList.add('hidden');
@@ -1303,6 +1688,7 @@ function renderPlayer() {
   if (!lesson) { $('lessonPlayer').classList.add('hidden'); return; }
   $('lessonPlayer').classList.remove('hidden');
   const videoWrap = $('lessonVideo').closest('.lesson-video-wrap');
+  setupPlayerSwipeFullscreen(videoWrap);
   resetLessonVideoSurface();
   setupWorkspaceSettings();
   $('lessonTitle').textContent = lesson.title;
@@ -1337,19 +1723,7 @@ function renderPlayer() {
     videoWrap.dataset.controlsReady = 'true';
     videoWrap.addEventListener('click', event => {
       if (event.target.closest('.youtube-video-controls, .custom-video-controls, button, input, select, a')) return;
-      const video = $('lessonMp4');
-      if (video && !video.classList.contains('hidden')) {
-        if (video.paused) video.play().catch(() => { });
-        else video.pause();
-        return;
-      }
-      if (!youtubePlayer) return;
-      if (youtubePlayer.getPlayerState?.() === 1) youtubePlayer.pauseVideo();
-      else {
-        youtubePlayer.unMute?.();
-        youtubePlayer.setVolume?.(100);
-        youtubePlayer.playVideo?.();
-      }
+      toggleVideoSurfacePlayback(videoWrap);
     });
     const enterFullscreen = async event => {
       event?.preventDefault();
@@ -1421,12 +1795,17 @@ function render() {
   $('lessonLocked').classList.add('hidden');
   $('courseOverview').classList.toggle('hidden', hasLessonRoute);
   $('lessonPlayer').classList.toggle('hidden', !hasLessonRoute);
-  if (hasLessonRoute) renderPlayer(); else renderOverview();
+  if (hasLessonRoute) renderPlayer();
+  else {
+    resetLessonVideoSurface();
+    renderOverview();
+  }
   syncMobileCourseExperience();
   document.title = `${course.title} | CodeWithSiam`;
   const description = document.querySelector('meta[name="description"]');
   if (description) description.content = course.description || `Learn ${course.title} with CodeWithSiam video lessons.`;
 }
+window.addEventListener('pagehide', resetLessonVideoSurface);
 async function complete() {
   const lesson = currentLesson();
   if (!lesson || completed().has(lesson.id)) return;
@@ -1442,7 +1821,7 @@ async function load(generation = authLoadGeneration) {
   if (generation !== authLoadGeneration) return;
   const requestedCourseId = courseId || null;
   course = all.find(item => item.id === requestedCourseId)
-    || (!requestedCourseId ? all[0] : null)
+    || all.find(item => item.id === 'python-for-beginners-bangla')
     || all[0] || null;
 
   if (!course) {
