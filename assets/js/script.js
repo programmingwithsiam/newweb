@@ -97,6 +97,8 @@ function escapeHtml(value) {
 
 const GITHUB_PROJECTS_USERNAME = 'programmingwithsiam';
 const GITHUB_PROJECTS_API_URL = `https://api.github.com/users/${GITHUB_PROJECTS_USERNAME}/repos?per_page=100&sort=updated`;
+const GITHUB_PROJECTS_CACHE_KEY = 'codewithsiam_github_projects';
+const GITHUB_PROJECTS_CACHE_TTL = 10 * 60 * 1000;
 const githubProjectDetails = new Map();
 const PROJECT_DETAIL_HASH_PREFIX = '#project/';
 let projectReadmeRequestId = 0;
@@ -109,6 +111,22 @@ const PROJECT_DESCRIPTION_FALLBACKS = {
   'House-price-predictor-': 'A Python machine-learning model that predicts house prices from features such as size, rooms, and location.',
   'Advanced-Sentiment-analyzer-': 'A Python natural-language-processing project that classifies text sentiment as positive or negative.'
 };
+
+function safeStorageGet(key) {
+  try {
+    return JSON.parse(sessionStorage.getItem(key) || 'null');
+  } catch {
+    return null;
+  }
+}
+
+function safeStorageSet(key, value) {
+  try {
+    sessionStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    // Storage may be unavailable in private browsing or when its quota is full.
+  }
+}
 
 function getProjectEmoji(name) {
   const lower = String(name || '').toLowerCase();
