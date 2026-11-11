@@ -597,8 +597,14 @@
       background: linear-gradient(transparent, rgba(12, 15, 20, .96) 34%);
     }
 
+    body.has-mobile-player-fullscreen {
+      overflow: hidden !important;
+      overscroll-behavior: none;
+    }
+
     .lesson-video-wrap:fullscreen,
-    .lesson-video-wrap:-webkit-full-screen {
+    .lesson-video-wrap:-webkit-full-screen,
+    .lesson-video-wrap.is-mobile-fullscreen {
       display: grid;
       width: 100vw !important;
       max-width: none !important;
@@ -612,10 +618,18 @@
       background: #000;
     }
 
+    .lesson-video-wrap.is-mobile-fullscreen {
+      position: fixed !important;
+      inset: 0 !important;
+      z-index: 2147483647;
+    }
+
     .lesson-video-wrap:fullscreen iframe,
     .lesson-video-wrap:fullscreen video,
     .lesson-video-wrap:-webkit-full-screen iframe,
-    .lesson-video-wrap:-webkit-full-screen video {
+    .lesson-video-wrap:-webkit-full-screen video,
+    .lesson-video-wrap.is-mobile-fullscreen iframe,
+    .lesson-video-wrap.is-mobile-fullscreen video {
       position: absolute;
       inset: 0;
       width: 100% !important;
@@ -629,7 +643,9 @@
     .lesson-video-wrap:fullscreen .youtube-video-controls,
     .lesson-video-wrap:fullscreen .custom-video-controls,
     .lesson-video-wrap:-webkit-full-screen .youtube-video-controls,
-    .lesson-video-wrap:-webkit-full-screen .custom-video-controls {
+    .lesson-video-wrap:-webkit-full-screen .custom-video-controls,
+    .lesson-video-wrap.is-mobile-fullscreen .youtube-video-controls,
+    .lesson-video-wrap.is-mobile-fullscreen .custom-video-controls {
       z-index: 10;
       padding-bottom: max(12px, env(safe-area-inset-bottom));
       opacity: 1;
@@ -639,13 +655,16 @@
     .lesson-video-wrap:fullscreen .youtube-video-controls.is-auto-hidden,
     .lesson-video-wrap:fullscreen .custom-video-controls.is-auto-hidden,
     .lesson-video-wrap:-webkit-full-screen .youtube-video-controls.is-auto-hidden,
-    .lesson-video-wrap:-webkit-full-screen .custom-video-controls.is-auto-hidden {
+    .lesson-video-wrap:-webkit-full-screen .custom-video-controls.is-auto-hidden,
+    .lesson-video-wrap.is-mobile-fullscreen .youtube-video-controls.is-auto-hidden,
+    .lesson-video-wrap.is-mobile-fullscreen .custom-video-controls.is-auto-hidden {
       opacity: 0;
       pointer-events: none;
     }
 
     .lesson-video-wrap:fullscreen .youtube-center-play,
-    .lesson-video-wrap:-webkit-full-screen .youtube-center-play {
+    .lesson-video-wrap:-webkit-full-screen .youtube-center-play,
+    .lesson-video-wrap.is-mobile-fullscreen .youtube-center-play {
       z-index: 11;
     }
 
@@ -6093,7 +6112,7 @@
       });
     })();
   </script>
-  <script type="module" src="assets/js/course-learning.js?v=20261008-video-center-play-4"></script>
+  <script type="module" src="assets/js/course-learning.js?v=20261111-mobile-fullscreen-fallback-1"></script>
 </body>
 
 </html>
