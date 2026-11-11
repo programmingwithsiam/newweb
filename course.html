@@ -631,13 +631,17 @@
     .lesson-video-wrap.is-mobile-fullscreen iframe,
     .lesson-video-wrap.is-mobile-fullscreen video {
       position: absolute;
-      inset: 0;
-      width: 100% !important;
-      height: 100% !important;
-      max-width: 100%;
-      max-height: 100%;
+      top: 50%;
+      left: 50%;
+      width: min(100vw, 177.7778vh) !important;
+      height: min(100vh, 56.25vw) !important;
+      width: min(100vw, 177.7778dvh) !important;
+      height: min(100dvh, 56.25vw) !important;
+      max-width: none;
+      max-height: none;
+      aspect-ratio: 16 / 9;
       object-fit: contain;
-      transform: none !important;
+      transform: translate(-50%, -50%) !important;
     }
 
     .lesson-video-wrap:fullscreen .youtube-video-controls,
@@ -3598,7 +3602,7 @@
       }
     }
   </style>
-  <link rel="stylesheet" href="assets/css/course-inspired-ui.css?v=20261002-mobile-split-1">
+  <link rel="stylesheet" href="assets/css/course-inspired-ui.css?v=20261111-mobile-control-spacing-1">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
   <style>
     body.course-learning-page:has(#courseCheckout:not(.hidden)) {

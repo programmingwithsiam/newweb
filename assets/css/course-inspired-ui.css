@@ -1105,14 +1105,15 @@ input::placeholder {
 
   .youtube-video-toolbar {
     min-width: 0;
+    flex-wrap: wrap;
     justify-content: space-between;
-    gap: 4px;
+    gap: 6px clamp(4px, 1.5vw, 8px);
   }
 
   .youtube-video-toolbar-left,
   .youtube-video-toolbar-right {
     min-width: 0;
-    gap: 4px;
+    gap: clamp(4px, 1.5vw, 8px);
   }
 
   .youtube-video-toolbar-left {
@@ -1125,17 +1126,18 @@ input::placeholder {
 
   .youtube-video-toolbar button,
   .custom-video-toolbar button {
-    flex: 0 0 32px;
-    width: 32px;
-    height: 32px;
+    flex: 0 0 42px;
+    width: 42px;
+    min-width: 42px;
+    height: 42px;
   }
 
   .youtube-video-toolbar [data-youtube-action="seek-back"],
   .youtube-video-toolbar [data-youtube-action="seek-forward"],
   .custom-video-toolbar [data-video-action="seek-back"],
   .custom-video-toolbar [data-video-action="seek-forward"] {
-    width: 38px;
-    flex-basis: 38px;
+    width: 42px;
+    flex-basis: 42px;
   }
 
   .youtube-video-controls,
@@ -1143,26 +1145,30 @@ input::placeholder {
     padding: 8px;
   }
 
-  .youtube-video-toolbar,
-  .youtube-video-toolbar-left,
-  .youtube-video-toolbar-right {
-    gap: 2px;
+  .custom-video-toolbar {
+    flex-wrap: wrap;
+    gap: 6px clamp(4px, 1.5vw, 8px);
   }
 
-  .youtube-video-toolbar button,
-  .custom-video-toolbar button {
-    flex: 0 0 26px;
-    width: 26px;
-    min-width: 26px;
-    height: 30px;
+  .youtube-video-toolbar-left,
+  .youtube-video-toolbar-right {
+    flex-wrap: wrap;
   }
 
   .youtube-video-toolbar [data-youtube-action="seek-back"],
   .youtube-video-toolbar [data-youtube-action="seek-forward"],
   .custom-video-toolbar [data-video-action="seek-back"],
   .custom-video-toolbar [data-video-action="seek-forward"] {
-    width: 30px;
-    flex-basis: 30px;
+    width: 42px;
+    flex-basis: 42px;
+  }
+
+  .youtube-video-toolbar [data-youtube-action="play"],
+  .custom-video-toolbar [data-video-action="play"] {
+    flex-basis: 44px;
+    width: 44px;
+    height: 44px;
+    font-size: 1.15rem;
   }
 
   .youtube-video-toolbar select,
@@ -1230,26 +1236,25 @@ input::placeholder {
     font-size: .55rem;
   }
 
-  .lesson-video-controls,
+  .youtube-video-controls,
   .custom-video-controls {
-    gap: 4px;
-    padding: 4px;
+    padding: 8px;
   }
 
   .youtube-video-toolbar button,
   .custom-video-toolbar button {
-    flex-basis: 20px;
-    width: 20px;
-    min-width: 20px;
-    height: 24px;
+    flex-basis: 42px;
+    width: 42px;
+    min-width: 42px;
+    height: 42px;
   }
 
   .youtube-video-toolbar [data-youtube-action="seek-back"],
   .youtube-video-toolbar [data-youtube-action="seek-forward"],
   .custom-video-toolbar [data-video-action="seek-back"],
   .custom-video-toolbar [data-video-action="seek-forward"] {
-    width: 22px;
-    flex-basis: 22px;
+    width: 42px;
+    flex-basis: 42px;
   }
 
   .youtube-video-toolbar [data-youtube-action="pip"],

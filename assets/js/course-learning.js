@@ -16,6 +16,7 @@ let progress = {};
 let youtubePlayer = null;
 let youtubeApiPromise = null;
 let youtubeTimer = null;
+let fullscreenPlayerWrap = null;
 const workspaceSettingsKey = 'codewithsiam_workspace_settings';
 const workspaceSettings = (() => {
   try { return { showSidebar: true, autoplay: false, autocomplete: true, ...JSON.parse(localStorage.getItem(workspaceSettingsKey) || '{}') }; } catch { return { showSidebar: true, autoplay: false, autocomplete: true }; }
@@ -134,25 +135,19 @@ async function togglePlayerFullscreen(target, fallbackTarget) {
   const isCssFullscreen = target?.classList.contains('is-mobile-fullscreen');
   if (isCssFullscreen) {
     target.classList.remove('is-mobile-fullscreen');
-    document.body.classList.remove('has-mobile-player-fullscreen');
     target.showPlayerControls?.();
+    syncPlayerFullscreenState();
     return;
   }
-  if (document.fullscreenElement || document.webkitFullscreenElement) {
+  const activeFullscreenElement = document.fullscreenElement || document.webkitFullscreenElement;
+  if (activeFullscreenElement && (activeFullscreenElement === target || target?.contains(activeFullscreenElement))) {
     const exit = document.exitFullscreen || document.webkitExitFullscreen;
     await exit?.call(document);
     return;
   }
+  if (activeFullscreenElement) return;
+  fullscreenPlayerWrap = target;
   const request = element => element?.requestFullscreen || element?.webkitRequestFullscreen;
-  const enterVideoFullscreen = fallbackTarget?.webkitEnterFullscreen;
-  if (!request(target) && !request(fallbackTarget) && typeof enterVideoFullscreen === 'function') {
-    try {
-      enterVideoFullscreen.call(fallbackTarget);
-      return;
-    } catch {
-      // Fall back to the CSS viewport mode if native video fullscreen is unavailable.
-    }
-  }
   const tryFullscreen = async element => {
     const method = request(element);
     if (!method) return false;
@@ -163,13 +158,41 @@ async function togglePlayerFullscreen(target, fallbackTarget) {
       return false;
     }
   };
-  const enterTarget = request(target);
-  if (enterTarget && await tryFullscreen(target)) return;
-  if (request(fallbackTarget) && await tryFullscreen(fallbackTarget)) return;
+  if (await tryFullscreen(target)) return;
+  if (fallbackTarget instanceof HTMLVideoElement && await tryFullscreen(fallbackTarget)) return;
+  const enterVideoFullscreen = fallbackTarget?.webkitEnterFullscreen;
+  if (typeof enterVideoFullscreen === 'function') {
+    try {
+      enterVideoFullscreen.call(fallbackTarget);
+      return;
+    } catch {
+      // Use the CSS viewport mode when native video fullscreen is unavailable.
+    }
+  }
   target?.classList.add('is-mobile-fullscreen');
   document.body.classList.add('has-mobile-player-fullscreen');
   target?.showPlayerControls?.();
+  syncPlayerFullscreenState();
 }
+function syncPlayerFullscreenState() {
+  const wrap = fullscreenPlayerWrap;
+  if (!wrap) return;
+  const activeElement = document.fullscreenElement || document.webkitFullscreenElement;
+  const nativeFullscreen = Boolean(activeElement && (activeElement === wrap || wrap.contains(activeElement)));
+  const cssFullscreen = wrap.classList.contains('is-mobile-fullscreen');
+  document.body.classList.toggle('has-mobile-player-fullscreen', nativeFullscreen || cssFullscreen);
+  wrap.querySelectorAll('[data-youtube-action="fullscreen"], [data-video-action="fullscreen"]').forEach(button => {
+    const icon = button.querySelector('i');
+    const label = nativeFullscreen || cssFullscreen ? 'Exit fullscreen' : 'Fullscreen';
+    button.setAttribute('aria-label', label);
+    button.title = label;
+    if (icon) icon.className = nativeFullscreen || cssFullscreen ? 'fa-solid fa-compress' : 'fa-solid fa-expand';
+  });
+  if (!nativeFullscreen && !cssFullscreen) fullscreenPlayerWrap = null;
+  wrap.showPlayerControls?.();
+}
+document.addEventListener('fullscreenchange', syncPlayerFullscreenState);
+document.addEventListener('webkitfullscreenchange', syncPlayerFullscreenState);
 function setupPlayerAutoHide(wrap, controls, isPlaying) {
   if (!wrap || !controls) return;
   wrap.isPlayerPlaying = isPlaying;
@@ -179,9 +202,7 @@ function setupPlayerAutoHide(wrap, controls, isPlaying) {
   const show = () => {
     controls.classList.remove('is-auto-hidden');
     window.clearTimeout(timer);
-    if (wrap.isPlayerPlaying?.() && !wrap.classList.contains('is-mobile-fullscreen')) {
-      timer = window.setTimeout(() => controls.classList.add('is-auto-hidden'), 2000);
-    }
+    if (wrap.isPlayerPlaying?.()) timer = window.setTimeout(() => controls.classList.add('is-auto-hidden'), 2000);
   };
   const interact = event => { if (!event.target.closest('button, input, select, a')) show(); };
   wrap.addEventListener('pointermove', show, { passive: true });
@@ -461,6 +482,12 @@ function setupCustomVideoPlayer(enabled = true) {
   const timeLabel = controls.querySelector('.custom-video-time');
   const speedSelect = controls.querySelector('[data-video-speed]');
   const formatTime = value => `${Math.floor(value / 60)}:${String(Math.floor(value % 60)).padStart(2, '0')}`;
+  video.onwebkitendfullscreen = () => {
+    if (fullscreenPlayerWrap !== wrap) return;
+    fullscreenPlayerWrap = null;
+    document.body.classList.remove('has-mobile-player-fullscreen');
+    wrap.showPlayerControls?.();
+  };
   const updateTime = () => {
     progressInput.value = video.duration ? (video.currentTime / video.duration) * 100 : 0;
     timeLabel.textContent = `${formatTime(video.currentTime)} / ${formatTime(video.duration || 0)}`;
@@ -1315,6 +1342,11 @@ function renderPlayer() {
   setProgress();
 }
 document.addEventListener('keydown', event => {
+  if (event.key === 'Escape' && fullscreenPlayerWrap?.classList.contains('is-mobile-fullscreen')) {
+    event.preventDefault();
+    void togglePlayerFullscreen(fullscreenPlayerWrap);
+    return;
+  }
   if (event.key === 'Escape' && mobileCourseOverlayOpen) {
     event.preventDefault();
     closeMobileCourseOverlay();
