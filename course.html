@@ -2437,7 +2437,7 @@
       }
 
       #learningLoading .cws-meta {
-        flex-direction: column;
+        flex-direction: row;
         gap: 6px;
         font-size: 10.5px;
       }
@@ -2474,6 +2474,7 @@
       position: absolute;
       left: 0;
       top: 0;
+      font: inherit;
       font-style: normal;
       white-space: nowrap;
       background: linear-gradient(100deg, rgba(255, 255, 255, .98) 10%, rgba(220, 233, 214, .95) 28%, rgba(255, 255, 255, .96) 46%, rgba(204, 220, 208, .92) 62%, rgba(255, 255, 255, .99) 74%);
@@ -2495,7 +2496,7 @@
 
     #learningLoading .cws-bar {
       position: relative;
-      width: min(44vw, 420px);
+      width: min(100%, 420px);
       max-width: 420px;
       margin: 26px auto 0;
       height: 4px;
@@ -2532,7 +2533,7 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      width: min(44vw, 420px);
+      width: min(100%, 420px);
       max-width: 420px;
       margin: 12px auto 0;
       font: 12px ui-monospace, Consolas, monospace;
@@ -2555,6 +2556,23 @@
 
     #learningLoading.cws-ok .cws-msg::after {
       animation: none;
+    }
+
+    @media (max-width: 480px) {
+      #learningLoading .cws-tag {
+        font-size: 10.5px;
+        line-height: 1.5;
+      }
+
+      #learningLoading .cws-meta {
+        font-size: 10.5px;
+      }
+    }
+
+    @media (max-width: 360px) {
+      #learningLoading .cws-meta {
+        flex-direction: column;
+      }
     }
 
     @keyframes cws-ring {
