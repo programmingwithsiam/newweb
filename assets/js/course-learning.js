@@ -17,6 +17,7 @@ let youtubePlayer = null;
 let youtubeApiPromise = null;
 let youtubeTimer = null;
 let fullscreenPlayerWrap = null;
+let fullscreenOrientationLock = null;
 const workspaceSettingsKey = 'codewithsiam_workspace_settings';
 const workspaceSettings = (() => {
   try { return { showSidebar: true, autoplay: false, autocomplete: true, ...JSON.parse(localStorage.getItem(workspaceSettingsKey) || '{}') }; } catch { return { showSidebar: true, autoplay: false, autocomplete: true }; }
@@ -137,12 +138,14 @@ async function togglePlayerFullscreen(target, fallbackTarget) {
     target.classList.remove('is-mobile-fullscreen');
     target.showPlayerControls?.();
     syncPlayerFullscreenState();
+    await releaseFullscreenOrientation();
     return;
   }
   const activeFullscreenElement = document.fullscreenElement || document.webkitFullscreenElement;
   if (activeFullscreenElement && (activeFullscreenElement === target || target?.contains(activeFullscreenElement))) {
     const exit = document.exitFullscreen || document.webkitExitFullscreen;
     await exit?.call(document);
+    await releaseFullscreenOrientation();
     return;
   }
   if (activeFullscreenElement) return;
@@ -153,7 +156,9 @@ async function togglePlayerFullscreen(target, fallbackTarget) {
     if (!method) return false;
     try {
       await method.call(element);
-      return document.fullscreenElement === element || document.webkitFullscreenElement === element;
+      const entered = document.fullscreenElement === element || document.webkitFullscreenElement === element;
+      if (entered) await lockFullscreenOrientation();
+      return entered;
     } catch {
       return false;
     }
@@ -164,6 +169,7 @@ async function togglePlayerFullscreen(target, fallbackTarget) {
   if (typeof enterVideoFullscreen === 'function') {
     try {
       enterVideoFullscreen.call(fallbackTarget);
+      await lockFullscreenOrientation();
       return;
     } catch {
       // Use the CSS viewport mode when native video fullscreen is unavailable.
@@ -172,7 +178,35 @@ async function togglePlayerFullscreen(target, fallbackTarget) {
   target?.classList.add('is-mobile-fullscreen');
   document.body.classList.add('has-mobile-player-fullscreen');
   target?.showPlayerControls?.();
+  await lockFullscreenOrientation();
   syncPlayerFullscreenState();
+}
+async function lockFullscreenOrientation() {
+  const orientation = screen.orientation;
+  if (!orientation?.lock || !mobileCourseMedia.matches) return;
+  try {
+    await orientation.lock('landscape');
+    const wrap = fullscreenPlayerWrap;
+    const activeElement = document.fullscreenElement || document.webkitFullscreenElement;
+    const nativeFullscreen = Boolean(wrap && activeElement && (activeElement === wrap || wrap.contains(activeElement)));
+    if (nativeFullscreen || wrap?.classList.contains('is-mobile-fullscreen')) {
+      fullscreenOrientationLock = orientation;
+    } else {
+      orientation.unlock?.();
+    }
+  } catch {
+    // Orientation locking is optional and may be denied by the browser or device.
+  }
+}
+async function releaseFullscreenOrientation() {
+  const orientation = fullscreenOrientationLock;
+  fullscreenOrientationLock = null;
+  if (!orientation?.unlock) return;
+  try {
+    orientation.unlock();
+  } catch {
+    // The browser may already have released its orientation lock.
+  }
 }
 function syncPlayerFullscreenState() {
   const wrap = fullscreenPlayerWrap;
@@ -189,6 +223,7 @@ function syncPlayerFullscreenState() {
     if (icon) icon.className = nativeFullscreen || cssFullscreen ? 'fa-solid fa-compress' : 'fa-solid fa-expand';
   });
   if (!nativeFullscreen && !cssFullscreen) fullscreenPlayerWrap = null;
+  if (!nativeFullscreen && !cssFullscreen) void releaseFullscreenOrientation();
   wrap.showPlayerControls?.();
 }
 document.addEventListener('fullscreenchange', syncPlayerFullscreenState);
@@ -486,6 +521,7 @@ function setupCustomVideoPlayer(enabled = true) {
     if (fullscreenPlayerWrap !== wrap) return;
     fullscreenPlayerWrap = null;
     document.body.classList.remove('has-mobile-player-fullscreen');
+    void releaseFullscreenOrientation();
     wrap.showPlayerControls?.();
   };
   const updateTime = () => {
