@@ -2577,7 +2577,7 @@
             <input id="adminPassword" type="password" autocomplete="current-password" placeholder="••••••••" required />
           </label>
 
-          <button class="btn-full" type="submit">
+          <button class="btn-full" id="adminEmailSubmit" type="submit">
             Sign In
           </button>
 
@@ -3078,7 +3078,7 @@
       observeAuthState,
       isCurrentUserAdmin,
       ADMIN_EMAIL
-    } from './assets/js/auth.js?v=20260829-auth-fix-1';
+    } from './assets/js/auth.js?v=20261111-fast-admin-login-1';
 
 
     import {
@@ -3269,6 +3269,9 @@
         async (e) => {
 
           e.preventDefault();
+          const submitButton = document.getElementById('adminEmailSubmit');
+          submitButton.disabled = true;
+          submitButton.textContent = 'Signing in...';
 
           const email =
             document
@@ -3300,6 +3303,9 @@
               error.message,
               false
             );
+          } finally {
+            submitButton.disabled = false;
+            submitButton.textContent = 'Sign In';
           }
 
         }

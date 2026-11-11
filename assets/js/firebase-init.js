@@ -66,18 +66,17 @@ let storage = null;
 
 if (isFirebaseConfigured) {
   try {
-    const { initializeApp } = await import(
-      'https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js'
-    );
-    const { getAuth, GoogleAuthProvider } = await import(
-      'https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js'
-    );
-    const { getFirestore } = await import(
-      'https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js'
-    );
-    const { getStorage } = await import(
-      'https://www.gstatic.com/firebasejs/10.13.0/firebase-storage.js'
-    );
+    const [
+      { initializeApp },
+      { getAuth, GoogleAuthProvider },
+      { getFirestore },
+      { getStorage },
+    ] = await Promise.all([
+      import('https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js'),
+      import('https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js'),
+      import('https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js'),
+      import('https://www.gstatic.com/firebasejs/10.13.0/firebase-storage.js'),
+    ]);
     app = initializeApp(firebaseConfig);
     auth = getAuth(app);
     db = getFirestore(app);

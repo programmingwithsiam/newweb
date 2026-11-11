@@ -137,6 +137,24 @@ async function ensureUserProfile(user) {
   }, { merge: true });
 }
 
+const profileSyncs = new Map();
+
+function ensureUserProfileInBackground(user) {
+  const pending = profileSyncs.get(user.uid);
+  if (pending) return pending;
+
+  const sync = ensureUserProfile(user)
+    .catch((error) => {
+      console.error('ensureUserProfile failed:', error);
+    })
+    .finally(() => {
+      profileSyncs.delete(user.uid);
+    });
+
+  profileSyncs.set(user.uid, sync);
+  return sync;
+}
+
 /* ---------- public API ---------- */
 
 export async function signInWithGoogle() {
@@ -145,7 +163,6 @@ export async function signInWithGoogle() {
   const provider = new GoogleAuthProvider();
   try {
     const result = await signInWithPopup(auth, provider);
-    await ensureUserProfile(result.user);
     return result.user;
   } catch (error) {
     throw new Error(friendlyAuthError(error));
@@ -161,7 +178,6 @@ export async function signInWithEmail(email, password) {
       await signOut(auth);
       throw new Error('Please verify your email with the 6-digit code sent during registration.');
     }
-    await ensureUserProfile(result.user);
     return result.user;
   } catch (error) {
     if (error instanceof Error && error.message.startsWith('Please verify your email')) throw error;
@@ -238,7 +254,7 @@ export function observeAuthState(callback) {
         return;
       }
       if (user && (user.emailVerified || user.providerData.some((provider) => provider.providerId === 'google.com'))) {
-        await ensureUserProfile(user).catch((e) => console.error('ensureUserProfile failed:', e));
+        void ensureUserProfileInBackground(user);
       }
       callback(user);
     });
