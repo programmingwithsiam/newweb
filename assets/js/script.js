@@ -131,6 +131,25 @@ function openProjectCard(url) {
   window.open(url, '_blank', 'noopener,noreferrer');
 }
 
+function bindProjectCardLinks() {
+  document.querySelectorAll('.project-card[data-project-url]').forEach(card => {
+    const url = card.dataset.projectUrl;
+    if (!url) return;
+
+    card.addEventListener('click', event => {
+      if (event.target.closest('a')) return;
+      openProjectCard(url);
+    });
+
+    card.addEventListener('keydown', event => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        openProjectCard(url);
+      }
+    });
+  });
+}
+
 async function initGitHubProjects() {
   const grid = document.getElementById('githubProjectsGrid');
   if (!grid) return;
@@ -997,6 +1016,7 @@ function initializePortfolio() {
   // (and therefore progress syncing / the admin link) is driven separately
   // by auth-app.js via window.handleAuthStateChange().
   initSiteEffects();
+  bindProjectCardLinks();
   initGitHubProjects();
   const hasCourseRoute = new URLSearchParams(window.location.search).has('course') ||
     window.location.pathname.split('/').filter(Boolean)[0] === 'courses';
