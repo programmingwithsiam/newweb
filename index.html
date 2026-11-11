@@ -6,6 +6,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>CodeWithSiam | Python, ML & AI Learning in Public</title>
+  <meta name="description"
+    content="Explore Siam's Python projects, data science, machine learning, AI experiments, and programming tutorials from Bangladesh." />
   <meta name="keywords"
     content="CodeWithSiam, Siam, Siam Ahmmed, Python developer, Python projects, data science, machine learning, artificial intelligence, Bangladesh" />
 
@@ -28,7 +30,7 @@
   <meta property="og:image" content="https://codewithsiam.vercel.app/assets/images/profile-siam.jpeg" />
   <meta property="og:image:alt" content="Siam - Python, Data Science & AI Learner" />
   <meta property="og:image:type" content="image/jpeg" />
-  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:width" content="1104" />
   <meta property="og:image:height" content="1200" />
   <meta property="og:url" content="https://codewithsiam.vercel.app/" />
   <meta property="og:site_name" content="CodeWithSiam" />
@@ -217,7 +219,11 @@
           <div class="auth-otp-icon"><i class="fa-regular fa-envelope" aria-hidden="true"></i></div>
           <h2 id="otpTitle">Enter Verification Code</h2>
           <p class="auth-otp-copy">If this address can be registered, a 6-digit code will arrive at <strong
-              id="otpEmailLabel"></strong>. It expires in 10 minutes.</p>
+              id="otpEmailLabel"></strong>. It expires in 5 minutes.</p>
+          <label class="auth-policy-row" for="communityTermsCheckbox">
+            <input id="communityTermsCheckbox" type="checkbox" />
+            <span>I agree to the <a href="/terms" target="_blank" rel="noopener noreferrer" id="communityTermsLink">Terms of Service</a> and <a href="/privacy" target="_blank" rel="noopener noreferrer">Privacy Policy</a>.</span>
+          </label>
           <form id="otpForm">
             <div class="otp-inputs" role="group" aria-label="Six-digit verification code">
               <input class="otp-digit" id="otpDigit0" type="text" inputmode="numeric" autocomplete="one-time-code"
@@ -281,7 +287,7 @@
         <a href="#about" data-page-link="about">About</a>
         <a href="#projects" data-page-link="projects">Projects</a>
         <a href="#learn" data-page-link="learn">Learn</a>
-        <a href="/community/index.html">Community</a>
+        <a href="/community/">Community</a>
         <a href="#contact" data-page-link="contact">Contact</a>
         <div class="nav-auth" id="navAuthLoggedOut">
           <button type="button" class="btn btn-outline small" id="headerSignInBtn">Sign In</button>
@@ -913,7 +919,7 @@
 
     <!-- COURSE PLATFORM -->
     <section class="section" id="course" data-page="learn">
-      <div class="container reveal">
+      <div class="container reveal" id="learn">
 
         <!-- COURSE HEADER -->
         <div class="course-intro">
@@ -988,7 +994,7 @@
         <div class="course-catalog-toolbar">
           <div class="course-tab-profile">
             <img src="assets/images/profile-siam.webp" alt="Siam" width="48" height="48" loading="lazy"
-              decoding="async" />
+              decoding="async" data-lazy-src="assets/images/profile-siam.webp" />
             <div>
               <strong>CodeWithSiam</strong>
               <span>Learn by building real projects</span>

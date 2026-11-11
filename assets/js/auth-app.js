@@ -20,7 +20,7 @@ import {
   getCurrentUser,
 } from './auth.js?v=20261001-otp-flow-1';
 import { isFirebaseConfigured } from './firebase-init.js';
-import { startRegistration, verifyRegistration, resendRegistrationCode } from './auth-api.js?v=20261001-otp-1';
+import { startRegistration, verifyRegistration, resendRegistrationCode } from './auth-api.js?v=20261111-policy-flow-1';
 
 const modal = document.getElementById('authModal');
 const modalClose = document.getElementById('authModalClose');
@@ -38,6 +38,7 @@ const otpDigits = [...document.querySelectorAll('.otp-digit')];
 const resendOtpBtn = document.getElementById('resendOtpBtn');
 const resendCountdown = document.getElementById('resendCountdown');
 const otpEmailLabel = document.getElementById('otpEmailLabel');
+const communityTermsCheckbox = document.getElementById('communityTermsCheckbox');
 const passwordSettingsView = document.getElementById('passwordSettingsView');
 const passwordSettingsForm = document.getElementById('passwordSettingsForm');
 const currentPasswordField = document.getElementById('currentPasswordField');
@@ -324,6 +325,7 @@ function showOtpView({ name = '', email, password = '' }, message = 'If registra
   pendingRegistration = { name, email, password };
   otpEmailLabel.textContent = email;
   otpDigits.forEach((input) => { input.value = ''; });
+  communityTermsCheckbox.checked = false;
   authFormsView?.classList.add('hidden');
   passwordSettingsView?.classList.add('hidden');
   otpView?.classList.remove('hidden');
@@ -357,6 +359,10 @@ function otpValue() {
 
 async function verifyOtp() {
   if (!pendingRegistration || otpValue().length !== 6) return;
+  if (!communityTermsCheckbox || !communityTermsCheckbox.checked) {
+    setStatus('Please accept the community terms and policy before completing your account.', 'info');
+    return;
+  }
   const button = document.getElementById('verifyOtpBtn');
   button.disabled = true;
   button.textContent = 'Verifying...';
@@ -364,7 +370,7 @@ async function verifyOtp() {
   try {
     const email = pendingRegistration.email;
     const password = pendingRegistration.password || document.getElementById('registerPasswordInput')?.value || '';
-    await verifyRegistration({ email, otp: otpValue(), password });
+    await verifyRegistration({ email, otp: otpValue(), password, policyAccepted: true });
     await signInWithEmail(email, password);
     await finishSignIn();
     clearInterval(resendTimer);

@@ -119,7 +119,7 @@ async function renderMyCourses(userId) {
     list.innerHTML = entries.map(({ payment, course }) => {
       const status = ['approved', 'rejected', 'pending'].includes(payment.status) ? payment.status : 'pending';
       const statusText = status === 'approved' ? 'Active' : status === 'rejected' ? 'Enrollment rejected' : 'Payment verification pending';
-      const action = status === 'approved' ? `<a class="my-course-action" href="course.html?course=${encodeURIComponent(course.id)}">Continue Course <i class="fa-solid fa-arrow-right"></i></a>` : `<span class="my-course-message">${statusText}</span>`;
+      const action = status === 'approved' ? `<a class="my-course-action" href="/course?course=${encodeURIComponent(course.id)}">Continue Course <i class="fa-solid fa-arrow-right"></i></a>` : `<span class="my-course-message">${statusText}</span>`;
       return `<article class="my-course-card"><img src="${escapeHtml(course.thumbnail || 'assets/images/profile-siam-round.png')}" alt="${escapeHtml(course.title)} thumbnail"><div class="my-course-copy"><span class="my-course-status ${status}">${statusText}</span><h3>${escapeHtml(course.title)}</h3><p>${escapeHtml(course.instructor || 'CodeWithSiam')}</p>${payment.rejectionReason && status === 'rejected' ? `<small>${escapeHtml(payment.rejectionReason)}</small>` : ''}${action}</div></article>`;
     }).join('');
   } catch (error) {

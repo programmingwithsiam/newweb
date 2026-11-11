@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { cert, getApps, initializeApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { getDatabase } from 'firebase-admin/database';
+import { FieldValue, getFirestore } from 'firebase-admin/firestore';
 
 const serverRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const serviceAccountSetting = process.env.FIREBASE_SERVICE_ACCOUNT || './serviceAccountKey.json';
@@ -53,4 +54,6 @@ if (!process.env.OTP_HASH_SECRET || !process.env.OTP_HASH_SECRET.trim()) {
 
 export const auth = getAuth(app);
 export const database = getDatabase(app);
+export const firestore = getFirestore(app);
+export { FieldValue };
 export const otpHashSecret = process.env.OTP_HASH_SECRET.trim();

@@ -519,6 +519,8 @@ export async function createPaymentSubmission(paymentData) {
     courseId: paymentData.courseId || '',
     courseTitle: paymentData.courseTitle || '',
     amount: Number(paymentData.amount) || 0,
+    paidAmount: Number(paymentData.paidAmount ?? paymentData.amount) || 0,
+    paidCurrency: paymentData.paidCurrency || 'BDT',
     method: paymentData.method || '',
     transactionId: String(paymentData.transactionId || '').trim(),
     phone: String(paymentData.phone || '').trim(),

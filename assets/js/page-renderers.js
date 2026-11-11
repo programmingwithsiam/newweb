@@ -94,8 +94,8 @@ export function getYoutubeThumbnailUrl(url) {
   return id ? `https://img.youtube.com/vi/${id}/maxresdefault.jpg` : '';
 }
 
-function getCourseThumbnail(course, videoUrl = course?.videoUrl) {
-  return course?.thumbnail || getYoutubeThumbnailUrl(videoUrl) || 'assets/images/py.jpg';
+export function getCourseThumbnail(course, videoUrl = course?.videoUrl) {
+  return course?.thumbnail || getYoutubeThumbnailUrl(videoUrl) || '/assets/images/py.webp';
 }
 
 function getCourseLessonTotal(course) {
@@ -261,8 +261,8 @@ export function renderPublishedCourseCatalog() {
     const progress = getCoursePercent(course);
     const savedLessonId = getCourseProgress()?.[course.id]?.lastLessonId;
     const courseHref = savedLessonId
-      ? `course.html?course=${encodeURIComponent(course.id)}&lesson=${encodeURIComponent(savedLessonId)}`
-      : `course.html?course=${encodeURIComponent(course.id)}`;
+      ? `/course?course=${encodeURIComponent(course.id)}&lesson=${encodeURIComponent(savedLessonId)}`
+      : `/course?course=${encodeURIComponent(course.id)}`;
     const thumbnail = getCourseThumbnail(course);
     const fallbackTitle = escapeHtml(String(course.title || 'Course').slice(0, 24));
     const { level, durationText, freePreview, description } = getCourseCardMeta(course);
@@ -305,8 +305,8 @@ export function renderPublishedCourseCatalog() {
           return;
         }
       }
-      if (src !== new URL('assets/images/py.jpg', location.href).href) {
-        image.src = 'assets/images/py.jpg';
+      if (src !== new URL('assets/images/py.webp', location.href).href) {
+        image.src = 'assets/images/py.webp';
         return;
       }
       // If all retries exhausted, show fallback

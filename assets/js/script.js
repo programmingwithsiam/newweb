@@ -342,15 +342,27 @@ async function initGitHubProjects() {
   grid.innerHTML = fallbackMarkup;
 
   try {
-    const response = await fetch(GITHUB_PROJECTS_API_URL, {
-      headers: { Accept: 'application/vnd.github+json' }
-    });
+    const cached = safeStorageGet(GITHUB_PROJECTS_CACHE_KEY);
+    let repos = [];
 
-    if (!response.ok) {
-      throw new Error(`GitHub request failed: ${response.status}`);
+    if (cached && cached.expiresAt > Date.now()) {
+      repos = Array.isArray(cached.data) ? cached.data : [];
+    } else {
+      const response = await fetch(GITHUB_PROJECTS_API_URL, {
+        headers: { Accept: 'application/vnd.github+json' }
+      });
+
+      if (!response.ok) {
+        throw new Error(`GitHub request failed: ${response.status}`);
+      }
+
+      repos = await response.json();
+      safeStorageSet(GITHUB_PROJECTS_CACHE_KEY, {
+        data: repos,
+        expiresAt: Date.now() + GITHUB_PROJECTS_CACHE_TTL
+      });
     }
 
-    const repos = await response.json();
     const publicRepos = (Array.isArray(repos) ? repos : [])
       .filter(repo => !repo.private && !repo.fork && repo.name);
 
@@ -855,7 +867,7 @@ function attachCourseEvents(course) {
     const active = getActiveCourse();
     const lesson = active && getCurrentLesson(active);
     if (!active || !lesson) return;
-    window.location.href = `course.html?course=${encodeURIComponent(active.id)}&lesson=${encodeURIComponent(lesson.id)}`;
+    window.location.href = `/course?course=${encodeURIComponent(active.id)}&lesson=${encodeURIComponent(lesson.id)}`;
   });
   restartBtn?.addEventListener('click', () => {
     if (video) {
@@ -1334,6 +1346,11 @@ function appendTypingIndicator() {
 
 /* ---------- core send flow: call backend, fall back locally on failure ---------- */
 async function getBotReply(userMsg) {
+  const normalized = String(userMsg || '').trim().toLowerCase();
+  if (normalized && botAnswerCache.has(normalized)) {
+    return botAnswerCache.get(normalized);
+  }
+
   chatHistory.push({ role: 'user', content: userMsg });
 
   try {
@@ -1346,12 +1363,14 @@ async function getBotReply(userMsg) {
     const data = await res.json();
     if (!data.reply) throw new Error('empty reply');
     chatHistory.push({ role: 'assistant', content: data.reply });
+    if (normalized) botAnswerCache.set(normalized, data.reply);
     return data.reply;
   } catch (err) {
     // Backend not deployed yet, or call failed — use local fallback so the
     // chatbox still feels alive during development / before Netlify setup.
     const fallback = fallbackResponse(userMsg);
     chatHistory.push({ role: 'assistant', content: fallback });
+    if (normalized) botAnswerCache.set(normalized, fallback);
     return fallback;
   }
 }

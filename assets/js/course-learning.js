@@ -181,8 +181,8 @@ const percent = () => {
   return total ? Math.round((completed().size / total) * 100) : 0;
 };
 const route = lessonId => lessonId
-  ? `course.html?course=${encodeURIComponent(course.id)}&lesson=${encodeURIComponent(lessonId)}&autoplay=1`
-  : `course.html?course=${encodeURIComponent(course.id)}`;
+  ? `/course?course=${encodeURIComponent(course.id)}&lesson=${encodeURIComponent(lessonId)}&autoplay=1`
+  : `/course?course=${encodeURIComponent(course.id)}`;
 function go(lessonId = '') {
   const lesson = lessons.find(item => item.id === lessonId);
   const selectingFromOverlay = mobileCourseOverlayOpen && mobileCourseMedia.matches;
@@ -1379,8 +1379,8 @@ async function load(generation = authLoadGeneration) {
 
   if (requestedCourseId && course.id !== requestedCourseId) {
     const nextUrl = selectedLessonId
-      ? `course.html?course=${encodeURIComponent(course.id)}&lesson=${encodeURIComponent(selectedLessonId)}`
-      : `course.html?course=${encodeURIComponent(course.id)}`;
+      ? `/course?course=${encodeURIComponent(course.id)}&lesson=${encodeURIComponent(selectedLessonId)}`
+      : `/course?course=${encodeURIComponent(course.id)}`;
     history.replaceState({}, '', nextUrl);
   }
 

@@ -472,18 +472,6 @@ body::after {
   opacity: 1;
 }
 
-.chat-toggle-btn .online-badge-small {
-  position: absolute;
-  right: 6px;
-  top: 6px;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: #32d74b;
-  box-shadow: 0 0 8px rgba(50, 215, 75, 0.22);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-}
-
 /* CodeWithSiam visual system: editorial ink, warm paper, electric lime. */
 :root {
   --bg: #0d1110;
@@ -1760,46 +1748,6 @@ footer {
   border-color: var(--cyan);
   color: var(--cyan);
   transform: translateY(-3px);
-}
-
-.scroll-cue {
-  position: absolute;
-  bottom: 34px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 24px;
-  height: 38px;
-  border: 2px solid var(--line);
-  border-radius: 14px;
-}
-
-.scroll-cue span {
-  position: absolute;
-  top: 7px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 4px;
-  height: 8px;
-  border-radius: 2px;
-  background: var(--cyan);
-  animation: scrollDot 1.8s ease-in-out infinite;
-}
-
-@keyframes scrollDot {
-  0% {
-    opacity: 1;
-    top: 7px;
-  }
-
-  70% {
-    opacity: 0;
-    top: 20px;
-  }
-
-  100% {
-    opacity: 0;
-    top: 7px;
-  }
 }
 
 /* =========================================================
@@ -6467,6 +6415,30 @@ footer p {
   overflow-wrap: anywhere;
   color: var(--text);
   font-weight: 600;
+}
+
+.auth-policy-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  margin: 0 0 18px;
+  color: var(--text-dim);
+  font-size: .82rem;
+  line-height: 1.55;
+  text-align: left;
+}
+
+.auth-policy-row input {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  margin-top: 2px;
+  accent-color: var(--accent);
+}
+
+.auth-policy-row a {
+  color: var(--accent-soft);
+  text-underline-offset: 3px;
 }
 
 .otp-inputs {

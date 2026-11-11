@@ -7,24 +7,24 @@
       ".write": false
     },
     "users": {
-      ".read": "auth != null && auth.token.email_verified === true",
       ".indexOn": [
         "usernameLower",
         "nameLower"
       ],
       "$uid": {
+        ".read": "auth != null && auth.token.email_verified === true && auth.uid === $uid",
         ".write": "auth != null && auth.token.email_verified === true && auth.uid === $uid",
         ".validate": "newData.hasChildren(['fullName','username','usernameLower'])",
         "followersCount": {
-          ".write": "auth != null && auth.token.email_verified === true",
+          ".write": "auth != null && auth.token.email_verified === true && auth.uid === $uid",
           ".validate": "newData.isNumber() && newData.val() >= 0 && (!data.exists() ? newData.val() === 0 || newData.val() === 1 : (newData.val() === data.val() + 1 || newData.val() === data.val() - 1))"
         },
         "followingCount": {
-          ".write": "auth != null && auth.token.email_verified === true",
+          ".write": "auth != null && auth.token.email_verified === true && auth.uid === $uid",
           ".validate": "newData.isNumber() && newData.val() >= 0 && (!data.exists() ? newData.val() === 0 || newData.val() === 1 : (newData.val() === data.val() + 1 || newData.val() === data.val() - 1))"
         },
         "friendsCount": {
-          ".write": "auth != null && auth.token.email_verified === true",
+          ".write": "auth != null && auth.token.email_verified === true && auth.uid === $uid",
           ".validate": "newData.isNumber() && newData.val() >= 0 && (!data.exists() ? newData.val() === 0 || newData.val() === 1 : (newData.val() === data.val() + 1 || newData.val() === data.val() - 1))"
         },
         "notifPrefs": {
