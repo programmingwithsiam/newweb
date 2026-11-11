@@ -269,7 +269,7 @@ async function loadCourse() {
     const requestedId = getRequestedCourseId();
     const selected = requestedId
       ? courses.find(course => course.id === requestedId)
-      : courses.find(course => course.id === 'python-for-beginners-bangla') || courses[0];
+      : courses[0];
     if (!selected) {
       setPageError('This course could not be found. Return to the course list and choose another course.');
       return;

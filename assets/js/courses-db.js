@@ -162,32 +162,13 @@ function sortByOrder(items) {
 const CACHE_TTL_MS = 5 * 60 * 1000;
 const COURSE_CACHE_KEY = 'siam_course_catalog_cache_v2';
 const LIVE_CACHE_KEY = 'siam_live_archive_cache_v1';
-const DEFAULT_COURSE = {
-  id: 'python-for-beginners-bangla',
-  title: 'Python for Beginners (Bangla)',
-  description: 'A beginner-friendly Python course in Bangla, built for students who want to start programming from zero and move toward AI and machine learning.',
-  category: 'Python',
-  language: 'Bangla',
-  instructor: 'CodeWithSiam',
-  status: 'published',
-  price: 0,
-  discountPrice: 0,
-  order: 1,
-  modules: [{
-    id: 'python-foundations',
-    title: 'Python Foundations',
-    lessonCatalog: [
-      'Introduction to Python & Environment Setup',
-      'Variables, Data Types, and Operators',
-      'Conditionals and Loops',
-      'Functions and Modules',
-      'Lists, Tuples, Dictionaries, Sets',
-      'File Handling Basics',
-      'Mini Project: Simple Calculator / To-Do App',
-      'Next Steps: Intro to NumPy & Pandas (bridge to Data Science)'
-    ].map((title, index) => ({ id: `python-foundations-${index + 1}`, title, duration: 'Lesson', order: index + 1 }))
-  }]
-};
+const REMOVED_COURSE_IDS = new Set(['python-for-beginners-bangla']);
+const REMOVED_COURSE_TITLES = new Set(['python for beginners (bangla)']);
+
+function isRemovedCourse(course) {
+  return REMOVED_COURSE_IDS.has(String(course?.id || ''))
+    || REMOVED_COURSE_TITLES.has(String(course?.title || '').trim().toLowerCase());
+}
 
 const PUBLIC_PREVIEW_VIDEO_OVERRIDES = {
   vpMoUwqh9pGrYovnWVcf: {
@@ -196,8 +177,7 @@ const PUBLIC_PREVIEW_VIDEO_OVERRIDES = {
 };
 
 export function getDefaultCourses() {
-  const fallbackModules = DEFAULT_COURSE.modules.map(module => ({ ...module, lessons: module.lessonCatalog }));
-  return [{ ...DEFAULT_COURSE, modules: fallbackModules, lessons: fallbackModules.flatMap(module => module.lessons) }];
+  return [];
 }
 
 function readSessionCache(key) {
@@ -207,6 +187,19 @@ function readSessionCache(key) {
   } catch {
     return null;
   }
+}
+
+function readStaleSessionCache(key) {
+  try {
+    return JSON.parse(sessionStorage.getItem(key) || 'null')?.value ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export function getCachedCourseCatalog() {
+  const cached = readStaleSessionCache(COURSE_CACHE_KEY);
+  return Array.isArray(cached) ? cached.filter(course => !isRemovedCourse(course)) : [];
 }
 
 function writeSessionCache(key, value) {
@@ -230,18 +223,17 @@ export async function fetchCourseEnrollment(uid, courseId) {
 
 /* ---------- READ: public course metadata plus authorized lesson videos ---------- */
 export async function fetchAllCourses({ includeLessons = true } = {}) {
-  if (!isFirebaseConfigured || !db) return getDefaultCourses();
+  if (!isFirebaseConfigured || !db) return [];
   if (!includeLessons) {
     const cached = readSessionCache(COURSE_CACHE_KEY);
-    if (cached) return cached;
+    if (cached) return cached.filter(course => !isRemovedCourse(course));
   }
   const { collection, doc, getDoc, getDocs, limit, query } = await loadFirestore();
 
   const coursesSnap = await getDocs(query(collection(db, 'courses'), limit(100)));
   if (coursesSnap.empty) {
-    const fallback = getDefaultCourses();
-    if (!includeLessons) writeSessionCache(COURSE_CACHE_KEY, fallback);
-    return fallback;
+    if (!includeLessons) writeSessionCache(COURSE_CACHE_KEY, []);
+    return [];
   }
   const currentUser = auth?.currentUser || null;
   const isAdminUser = currentUser?.email?.toLowerCase() === 'mdsiamahmmedloselovestroy@gmail.com';
@@ -261,7 +253,9 @@ export async function fetchAllCourses({ includeLessons = true } = {}) {
       console.warn('Email authorization unavailable:', error.code || error.message);
     }
   }
-  const courses = await Promise.all(sortByOrder(coursesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }))).map(async (course) => {
+  const courses = await Promise.all(sortByOrder(coursesSnap.docs
+    .map(doc => ({ id: doc.id, ...doc.data() }))
+    .filter(course => !isRemovedCourse(course))).map(async (course) => {
     const enrollment = currentUser ? await fetchCourseEnrollment(currentUser.uid, course.id).catch(() => null) : null;
     const legacyAccess = isVerifiedUser && emailAccess && (!courseAccessIds.length || courseAccessIds.includes(course.id));
     const hasAccess = isAdminUser || enrollment?.status === 'approved' || (legacyAccess && enrollment?.status !== 'revoked');

@@ -929,8 +929,8 @@ async function load() {
   const all = await withTimeout(fetchAllCourses({ includeLessons: true }));
   const requestedCourseId = courseId || null;
   course = all.find(item => item.id === requestedCourseId)
-    || all.find(item => item.id === 'python-for-beginners-bangla')
-    || all[0] || null;
+    || (!requestedCourseId ? all[0] : null)
+    || null;
 
   if (!course) {
     $('learningLoading').innerHTML = '<div class="course-error-card"><i class="fa-solid fa-compass"></i><h1>Course not found</h1><p>Choose a course from the CodeWithSiam course library to continue.</p><a class="learning-button primary" href="index.html">Browse Courses</a></div>';
