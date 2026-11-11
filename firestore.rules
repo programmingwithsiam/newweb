@@ -111,11 +111,14 @@ service cloud.firestore {
       allow get, list: if isAdmin() || (isSignedIn() && request.auth.uid == uid);
       allow create: if isSignedIn() &&
         request.auth.uid == uid &&
-        request.resource.data.uid == uid;
+        request.resource.data.uid == uid &&
+        !('policyAcceptedAt' in request.resource.data);
       allow update: if (isSignedIn() &&
           request.auth.uid == uid &&
-          request.resource.data.uid == uid) ||
-        (isAdmin() && request.resource.data.get('uid', uid) == uid);
+          request.resource.data.uid == uid &&
+          request.resource.data.get('policyAcceptedAt', null) == resource.data.get('policyAcceptedAt', null)) ||
+        (isAdmin() && request.resource.data.get('uid', uid) == uid &&
+          request.resource.data.get('policyAcceptedAt', null) == resource.data.get('policyAcceptedAt', null));
       allow delete: if isAdmin() || (isSignedIn() && request.auth.uid == uid);
     }
 
@@ -409,12 +412,20 @@ service cloud.firestore {
     // ---------------- Payment submissions ----------------
     match /payments/{paymentId} {
       allow create: if isVerifiedUser() &&
-        request.resource.data.keys().hasOnly(['userId', 'studentName', 'studentEmail', 'courseId', 'courseTitle', 'amount', 'method', 'transactionId', 'phone', 'paymentDate', 'screenshotUrl', 'status', 'submittedAt']) &&
+        request.resource.data.keys().hasOnly(['userId', 'studentName', 'studentEmail', 'courseId', 'courseTitle', 'amount', 'paidAmount', 'paidCurrency', 'method', 'transactionId', 'phone', 'paymentDate', 'screenshotUrl', 'status', 'submittedAt']) &&
         request.resource.data.userId == request.auth.uid &&
         request.resource.data.courseId is string && request.resource.data.courseId.size() > 0 &&
-        request.resource.data.method in ['bkash', 'rocket', 'nagad', 'bank', 'visa', 'debit_card', 'credit_card', 'paypal'] &&
+        request.resource.data.method in ['bkash', 'rocket', 'nagad', 'bank', 'visa', 'debit_card', 'credit_card', 'paypal', 'upi', 'free'] &&
+        ((!request.resource.data.keys().hasAny(['paidAmount', 'paidCurrency']) && request.resource.data.method != 'free') ||
+          (request.resource.data.keys().hasAll(['paidAmount', 'paidCurrency']) &&
+            request.resource.data.paidAmount is number &&
+            ((request.resource.data.method == 'free' &&
+              request.resource.data.paidAmount == 0 && request.resource.data.paidCurrency == 'BDT') ||
+             (request.resource.data.method != 'free' &&
+              request.resource.data.paidAmount > 0 && request.resource.data.paidCurrency in ['BDT', 'USD', 'INR'])))) &&
         request.resource.data.transactionId is string &&
-        request.resource.data.transactionId.size() > 0 &&
+        ((request.resource.data.method == 'free' && request.resource.data.transactionId == '') ||
+          (request.resource.data.method != 'free' && request.resource.data.transactionId.size() > 0)) &&
         request.resource.data.phone is string &&
         request.resource.data.phone.matches('^\\+[1-9][0-9]{7,14}$') &&
         (request.resource.data.amount == get(/databases/$(database)/documents/courses/$(request.resource.data.courseId)).data.price ||
@@ -537,6 +548,14 @@ service cloud.firestore {
       allow update: if isVerifiedUser() &&
         ((request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewers']) &&
           request.resource.data.viewers is list) ||
+         (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactions']) &&
+          request.resource.data.reactions is map &&
+          ((!('reactions' in resource.data) &&
+            request.resource.data.reactions.keys().hasOnly([request.auth.uid])) ||
+           (('reactions' in resource.data) &&
+            request.resource.data.reactions.diff(resource.data.reactions).affectedKeys().hasOnly([request.auth.uid]))) &&
+          (!request.resource.data.reactions.keys().hasAny([request.auth.uid]) ||
+            request.resource.data.reactions[request.auth.uid] in ['like', 'love', 'care', 'haha', 'wow', 'sad', 'angry'])) ||
          (resource.data.authorUid == request.auth.uid &&
           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['type', 'content', 'mediaUrl', 'imageData', 'category', 'music']) &&
           request.resource.data.type in ['text', 'image'] &&

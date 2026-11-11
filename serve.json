@@ -15,8 +15,6 @@
     { "source": "/community", "destination": "/community/index.html" },
     { "source": "/community/*", "destination": "/community/index.html" },
     { "source": "/community-app", "destination": "/community/index.html" },
-    { "source": "/community-app/*", "destination": "/community/index.html" },
-    { "source": "/blog", "destination": "/blog/index.html" },
-    { "source": "/blog/*", "destination": "/blog/index.html" }
+    { "source": "/community-app/*", "destination": "/community/index.html" }
   ]
 }

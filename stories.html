@@ -3,8 +3,17 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Story Viewer | CodeWithSiam</title>
-  <meta name="description" content="CodeWithSiam Community Stories">
+  <title>Community Stories | CodeWithSiam</title>
+  <meta name="description" content="View and share short-lived community stories from CodeWithSiam members.">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Community Stories | CodeWithSiam">
+  <meta property="og:description" content="View and share short-lived community stories from CodeWithSiam members.">
+  <meta property="og:image" content="https://codewithsiam.vercel.app/assets/images/profile-siam.jpeg">
+  <meta property="og:image:alt" content="CodeWithSiam community stories">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Community Stories | CodeWithSiam">
+  <meta name="twitter:description" content="View and share short-lived community stories from CodeWithSiam members.">
+  <meta name="twitter:image" content="https://codewithsiam.vercel.app/assets/images/profile-siam.jpeg">
   <meta name="theme-color" content="#080b12">
   <link rel="icon" type="image/png" sizes="256x256" href="/assets/images/profile-siam-round.png?v=20260828">
   <link rel="manifest" href="/manifest.json">
@@ -20,17 +29,32 @@
         <!-- Story will be rendered here -->
       </div>
 
+      <section id="storyReactionBar" class="story-reaction-bar" aria-label="Story reactions" hidden>
+        <div id="storyReactionSummary" class="story-reaction-summary" aria-live="polite"></div>
+        <div class="story-reaction-options" role="toolbar" aria-label="React to this story">
+          <button type="button" data-story-reaction="like" aria-label="Like" aria-pressed="false" title="Like">👍</button>
+          <button type="button" data-story-reaction="love" aria-label="Love" aria-pressed="false" title="Love">❤️</button>
+          <button type="button" data-story-reaction="care" aria-label="Care" aria-pressed="false" title="Care">🥰</button>
+          <button type="button" data-story-reaction="haha" aria-label="Haha" aria-pressed="false" title="Haha">😂</button>
+          <button type="button" data-story-reaction="wow" aria-label="Wow" aria-pressed="false" title="Wow">😮</button>
+          <button type="button" data-story-reaction="sad" aria-label="Sad" aria-pressed="false" title="Sad">😢</button>
+          <button type="button" data-story-reaction="angry" aria-label="Angry" aria-pressed="false" title="Angry">😡</button>
+        </div>
+        <p id="storyReactionStatus" class="story-reaction-status" role="status" aria-live="polite" hidden></p>
+      </section>
+
       <!-- Progress Bar -->
-      <div class="story-progress-container">
+      <div class="story-progress-container" hidden>
         <div id="storyProgress" class="story-progress"></div>
       </div>
 
       <!-- Story Header -->
       <div class="story-header">
-        <div class="story-header-left">
+        <h1 class="story-viewer-title">Community Stories</h1>
+        <div class="story-header-left" hidden>
           <img id="storyAuthorAvatar" class="story-author-avatar" src="" alt="Author avatar">
           <div class="story-author-info">
-            <h3 id="storyAuthorName">Author Name</h3>
+            <h2 id="storyAuthorName">Author Name</h2>
             <small id="storyTimestamp">Just now</small>
           </div>
         </div>
@@ -39,27 +63,8 @@
         </button>
       </div>
 
-      <!-- Story Reactions -->
-      <div class="story-reactions">
-        <div class="reaction-wrap" id="storyReactionWrap">
-          <button id="storyReactionBtn" class="story-reaction-btn reaction-btn" data-reaction="like" type="button" title="Like story" aria-label="Like story">
-            <span class="reaction-main-icon">👍</span>
-            <span class="reaction-main-label">Like</span>
-          </button>
-          <div class="reaction-picker" role="menu" aria-label="Choose a reaction">
-            <button type="button" class="reaction-choice" data-reaction="like" title="Like" aria-label="Like" style="--delay:0ms">👍</button>
-            <button type="button" class="reaction-choice" data-reaction="love" title="Love" aria-label="Love" style="--delay:40ms">❤️</button>
-            <button type="button" class="reaction-choice" data-reaction="haha" title="Haha" aria-label="Haha" style="--delay:80ms">😂</button>
-            <button type="button" class="reaction-choice" data-reaction="laugh" title="Laugh" aria-label="Laugh" style="--delay:120ms">😆</button>
-            <button type="button" class="reaction-choice" data-reaction="wow" title="Wow" aria-label="Wow" style="--delay:160ms">😮</button>
-            <button type="button" class="reaction-choice" data-reaction="sad" title="Sad" aria-label="Sad" style="--delay:200ms">😢</button>
-            <button type="button" class="reaction-choice" data-reaction="angry" title="Angry" aria-label="Angry" style="--delay:240ms">😡</button>
-          </div>
-        </div>
-      </div>
-
       <!-- Story Navigation -->
-      <div class="story-nav">
+      <div class="story-nav" hidden>
         <button id="prevStoryBtn" class="story-nav-btn prev" type="button" aria-label="Previous story">
           <i class="fa-solid fa-chevron-left"></i>
         </button>
@@ -77,7 +82,7 @@
     <!-- Story Sidebar (Desktop) -->
     <aside id="storyViewersSidebar" class="story-viewers-sidebar hidden">
       <div class="sidebar-header">
-        <h3>Story views</h3>
+        <h2>Story views</h2>
         <button id="closeSidebarBtn" class="sidebar-close-btn" type="button">
           <i class="fa-solid fa-xmark"></i>
         </button>
@@ -101,12 +106,6 @@
         <button class="story-type-btn" data-type="image" type="button">
           <i class="fa-solid fa-image"></i> Image
         </button>
-        <button class="story-type-btn" data-type="learning" type="button">
-          <i class="fa-solid fa-book"></i> Learning
-        </button>
-        <button class="story-type-btn" data-type="project" type="button">
-          <i class="fa-solid fa-code"></i> Project
-        </button>
       </div>
 
       <form id="createStoryForm" class="create-story-form">
@@ -129,16 +128,6 @@
               <option value="💡 Quick Idea">💡 Quick Idea</option>
               <option value="🔥 Challenge">🔥 Challenge</option>
             </select>
-          </div>
-
-          <div class="form-group">
-            <label for="textBgStyle">Background Style</label>
-            <div class="bg-style-picker">
-              <button class="bg-style-btn active" data-style="default" type="button" title="Default"></button>
-              <button class="bg-style-btn" data-style="gradient1" type="button" title="Gradient"></button>
-              <button class="bg-style-btn" data-style="gradient2" type="button" title="Gradient"></button>
-              <button class="bg-style-btn" data-style="dark" type="button" title="Dark"></button>
-            </div>
           </div>
 
           <div id="textPreview" class="story-preview"></div>
@@ -191,6 +180,6 @@
     </div>
   </div>
 
-  <script type="module" src="assets/js/stories.js?v=20260901-stability-3"></script>
+  <script type="module" src="assets/js/stories.js?v=20261108-story-reactions-1"></script>
 </body>
 </html>

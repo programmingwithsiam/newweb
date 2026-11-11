@@ -1,0 +1,143 @@
+:root {
+  color-scheme: dark;
+}
+
+.policy-shell {
+  width: min(920px, calc(100% - 36px));
+  margin: 0 auto;
+  padding: 34px 0 80px;
+}
+
+.policy-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding-bottom: 22px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.policy-brand {
+  color: #f5f3ff;
+  font-family: var(--font-mono);
+  font-size: 15px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.policy-brand span {
+  color: var(--accent-soft);
+}
+
+.policy-nav-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+}
+
+.policy-nav a:not(.policy-brand),
+.policy-footer a {
+  color: #b7bfd1;
+  text-decoration: none;
+}
+
+.policy-nav a:hover,
+.policy-footer a:hover {
+  color: #fff;
+}
+
+.policy-heading {
+  padding: 62px 0 32px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.policy-eyebrow {
+  margin-bottom: 12px;
+  color: #b699ff;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.policy-heading h1 {
+  margin: 0;
+  color: #fff;
+  font-size: clamp(36px, 7vw, 58px);
+  line-height: 1.08;
+}
+
+.policy-heading p:last-child {
+  max-width: 680px;
+  margin-top: 16px;
+  color: #aeb8ca;
+  line-height: 1.7;
+}
+
+.policy-content {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.policy-section {
+  padding: 28px 0;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+}
+
+.policy-section h2 {
+  margin: 0 0 12px;
+  color: #f4f1ff;
+  font-size: 21px;
+}
+
+.policy-section p,
+.policy-section li {
+  color: #c2c9d7;
+  line-height: 1.8;
+}
+
+.policy-section p + p,
+.policy-section ul + p {
+  margin-top: 12px;
+}
+
+.policy-section ul {
+  display: grid;
+  gap: 8px;
+  padding-left: 22px;
+}
+
+.policy-section a {
+  color: #c2aaff;
+  text-underline-offset: 3px;
+}
+
+.policy-footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 12px 24px;
+  padding-top: 24px;
+  color: #8792a6;
+  font-size: 14px;
+}
+
+@media (max-width: 560px) {
+  .policy-shell {
+    width: min(100% - 28px, 920px);
+    padding-top: 22px;
+  }
+
+  .policy-nav {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .policy-nav-links {
+    gap: 12px 18px;
+  }
+
+  .policy-heading {
+    padding-top: 44px;
+  }
+}

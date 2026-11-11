@@ -36,9 +36,14 @@ operations.
 - `index.html` renders the homepage and course catalog entry points.
 - `assets/js/courses-db.js` owns Firestore operations for courses,
   enrollments/payments, live settings, and progress.
-- `course.html` contains the course overview, enrollment, and lesson player.
-- `assets/js/course-learning.js` connects that UI to course data, progress,
-  and video helpers.
+- `course.html` displays the selected course's details, thumbnail, curriculum,
+  and enrollment checkout.
+- `assets/js/course-enrollment.js` loads the selected course, requires Google
+  sign-in for enrollment, and creates a pending payment/enrollment request.
+- `assets/js/courses-db.js` writes the request to Firestore. The admin payment
+  queue can approve it and grant course access.
+- `assets/js/course-learning.js` contains the previous lesson-player
+  controller; the replacement landing page does not mount that player UI.
 - `firestore.rules` controls course metadata, preview/locked lesson reads,
   enrollment writes, and owner-only progress.
 - `storage.rules` controls payment proof, profile/community media, and
@@ -55,12 +60,17 @@ Firestore rules constrain chat reads and writes.
 
 `community/index.html` and `community/assets/` are the deployed community app.
 Its hashed chunks contain route views and use `/community` as their base path.
+`community/assets/community-home.css` provides the dark Facebook-inspired
+community layout. The bundled home, story, and composer views use the existing
+authentication and story services for publishing and viewing community content.
 `database.rules.json` governs the related Realtime Database data.
 
 The standalone profile page is `user-profile.html` with
 `assets/js/user-profile.js`. Stories use `stories.html`, `assets/js/stories.js`,
-and `assets/js/story-manager.js`. Firestore rules define access to profiles,
-posts, comments, chat, presence, notifications, and stories.
+and `assets/js/story-manager.js`. Story reactions are stored per user on the
+story document, with Firestore rules limiting each verified user to changing
+their own reaction. Firestore rules define access to profiles, posts, comments,
+chat, presence, notifications, and stories.
 
 ## Shared code and supporting files
 

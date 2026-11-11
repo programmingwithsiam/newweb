@@ -6,6 +6,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>User Profile | CodeWithSiam</title>
   <meta name="description" content="CodeWithSiam Community Profile">
+  <meta property="og:type" content="profile">
+  <meta property="og:title" content="User Profile | CodeWithSiam">
+  <meta property="og:description" content="View a CodeWithSiam community member's profile, skills, and shared work.">
+  <meta property="og:image" content="https://codewithsiam.vercel.app/assets/images/profile-siam.jpeg">
+  <meta property="og:image:alt" content="CodeWithSiam community member profile">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="User Profile | CodeWithSiam">
+  <meta name="twitter:description" content="View a CodeWithSiam community member's profile, skills, and shared work.">
+  <meta name="twitter:image" content="https://codewithsiam.vercel.app/assets/images/profile-siam.jpeg">
   <meta name="theme-color" content="#080b12">
   <link rel="icon" type="image/png" sizes="256x256" href="/assets/images/profile-siam-round.png?v=20260828">
   <link rel="manifest" href="/manifest.json">
@@ -25,7 +34,7 @@
       <input type="search" placeholder="Search profiles" aria-label="Search profiles">
     </label>
     <nav class="community-primary-nav">
-      <a class="nav-pill" href="index.html"><i class="fa-solid fa-house"></i><span>Home</span></a>
+      <a class="nav-pill" href="/"><i class="fa-solid fa-house"></i><span>Home</span></a>
       <a class="nav-pill" href="/community/"><i class="fa-solid fa-users"></i><span>Community</span></a>
       <a class="nav-pill icon-pill" href="/community/messenger" aria-label="Messages" title="Messages"><i
           class="fa-regular fa-message"></i></a>
@@ -35,12 +44,12 @@
     </nav>
   </header>
 
-  <main class=\"user-profile-container community-layout\">
-    <aside class=\"community-sidebar\">
-      <a class=\"side-link\" href=\"/community/\"><i class=\"fa-solid fa-users\"></i> Community</a>
-      <a class=\"side-link active\" href=\"user-profile.html\"><i class=\"fa-solid fa-user\"></i> My Profile</a>
-      <a class=\"side-link\" href=\"live.html\"><i class=\"fa-solid fa-video\"></i> Live learning</a>
-      <a class=\"side-link\" href=\"index.html#course\"><i class=\"fa-solid fa-graduation-cap\"></i> Courses</a>
+  <main class="user-profile-container community-layout">
+    <aside class="community-sidebar">
+      <a class="side-link" href="/community/"><i class="fa-solid fa-users"></i> Community</a>
+      <a class="side-link active" href="user-profile.html"><i class="fa-solid fa-user"></i> My Profile</a>
+      <a class="side-link" href="/live"><i class="fa-solid fa-video"></i> Live learning</a>
+      <a class="side-link" href="/#course"><i class="fa-solid fa-graduation-cap"></i> Courses</a>
     </aside>
     <section class=\"profile-main-content\">
       <div id="profileLoading" class="profile-loading">

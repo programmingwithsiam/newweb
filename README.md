@@ -1,9 +1,9 @@
 # CodeWithSiam
 
 CodeWithSiam is a static portfolio and learning platform with course
-enrollment, lesson playback, live sessions, learner profiles, and a community
-application. The public website is hosted on Vercel and uses Firebase for
-authentication, Firestore data, and protected file storage.
+enrollment, live sessions, learner profiles, and a community application.
+The public website is hosted on Vercel and uses Firebase for authentication,
+Firestore data, and protected file storage.
 
 ## Technology
 
@@ -19,12 +19,11 @@ authentication, Firestore data, and protected file storage.
 | Path | Purpose |
 | --- | --- |
 | `index.html` | Portfolio homepage, course catalog, and sign-in UI |
-| `course.html` | Course details, enrollment, and lesson player |
+| `course.html` | Course-specific landing page and enrollment checkout |
 | `live.html` | Live sessions, replays, and chat |
 | `admin.html` | Admin dashboard for courses, enrollment, payments, and live settings |
 | `stories.html`, `user-profile.html`, `404.html` | Live story, profile, and not-found pages |
-| `community/` | Built community site served at `/community` |
-| `blog/index.html` | Static blog landing page |
+| `community/` | Built community site and landing-page theme overrides served at `/community` |
 | `assets/css/`, `assets/js/`, `assets/images/` | Shared styles, browser modules, and media |
 | `server/src/`, `server/package.json`, `server/package-lock.json` | Express email-code registration API |
 | `docs/ARCHITECTURE.md` | Runtime ownership and Firebase data-flow map |
@@ -55,7 +54,7 @@ npm run dev
 `npm run dev` serves the repository root and applies the aliases in `serve.json`;
 use the URL printed by the server.
 Useful entry points include `/`, `/course.html`, `/live.html`, `/admin.html`,
-`/community/`, `/blog/`, `/user-profile.html`, and `/stories.html`. Firebase
+`/community/`, `/user-profile.html`, and `/stories.html`. Firebase
 features require a configured Firebase project and authorized local domain.
 
 Email-code registration uses the separate Express service in `server/`. Run it
@@ -72,8 +71,8 @@ code or Git.
 
 Vercel serves the static pages and applies the rewrites in `vercel.json`.
 Keep these public routes intact: `/admin`, `/course`, `/courses/:courseId`,
-`/courses/:courseId/lectures/:lessonId`, `/blog`, `/blog/:slug`, and
-`/community` (as well as the direct `.html` pages). Legacy paths
+`/courses/:courseId/lectures/:lessonId`, and `/community` (as well as the
+direct `.html` pages). Legacy paths
 `/community.html`, `/admin/`, `/admin/index.html`, and `/course/index.html`
 redirect to their active pages.
 
@@ -97,7 +96,7 @@ history before changing the community application.
 
 Create and manage courses through the admin dashboard. Course reads/writes,
 enrollments, lesson access, and progress are implemented in
-`assets/js/courses-db.js` and `assets/js/course-learning.js`; the data model
+`assets/js/courses-db.js` and `assets/js/course-enrollment.js`; the data model
 and access conditions must remain consistent with `firestore.rules`. Do not
 make a course-access change in client code alone.
 

@@ -2600,7 +2600,7 @@
           This account does not have admin permissions.
         </p>
 
-        <a href="index.html" class="btn btn-primary">
+        <a href="/" class="btn btn-primary">
           Back to Portfolio
         </a>
         <button type="button" class="btn" id="accessDeniedLogout">Sign out and use admin account</button>
@@ -2621,7 +2621,7 @@
           <div class="dashboard-nav-links">
             <a class="dashboard-nav-item active" href="#dashboardSection"><i class="fa-solid fa-chart-line"></i>
               Dashboard</a>
-            <a class="dashboard-nav-item dashboard-nav-website" href="index.html"><i class="fa-solid fa-house"></i> View
+            <a class="dashboard-nav-item dashboard-nav-website" href="/"><i class="fa-solid fa-house"></i> View
               Website</a>
             <a class="dashboard-nav-item" href="#coursesSection"><i class="fa-solid fa-layer-group"></i> Courses</a>
             <a class="dashboard-nav-item" href="#liveSection"><i class="fa-solid fa-tower-broadcast"></i> Live</a>
@@ -2651,7 +2651,7 @@
           </div>
 
           <div class="admin-topbar-actions">
-            <a class="btn admin-website-link" href="index.html">View Website <span aria-hidden="true">↗</span></a>
+            <a class="btn admin-website-link" href="/">View Website <span aria-hidden="true">↗</span></a>
             <button class="btn" id="refreshCoursesBtn" type="button">Refresh Data</button>
 
             <button class="logout" id="logoutBtn" type="button">
@@ -3938,11 +3938,18 @@
       list.innerHTML = visible.map(payment => {
         const status = ['pending', 'approved', 'rejected'].includes(payment.status) ? payment.status : 'pending';
         const screenshot = payment.screenshotUrl ? `<a class="payment-proof" href="${escapeHtml(payment.screenshotUrl)}" target="_blank" rel="noopener noreferrer"><img src="${escapeHtml(payment.screenshotUrl)}" alt="Payment screenshot for ${escapeHtml(payment.studentName || 'student')}" loading="lazy"><span><i class="fa-solid fa-up-right-from-square"></i> Open proof</span></a>` : '<span class="payment-proof-empty">No screenshot</span>';
-        const actions = status === 'pending' ? `<div class="payment-request-actions"><button type="button" class="btn btn-success" data-payment-action="approve" data-payment-id="${escapeHtml(payment.id)}"><i class="fa-solid fa-check"></i> Verify &amp; Give Access</button><button type="button" class="btn btn-danger" data-payment-action="reject" data-payment-id="${escapeHtml(payment.id)}"><i class="fa-solid fa-xmark"></i> Reject</button></div>` : '';
+        const actions = status === 'pending' ? `<div class="payment-request-actions"><button type="button" class="btn btn-success" data-payment-action="approve" data-payment-id="${escapeHtml(payment.id)}"><i class="fa-solid fa-check"></i> ${payment.method === 'free' ? 'Approve Free Enrollment' : 'Verify &amp; Give Access'}</button><button type="button" class="btn btn-danger" data-payment-action="reject" data-payment-id="${escapeHtml(payment.id)}"><i class="fa-solid fa-xmark"></i> Reject</button></div>` : '';
         const enrollment = loadedEnrollments.find(item => item.userId === payment.userId && item.courseId === payment.courseId);
         const enrollmentStatus = enrollment?.status || (status === 'approved' ? 'approved' : status === 'rejected' ? 'revoked' : 'pending');
         const enrollmentTime = payment.enrolledAt || enrollment?.approvedAt || (status === 'approved' ? payment.reviewedAt : null);
-        return `<article class="payment-request-card"><div class="payment-request-main"><div><span class="payment-request-label">Student</span><strong>${escapeHtml(payment.studentName || 'Student')}</strong><span>${escapeHtml(payment.studentEmail || 'Email unavailable')}</span><span>${escapeHtml(payment.phone || 'Phone unavailable')}</span></div><div><span class="payment-request-label">Course</span><strong>${escapeHtml(payment.courseTitle || 'Course')}</strong><span>৳${Number(payment.amount || 0).toLocaleString('en-BD')} · ${escapeHtml(payment.method || 'Payment')}</span></div><div><span class="payment-request-label">Transaction</span><strong>${escapeHtml(payment.transactionId || 'Not provided')}</strong><span>Requested: ${formatAdminDate(payment.submittedAt)}</span><span class="payment-enrolled-time">Access: ${enrollmentStatus}</span><span>Approved: ${enrollmentTime ? formatAdminDate(enrollmentTime) : 'Not yet'}</span></div><div><span class="payment-status-badge ${status}">${status}</span><span class="payment-status-badge ${enrollmentStatus}">Access: ${enrollmentStatus}</span>${screenshot}${status === 'rejected' && payment.rejectionReason ? `<span>${escapeHtml(payment.rejectionReason)}</span>` : ''}</div></div>${actions}</article>`;
+        const currencySymbols = { BDT: '৳', USD: '$', INR: '₹' };
+        const paidCurrency = Object.hasOwn(currencySymbols, payment.paidCurrency) ? payment.paidCurrency : 'BDT';
+        const paidAmount = Number(payment.paidAmount ?? payment.amount) || 0;
+        const amountLabel = `${currencySymbols[paidCurrency]}${paidAmount.toLocaleString(paidCurrency === 'BDT' ? 'en-BD' : paidCurrency === 'INR' ? 'en-IN' : 'en-US')}`;
+        const bdtAmountLabel = paidCurrency === 'BDT' ? '' : ` · course price ${Number(payment.amount || 0).toLocaleString('en-BD')} BDT`;
+        const methodLabels = { free: 'Free enrollment request', upi: 'UPI', bkash: 'bKash', rocket: 'Rocket', nagad: 'Nagad', bank: 'Bank transfer', visa: 'Visa', debit_card: 'Debit card', credit_card: 'Credit card', paypal: 'PayPal' };
+        const methodLabel = methodLabels[payment.method] || payment.method || 'Payment';
+        return `<article class="payment-request-card"><div class="payment-request-main"><div><span class="payment-request-label">Student</span><strong>${escapeHtml(payment.studentName || 'Student')}</strong><span>${escapeHtml(payment.studentEmail || 'Email unavailable')}</span><span>${escapeHtml(payment.phone || 'Phone unavailable')}</span></div><div><span class="payment-request-label">Course</span><strong>${escapeHtml(payment.courseTitle || 'Course')}</strong><span>${amountLabel}${bdtAmountLabel} · ${escapeHtml(methodLabel)}</span></div><div><span class="payment-request-label">Transaction</span><strong>${escapeHtml(payment.transactionId || 'Not provided')}</strong><span>Requested: ${formatAdminDate(payment.submittedAt)}</span><span class="payment-enrolled-time">Access: ${enrollmentStatus}</span><span>Approved: ${enrollmentTime ? formatAdminDate(enrollmentTime) : 'Not yet'}</span></div><div><span class="payment-status-badge ${status}">${status}</span><span class="payment-status-badge ${enrollmentStatus}">Access: ${enrollmentStatus}</span>${screenshot}${status === 'rejected' && payment.rejectionReason ? `<span>${escapeHtml(payment.rejectionReason)}</span>` : ''}</div></div>${actions}</article>`;
       }).join('');
     }
 
@@ -3991,21 +3998,26 @@
       const payment = loadedPayments.find(item => item.id === button.dataset.paymentId);
       if (!payment || payment.status !== 'pending') return;
       const action = button.dataset.paymentAction;
-      if (!confirm(action === 'approve' ? `Verify payment from ${payment.studentEmail || 'this student'} and grant course access?` : 'Reject this payment request?')) return;
+      const approvalPrompt = payment.method === 'free'
+        ? `Approve the free enrollment request from ${payment.studentEmail || 'this student'} and grant course access?`
+        : `Verify payment from ${payment.studentEmail || 'this student'} and grant course access?`;
+      if (!confirm(action === 'approve' ? approvalPrompt : 'Reject this payment request?')) return;
       button.disabled = true;
       try {
         if (action === 'approve') {
           await setCourseEnrollmentAccess({ uid: payment.userId, courseId: payment.courseId, status: 'approved', accessSource: 'payment', paymentMethod: payment.method, transactionId: payment.transactionId });
           await updatePayment(payment.id, { status: 'approved', accessGranted: true, enrolledAt: new Date() });
           if (payment.studentEmail) await grantEmailAccess(payment.studentEmail, payment.courseId);
-          await logAdminActivity('Payment verified', {
+          await logAdminActivity(payment.method === 'free' ? 'Free enrollment approved' : 'Payment verified', {
             page: 'payments',
             entityType: 'payment',
             entityId: payment.id,
-            description: `Verified payment for ${payment.studentEmail || 'student'} and granted access.`,
+            description: payment.method === 'free'
+              ? `Approved free enrollment for ${payment.studentEmail || 'student'} and granted access.`
+              : `Verified payment for ${payment.studentEmail || 'student'} and granted access.`,
             metadata: { studentEmail: payment.studentEmail, courseId: payment.courseId }
           }).catch(() => { });
-          setStatus(document.getElementById('paymentAdminStatus'), 'Payment verified and course access granted.', true);
+          setStatus(document.getElementById('paymentAdminStatus'), payment.method === 'free' ? 'Free enrollment approved and course access granted.' : 'Payment verified and course access granted.', true);
         } else {
           const reason = prompt('Optional rejection reason:', '') || '';
           await setCourseEnrollmentAccess({ uid: payment.userId, courseId: payment.courseId, status: 'revoked', accessSource: 'payment', paymentMethod: payment.method, transactionId: payment.transactionId });
@@ -4353,7 +4365,7 @@
       list.innerHTML = visible.length ? visible.map(({ course, module, lesson }) => {
         const connected = hasLessonVideo(lesson);
         const videoUrl = getLessonVideoUrl(lesson);
-        const playerUrl = `course.html?course=${encodeURIComponent(course.id)}&lesson=${encodeURIComponent(lesson.id)}`;
+        const playerUrl = `/course?course=${encodeURIComponent(course.id)}&lesson=${encodeURIComponent(lesson.id)}`;
         return `<article class="video-manager-row"><div><span class="video-manager-context">${escapeHtml(course.title)} / ${escapeHtml(module.title)}</span><strong>${escapeHtml(lesson.title || 'Untitled lesson')}</strong><small>${escapeHtml(lesson.duration || '0 min')}</small></div><span class="video-manager-status ${connected ? 'connected' : 'missing'}">${connected ? 'Connected' : 'Missing'}</span><div class="admin-btn-row"><a class="btn" href="${playerUrl}" target="_blank" rel="noopener noreferrer">Preview</a>${connected ? `<a class="btn" href="${escapeHtml(videoUrl)}" target="_blank" rel="noopener noreferrer">Video</a>` : ''}</div></article>`;
       }).join('') : '<div class="empty-state"><i class="fa-solid fa-video-slash"></i><strong>No matching videos</strong><span>Add a YouTube URL from the lesson editor.</span></div>';
     }
@@ -4490,7 +4502,7 @@
 
             <a
               class="btn"
-              href="course.html?course=${encodeURIComponent(course.id)}"
+              href="/course?course=${encodeURIComponent(course.id)}"
               target="_blank"
               rel="noopener noreferrer"
             >

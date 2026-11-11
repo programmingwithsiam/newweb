@@ -8,13 +8,13 @@ const API_BASE_URL = (() => {
         const envValue = import.meta.env.VITE_API_URL || import.meta.env.VITE_AUTH_API_URL;
         if (envValue) return envValue.replace(/\/$/, '');
     }
-    return 'https://codewithsiam-api.onrender.com';
+    if (typeof window !== 'undefined' && ['localhost', '127.0.0.1'].includes(window.location.hostname)) {
+        return 'https://codewithsiam-api.onrender.com';
+    }
+    return '';
 })();
 
 async function post(path, payload) {
-    if (!API_BASE_URL) {
-        throw new Error('The email verification service is not configured.');
-    }
     let response;
     try {
         response = await fetch(`${API_BASE_URL}${path}`, {
@@ -54,7 +54,7 @@ export function startRegistration({ name, email, password }) {
 }
 
 export function verifyRegistration({ email, otp, password }) {
-    return post('/api/auth/verify-otp', { email, otp, password });
+    return post('/api/auth/verify-otp', { email, otp, password, policyAccepted: true });
 }
 
 export function resendRegistrationCode({ email }) {

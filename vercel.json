@@ -1,5 +1,35 @@
 {
+  "functions": {
+    "api/[...path].js": {
+      "maxDuration": 10
+    }
+  },
   "redirects": [
+    {
+      "source": "/index.html",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/course.html",
+      "destination": "/course",
+      "permanent": true
+    },
+    {
+      "source": "/live.html",
+      "destination": "/live",
+      "permanent": true
+    },
+    {
+      "source": "/privacy.html",
+      "destination": "/privacy",
+      "permanent": true
+    },
+    {
+      "source": "/terms.html",
+      "destination": "/terms",
+      "permanent": true
+    },
     {
       "source": "/community.html",
       "destination": "/community/",
@@ -63,6 +93,18 @@
     {
       "source": "/course/",
       "destination": "/course.html"
+    },
+    {
+      "source": "/live",
+      "destination": "/live.html"
+    },
+    {
+      "source": "/privacy",
+      "destination": "/privacy.html"
+    },
+    {
+      "source": "/terms",
+      "destination": "/terms.html"
     },
     {
       "source": "/courses/:courseId",

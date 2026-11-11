@@ -14,6 +14,7 @@ const storyCategories = {
   'idea': '💡 Quick Idea',
   'challenge': '🔥 Challenge'
 };
+const storyReactionTypes = ['like', 'love', 'care', 'haha', 'wow', 'sad', 'angry'];
 
 function escapeHtml(value) {
   const node = document.createElement('div');
@@ -42,22 +43,29 @@ function relativeTime(value) {
   return `${Math.floor(minutes / 1440)}d`;
 }
 
-export async function createStory(storyData) {
-  const { addDoc, collection, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js');
+async function getVerifiedStoryUser() {
+  const user = auth?.currentUser;
+  if (!user) throw new Error('Sign in to post a story.');
+  await user.reload();
+  if (!user.emailVerified) throw new Error('Verify your email address before posting a story.');
+  await user.getIdToken(true);
+  return user;
+}
 
-  if (!auth.currentUser) throw new Error('Must be signed in to create a story');
+export async function createStory(storyData) {
+  const user = await getVerifiedStoryUser();
+  const { addDoc, collection, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js');
 
   const createdAt = serverTimestamp();
   const expiresAt = new Date(Date.now() + 86400000); // 24 hours from now
 
   const story = {
-    authorUid: auth.currentUser.uid,
-    authorName: auth.currentUser.displayName || auth.currentUser.email?.split('@')[0] || 'Member',
-    avatarUrl: auth.currentUser.photoURL || '',
+    authorUid: user.uid,
+    authorName: (user.displayName || user.email?.split('@')[0] || 'Member').slice(0, 80),
+    avatarUrl: (user.photoURL || '').slice(0, 1000),
     type: storyData.type, // 'text' or 'image'
     content: storyData.content || storyData.text || '',
     mediaUrl: storyData.mediaUrl || storyData.imageData || '',
-    imageData: storyData.imageData || storyData.mediaUrl || '',
     category: storyData.category || 'learning',
     ...(storyData.music ? { music: storyData.music } : {}),
     createdAt,
@@ -75,16 +83,19 @@ export async function createStory(storyData) {
 }
 
 export async function uploadStoryImage(file) {
-  if (!auth.currentUser) throw new Error('Must be signed in');
+  const user = await getVerifiedStoryUser();
   if (!file || !file.type.startsWith('image/')) throw new Error('File must be an image');
   if (file.size > 5 * 1024 * 1024) throw new Error('Image must be smaller than 5 MB');
 
-  return await new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result || ''));
-    reader.onerror = () => reject(new Error('Failed to read the selected image.'));
-    reader.readAsDataURL(file);
-  });
+  if (!storage) throw new Error('Firebase Storage is unavailable. Please try again later.');
+
+  const { getDownloadURL, ref, uploadBytes } = await import('https://www.gstatic.com/firebasejs/10.13.0/firebase-storage.js');
+  const extension = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' }[file.type];
+  if (!extension) throw new Error('Choose a JPG, PNG, or WebP image.');
+
+  const fileRef = ref(storage, `community_images/${user.uid}/story-${Date.now()}-${crypto.randomUUID()}.${extension}`);
+  const uploaded = await uploadBytes(fileRef, file, { contentType: file.type });
+  return getDownloadURL(uploaded.ref);
 }
 
 export async function getActiveStories() {
@@ -113,7 +124,7 @@ export async function getActiveStories() {
     return Array.from(storyMap.values());
   } catch (error) {
     console.error('Error fetching stories:', error);
-    return [];
+    throw error;
   }
 }
 
@@ -135,6 +146,30 @@ export async function addStoryView(storyId) {
   } catch (error) {
     console.error('Error adding story view:', error);
   }
+}
+
+export async function setStoryReaction(storyId, reactionType) {
+  const user = await getVerifiedStoryUser();
+  if (reactionType !== null && !storyReactionTypes.includes(reactionType)) {
+    throw new Error('Choose a valid story reaction.');
+  }
+
+  const { deleteField, doc, FieldPath, updateDoc } = await import('https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js');
+  const storyRef = doc(db, 'stories', storyId);
+  await updateDoc(
+    storyRef,
+    new FieldPath('reactions', user.uid),
+    reactionType === null ? deleteField() : reactionType
+  );
+}
+
+export async function watchStoryReactions(storyId, onChange, onError) {
+  const { doc, onSnapshot } = await import('https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js');
+  return onSnapshot(
+    doc(db, 'stories', storyId),
+    snapshot => onChange(snapshot.exists() ? snapshot.data().reactions || {} : {}),
+    onError
+  );
 }
 
 export async function deleteStory(storyId) {
@@ -197,11 +232,12 @@ export function renderStoryCard(story) {
 export function renderStoryViewer(story) {
   const categoryLabel = getStoryCategory(story.category);
   const music = story.music?.videoId ? `<a class="story-music-sticker" href="https://www.youtube.com/watch?v=${encodeURIComponent(story.music.videoId)}" target="_blank" rel="noopener noreferrer"><i class="fa-solid fa-music"></i> ${escapeHtml(story.music.title || 'Music')}</a>` : '';
+  const mediaUrl = story.mediaUrl || story.imageData || '';
   
   if (story.type === 'image') {
     return `
       <div class="story-viewer-content image-story">
-        <img src="${escapeHtml(story.mediaUrl)}" alt="Story image" class="story-image-full">
+        <img src="${escapeHtml(mediaUrl)}" alt="Story image" class="story-image-full">
         <div class="story-overlay">
           <p class="story-caption">${escapeHtml(story.content)}</p>
           <span class="story-category">${escapeHtml(categoryLabel)}</span>

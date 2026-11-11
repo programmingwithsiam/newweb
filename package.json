@@ -8,7 +8,21 @@
   "scripts": {
     "dev": "npx --yes serve .",
     "start": "npx --yes serve .",
-    "check": "node --check assets/js/auth.js && node --check assets/js/auth-app.js && node --check assets/js/course-learning.js && node --check assets/js/courses-db.js && node --check assets/js/live-learning.js && node --check assets/js/script.js"
+    "check": "node --check assets/js/auth.js && node --check assets/js/auth-app.js && node --check assets/js/course-enrollment.js && node --check assets/js/course-learning.js && node --check assets/js/courses-db.js && node --check assets/js/live-learning.js && node --check assets/js/page-renderers.js && node --check assets/js/script.js"
+  },
+
+  "engines": {
+    "node": ">=20"
+  },
+
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^5.1.0",
+    "express-rate-limit": "^7.5.0",
+    "firebase-admin": "^14.5.0",
+    "helmet": "^8.1.0",
+    "nodemailer": "^10.0.13"
   },
 
   "devDependencies": {

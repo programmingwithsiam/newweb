@@ -1,6 +1,8 @@
 // Configures the Express auth API, middleware, and health endpoint.
 import './env.js';
 import { randomUUID } from 'node:crypto';
+import { resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import cors from 'cors';
 import express from 'express';
 import rateLimit from 'express-rate-limit';
@@ -9,7 +11,7 @@ import authRoutes from './auth-routes.js';
 
 const app = express();
 const port = Number(process.env.PORT) || 3001;
-const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:3000,http://localhost:5173')
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'https://codewithsiam.vercel.app,http://localhost:5173')
     .split(',')
     .map((origin) => origin.trim())
     .filter(Boolean);
@@ -55,6 +57,10 @@ app.use((error, _req, res, _next) => {
     return res.status(500).json({ error: 'The request could not be completed.' });
 });
 
-app.listen(port, () => {
-    console.info(JSON.stringify({ timestamp: new Date().toISOString(), stage: 'server_listening', port }));
-});
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+    app.listen(port, () => {
+        console.info(JSON.stringify({ timestamp: new Date().toISOString(), stage: 'server_listening', port }));
+    });
+}
+
+export default app;
