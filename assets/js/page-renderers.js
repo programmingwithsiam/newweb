@@ -48,7 +48,7 @@ function saveCourseProgress(progress) {
     const courseId = activeCourse.id;
     const courseProgress = progress[courseId];
     if (courseProgress) {
-      import('./courses-db.js')
+      import('./courses-db.js?v=20261111-remove-python-bangla-1')
         .then(({ saveUserCourseProgress }) => saveUserCourseProgress(currentSignedInUid, courseId, courseProgress))
         .catch(err => console.error('Cloud progress sync failed:', err));
     }
@@ -140,12 +140,12 @@ function normalizeCourse(course) {
 
 export async function loadCourses() {
   try {
-    const { fetchAllCourses } = await import('./courses-db.js');
+    const { fetchAllCourses } = await import('./courses-db.js?v=20261111-remove-python-bangla-1');
     const courses = await fetchAllCourses({ includeLessons: false });
     cachedCourses = courses.map(normalizeCourse);
   } catch (error) {
     console.error('loadCourses() failed:', error);
-    const { getDefaultCourses } = await import('./courses-db.js');
+    const { getDefaultCourses } = await import('./courses-db.js?v=20261111-remove-python-bangla-1');
     cachedCourses = getDefaultCourses().map(normalizeCourse);
   }
 }
@@ -464,7 +464,7 @@ export function initLiveHub() {
   const archive = document.getElementById('liveArchiveList');
   const count = document.getElementById('liveArchiveCount');
   if (!current || !archive) return;
-  const load = () => import('./courses-db.js').then(async ({ fetchLiveSettings, fetchLiveSessions, extractYoutubeId }) => {
+  const load = () => import('./courses-db.js?v=20261111-remove-python-bangla-1').then(async ({ fetchLiveSettings, fetchLiveSessions, extractYoutubeId }) => {
     const [settings, sessions] = await Promise.all([fetchLiveSettings().catch(() => ({})), fetchLiveSessions().catch(() => [])]);
     const liveId = extractYoutubeId(settings.url || '');
     if (settings.enabled === true && liveId) {
@@ -490,7 +490,7 @@ export function initLiveNotification() {
   const frame = document.getElementById('liveNotificationFrame');
   const openLink = document.getElementById('liveNotificationOpen');
   if (!button || !panel || !frame || !openLink) return;
-  import('./courses-db.js').then(async ({ fetchLiveSettings, extractYoutubeId }) => {
+  import('./courses-db.js?v=20261111-remove-python-bangla-1').then(async ({ fetchLiveSettings, extractYoutubeId }) => {
     const settings = await fetchLiveSettings().catch(() => ({}));
     const videoId = extractYoutubeId(settings.url || '');
     if (settings.enabled !== true || !videoId) return;

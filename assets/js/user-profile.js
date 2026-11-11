@@ -1,6 +1,6 @@
 import { auth, db } from './firebase-init.js';
 import { observeAuthState, redirectToAuthPrompt } from './auth.js?v=20261001-auth-flow-1';
-import { fetchAllCourses, fetchUserPayments } from './courses-db.js';
+import { fetchAllCourses, fetchUserPayments } from './courses-db.js?v=20261111-remove-python-bangla-1';
 
 let currentUser = null;
 let viewingUserId = null;

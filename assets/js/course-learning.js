@@ -1,4 +1,4 @@
-import { fetchAllCourses, saveUserCourseProgress, createPaymentSubmission, createFreeCourseEnrollment, uploadPaymentScreenshot, updatePaymentScreenshot, fetchUserPayments, getLessonVideoSource } from './courses-db.js?v=20261004-checkout-email-1';
+import { fetchAllCourses, saveUserCourseProgress, createPaymentSubmission, createFreeCourseEnrollment, uploadPaymentScreenshot, updatePaymentScreenshot, fetchUserPayments, getLessonVideoSource } from './courses-db.js?v=20261111-remove-python-bangla-1';
 import { observeAuthState, redirectToAuthPrompt } from './auth.js?v=20261001-auth-flow-1';
 
 const progressKey = 'siam_portfolio_course_progress';
@@ -1442,7 +1442,7 @@ async function load(generation = authLoadGeneration) {
   if (generation !== authLoadGeneration) return;
   const requestedCourseId = courseId || null;
   course = all.find(item => item.id === requestedCourseId)
-    || all.find(item => item.id === 'python-for-beginners-bangla')
+    || (!requestedCourseId ? all[0] : null)
     || all[0] || null;
 
   if (!course) {

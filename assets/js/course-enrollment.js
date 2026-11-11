@@ -1,4 +1,4 @@
-import { createPaymentSubmission, fetchAllCourses, updatePaymentScreenshot, uploadPaymentScreenshot } from './courses-db.js';
+import { createPaymentSubmission, fetchAllCourses, updatePaymentScreenshot, uploadPaymentScreenshot } from './courses-db.js?v=20261111-remove-python-bangla-1';
 import { observeAuthState, signInWithGoogle } from './auth.js';
 import { getCourseThumbnail } from './page-renderers.js?v=20261008-course-image-1';
 
@@ -269,7 +269,7 @@ async function loadCourse() {
     const requestedId = getRequestedCourseId();
     const selected = requestedId
       ? courses.find(course => course.id === requestedId)
-      : courses.find(course => course.id === 'python-for-beginners-bangla') || courses[0];
+      : courses[0];
     if (!selected) {
       setPageError('This course could not be found. Return to the course list and choose another course.');
       return;

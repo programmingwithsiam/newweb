@@ -163,32 +163,8 @@ const CACHE_TTL_MS = 5 * 60 * 1000;
 const COURSE_CACHE_KEY = 'siam_course_catalog_cache_v3';
 const LEGACY_COURSE_CACHE_KEY = 'siam_course_catalog_cache_v2';
 const LIVE_CACHE_KEY = 'siam_live_archive_cache_v1';
-const DEFAULT_COURSE = {
-  id: 'python-for-beginners-bangla',
-  title: 'Python for Beginners (Bangla)',
-  description: 'A beginner-friendly Python course in Bangla, built for students who want to start programming from zero and move toward AI and machine learning.',
-  category: 'Python',
-  language: 'Bangla',
-  instructor: 'CodeWithSiam',
-  status: 'published',
-  price: 0,
-  discountPrice: 0,
-  order: 1,
-  modules: [{
-    id: 'python-foundations',
-    title: 'Python Foundations',
-    lessonCatalog: [
-      'Introduction to Python & Environment Setup',
-      'Variables, Data Types, and Operators',
-      'Conditionals and Loops',
-      'Functions and Modules',
-      'Lists, Tuples, Dictionaries, Sets',
-      'File Handling Basics',
-      'Mini Project: Simple Calculator / To-Do App',
-      'Next Steps: Intro to NumPy & Pandas (bridge to Data Science)'
-    ].map((title, index) => ({ id: `python-foundations-${index + 1}`, title, duration: 'Lesson', order: index + 1 }))
-  }]
-};
+const REMOVED_COURSE_IDS = new Set(['python-for-beginners-bangla']);
+const REMOVED_COURSE_TITLES = new Set(['python for beginners (bangla)']);
 
 const PUBLIC_PREVIEW_VIDEO_OVERRIDES = {
   vpMoUwqh9pGrYovnWVcf: {
@@ -199,9 +175,13 @@ const PUBLIC_PREVIEW_VIDEO_OVERRIDES = {
 try { localStorage.removeItem(LEGACY_COURSE_CACHE_KEY); } catch {}
 try { sessionStorage.removeItem(LEGACY_COURSE_CACHE_KEY); } catch {}
 
+function isRemovedCourse(course) {
+  return REMOVED_COURSE_IDS.has(String(course?.id || ''))
+    || REMOVED_COURSE_TITLES.has(String(course?.title || '').trim().toLowerCase());
+}
+
 export function getDefaultCourses() {
-  const fallbackModules = DEFAULT_COURSE.modules.map(module => ({ ...module, lessons: module.lessonCatalog }));
-  return [{ ...DEFAULT_COURSE, modules: fallbackModules, lessons: fallbackModules.flatMap(module => module.lessons) }];
+  return [];
 }
 
 function readSessionCache(key) {
@@ -225,7 +205,9 @@ function readCourseCatalogCache() {
   const checkStorage = storageApi => {
     try {
       const cached = JSON.parse(storageApi.getItem(COURSE_CACHE_KEY) || 'null');
-      return cached && Date.now() - cached.timestamp < CACHE_TTL_MS ? cached.value : null;
+      return cached && Date.now() - cached.timestamp < CACHE_TTL_MS && Array.isArray(cached.value)
+        ? cached.value.filter(course => !isRemovedCourse(course))
+        : null;
     } catch {
       return null;
     }
@@ -234,7 +216,7 @@ function readCourseCatalogCache() {
 }
 
 function writeCourseCatalogCache(value) {
-  const publicCatalog = value.map(course => {
+  const publicCatalog = value.filter(course => !isRemovedCourse(course)).map(course => {
     const publicCourse = Object.fromEntries(Object.entries(course).filter(([key]) => (
       !['videoUrl', 'youtubeUrl', 'youtubeVideoId', 'videoId', 'accessStatus', 'accessSource', 'accessDenied', 'lessons'].includes(key)
     )));
@@ -312,7 +294,9 @@ export async function fetchAllCourses({ includeLessons = true } = {}) {
       }
     }
 
-    const courses = await Promise.all(sortByOrder(coursesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }))).map(async (course) => {
+    const courses = await Promise.all(sortByOrder(coursesSnap.docs
+      .map(doc => ({ id: doc.id, ...doc.data() }))
+      .filter(course => !isRemovedCourse(course))).map(async (course) => {
       const enrollment = currentUser ? await fetchCourseEnrollment(currentUser.uid, course.id).catch(() => null) : null;
       const legacyAccess = isVerifiedUser && emailAccess && (!courseAccessIds.length || courseAccessIds.includes(course.id));
       const hasAccess = isAdminUser || enrollment?.status === 'approved' || (legacyAccess && enrollment?.status !== 'revoked');

@@ -1,4 +1,4 @@
-import { fetchLiveSettings, fetchLiveSessions, extractYoutubeId } from './courses-db.js';
+import { fetchLiveSettings, fetchLiveSessions, extractYoutubeId } from './courses-db.js?v=20261111-remove-python-bangla-1';
 import { observeAuthState, signInWithGoogle } from './auth.js';
 import { auth, db } from './firebase-init.js';
 
@@ -267,4 +267,3 @@ document.getElementById('completeLive').addEventListener('click', () => move(1))
 document.getElementById('joinAudioRoom').addEventListener('click', () => {
   if (auth?.currentUser) window.open('https://meet.jit.si/CodeWithSiamLive', '_blank', 'noopener,noreferrer');
 });
-
