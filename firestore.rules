@@ -418,7 +418,14 @@ service cloud.firestore {
         request.resource.data.studentEmail.size() <= 254 &&
         request.resource.data.studentEmail.matches('^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$') &&
         request.resource.data.courseId is string && request.resource.data.courseId.size() > 0 &&
-        request.resource.data.method in ['bkash', 'rocket', 'nagad', 'bank', 'upi', 'visa', 'debit_card', 'credit_card', 'paypal'] &&
+        request.resource.data.method in ['bkash', 'rocket', 'nagad', 'bank', 'visa', 'debit_card', 'credit_card', 'paypal', 'upi', 'free'] &&
+        ((!request.resource.data.keys().hasAny(['paidAmount', 'paidCurrency']) && request.resource.data.method != 'free') ||
+          (request.resource.data.keys().hasAll(['paidAmount', 'paidCurrency']) &&
+            request.resource.data.paidAmount is number &&
+            ((request.resource.data.method == 'free' &&
+              request.resource.data.paidAmount == 0 && request.resource.data.paidCurrency == 'BDT') ||
+             (request.resource.data.method != 'free' &&
+              request.resource.data.paidAmount > 0 && request.resource.data.paidCurrency in ['BDT', 'USD', 'INR'])))) &&
         request.resource.data.transactionId is string &&
         ((request.resource.data.method == 'free' && request.resource.data.transactionId == '') ||
           (request.resource.data.method != 'free' && request.resource.data.transactionId.size() > 0)) &&

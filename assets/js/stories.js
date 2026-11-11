@@ -1,4 +1,5 @@
-import { getActiveStories, addStoryView, renderStoryViewer } from './story-manager.js?v=20260901-index-fix-1';
+import { getActiveStories, addStoryView, renderStoryViewer, createStory, uploadStoryImage, setStoryReaction, watchStoryReactions } from './story-manager.js?v=20261108-story-reactions-1';
+import { auth } from './firebase-init.js';
 
 const content = document.getElementById('storyContent');
 const progress = document.getElementById('storyProgress');
@@ -364,7 +365,10 @@ async function init() {
   }
 }
 
-closeButton?.addEventListener('click', () => { window.location.href = 'community.html'; });
+closeButton?.addEventListener('click', () => { window.location.href = '/community/'; });
+storyReactionButtons.forEach(button => {
+  button.addEventListener('click', () => reactToCurrentStory(button.dataset.storyReaction));
+});
 previousButton?.addEventListener('click', () => { if (selectedIndex > 0) { selectedIndex -= 1; renderSelectedStory(); } });
 nextButton?.addEventListener('click', () => { if (selectedIndex < stories.length - 1) { selectedIndex += 1; renderSelectedStory(); } });
 closeSidebarButton?.addEventListener('click', () => viewerSidebar?.classList.add('hidden'));

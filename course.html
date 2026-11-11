@@ -4,17 +4,34 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Course | CodeWithSiam</title>
-  <meta name="description" content="Learn with CodeWithSiam video lessons.">
+  <title>Courses — CodeWithSiam</title>
+  <meta name="description" content="Explore practical Python, data science, and AI courses from CodeWithSiam, with project-based lessons for learners.">
   <meta name="robots" content="index, follow, max-image-preview:large">
-  <link rel="canonical" href="https://codewithsiam.vercel.app/course.html">
+  <link rel="canonical" href="https://codewithsiam.vercel.app/course">
   <meta property="og:type" content="website">
-  <meta property="og:title" content="Courses | CodeWithSiam">
-  <meta property="og:description" content="Learn practical programming with CodeWithSiam video lessons.">
+  <meta property="og:title" content="Courses — CodeWithSiam">
+  <meta property="og:description" content="Explore practical Python, data science, and AI courses from CodeWithSiam, with project-based lessons for learners.">
+  <meta property="og:url" content="https://codewithsiam.vercel.app/course">
   <meta property="og:image" content="https://codewithsiam.vercel.app/assets/images/profile-siam.jpeg">
   <meta property="og:image:alt" content="CodeWithSiam official profile image">
-  <meta name="twitter:card" content="summary">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Courses — CodeWithSiam">
+  <meta name="twitter:description" content="Explore practical Python, data science, and AI courses from CodeWithSiam, with project-based lessons for learners.">
   <meta name="twitter:image" content="https://codewithsiam.vercel.app/assets/images/profile-siam.jpeg">
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      "name": "Courses — CodeWithSiam",
+      "description": "Explore practical Python, data science, and AI courses from CodeWithSiam, with project-based lessons for learners.",
+      "url": "https://codewithsiam.vercel.app/course",
+      "isPartOf": {
+        "@type": "WebSite",
+        "name": "CodeWithSiam",
+        "url": "https://codewithsiam.vercel.app/"
+      }
+    }
+  </script>
   <link rel="icon" type="image/png" sizes="256x256" href="/assets/images/profile-siam-round.png?v=20260828">
   <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
   <link rel="apple-touch-icon" sizes="180x180" href="/assets/images/profile-siam-round.png?v=20260828">
@@ -108,7 +125,7 @@
       font-weight: 800;
     }
 
-    #learningLogin .access-intro h1 {
+    #learningLogin .access-intro h2 {
       max-width: 100%;
       margin: 0;
       color: #f5f7fb;
@@ -186,7 +203,7 @@
       }
     }
 
-    .learning-state h1 {
+    .learning-state :is(h1, h2) {
       margin: 0;
       font-size: clamp(1.45rem, 4vw, 2rem);
     }
@@ -232,7 +249,7 @@
       font-size: 1.35rem;
     }
 
-    .lesson-locked-state h1 {
+    .lesson-locked-state h2 {
       max-width: 480px;
       margin: 0;
       color: #f2f3e9;
@@ -418,7 +435,7 @@
       font-size: 1.4rem;
     }
 
-    .access-intro h1 {
+    .access-intro h2 {
       margin: 0;
     }
 
@@ -1717,7 +1734,7 @@
       padding: 24px 0;
     }
 
-    .lesson-heading h1 {
+    .lesson-heading h2 {
       margin: 0 0 8px;
       font-size: clamp(1.5rem, 3vw, 2.2rem);
       letter-spacing: -.02em;
@@ -1967,7 +1984,7 @@
       padding: 20px 2px 14px;
     }
 
-    .lesson-heading h1 {
+    .lesson-heading h2 {
       font-size: clamp(1.35rem, 2.5vw, 2rem);
     }
 
@@ -2179,7 +2196,7 @@
       padding: 16px 2px 12px;
     }
 
-    .lesson-heading h1 {
+    .lesson-heading h2 {
       font-size: clamp(1.45rem, 2.4vw, 2rem);
     }
 
@@ -3422,7 +3439,7 @@
         padding: 16px 0 12px;
       }
 
-      .lesson-heading h1 {
+      .lesson-heading h2 {
         overflow-wrap: anywhere;
       }
 
@@ -5485,7 +5502,7 @@
           aria-hidden="true"></i></button>
     </header>
     <div class="mobile-course-summary">
-      <h1 id="mobileCourseHeading">Course</h1>
+      <h2 id="mobileCourseHeading">Course</h2>
       <div class="mobile-course-progress-label"><strong id="mobileCourseProgressText">0% COMPLETE</strong><span
           id="mobileCourseProgressCount">0 / 0 lessons</span></div>
       <div class="mobile-course-progress"><span id="mobileCourseProgressBar"></span></div>
@@ -5524,11 +5541,11 @@
       <div id="accessIntro" class="access-intro">
         <i class="fa-solid fa-graduation-cap"></i>
         <span class="learning-eyebrow">ENROLL IN COURSE</span>
-        <h1 id="accessIntroTitle">Course</h1>
+        <h2 id="accessIntroTitle">Course</h2>
         <strong id="accessIntroPrice">৳0</strong>
         <button id="accessContinueBtn" class="learning-button primary" type="button">Continue to Sign In</button>
       </div>
-      <h1 id="learningGateTitle">Sign in to start learning</h1>
+      <h2 id="learningGateTitle">Sign in to start learning</h2>
       <p id="learningGateText">Sign in or create an account to enroll and access private lessons.</p>
       <div class="course-payment-panel learning-payment-panel access-payment-panel">
         <div>
@@ -5856,7 +5873,7 @@
     <section id="lessonLocked" class="learning-state lesson-locked-state hidden" aria-live="polite">
       <div class="locked-icon" aria-hidden="true"><i class="fa-solid fa-lock"></i></div>
       <p class="learning-eyebrow">ENROLLMENT ACCESS</p>
-      <h1>This class is available for enrolled students.</h1>
+      <h2>This class is available for enrolled students.</h2>
       <p id="lessonLockedMessage">Watch the first 2 classes free before enrolling.</p>
       <button id="lessonEnrollBtn" class="learning-button primary" type="button"><i class="fa-solid fa-key"></i> Enroll
         Now</button>
@@ -5927,7 +5944,7 @@
         <div class="lesson-heading">
           <div>
             <p class="learning-eyebrow">NOW PLAYING</p>
-            <h1 id="lessonTitle">Lesson</h1>
+            <h2 id="lessonTitle">Lesson</h2>
             <p id="lessonDescription"></p><a id="lessonYoutubeLink" class="lesson-youtube-link hidden" href=""
               target="_blank" rel="noopener noreferrer">Watch on YouTube</a>
           </div><span id="lessonDuration" class="lesson-duration"></span>
