@@ -55,7 +55,17 @@ npm run dev
 ```
 
 The development server serves the repository root, so the main entrypoints are
-`/`, `/course.html`, `/live.html`, and `/admin.html`.
+`/`, `/course.html`, `/live.html`, and `/admin.html`. The `/live`, `/privacy`,
+and `/terms` clean URLs are also configured for local development.
+
+## Checks
+
+`npm run check` syntax-checks first-party browser modules, API handlers, and
+the Express registration service. Run `node --test tests/*.test.js` for the
+available route tests. These checks do not replace browser
+or Firebase integration testing. Root dependencies are used when Vercel
+bundles the serverless API; `server/package.json` supports running the API
+independently.
 
 ## Optional backend services
 

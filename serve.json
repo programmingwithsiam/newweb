@@ -15,6 +15,9 @@
     { "source": "/community/notifications", "destination": "/community/index.html" },
     { "source": "/community/settings", "destination": "/community/index.html" },
     { "source": "/community/post/*", "destination": "/community/index.html" },
-    { "source": "/community/create", "destination": "/community/index.html" }
+    { "source": "/community/create", "destination": "/community/index.html" },
+    { "source": "/live", "destination": "/live.html" },
+    { "source": "/privacy", "destination": "/privacy.html" },
+    { "source": "/terms", "destination": "/terms.html" }
   ]
 }
