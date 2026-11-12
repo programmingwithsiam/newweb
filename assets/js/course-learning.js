@@ -237,7 +237,15 @@ async function togglePlayerFullscreen(target, fallbackTarget) {
     try {
       await method.call(element);
       const entered = document.fullscreenElement === element || document.webkitFullscreenElement === element;
-      if (entered) await lockFullscreenOrientation();
+      if (entered && !(await lockFullscreenOrientation())) {
+        const exit = document.exitFullscreen || document.webkitExitFullscreen;
+        try {
+          await exit?.call(document);
+        } catch (error) {
+          console.warn('Could not exit fullscreen before using the mobile landscape fallback.', error);
+        }
+        return false;
+      }
       return entered;
     } catch {
       return false;
@@ -245,11 +253,18 @@ async function togglePlayerFullscreen(target, fallbackTarget) {
   };
   if (await tryFullscreen(target)) return;
   if (fallbackTarget instanceof HTMLVideoElement && await tryFullscreen(fallbackTarget)) return;
-  const enterVideoFullscreen = fallbackTarget?.webkitEnterFullscreen;
+  const needsLandscapeFallback = mobileCourseMedia.matches
+    && window.matchMedia('(orientation: portrait)').matches;
+  const enterVideoFullscreen = needsLandscapeFallback ? null : fallbackTarget?.webkitEnterFullscreen;
   if (typeof enterVideoFullscreen === 'function') {
     try {
       enterVideoFullscreen.call(fallbackTarget);
-      await lockFullscreenOrientation();
+      if (!(await lockFullscreenOrientation())) {
+        target?.classList.add('is-mobile-fullscreen');
+        document.body.classList.add('has-mobile-player-fullscreen');
+        target?.showPlayerControls?.();
+        syncPlayerFullscreenState();
+      }
       return;
     } catch {
       // Use the CSS viewport mode when native video fullscreen is unavailable.
@@ -263,7 +278,8 @@ async function togglePlayerFullscreen(target, fallbackTarget) {
 }
 async function lockFullscreenOrientation() {
   const orientation = screen.orientation;
-  if (!orientation?.lock || !mobileCourseMedia.matches) return;
+  if (!mobileCourseMedia.matches || !window.matchMedia('(orientation: portrait)').matches) return true;
+  if (!orientation?.lock) return false;
   try {
     await orientation.lock('landscape');
     const wrap = fullscreenPlayerWrap;
@@ -271,11 +287,13 @@ async function lockFullscreenOrientation() {
     const nativeFullscreen = Boolean(wrap && activeElement && (activeElement === wrap || wrap.contains(activeElement)));
     if (nativeFullscreen || wrap?.classList.contains('is-mobile-fullscreen')) {
       fullscreenOrientationLock = orientation;
+      return true;
     } else {
       orientation.unlock?.();
+      return false;
     }
   } catch {
-    // Orientation locking is optional and may be denied by the browser or device.
+    return false;
   }
 }
 async function releaseFullscreenOrientation() {
@@ -328,6 +346,12 @@ function setupPlayerAutoHide(wrap, controls, isPlaying) {
   controls.addEventListener('click', event => { event.stopPropagation(); show(); });
   wrap.showPlayerControls = show;
   show();
+}
+function syncVolumeSlider(slider, volume) {
+  if (!slider) return;
+  const value = Math.max(0, Math.min(100, Number(volume) || 0));
+  slider.value = String(value);
+  slider.style.setProperty('--volume-level', `${value}%`);
 }
 function toggleVideoSurfacePlayback(wrap) {
   const video = $('lessonMp4');
@@ -783,7 +807,7 @@ function setupCustomVideoPlayer(enabled = true) {
   muteButton.addEventListener('click', () => {
     video.muted = !video.muted;
     muteIcon.className = video.muted ? 'fa-solid fa-volume-xmark' : 'fa-solid fa-volume-high';
-    volumeSlider.value = video.muted ? 0 : String(Math.round(video.volume * 100));
+    syncVolumeSlider(volumeSlider, video.muted ? 0 : video.volume * 100);
     if (volumeValue) volumeValue.textContent = `${volumeSlider.value}%`;
     setPlayerButtonTooltip(muteButton, video.muted ? 'Unmute' : 'Mute');
   });
@@ -793,12 +817,13 @@ function setupCustomVideoPlayer(enabled = true) {
   volumeSlider.addEventListener('input', () => {
     video.volume = Number(volumeSlider.value) / 100;
     video.muted = video.volume === 0;
+    syncVolumeSlider(volumeSlider, volumeSlider.value);
     if (volumeValue) volumeValue.textContent = `${volumeSlider.value}%`;
     muteIcon.className = video.muted ? 'fa-solid fa-volume-xmark' : video.volume < .5 ? 'fa-solid fa-volume-low' : 'fa-solid fa-volume-high';
     setPlayerButtonTooltip(muteButton, video.muted ? 'Unmute' : 'Mute');
   });
   video.addEventListener('volumechange', () => {
-    volumeSlider.value = video.muted ? 0 : String(Math.round(video.volume * 100));
+    syncVolumeSlider(volumeSlider, video.muted ? 0 : video.volume * 100);
     if (volumeValue) volumeValue.textContent = `${volumeSlider.value}%`;
     muteIcon.className = video.muted ? 'fa-solid fa-volume-xmark' : video.volume < .5 ? 'fa-solid fa-volume-low' : 'fa-solid fa-volume-high';
   });
@@ -812,6 +837,7 @@ function setupCustomVideoPlayer(enabled = true) {
   });
   video.addEventListener('timeupdate', updateTime);
   video.addEventListener('loadedmetadata', updateTime);
+  syncVolumeSlider(volumeSlider, video.muted ? 0 : video.volume * 100);
   video.addEventListener('loadedmetadata', () => {
     video.muted = false;
     if (video.volume === 0) video.volume = 1;
@@ -951,7 +977,7 @@ function setupYoutubePlayer(videoId, youtubeUrl, autoplay = false) {
       setPlayerButtonTooltip(muteButton.closest('button'), isMuted ? 'Unmute' : 'Mute');
     }
     if (volumeSlider) {
-      volumeSlider.value = isMuted ? '0' : String(volume);
+      syncVolumeSlider(volumeSlider, isMuted ? 0 : volume);
       if (volumeValue) volumeValue.textContent = `${volumeSlider.value}%`;
     }
   };
@@ -979,6 +1005,7 @@ function setupYoutubePlayer(videoId, youtubeUrl, autoplay = false) {
   };
   volumeSlider?.addEventListener('input', () => {
     const volume = Number(volumeSlider.value);
+    syncVolumeSlider(volumeSlider, volume);
     if (volume === 0) youtubePlayer?.mute?.();
     else {
       youtubePlayer?.unMute?.();

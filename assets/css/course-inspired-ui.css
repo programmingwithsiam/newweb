@@ -1276,12 +1276,67 @@ input::placeholder {
 .youtube-volume-control .youtube-volume-slider {
   flex: 0 0 0;
   width: 0;
-  height: 24px;
+  min-width: 0;
+  height: 18px !important;
+  min-height: 0 !important;
+  max-height: 18px;
   margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  outline: 0;
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent !important;
+  box-shadow: none !important;
   opacity: 0;
   accent-color: #ff5738;
   cursor: pointer;
   transition: width .16s ease, opacity .16s ease;
+}
+
+.youtube-volume-control .youtube-volume-slider::-webkit-slider-runnable-track {
+  height: 3px;
+  border: 0;
+  border-radius: 999px;
+  background: linear-gradient(to right, #ff5738 0%, #ff5738 var(--volume-level, 100%), rgba(255, 255, 255, .35) var(--volume-level, 100%), rgba(255, 255, 255, .35) 100%);
+}
+
+.youtube-volume-control .youtube-volume-slider::-moz-range-track {
+  height: 3px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .35);
+}
+
+.youtube-volume-control .youtube-volume-slider::-moz-range-progress {
+  height: 3px;
+  border-radius: 999px;
+  background: #ff5738;
+}
+
+.youtube-volume-control .youtube-volume-slider::-webkit-slider-thumb {
+  width: 12px;
+  height: 12px;
+  margin-top: -4.5px;
+  border: 0;
+  border-radius: 50%;
+  appearance: none;
+  -webkit-appearance: none;
+  background: #ff5738;
+}
+
+.youtube-volume-control .youtube-volume-slider::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border: 0;
+  border-radius: 50%;
+  background: #ff5738;
+}
+
+.youtube-volume-control .youtube-volume-slider:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, .8);
+  outline-offset: 3px;
 }
 
 .youtube-volume-control .youtube-volume-value {
@@ -1368,14 +1423,61 @@ input::placeholder {
 
 @media (pointer: coarse) {
   .youtube-volume-control .youtube-volume-slider {
-    flex-basis: 58px;
-    width: 58px;
+    flex: 0 0 58px;
+    width: 58px !important;
+    min-width: 58px;
     opacity: 1;
   }
 
   .youtube-volume-control .youtube-volume-value {
     width: 32px;
     opacity: 1;
+  }
+}
+
+@media (max-width: 768px) {
+  body.has-mobile-player-fullscreen {
+    overflow: hidden !important;
+  }
+
+  .lesson-video-wrap.is-mobile-fullscreen {
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 99999 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+    max-width: none !important;
+    max-height: none !important;
+    aspect-ratio: auto !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    transform: none;
+  }
+
+  .lesson-video-wrap.is-mobile-fullscreen iframe,
+  .lesson-video-wrap.is-mobile-fullscreen video {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-width: 0 !important;
+    object-fit: contain;
+  }
+}
+
+@media (max-width: 768px) and (orientation: portrait) {
+  .lesson-video-wrap.is-mobile-fullscreen {
+    inset: auto !important;
+    top: 0 !important;
+    right: auto !important;
+    bottom: auto !important;
+    left: 100vw !important;
+    width: 100vh !important;
+    width: 100dvh !important;
+    height: 100vw !important;
+    transform: rotate(90deg) !important;
+    transform-origin: top left !important;
   }
 }
 
