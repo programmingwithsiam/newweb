@@ -4826,6 +4826,115 @@ body,
   background: #000;
 }
 
+.player-frame:fullscreen,
+.player-frame:-webkit-full-screen,
+.lesson-video-wrap:fullscreen,
+.lesson-video-wrap:-webkit-full-screen {
+  display: grid;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  max-width: 100vw;
+  max-height: 100vh;
+  max-height: 100dvh;
+  aspect-ratio: auto;
+  place-items: center;
+  overflow: hidden;
+  border: 0;
+  border-radius: 0;
+  background: #000;
+}
+
+.player-frame:fullscreen video,
+.player-frame:fullscreen iframe,
+.player-frame:-webkit-full-screen video,
+.player-frame:-webkit-full-screen iframe,
+.lesson-video-wrap:fullscreen video,
+.lesson-video-wrap:fullscreen iframe,
+.lesson-video-wrap:-webkit-full-screen video,
+.lesson-video-wrap:-webkit-full-screen iframe,
+body.course-learning-page #lessonPlayer .lesson-video-wrap:fullscreen video,
+body.course-learning-page #lessonPlayer .lesson-video-wrap:fullscreen iframe,
+body.course-learning-page #lessonPlayer .lesson-video-wrap:-webkit-full-screen video,
+body.course-learning-page #lessonPlayer .lesson-video-wrap:-webkit-full-screen iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  aspect-ratio: auto;
+  transform: none;
+}
+
+.player-frame:fullscreen video,
+.player-frame:-webkit-full-screen video,
+.lesson-video-wrap:fullscreen video,
+.lesson-video-wrap:-webkit-full-screen video,
+body.course-learning-page #lessonPlayer .lesson-video-wrap:fullscreen video,
+body.course-learning-page #lessonPlayer .lesson-video-wrap:-webkit-full-screen video {
+  object-fit: contain;
+}
+
+@media (max-width: 768px) {
+  .player-frame.is-mobile-css-fullscreen,
+  .lesson-video-wrap.is-mobile-css-fullscreen {
+    position: fixed !important;
+    z-index: 2147483647;
+    inset: 0;
+    display: block;
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    max-width: 100vw;
+    max-height: 100vh;
+    max-height: 100dvh;
+    min-height: 0;
+    aspect-ratio: auto;
+    overflow: hidden;
+    border: 0;
+    border-radius: 0;
+    background: #000;
+  }
+
+  .player-frame.is-mobile-css-fullscreen video,
+  .player-frame.is-mobile-css-fullscreen iframe,
+  .lesson-video-wrap.is-mobile-css-fullscreen video,
+  .lesson-video-wrap.is-mobile-css-fullscreen iframe {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    max-width: 100% !important;
+    max-height: 100% !important;
+    aspect-ratio: auto !important;
+    transform: none !important;
+  }
+
+  .player-frame.is-mobile-css-fullscreen video,
+  .lesson-video-wrap.is-mobile-css-fullscreen video {
+    object-fit: contain;
+  }
+
+  body.has-mobile-video-css-fullscreen {
+    overflow: hidden;
+  }
+}
+
+@media (max-width: 768px) and (orientation: portrait) {
+  .player-frame.is-mobile-css-fullscreen,
+  .lesson-video-wrap.is-mobile-css-fullscreen {
+    top: 0;
+    left: 0;
+    width: 100dvh;
+    height: 100vw;
+    max-width: 100dvh;
+    max-height: 100vw;
+    transform: rotate(90deg) translateY(-100%);
+    transform-origin: top left;
+  }
+}
+
 .video-skeleton {
   position: absolute;
   inset: 0;
