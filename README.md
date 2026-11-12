@@ -44,7 +44,7 @@ history before making community application changes.
 
 ## Run locally
 
-Requirements: Node.js 18 or newer and npm.
+Requirements: Node.js 20 or newer and npm.
 
 ```sh
 npm run check
@@ -110,10 +110,13 @@ client behavior. Run `npm run check` and verify affected public routes.
 
 ## Checks
 
-`npm run check` runs Node syntax checks for the six listed first-party browser
-modules. It is a syntax check, not a full browser, Firebase-rules, or community
-build test. The email-code API has its own dependencies in `server/`; use its
-package manifest and `server/.env.example` when maintaining that service.
+`npm run check` runs Node syntax checks for first-party browser modules, API
+handlers, and the Express registration service. It is a syntax check, not a
+full browser, Firebase-rules, or community build test. The root dependencies
+are also used when Vercel bundles the serverless API; `server/package.json`
+supports running that API independently from the `server/` directory.
+The API has its own dependencies in `server/`; use its package manifest and
+`server/.env.example` when maintaining that service.
 
 For the current folder map and maintenance constraints, see
 [`PROJECT_NOTES.md`](./PROJECT_NOTES.md). For runtime ownership and data flows,

@@ -2,13 +2,10 @@
   "name": "siam-ai-portfolio",
   "version": "1.0.0",
   "private": true,
-  "engines": {
-    "node": ">=18"
-  },
   "scripts": {
     "dev": "npx --yes serve .",
     "start": "npx --yes serve .",
-    "check": "node --check assets/js/auth.js && node --check assets/js/auth-app.js && node --check assets/js/course-enrollment.js && node --check assets/js/course-learning.js && node --check assets/js/courses-db.js && node --check assets/js/live-learning.js && node --check assets/js/page-renderers.js && node --check assets/js/script.js"
+    "check": "node --check \"api/[...path].js\" && node --check api/csp-reports.js && node --check assets/js/animations.js && node --check assets/js/auth-api.js && node --check assets/js/auth-app.js && node --check assets/js/auth.js && node --check assets/js/course-enrollment.js && node --check assets/js/course-learning.js && node --check assets/js/course-payment.js && node --check assets/js/courses-db.js && node --check assets/js/firebase-init.js && node --check assets/js/live-learning.js && node --check assets/js/page-renderers.js && node --check assets/js/script.js && node --check assets/js/stories.js && node --check assets/js/story-manager.js && node --check assets/js/ui-effects.js && node --check assets/js/user-profile.js && node --check server/src/auth-routes.js && node --check server/src/env.js && node --check server/src/firebase.js && node --check server/src/index.js && node --check server/src/mailer.js"
   },
 
   "engines": {

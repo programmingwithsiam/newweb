@@ -17,6 +17,8 @@ let youtubeApiPromise = null;
 let youtubeTimer = null;
 let mobileVideoOrientationLocked = false;
 let mobileCssFullscreenTarget = null;
+let mobileFullscreenTarget = null;
+let mobileFullscreenContent = null;
 const workspaceSettingsKey = 'codewithsiam_workspace_settings';
 const workspaceSettings = (() => {
   try { return { showSidebar: true, autoplay: false, autocomplete: true, ...JSON.parse(localStorage.getItem(workspaceSettingsKey) || '{}') }; } catch { return { showSidebar: true, autoplay: false, autocomplete: true }; }
@@ -124,9 +126,17 @@ function withTimeout(promise, milliseconds = 15000) {
   });
   return Promise.race([promise, timeout]).finally(() => window.clearTimeout(timer));
 }
-async function togglePlayerFullscreen(target) {
+async function togglePlayerFullscreen(target, fallbackMedia) {
   const activeFullscreenElement = document.fullscreenElement || document.webkitFullscreenElement;
   const isMobileCssFullscreen = target?.classList.contains('is-mobile-css-fullscreen');
+  if (mobileCourseMedia.matches && fallbackMedia?.webkitDisplayingFullscreen) {
+    try {
+      fallbackMedia.webkitExitFullscreen?.();
+    } catch (error) {
+      console.warn('Could not exit native video fullscreen.', error);
+    }
+    return;
+  }
   if (activeFullscreenElement || isMobileCssFullscreen) {
     const exit = document.exitFullscreen || document.webkitExitFullscreen;
     if (activeFullscreenElement && exit) {
@@ -142,66 +152,158 @@ async function togglePlayerFullscreen(target) {
   }
   const enter = target?.requestFullscreen || target?.webkitRequestFullscreen;
   if (!enter) {
-    if (mobileCourseMedia.matches) {
-      applyMobileCssFullscreen(target);
+    if (!mobileCourseMedia.matches) return;
+    mobileFullscreenTarget = target;
+    const fallbackResult = await enterNativeMediaFullscreen(fallbackMedia);
+    if (fallbackResult === 'fullscreen') {
       await lockMobileVideoOrientation(target);
+      return;
     }
+    if (fallbackResult === 'native') {
+      console.info('Using native video fullscreen; device orientation is controlled by the browser.');
+      return;
+    }
+    applyMobileCssFullscreen(target);
+    console.warn('Fullscreen API is unavailable; using the mobile player fallback. Browser navigation UI may remain visible.');
     return;
   }
+  const isMobile = mobileCourseMedia.matches;
+  if (isMobile) mobileFullscreenTarget = target;
   try {
-    await enter.call(target);
+    if (isMobile) await enter.call(target, { navigationUI: 'hide' });
+    else await enter.call(target);
+    if (isMobile) {
+      const activeFullscreenElement = document.fullscreenElement || document.webkitFullscreenElement;
+      if (activeFullscreenElement !== target && !target.contains(activeFullscreenElement)) {
+        throw new Error('The browser did not enter fullscreen for the video player.');
+      }
+    }
   } catch (error) {
     console.warn('Could not open video fullscreen.', error);
-    if (mobileCourseMedia.matches) {
-      applyMobileCssFullscreen(target);
+    if (!isMobile) return;
+    const fallbackResult = await enterNativeMediaFullscreen(fallbackMedia);
+    if (fallbackResult === 'fullscreen') {
       await lockMobileVideoOrientation(target);
+      return;
     }
+    if (fallbackResult === 'native') {
+      console.info('Using native video fullscreen; device orientation is controlled by the browser.');
+      return;
+    }
+    applyMobileCssFullscreen(target);
+    console.warn('Using the mobile player fallback because native fullscreen was denied. Browser navigation UI may remain visible.');
     return;
   }
-  if (!mobileCourseMedia.matches) return;
-  await lockMobileVideoOrientation(target);
+  if (isMobile) await lockMobileVideoOrientation(target);
+}
+async function enterNativeMediaFullscreen(media) {
+  if (!media) return false;
+  const enter = media.requestFullscreen || media.webkitRequestFullscreen;
+  if (enter) {
+    try {
+      await enter.call(media, { navigationUI: 'hide' });
+      const activeFullscreenElement = document.fullscreenElement || document.webkitFullscreenElement;
+      if (activeFullscreenElement === media || media.contains(activeFullscreenElement)) return 'fullscreen';
+      console.warn('The browser did not enter fullscreen for the media element.');
+    } catch (error) {
+      console.warn('Could not open the media element in fullscreen.', error);
+    }
+  }
+  if (typeof media.webkitEnterFullscreen === 'function') {
+    try {
+      media.webkitEnterFullscreen();
+      media.addEventListener('webkitendfullscreen', handleNativeVideoFullscreenExit, { once: true });
+      return 'native';
+    } catch (error) {
+      console.warn('Could not open native video fullscreen.', error);
+    }
+  }
+  return false;
 }
 async function lockMobileVideoOrientation(target) {
   if (!screen.orientation?.lock) {
-    applyMobileCssFullscreen(target);
+    console.warn('Landscape orientation locking is unsupported; rotating the fullscreen player visually instead.');
+    if (isMobileVideoFullscreenActive(target)) applyMobileCssFullscreen(target);
     return;
   }
   try {
     await screen.orientation.lock('landscape');
+    const activeFullscreenElement = document.fullscreenElement || document.webkitFullscreenElement;
+    const stillFullscreen = activeFullscreenElement === target
+      || target?.contains(activeFullscreenElement)
+      || target?.classList.contains('is-mobile-css-fullscreen');
+    if (mobileFullscreenTarget !== target || !stillFullscreen) {
+      screen.orientation.unlock?.();
+      return;
+    }
     mobileVideoOrientationLocked = true;
   } catch (error) {
     console.warn('Could not lock video orientation to landscape.', error);
-    applyMobileCssFullscreen(target);
+    if (isMobileVideoFullscreenActive(target)) applyMobileCssFullscreen(target);
   }
+}
+function isMobileVideoFullscreenActive(target) {
+  const activeFullscreenElement = document.fullscreenElement || document.webkitFullscreenElement;
+  return activeFullscreenElement === target || target?.contains(activeFullscreenElement);
 }
 function applyMobileCssFullscreen(target) {
   if (!target) return;
   mobileCssFullscreenTarget = target;
+  const activeFullscreenElement = document.fullscreenElement || document.webkitFullscreenElement;
+  if (!mobileFullscreenContent && (activeFullscreenElement === target || target.contains(activeFullscreenElement))) {
+    mobileFullscreenContent = document.createElement('div');
+    mobileFullscreenContent.className = 'mobile-video-fullscreen-content';
+    while (target.firstChild) mobileFullscreenContent.append(target.firstChild);
+    target.append(mobileFullscreenContent);
+  }
   target.classList.add('is-mobile-css-fullscreen');
   document.body.classList.add('has-mobile-video-css-fullscreen');
   target.showPlayerControls?.();
 }
 function clearMobileCssFullscreen() {
   mobileCssFullscreenTarget?.classList.remove('is-mobile-css-fullscreen');
+  if (mobileFullscreenContent) {
+    const target = mobileFullscreenContent.parentElement;
+    while (mobileFullscreenContent.firstChild) target.insertBefore(mobileFullscreenContent.firstChild, mobileFullscreenContent);
+    mobileFullscreenContent.remove();
+    mobileFullscreenContent = null;
+  }
   mobileCssFullscreenTarget = null;
   document.body.classList.remove('has-mobile-video-css-fullscreen');
 }
 function unlockMobileVideoOrientation() {
   if (!mobileVideoOrientationLocked) return;
-  screen.orientation?.unlock?.();
+  try {
+    screen.orientation?.unlock?.();
+  } catch (error) {
+    console.warn('Could not unlock video orientation.', error);
+  }
   mobileVideoOrientationLocked = false;
 }
 function handleMobileFullscreenChange() {
   if (document.fullscreenElement || document.webkitFullscreenElement) return;
   clearMobileCssFullscreen();
   unlockMobileVideoOrientation();
+  mobileFullscreenTarget = null;
+}
+function handleNativeVideoFullscreenExit() {
+  clearMobileCssFullscreen();
+  unlockMobileVideoOrientation();
+  mobileFullscreenTarget = null;
+}
+function handleMobileVideoOrientationChange() {
+  if (!mobileFullscreenTarget) return;
+  mobileFullscreenTarget.showPlayerControls?.();
 }
 document.addEventListener('fullscreenchange', handleMobileFullscreenChange);
 document.addEventListener('webkitfullscreenchange', handleMobileFullscreenChange);
+window.addEventListener('orientationchange', handleMobileVideoOrientationChange);
+screen.orientation?.addEventListener?.('change', handleMobileVideoOrientationChange);
 document.addEventListener('keydown', event => {
   if (event.key !== 'Escape' || !mobileCssFullscreenTarget || document.fullscreenElement || document.webkitFullscreenElement) return;
   clearMobileCssFullscreen();
   unlockMobileVideoOrientation();
+  mobileFullscreenTarget = null;
 });
 function setupPlayerAutoHide(wrap, controls, isPlaying) {
   if (!wrap || !controls || wrap.dataset.autoHideReady) return;
@@ -380,7 +482,7 @@ function setupCustomVideoPlayer(enabled = true) {
   controls.querySelector('[data-video-action="seek-back"]')?.addEventListener('click', () => { video.currentTime = Math.max(0, video.currentTime - 10); });
   controls.querySelector('[data-video-action="seek-forward"]')?.addEventListener('click', () => { video.currentTime = Math.min(video.duration || video.currentTime + 10, video.currentTime + 10); });
   muteButton.addEventListener('click', () => { video.muted = !video.muted; muteIcon.className = video.muted ? 'fa-solid fa-volume-xmark' : 'fa-solid fa-volume-high'; });
-  controls.querySelector('[data-video-action="fullscreen"]').addEventListener('click', () => togglePlayerFullscreen(wrap));
+  controls.querySelector('[data-video-action="fullscreen"]').addEventListener('click', () => togglePlayerFullscreen(wrap, video));
   progressInput.addEventListener('input', () => { if (video.duration) video.currentTime = (progressInput.value / 100) * video.duration; });
   speedSelect?.addEventListener('change', () => { video.playbackRate = Number(speedSelect.value); });
   video.addEventListener('play', () => { playIcon.className = 'fa-solid fa-pause'; });
@@ -470,7 +572,7 @@ function setupYoutubePlayer(videoId, youtubeUrl, autoplay = false) {
     else youtubePlayer?.mute();
     updateIcons();
   };
-  controls.querySelector('[data-youtube-action="fullscreen"]').onclick = () => togglePlayerFullscreen(wrap);
+  controls.querySelector('[data-youtube-action="fullscreen"]').onclick = () => togglePlayerFullscreen(wrap, frame);
   controls.querySelector('[data-youtube-action="settings"]')?.addEventListener('click', () => $('workspaceSettingsButton')?.click());
   controls.querySelector('[data-youtube-action="pip"]')?.addEventListener('click', async () => {
     const video = $('lessonMp4');
@@ -571,7 +673,11 @@ function resetLessonVideoSurface() {
 }
 function ensureLessonVideoFrame() {
   const existing = $('lessonVideo');
-  if (existing) return existing;
+  if (existing) {
+    existing.allow = 'autoplay; encrypted-media; picture-in-picture; fullscreen';
+    existing.allowFullscreen = true;
+    return existing;
+  }
   const wrap = document.querySelector('.lesson-video-wrap');
   if (!wrap) return null;
   const frame = document.createElement('iframe');
@@ -579,7 +685,7 @@ function ensureLessonVideoFrame() {
   frame.loading = 'lazy';
   frame.title = 'Course lesson video';
   frame.tabIndex = -1;
-  frame.allow = 'autoplay; encrypted-media; picture-in-picture';
+  frame.allow = 'autoplay; encrypted-media; picture-in-picture; fullscreen';
   frame.allowFullscreen = true;
   wrap.prepend(frame);
   return frame;
@@ -913,7 +1019,7 @@ function renderPlayer() {
 
   if (videoWrap && !videoWrap.dataset.controlsReady) {
     videoWrap.dataset.controlsReady = 'true';
-    const requestFullscreen = target => togglePlayerFullscreen(target);
+    const requestFullscreen = (target, media) => togglePlayerFullscreen(target, media);
     const enterFullscreen = async event => {
       event?.preventDefault();
       if (document.fullscreenElement || document.webkitFullscreenElement) {
@@ -923,7 +1029,8 @@ function renderPlayer() {
         }
         return;
       }
-      await requestFullscreen(videoWrap);
+      const media = $('lessonMp4').classList.contains('hidden') ? $('lessonVideo') : $('lessonMp4');
+      await requestFullscreen(videoWrap, media);
     };
     videoWrap.addEventListener('dblclick', enterFullscreen);
     $('lessonVideo').addEventListener('dblclick', event => enterFullscreen(event));

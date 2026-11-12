@@ -64,11 +64,22 @@ let currentSignedInUid = null; // set by auth-app.js via window.handleAuthStateC
 let lessonPlayerVisible = false;
 let mobileVideoOrientationLocked = false;
 let mobileCssFullscreenTarget = null;
+let mobileFullscreenTarget = null;
+let mobileFullscreenContent = null;
 
 async function requestCourseVideoFullscreen(video) {
   const fullscreenTarget = video?.closest('.player-frame') || video;
+  const isMobile = window.matchMedia('(max-width: 768px)').matches;
   const activeFullscreenElement = document.fullscreenElement || document.webkitFullscreenElement;
   const isMobileCssFullscreen = fullscreenTarget?.classList.contains('is-mobile-css-fullscreen');
+  if (isMobile && video?.webkitDisplayingFullscreen) {
+    try {
+      video.webkitExitFullscreen?.();
+    } catch (error) {
+      console.warn('Could not exit native video fullscreen.', error);
+    }
+    return;
+  }
   if (activeFullscreenElement || isMobileCssFullscreen) {
     const exit = document.exitFullscreen || document.webkitExitFullscreen;
     if (activeFullscreenElement && exit) {
@@ -84,66 +95,158 @@ async function requestCourseVideoFullscreen(video) {
   }
   const requestFullscreen = fullscreenTarget?.requestFullscreen || fullscreenTarget?.webkitRequestFullscreen;
   if (!requestFullscreen) {
-    if (window.matchMedia('(max-width: 768px)').matches) {
-      applyMobileCourseCssFullscreen(fullscreenTarget);
-      await lockMobileCourseOrientation(fullscreenTarget);
+    if (!isMobile) return;
+    mobileFullscreenTarget = fullscreenTarget;
+    const fallbackResult = await enterNativeCourseVideoFullscreen(video);
+    if (fallbackResult === 'fullscreen') {
+      await lockMobileCourseOrientation();
+      return;
     }
+    if (fallbackResult === 'native') {
+      console.info('Using native video fullscreen; device orientation is controlled by the browser.');
+      return;
+    }
+    applyMobileCourseCssFullscreen(fullscreenTarget);
+    console.warn('Fullscreen API is unavailable; using the mobile player fallback. Browser navigation UI may remain visible.');
     return;
   }
+  if (isMobile) mobileFullscreenTarget = fullscreenTarget;
   try {
-    await requestFullscreen.call(fullscreenTarget);
+    if (isMobile) await requestFullscreen.call(fullscreenTarget, { navigationUI: 'hide' });
+    else await requestFullscreen.call(fullscreenTarget);
+    if (isMobile) {
+      const activeFullscreenElement = document.fullscreenElement || document.webkitFullscreenElement;
+      if (activeFullscreenElement !== fullscreenTarget && !fullscreenTarget.contains(activeFullscreenElement)) {
+        throw new Error('The browser did not enter fullscreen for the video player.');
+      }
+    }
   } catch (error) {
     console.warn('Could not open video fullscreen.', error);
-    if (window.matchMedia('(max-width: 768px)').matches) {
-      applyMobileCourseCssFullscreen(fullscreenTarget);
-      await lockMobileCourseOrientation(fullscreenTarget);
+    if (!isMobile) return;
+    const fallbackResult = await enterNativeCourseVideoFullscreen(video);
+    if (fallbackResult === 'fullscreen') {
+      await lockMobileCourseOrientation();
+      return;
     }
+    if (fallbackResult === 'native') {
+      console.info('Using native video fullscreen; device orientation is controlled by the browser.');
+      return;
+    }
+    applyMobileCourseCssFullscreen(fullscreenTarget);
+    console.warn('Using the mobile player fallback because native fullscreen was denied. Browser navigation UI may remain visible.');
     return;
   }
-  if (!window.matchMedia('(max-width: 768px)').matches) return;
-  await lockMobileCourseOrientation(fullscreenTarget);
+  if (isMobile) await lockMobileCourseOrientation();
 }
-async function lockMobileCourseOrientation(target) {
+async function enterNativeCourseVideoFullscreen(video) {
+  if (!video) return false;
+  const enter = video.requestFullscreen || video.webkitRequestFullscreen;
+  if (enter) {
+    try {
+      await enter.call(video, { navigationUI: 'hide' });
+      const activeFullscreenElement = document.fullscreenElement || document.webkitFullscreenElement;
+      if (activeFullscreenElement === video) return 'fullscreen';
+      console.warn('The browser did not enter fullscreen for the video element.');
+    } catch (error) {
+      console.warn('Could not open the video element in fullscreen.', error);
+    }
+  }
+  if (typeof video.webkitEnterFullscreen === 'function') {
+    try {
+      video.webkitEnterFullscreen();
+      video.addEventListener('webkitendfullscreen', handleNativeCourseVideoFullscreenExit, { once: true });
+      return 'native';
+    } catch (error) {
+      console.warn('Could not open native video fullscreen.', error);
+    }
+  }
+  return false;
+}
+async function lockMobileCourseOrientation() {
+  const target = mobileFullscreenTarget;
   if (!screen.orientation?.lock) {
-    applyMobileCourseCssFullscreen(target);
+    console.warn('Landscape orientation locking is unsupported; rotating the fullscreen player visually instead.');
+    if (isMobileCourseFullscreenActive(target)) applyMobileCourseCssFullscreen(target);
     return;
   }
   try {
     await screen.orientation.lock('landscape');
+    const activeFullscreenElement = document.fullscreenElement || document.webkitFullscreenElement;
+    const stillFullscreen = activeFullscreenElement === mobileFullscreenTarget
+      || mobileFullscreenTarget?.contains(activeFullscreenElement)
+      || mobileFullscreenTarget?.classList.contains('is-mobile-css-fullscreen');
+    if (!mobileFullscreenTarget || !stillFullscreen) {
+      screen.orientation.unlock?.();
+      return;
+    }
     mobileVideoOrientationLocked = true;
   } catch (error) {
     console.warn('Could not lock video orientation to landscape.', error);
-    applyMobileCourseCssFullscreen(target);
+    if (isMobileCourseFullscreenActive(target)) applyMobileCourseCssFullscreen(target);
   }
 }
 
+function isMobileCourseFullscreenActive(target) {
+  const activeFullscreenElement = document.fullscreenElement || document.webkitFullscreenElement;
+  return activeFullscreenElement === target || target?.contains(activeFullscreenElement);
+}
 function applyMobileCourseCssFullscreen(target) {
   if (!target) return;
   mobileCssFullscreenTarget = target;
+  const activeFullscreenElement = document.fullscreenElement || document.webkitFullscreenElement;
+  if (!mobileFullscreenContent && (activeFullscreenElement === target || target.contains(activeFullscreenElement))) {
+    mobileFullscreenContent = document.createElement('div');
+    mobileFullscreenContent.className = 'mobile-video-fullscreen-content';
+    while (target.firstChild) mobileFullscreenContent.append(target.firstChild);
+    target.append(mobileFullscreenContent);
+  }
   target.classList.add('is-mobile-css-fullscreen');
   document.body.classList.add('has-mobile-video-css-fullscreen');
 }
 function clearMobileCourseCssFullscreen() {
   mobileCssFullscreenTarget?.classList.remove('is-mobile-css-fullscreen');
+  if (mobileFullscreenContent) {
+    const target = mobileFullscreenContent.parentElement;
+    while (mobileFullscreenContent.firstChild) target.insertBefore(mobileFullscreenContent.firstChild, mobileFullscreenContent);
+    mobileFullscreenContent.remove();
+    mobileFullscreenContent = null;
+  }
   mobileCssFullscreenTarget = null;
   document.body.classList.remove('has-mobile-video-css-fullscreen');
 }
 function unlockMobileCourseOrientation() {
   if (!mobileVideoOrientationLocked) return;
-  screen.orientation?.unlock?.();
+  try {
+    screen.orientation?.unlock?.();
+  } catch (error) {
+    console.warn('Could not unlock video orientation.', error);
+  }
   mobileVideoOrientationLocked = false;
 }
 function handleMobileCourseFullscreenChange() {
   if (document.fullscreenElement || document.webkitFullscreenElement) return;
   clearMobileCourseCssFullscreen();
   unlockMobileCourseOrientation();
+  mobileFullscreenTarget = null;
+}
+function handleNativeCourseVideoFullscreenExit() {
+  clearMobileCourseCssFullscreen();
+  unlockMobileCourseOrientation();
+  mobileFullscreenTarget = null;
+}
+function handleMobileCourseOrientationChange() {
+  if (!mobileFullscreenTarget) return;
+  mobileFullscreenTarget.showPlayerControls?.();
 }
 document.addEventListener('fullscreenchange', handleMobileCourseFullscreenChange);
 document.addEventListener('webkitfullscreenchange', handleMobileCourseFullscreenChange);
+window.addEventListener('orientationchange', handleMobileCourseOrientationChange);
+screen.orientation?.addEventListener?.('change', handleMobileCourseOrientationChange);
 document.addEventListener('keydown', event => {
   if (event.key !== 'Escape' || !mobileCssFullscreenTarget || document.fullscreenElement || document.webkitFullscreenElement) return;
   clearMobileCourseCssFullscreen();
   unlockMobileCourseOrientation();
+  mobileFullscreenTarget = null;
 });
 
 // getCourseProgress is now imported from page-renderers.js (see line 17)
@@ -792,6 +895,8 @@ function attachCourseEvents(course) {
   const playPauseBtn = document.getElementById('videoPlayPauseBtn');
   const timeLabel = document.getElementById('videoTimeLabel');
   const muteBtn = document.getElementById('videoMuteBtn');
+  const volumeSlider = document.getElementById('videoVolumeSlider');
+  const volumeValue = document.getElementById('videoVolumeValue');
   const fullscreenBtn = document.getElementById('videoFullscreenBtn');
   const notesInput = document.getElementById('lessonNotesInput');
   const overviewStartBtn = document.getElementById('courseOverviewStartBtn');
@@ -856,6 +961,16 @@ function attachCourseEvents(course) {
     }
   }
 
+  function updateVolumeUI() {
+    if (!video) return;
+    const volume = video.volume;
+    if (volumeSlider) {
+      volumeSlider.value = String(volume);
+      volumeSlider.style.setProperty('--volume-level', `${volume * 100}%`);
+    }
+    if (volumeValue) volumeValue.textContent = `${Math.round(volume * 100)}%`;
+  }
+
   function formatTime(value) {
     if (!Number.isFinite(value) || value < 0) return '0:00';
     const minutes = Math.floor(value / 60);
@@ -886,7 +1001,14 @@ function attachCourseEvents(course) {
       const icon = muteBtn.querySelector('i');
       if (icon) icon.className = video.muted || video.volume === 0 ? 'fa-solid fa-volume-xmark' : 'fa-solid fa-volume-high';
     }
+    updateVolumeUI();
   });
+  volumeSlider?.addEventListener('input', () => {
+    if (!video) return;
+    video.volume = Number(volumeSlider.value);
+    video.muted = video.volume === 0;
+  });
+  updateVolumeUI();
 
   playPauseBtn?.addEventListener('click', () => {
     if (!video) return;

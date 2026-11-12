@@ -1117,7 +1117,7 @@
 
           <!-- YOUTUBE -->
           <iframe id="courseYoutubeFrame" class="hidden" title="Lesson video"
-            allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen>
+            allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen>
           </iframe>
 
 
@@ -1197,6 +1197,12 @@
               <i class="fa-solid fa-volume-high"></i>
 
             </button>
+
+            <div class="video-volume-control">
+              <input type="range" id="videoVolumeSlider" class="video-volume-slider" min="0" max="1" step="0.01"
+                value="1" aria-label="Video volume">
+              <span id="videoVolumeValue" class="video-volume-value">100%</span>
+            </div>
 
             <!-- FULLSCREEN -->
             <button type="button" class="video-control-btn" id="videoFullscreenBtn" aria-label="Fullscreen video">

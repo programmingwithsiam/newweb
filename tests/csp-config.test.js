@@ -10,7 +10,7 @@ const headerMap = Object.fromEntries(rootHeaders.map((header) => [header.key, he
 const indexHtml = fs.readFileSync(path.join(repoRoot, 'index.html'), 'utf8');
 const courseHtml = fs.readFileSync(path.join(repoRoot, 'course.html'), 'utf8');
 
-// Failing test: the headers are expected to restrict scripts and reporting for the static deployment.
+// The static deployment should restrict scripts and report CSP violations.
 test('Vercel deployment enforces a CSP with reporting and no inline event handlers', () => {
   assert.match(headerMap['Content-Security-Policy'] || '', /default-src 'self'/i);
   assert.match(headerMap['Content-Security-Policy'] || '', /script-src 'self'/i);

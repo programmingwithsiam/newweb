@@ -42,8 +42,11 @@ operations.
   sign-in for enrollment, and creates a pending payment/enrollment request.
 - `assets/js/courses-db.js` writes the request to Firestore. The admin payment
   queue can approve it and grant course access.
-- `assets/js/course-learning.js` contains the previous lesson-player
-  controller; the replacement landing page does not mount that player UI.
+- `assets/js/script.js` owns the homepage lesson-player controls and mobile
+  fullscreen behavior.
+- `assets/js/course-learning.js` contains a previous lesson-player controller
+  and is not loaded by the current HTML entry points. Preserve it until its
+  consumers and the pending worktree changes are reviewed before removal.
 - `firestore.rules` controls course metadata, preview/locked lesson reads,
   enrollment writes, and owner-only progress.
 - `storage.rules` controls payment proof, profile/community media, and

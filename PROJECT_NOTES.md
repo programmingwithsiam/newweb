@@ -7,7 +7,6 @@
 - `assets/css/`, `assets/js/`, and `assets/images/` hold shared browser styles,
   modules, and media.
 - `community/` is the deployable community application served at `/community`.
-- `blog/` contains the static blog entry point.
 - `server/` contains the separate Express email-code registration API.
 - `docs/ARCHITECTURE.md` documents runtime modules and data flows.
 - `database.rules.json`, `firestore.rules`, and `storage.rules` define Firebase
@@ -34,15 +33,16 @@
   client-side control is not authorization.
 - Do not commit `.env` files, Firebase Admin credentials, API keys, SMTP
   credentials, or other secrets. Keep backend secrets in the hosting provider.
-- Run `npm run check` after browser JavaScript changes and verify affected
-  public routes locally.
+- Run `npm run check` after JavaScript changes and verify affected public
+  routes locally.
 - Do not change authentication, admin, or Firebase security-rule behavior
   without explicit approval.
 
 ## Known limitations and items to review
 
-- `npm run check` is a syntax check for six root browser modules; it does not
-  test browser behavior, Firebase rules, accessibility, or community builds.
+- `npm run check` syntax-checks first-party browser modules, API handlers, and
+  Express modules; it does not test browser behavior, Firebase rules,
+  accessibility, or community builds.
 - Firebase, YouTube, and community media services require working external
   project configuration and network access.
 - Community images are served by an external storage service; local previews
