@@ -1479,6 +1479,15 @@ input::placeholder {
     transform: rotate(90deg) !important;
     transform-origin: top left !important;
   }
+
+  body.course-learning-page .lesson-video-wrap.is-mobile-fullscreen iframe,
+  body.course-learning-page .lesson-video-wrap.is-mobile-fullscreen video {
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    aspect-ratio: auto !important;
+    transform: none !important;
+  }
 }
 
 @media (max-width: 520px) {
