@@ -62,6 +62,60 @@ let activeLessonNotes = '';
 let collapsedModules = new Set();
 let currentSignedInUid = null; // set by auth-app.js via window.handleAuthStateChange()
 let lessonPlayerVisible = false;
+let mobileVideoOrientationLock = null;
+
+async function enterCourseVideoFullscreen(video) {
+  const requestFullscreen = video?.requestFullscreen || video?.webkitRequestFullscreen;
+  if (!requestFullscreen) {
+    video?.webkitEnterFullscreen?.();
+    return;
+  }
+  try {
+    await requestFullscreen.call(video);
+  } catch (error) {
+    console.warn('Could not open video fullscreen.', error);
+    return;
+  }
+  const orientation = screen.orientation;
+  if (!window.matchMedia('(max-width: 768px)').matches || !orientation?.lock) return;
+  try {
+    await orientation.lock('landscape');
+    if (document.fullscreenElement || document.webkitFullscreenElement) {
+      mobileVideoOrientationLock = orientation;
+    } else {
+      orientation.unlock?.();
+    }
+  } catch (error) {
+    console.warn('Could not lock video orientation to landscape.', error);
+  }
+}
+
+async function toggleCourseVideoFullscreen(video) {
+  if (document.fullscreenElement || document.webkitFullscreenElement) {
+    const exitFullscreen = document.exitFullscreen || document.webkitExitFullscreen;
+    try {
+      await exitFullscreen?.call(document);
+    } catch (error) {
+      console.warn('Could not exit video fullscreen.', error);
+    }
+    return;
+  }
+  await enterCourseVideoFullscreen(video);
+}
+
+function releaseCourseVideoOrientation() {
+  if (document.fullscreenElement || document.webkitFullscreenElement || !mobileVideoOrientationLock) return;
+  const orientation = mobileVideoOrientationLock;
+  mobileVideoOrientationLock = null;
+  try {
+    orientation.unlock?.();
+  } catch (error) {
+    console.warn('Could not release video orientation lock.', error);
+  }
+}
+
+document.addEventListener('fullscreenchange', releaseCourseVideoOrientation);
+document.addEventListener('webkitfullscreenchange', releaseCourseVideoOrientation);
 
 // getCourseProgress is now imported from page-renderers.js (see line 17)
 
@@ -860,6 +914,8 @@ function attachCourseEvents(course) {
   const playPauseBtn = document.getElementById('videoPlayPauseBtn');
   const timeLabel = document.getElementById('videoTimeLabel');
   const muteBtn = document.getElementById('videoMuteBtn');
+  const volumeSlider = document.getElementById('videoVolumeSlider');
+  const volumeValue = document.getElementById('videoVolumeValue');
   const fullscreenBtn = document.getElementById('videoFullscreenBtn');
   const notesInput = document.getElementById('lessonNotesInput');
   const overviewStartBtn = document.getElementById('courseOverviewStartBtn');
@@ -924,6 +980,16 @@ function attachCourseEvents(course) {
     }
   }
 
+  function updateVolumeUI() {
+    if (!video) return;
+    const volume = video.volume;
+    if (volumeSlider) {
+      volumeSlider.value = String(volume);
+      volumeSlider.style.setProperty('--volume-level', `${volume * 100}%`);
+    }
+    if (volumeValue) volumeValue.textContent = `${Math.round(volume * 100)}%`;
+  }
+
   function formatTime(value) {
     if (!Number.isFinite(value) || value < 0) return '0:00';
     const minutes = Math.floor(value / 60);
@@ -954,7 +1020,14 @@ function attachCourseEvents(course) {
       const icon = muteBtn.querySelector('i');
       if (icon) icon.className = video.muted || video.volume === 0 ? 'fa-solid fa-volume-xmark' : 'fa-solid fa-volume-high';
     }
+    updateVolumeUI();
   });
+  volumeSlider?.addEventListener('input', () => {
+    if (!video) return;
+    video.volume = Number(volumeSlider.value);
+    video.muted = video.volume === 0;
+  });
+  updateVolumeUI();
 
   playPauseBtn?.addEventListener('click', () => {
     if (!video) return;
@@ -966,11 +1039,7 @@ function attachCourseEvents(course) {
   });
   video?.addEventListener('dblclick', async () => {
     if (!video) return;
-    if (document.fullscreenElement) {
-      await document.exitFullscreen().catch(() => { });
-    } else {
-      await video.requestFullscreen().catch(() => { });
-    }
+    await toggleCourseVideoFullscreen(video);
   });
   muteBtn?.addEventListener('click', () => {
     if (!video) return;
@@ -983,11 +1052,7 @@ function attachCourseEvents(course) {
   });
   fullscreenBtn?.addEventListener('click', async () => {
     if (!video) return;
-    if (document.fullscreenElement) {
-      await document.exitFullscreen().catch(() => { });
-    } else {
-      await video.requestFullscreen().catch(() => { });
-    }
+    await toggleCourseVideoFullscreen(video);
   });
 
   document.addEventListener('keydown', event => {
@@ -1029,7 +1094,7 @@ function attachCourseEvents(course) {
       case 'f':
       case 'F':
         event.preventDefault();
-        if (document.fullscreenElement) { document.exitFullscreen().catch(() => { }); } else { video.requestFullscreen().catch(() => { }); }
+        void toggleCourseVideoFullscreen(video);
         break;
       case 'p':
       case 'P':
