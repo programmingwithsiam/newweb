@@ -18,6 +18,7 @@ let youtubeApiPromise = null;
 let youtubeTimer = null;
 let fullscreenPlayerWrap = null;
 let fullscreenOrientationLock = null;
+let fullscreenOrientationFallback = false;
 const workspaceSettingsKey = 'codewithsiam_workspace_settings';
 const workspaceSettings = (() => {
   try { return { showSidebar: true, autoplay: false, autocomplete: true, ...JSON.parse(localStorage.getItem(workspaceSettingsKey) || '{}') }; } catch { return { showSidebar: true, autoplay: false, autocomplete: true }; }
@@ -213,15 +214,15 @@ function setupPlayerSettingsMenu(wrap, controls) {
   });
 }
 async function togglePlayerFullscreen(target, fallbackTarget) {
+  const activeFullscreenElement = document.fullscreenElement || document.webkitFullscreenElement;
   const isCssFullscreen = target?.classList.contains('is-mobile-fullscreen');
-  if (isCssFullscreen) {
+  if (isCssFullscreen && !activeFullscreenElement) {
     target.classList.remove('is-mobile-fullscreen');
     target.showPlayerControls?.();
     syncPlayerFullscreenState();
     await releaseFullscreenOrientation();
     return;
   }
-  const activeFullscreenElement = document.fullscreenElement || document.webkitFullscreenElement;
   if (activeFullscreenElement && (activeFullscreenElement === target || target?.contains(activeFullscreenElement))) {
     const exit = document.exitFullscreen || document.webkitExitFullscreen;
     await exit?.call(document);
@@ -238,13 +239,11 @@ async function togglePlayerFullscreen(target, fallbackTarget) {
       await method.call(element);
       const entered = document.fullscreenElement === element || document.webkitFullscreenElement === element;
       if (entered && !(await lockFullscreenOrientation())) {
-        const exit = document.exitFullscreen || document.webkitExitFullscreen;
-        try {
-          await exit?.call(document);
-        } catch (error) {
-          console.warn('Could not exit fullscreen before using the mobile landscape fallback.', error);
-        }
-        return false;
+        target?.classList.add('is-mobile-fullscreen');
+        document.body.classList.add('has-mobile-player-fullscreen');
+        fullscreenOrientationFallback = true;
+        target?.showPlayerControls?.();
+        syncPlayerFullscreenState();
       }
       return entered;
     } catch {
@@ -311,6 +310,10 @@ function syncPlayerFullscreenState() {
   if (!wrap) return;
   const activeElement = document.fullscreenElement || document.webkitFullscreenElement;
   const nativeFullscreen = Boolean(activeElement && (activeElement === wrap || wrap.contains(activeElement)));
+  if (fullscreenOrientationFallback && !nativeFullscreen) {
+    wrap.classList.remove('is-mobile-fullscreen');
+    fullscreenOrientationFallback = false;
+  }
   const cssFullscreen = wrap.classList.contains('is-mobile-fullscreen');
   document.body.classList.toggle('has-mobile-player-fullscreen', nativeFullscreen || cssFullscreen);
   wrap.querySelectorAll('[data-youtube-action="fullscreen"], [data-video-action="fullscreen"]').forEach(button => {
@@ -1810,6 +1813,7 @@ document.addEventListener('keydown', event => {
     else youtubePlayer.getPlayerState?.() === 1 ? youtubePlayer.pauseVideo() : youtubePlayer.playVideo();
   }
 });
+
 function render() {
   if (!course) return;
   const hasLessonRoute = Boolean(selectedLessonId);
