@@ -1,0 +1,1071 @@
+.community-page-title {
+  margin: 0 auto;
+  padding: 14px max(16px, calc((100vw - 1480px) / 2));
+  color: #1c1e21;
+  background: #f0f2f5;
+  font: 700 clamp(1.25rem, 2.5vw, 1.75rem)/1.3 Arial, Helvetica, sans-serif;
+}
+
+body:has(#root h1) > .community-page-title {
+  display: none;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) {
+  min-height: 100vh;
+  color: #1c1e21;
+  background: #f0f2f5;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .navbar {
+  height: 62px;
+  padding-inline: max(20px, calc((100vw - 1440px) / 2));
+  background: #fff;
+  border-bottom: 1px solid #dfe1e5;
+  box-shadow: 0 1px 3px #0000000d;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .navbar-brand {
+  color: #1877f2;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .navbar-search input {
+  color: #1c1e21;
+  background: #f0f2f5;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .navbar-search input::placeholder,
+.app-shell:has(.app-main > .feed > .create-post) .navbar-search-icon {
+  color: #65676b;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .navbar-quick-actions {
+  max-width: 560px;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .navbar-links a {
+  color: #65676b;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .navbar-links a:hover,
+.app-shell:has(.app-main > .feed > .create-post) .navbar-links a.active {
+  color: #1877f2;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .navbar-actions .icon-btn,
+.app-shell:has(.app-main > .feed > .create-post) .navbar-quick-actions .icon-btn {
+  color: #1c1e21;
+  background: #f0f2f5;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .app-body {
+  grid-template-columns: 280px minmax(0, 680px) 320px;
+  gap: 24px;
+  width: min(1480px, 100%);
+  height: calc(100vh - 62px);
+  padding: 18px 20px;
+  background: #f0f2f5;
+  overflow: hidden;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .sidebar {
+  width: auto;
+  max-height: calc(100vh - 80px);
+  padding: 8px 4px 16px;
+  background: transparent;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .sidebar-link {
+  color: #1c1e21;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .sidebar-link:hover {
+  color: #1c1e21;
+  background: #e4e6eb;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .sidebar-link.active {
+  color: #1877f2;
+  background: #e7f3ff;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .sidebar-link.active:before {
+  display: none;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .sidebar-section-divider {
+  border-color: #ced0d4;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .app-main {
+  justify-content: center;
+  padding: 0;
+  background: transparent;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .feed {
+  width: 100%;
+  max-width: 680px;
+  gap: 16px;
+  padding-bottom: 24px;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .create-post,
+.app-shell:has(.app-main > .feed > .create-post) .post-card,
+.app-shell:has(.app-main > .feed > .create-post) .rail-card,
+.app-shell:has(.app-main > .feed > .create-post) .feed-top-actions,
+.app-shell:has(.app-main > .feed > .create-post) .stories-strip {
+  color: #1c1e21;
+  background: #fff;
+  border: 1px solid #e4e6eb;
+  border-radius: 12px;
+  box-shadow: 0 1px 2px #00000012;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .create-post {
+  padding: 16px;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .create-post p,
+.app-shell:has(.app-main > .feed > .create-post) .post-text,
+.app-shell:has(.app-main > .feed > .create-post) .post-author,
+.app-shell:has(.app-main > .feed > .create-post) .rail-card {
+  color: #1c1e21;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .create-post .btn-primary,
+.app-shell:has(.app-main > .feed > .create-post) .btn-primary {
+  border-color: #1877f2;
+  color: #fff;
+  background: #1877f2;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .post-card {
+  padding: 16px;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .post-header,
+.app-shell:has(.app-main > .feed > .create-post) .post-stats,
+.app-shell:has(.app-main > .feed > .create-post) .post-actions {
+  border-color: #e4e6eb;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .post-header .small,
+.app-shell:has(.app-main > .feed > .create-post) .post-stats,
+.app-shell:has(.app-main > .feed > .create-post) .post-actions .btn {
+  color: #65676b;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .post-actions .btn:hover {
+  color: #1877f2;
+  background: #f0f2f5;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .app-right-rail {
+  width: auto;
+  max-height: calc(100vh - 80px);
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .rail-stack {
+  gap: 12px;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .rail-card {
+  padding: 14px;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .rail-card h2,
+.app-shell:has(.app-main > .feed > .create-post) .rail-card h3 {
+  color: #65676b;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .stories-strip {
+  padding: 16px;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .stories-heading h2 {
+  color: #1c1e21;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .bottom-nav {
+  border-top: 1px solid #dfe1e5;
+  background: #fff;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .bottom-nav a {
+  color: #65676b;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .bottom-nav a.active {
+  color: #1877f2;
+}
+
+@media (max-width: 1199px) {
+  .app-shell:has(.app-main > .feed > .create-post) .app-body {
+    grid-template-columns: 240px minmax(0, 680px);
+    width: min(980px, 100%);
+  }
+
+  .app-shell:has(.app-main > .feed > .create-post) .app-right-rail {
+    display: none;
+  }
+}
+
+@media (max-width: 767px) {
+  .app-shell:has(.app-main > .feed > .create-post) {
+    height: 100dvh;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .app-shell:has(.app-main > .feed > .create-post) .navbar {
+    height: 56px;
+    padding-inline: 12px;
+  }
+
+  .app-shell:has(.app-main > .feed > .create-post) .app-body {
+    display: block;
+    width: 100%;
+    height: calc(100dvh - 112px);
+    padding: 0;
+    overflow: hidden;
+  }
+
+  .app-shell:has(.app-main > .feed > .create-post) .sidebar {
+    background: #fff;
+  }
+
+  .app-shell:has(.app-main > .feed > .create-post) .app-main {
+    width: 100%;
+    height: 100%;
+    padding: 0;
+  }
+
+  .app-shell:has(.app-main > .feed > .create-post) .feed {
+    max-width: none;
+    gap: 10px;
+    padding: 10px 0 16px;
+  }
+
+  .app-shell:has(.app-main > .feed > .create-post) .create-post,
+  .app-shell:has(.app-main > .feed > .create-post) .post-card {
+    border-radius: 0;
+    border-inline: 0;
+  }
+
+  .app-shell:has(.app-main > .feed > .create-post) .bottom-nav {
+    height: 56px;
+  }
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .navbar {
+  background: #ffffffeb;
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+  backdrop-filter: blur(18px) saturate(150%);
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .stories-strip {
+  margin: 0;
+  padding: 16px;
+  background: linear-gradient(145deg, #fff, #f8fbff);
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .stories-heading {
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .stories-heading h2 {
+  color: #1c1e21;
+  font-size: 1.15rem;
+  font-weight: 750;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .stories-kicker {
+  color: #1877f2;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .stories-see-all {
+  color: #1877f2;
+  font-size: .82rem;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .stories-scroller {
+  gap: 10px;
+  padding: 2px 2px 5px;
+  scroll-snap-type: x mandatory;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .story-create-card,
+.app-shell:has(.app-main > .feed > .create-post) .story-card {
+  flex-basis: 100px;
+  height: 176px;
+  border: 1px solid #dfe7f1;
+  border-radius: 14px;
+  box-shadow: 0 5px 16px #16365c1c;
+  scroll-snap-align: start;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .story-create-card:hover,
+.app-shell:has(.app-main > .feed > .create-post) .story-card:hover {
+  border-color: #1877f2a6;
+  box-shadow: 0 9px 22px #1877f229;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .story-card-image {
+  bottom: 0;
+  border-radius: 13px;
+  background-position: center;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .story-card-ring {
+  top: 10px;
+  left: 10px;
+  width: 44px;
+  height: 44px;
+  border: 2px solid #fff;
+  background: linear-gradient(135deg, #1877f2, #22d3ee);
+  box-shadow: 0 0 0 2px #1877f2, 0 0 14px #1877f269;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .story-card-avatar {
+  width: 36px;
+  height: 36px;
+  border-color: #fff;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .story-card-name {
+  padding: 30px 9px 10px;
+  font-size: .72rem;
+  text-shadow: 0 1px 5px #000b;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .story-create-media {
+  border-radius: 13px;
+  background-image: linear-gradient(160deg, #22d3ee, #1877f2 54%, #1648ad);
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .story-create-media:before {
+  display: grid;
+  width: 62px;
+  height: 62px;
+  margin: 26px auto 0;
+  place-items: center;
+  border: 2px solid #ffffffb8;
+  border-radius: 50%;
+  background: #ffffff26;
+  box-shadow: 0 8px 24px #103d8a47;
+  font-size: 2.2rem;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .story-create-footer {
+  height: 42%;
+  justify-content: flex-end;
+  padding-bottom: 12px;
+  background: linear-gradient(180deg, transparent, #092f70e8);
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .story-create-plus {
+  top: -18px;
+  border: 3px solid #fff;
+  background: #1877f2;
+  box-shadow: 0 2px 8px #0003;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .guest-composer {
+  gap: 12px;
+  padding: 16px;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .guest-composer p {
+  flex: 1;
+  align-self: center;
+  color: #65676b;
+  font-size: .95rem;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .guest-composer .btn-primary {
+  min-height: 40px;
+  padding-inline: 16px;
+  border-radius: 9px;
+  box-shadow: 0 4px 12px #1877f229;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .create-post-top textarea {
+  min-height: 48px;
+  padding: 13px 16px;
+  border: 1px solid #e4e6eb;
+  border-radius: 24px;
+  color: #1c1e21;
+  background: #f0f2f5;
+  font-size: .95rem;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .create-post-top textarea:focus {
+  border-color: #9dc5ff;
+  background: #fff;
+  box-shadow: 0 0 0 3px #1877f21c;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .create-post-toolbar {
+  padding-top: 12px;
+  border-top: 1px solid #e4e6eb;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .create-post-toolbar .file-label,
+.app-shell:has(.app-main > .feed > .create-post) .create-post-toolbar select {
+  min-height: 40px;
+  border: 0;
+  border-radius: 9px;
+  color: #65676b;
+  background: transparent;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .create-post-toolbar .file-label:hover,
+.app-shell:has(.app-main > .feed > .create-post) .create-post-toolbar select:hover {
+  background: #f0f2f5;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .post-card {
+  border-radius: 12px;
+  box-shadow: 0 2px 8px #182b4410;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .post-card:hover {
+  border-color: #d7e5f7;
+  box-shadow: 0 8px 22px #182b4418;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .post-actions .reaction-trigger:hover,
+.app-shell:has(.app-main > .feed > .create-post) .post-actions .btn:hover {
+  color: #1877f2;
+  background: #edf5ff;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .rail-card {
+  border-radius: 12px;
+  box-shadow: 0 2px 8px #182b4410;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .rail-card-heading h4 {
+  color: #65676b;
+  font-size: .82rem;
+  font-weight: 750;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .cwsfb-contacts .contacts-variant .conversation-row {
+  border-radius: 10px;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .cwsfb-contacts .contacts-variant .online-indicator {
+  border-color: #fff;
+  background: #31a24c;
+  box-shadow: 0 0 0 2px #31a24c29, 0 0 10px #31a24c52;
+}
+
+@media (max-width: 767px) {
+  .app-shell:has(.app-main > .feed > .create-post) .stories-strip {
+    margin-inline: 8px;
+    padding: 14px 12px;
+    border-radius: 12px;
+  }
+
+  .app-shell:has(.app-main > .feed > .create-post) .story-create-card,
+  .app-shell:has(.app-main > .feed > .create-post) .story-card {
+    flex-basis: 88px;
+    height: 148px;
+  }
+
+  .app-shell:has(.app-main > .feed > .create-post) .guest-composer {
+    margin-inline: 8px;
+    border: 1px solid #e4e6eb;
+    border-radius: 12px;
+  }
+}
+
+.app-shell:has(.app-main > .feed > .create-post) {
+  background: #f8fafc;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .app-body {
+  grid-template-columns: 220px minmax(0, 1fr) 260px;
+  width: min(1360px, 100%);
+  background: #f8fafc;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .navbar-quick-actions,
+.app-shell:has(.app-main > .feed > .create-post) .navbar-actions > :not(.avatar-action):not(.mobile-search-btn),
+.app-shell:has(.app-main > .feed > .create-post) .sidebar > :not(.sidebar-link),
+.app-shell:has(.app-main > .feed > .create-post) .sidebar-link:not([href="/community"]):not([href="/community/search?view=friends"]):not([href="/community/messenger"]):not([href="/community/search?view=groups"]),
+.app-shell:has(.app-main > .feed > .create-post) .rail-card:not(.cwsfb-contacts),
+.app-shell:has(.app-main > .feed > .create-post) .post-actions > :last-child {
+  display: none;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .app-right-rail {
+  width: 260px;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .rail-stack {
+  padding-top: 0;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .composer-media-tools {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  color: #1877f2;
+  background: #eff6ff;
+  border-radius: 999px;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .composer-media-tools::before {
+  content: "Photo/Video";
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .composer-media-tools .composer-tool,
+.app-shell:has(.app-main > .feed > .create-post) .code-snippet-tool {
+  border: 0;
+  color: #1877f2;
+  background: transparent;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .composer-tool[title="Camera"],
+.app-shell:has(.app-main > .feed > .create-post) .composer-tool[title="Messenger"],
+.app-shell:has(.app-main > .feed > .create-post) .composer-tool[title="Feeling"] {
+  display: none;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .composer-guest-actions {
+  display: flex;
+  gap: 10px;
+  margin: 12px 0;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .composer-guest-action {
+  flex: 1;
+  min-height: 40px;
+  border: 1px solid #e4e6eb;
+  border-radius: 10px;
+  color: #1877f2;
+  background: #f8fafc;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .composer-guest-action:hover,
+.app-shell:has(.app-main > .feed > .create-post) .code-snippet-tool:hover {
+  background: #eaf3ff;
+}
+
+@media (max-width: 1199px) {
+  .app-shell:has(.app-main > .feed > .create-post) .app-body {
+    grid-template-columns: 220px minmax(0, 680px);
+  }
+}
+
+@media (max-width: 767px) {
+  .app-shell:has(.app-main > .feed > .create-post) .app-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .app-shell:has(.app-main > .feed > .create-post) .navbar-quick-actions,
+  .app-shell:has(.app-main > .feed > .create-post) .bottom-nav {
+    display: none;
+  }
+
+  .app-shell:has(.app-main > .feed > .create-post) .navbar-actions > :not(.avatar-action):not(.mobile-search-btn),
+  .app-shell:has(.app-main > .feed > .create-post) .sidebar > :not(.sidebar-link),
+  .app-shell:has(.app-main > .feed > .create-post) .sidebar-link:not([href="/community"]):not([href="/community/search?view=friends"]):not([href="/community/messenger"]):not([href="/community/search?view=groups"]) {
+    display: none;
+  }
+
+  .app-shell:has(.app-main > .feed > .create-post) .navbar-actions .avatar-action {
+    display: flex;
+  }
+
+  .app-shell:has(.app-main > .feed > .create-post) .sidebar {
+    padding: 8px 12px;
+  }
+
+  .app-shell:has(.app-main > .feed > .create-post) .sidebar-link {
+    min-height: 44px;
+  }
+}
+
+.app-shell {
+  color-scheme: dark;
+  color: #e5e7eb;
+  background: #111827;
+}
+
+.app-shell .navbar {
+  background: rgb(17 24 39 / 86%);
+  border-color: #273449;
+  box-shadow: 0 8px 26px rgb(0 0 0 / 24%);
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+  backdrop-filter: blur(18px) saturate(150%);
+}
+
+.app-shell .navbar-brand {
+  color: #60a5fa;
+  text-shadow: 0 0 16px rgb(96 165 250 / 42%);
+}
+
+.app-shell .navbar-search input {
+  border-color: #374151;
+  color: #e5e7eb;
+  background: #1f2937;
+}
+
+.app-shell .navbar-search input::placeholder,
+.app-shell .navbar-search-icon {
+  color: #9ca3af;
+}
+
+.app-shell .navbar-actions .icon-btn,
+.app-shell .mobile-menu-btn,
+.app-shell .mobile-search-btn {
+  color: #d1d5db;
+  background: #1f2937;
+}
+
+.app-shell .sidebar,
+.app-shell .app-main,
+.app-shell .app-right-rail,
+.app-shell .app-body {
+  color: #e5e7eb;
+  background: #111827;
+}
+
+.app-shell .sidebar-link {
+  color: #cbd5e1;
+}
+
+.app-shell .sidebar-link svg {
+  color: #60a5fa;
+}
+
+.app-shell .sidebar-link:hover {
+  color: #f9fafb;
+  background: #1f2937;
+}
+
+.app-shell .sidebar-link.active {
+  color: #93c5fd;
+  background: #172554;
+}
+
+.app-shell .bottom-nav {
+  border-color: #273449;
+  background: #1f2937;
+}
+
+.app-shell .bottom-nav a {
+  color: #9ca3af;
+}
+
+.app-shell .bottom-nav a.active {
+  color: #60a5fa;
+}
+
+.app-shell .auth-card,
+.app-shell .profile-cover,
+.app-shell .profile-header,
+.app-shell .profile-stats,
+.app-shell .profile-tabs,
+.app-shell .friend-card,
+.app-shell .notifications-empty,
+.app-shell .notification-row {
+  border-color: #374151;
+  color: #e5e7eb;
+  background: #1f2937;
+}
+
+.app-shell .profile-page,
+.app-shell .notifications-page,
+.app-shell .search-page {
+  color: #e5e7eb;
+}
+
+.app-shell .profile-tabs {
+  border-bottom-color: #374151;
+}
+
+.app-shell .profile-tabs button {
+  color: #9ca3af;
+}
+
+.app-shell .profile-tabs button.active {
+  border-bottom-color: #60a5fa;
+  color: #60a5fa;
+}
+
+.app-shell .notification-row.unread {
+  border-color: #2563eb;
+  background: #172554;
+}
+
+.app-shell .notifications-heading p,
+.app-shell .notification-time,
+.app-shell .muted {
+  color: #9ca3af;
+}
+
+.app-shell .quick-action[aria-label="Reels"],
+.app-shell .quick-action[aria-label="Marketplace"],
+.app-shell .quick-action[aria-label="Games"],
+.app-shell .sidebar-link[href*="view=reels"],
+.app-shell .sidebar-link[href*="view=marketplace"],
+.app-shell .sidebar-link[href*="view=gaming"],
+.app-shell .bottom-nav a[href*="view=reels"],
+.app-shell .bottom-nav a[href*="view=marketplace"],
+.app-shell .bottom-nav a[href*="view=gaming"],
+.app-shell .sidebar-see-more,
+.app-shell .rail-card:not(.friend-requests-card):not(.cwsfb-contacts) {
+  display: none !important;
+}
+
+@media (max-width: 767px) {
+  .app-shell .navbar-actions .mobile-search-btn {
+    display: flex !important;
+  }
+}
+
+.app-shell:has(.app-main > .feed > .create-post) {
+  color-scheme: dark;
+  color: #e5e7eb;
+  background: #111827;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .app-body,
+.app-shell:has(.app-main > .feed > .create-post) .app-main,
+.app-shell:has(.app-main > .feed > .create-post) .sidebar {
+  background: #111827;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .navbar {
+  background: rgb(17 24 39 / 86%);
+  border-color: #273449;
+  box-shadow: 0 8px 26px rgb(0 0 0 / 24%);
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .navbar-brand {
+  color: #60a5fa;
+  text-shadow: 0 0 16px rgb(96 165 250 / 42%);
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .navbar-search input {
+  border: 1px solid #374151;
+  color: #e5e7eb;
+  background: #1f2937;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .navbar-search input::placeholder,
+.app-shell:has(.app-main > .feed > .create-post) .navbar-search-icon {
+  color: #9ca3af;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .navbar-actions .icon-btn,
+.app-shell:has(.app-main > .feed > .create-post) .mobile-menu-btn,
+.app-shell:has(.app-main > .feed > .create-post) .mobile-search-btn {
+  color: #d1d5db;
+  background: #1f2937;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .sidebar-link {
+  color: #cbd5e1;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .sidebar-link svg {
+  color: #60a5fa;
+  filter: drop-shadow(0 0 5px rgb(96 165 250 / 35%));
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .sidebar-link:hover {
+  color: #f9fafb;
+  background: #1f2937;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .sidebar-link.active {
+  color: #93c5fd;
+  background: #172554;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .create-post,
+.app-shell:has(.app-main > .feed > .create-post) .post-card,
+.app-shell:has(.app-main > .feed > .create-post) .rail-card,
+.app-shell:has(.app-main > .feed > .create-post) .feed-top-actions,
+.app-shell:has(.app-main > .feed > .create-post) .stories-strip {
+  color: #e5e7eb;
+  background: #1f2937;
+  border-color: #374151;
+  box-shadow: 0 10px 28px rgb(0 0 0 / 22%), 0 0 24px rgb(37 99 235 / 5%);
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .create-post p,
+.app-shell:has(.app-main > .feed > .create-post) .post-text,
+.app-shell:has(.app-main > .feed > .create-post) .post-author,
+.app-shell:has(.app-main > .feed > .create-post) .rail-card,
+.app-shell:has(.app-main > .feed > .create-post) .stories-heading h2 {
+  color: #e5e7eb;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .post-header,
+.app-shell:has(.app-main > .feed > .create-post) .post-stats,
+.app-shell:has(.app-main > .feed > .create-post) .post-actions {
+  border-color: #374151;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .post-header .small,
+.app-shell:has(.app-main > .feed > .create-post) .post-stats,
+.app-shell:has(.app-main > .feed > .create-post) .rail-card-heading h4,
+.app-shell:has(.app-main > .feed > .create-post) .stories-heading p {
+  color: #9ca3af;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .cwsfb-contacts .rail-card-heading h4 {
+  color: #e5e7eb;
+  font-size: .9rem;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .create-post textarea,
+.app-shell:has(.app-main > .feed > .create-post) .create-post input,
+.app-shell:has(.app-main > .feed > .create-post) .create-post select {
+  border-color: #374151;
+  color: #f3f4f6;
+  background: #111827;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .create-post textarea::placeholder {
+  color: #9ca3af;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .create-post .btn-primary,
+.app-shell:has(.app-main > .feed > .create-post) .btn-primary {
+  border-color: #3b82f6;
+  color: #fff;
+  background: #2563eb;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .post-actions .btn {
+  color: #cbd5e1;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .post-actions .btn:hover {
+  color: #93c5fd;
+  background: #26364f;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .stories-strip {
+  order: -1;
+  background: linear-gradient(145deg, #1f2937, #172033);
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .story-create-card,
+.app-shell:has(.app-main > .feed > .create-post) .story-card {
+  border: 1px solid #374151;
+  box-shadow: 0 8px 22px rgb(0 0 0 / 26%);
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .story-card-ring {
+  border-color: #60a5fa;
+  box-shadow: 0 0 0 2px #1f2937, 0 0 14px rgb(34 211 238 / 46%);
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .story-card-avatar {
+  border: 2px solid #60a5fa;
+  box-shadow: 0 0 10px rgb(34 211 238 / 36%);
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .composer-media-tools {
+  color: #93c5fd;
+  background: #172554;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .composer-media-tools .composer-tool,
+.app-shell:has(.app-main > .feed > .create-post) .code-snippet-tool {
+  color: #93c5fd;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .composer-guest-action {
+  border-color: #374151;
+  color: #93c5fd;
+  background: #111827;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .composer-guest-action:hover,
+.app-shell:has(.app-main > .feed > .create-post) .code-snippet-tool:hover {
+  background: #26364f;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .cwsfb-contacts .contacts-variant .online-indicator {
+  border-color: #1f2937;
+  box-shadow: 0 0 0 2px rgb(34 197 94 / 20%), 0 0 12px rgb(34 197 94 / 65%);
+}
+
+@media (max-width: 767px) {
+  .app-shell:has(.app-main > .feed > .create-post) .sidebar {
+    background: #1f2937;
+  }
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .app-body {
+  grid-template-columns: minmax(230px, 280px) minmax(520px, 680px) minmax(280px, 320px);
+  justify-content: center;
+  gap: 24px;
+  width: min(1480px, 100%);
+  height: calc(100vh - 62px);
+  overflow: auto;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .navbar-quick-actions,
+.app-shell:has(.app-main > .feed > .create-post) .navbar-actions > :not(.mobile-search-btn) {
+  display: flex !important;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .mobile-search-btn,
+.app-shell:has(.app-main > .feed > .create-post) .quick-action[aria-label="Reels"],
+.app-shell:has(.app-main > .feed > .create-post) .quick-action[aria-label="Marketplace"],
+.app-shell:has(.app-main > .feed > .create-post) .quick-action[aria-label="Games"],
+.app-shell:has(.app-main > .feed > .create-post) .sidebar-link[href*="view=reels"],
+.app-shell:has(.app-main > .feed > .create-post) .sidebar-link[href*="view=marketplace"],
+.app-shell:has(.app-main > .feed > .create-post) .sidebar-link[href*="view=gaming"],
+.app-shell:has(.app-main > .feed > .create-post) .bottom-nav a[href*="view=reels"],
+.app-shell:has(.app-main > .feed > .create-post) .bottom-nav a[href*="view=marketplace"],
+.app-shell:has(.app-main > .feed > .create-post) .bottom-nav a[href*="view=gaming"],
+.app-shell:has(.app-main > .feed > .create-post) .sidebar-see-more,
+.app-shell:has(.app-main > .feed > .create-post) .rail-card:not(.friend-requests-card):not(.cwsfb-contacts) {
+  display: none !important;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .sidebar > :not(.sidebar-link) {
+  display: block !important;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .sidebar-link {
+  display: flex !important;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .composer-tool[title="Camera"],
+.app-shell:has(.app-main > .feed > .create-post) .composer-tool[title="Messenger"],
+.app-shell:has(.app-main > .feed > .create-post) .composer-tool[title="Feeling"],
+.app-shell:has(.app-main > .feed > .create-post) .post-actions > :last-child {
+  display: none !important;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .rail-card:not(.cwsfb-contacts) {
+  display: block !important;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .sidebar {
+  max-height: none;
+  overflow: visible;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .app-right-rail {
+  max-height: none;
+  overflow: visible;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .story-card-text-preview {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  padding: 46px 10px 36px;
+  overflow: hidden;
+  color: #fff;
+  background: linear-gradient(160deg, #2563eb, #111827);
+  font-size: .82rem;
+  line-height: 1.35;
+  text-align: left;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .story-card-ring,
+.app-shell:has(.app-main > .feed > .create-post) .story-card-name {
+  z-index: 1;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .story-empty-card {
+  display: grid;
+  flex: 0 0 112px;
+  height: 176px;
+  place-items: center;
+  padding: 12px;
+  border: 1px dashed #475569;
+  border-radius: 12px;
+  color: #9ca3af;
+  background: #111827;
+  font: inherit;
+  font-size: .8rem;
+  text-align: center;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .story-retry-button {
+  border: 0;
+  color: #93c5fd;
+  background: transparent;
+  font: inherit;
+  font-size: inherit;
+  cursor: pointer;
+}
+
+.app-shell:has(.app-main > .feed > .create-post) .stories-see-all {
+  color: #60a5fa;
+}
+
+@media (max-width: 1199px) {
+  .app-shell:has(.app-main > .feed > .create-post) .app-body {
+    grid-template-columns: 230px minmax(0, 680px);
+  }
+}
+
+@media (max-width: 767px) {
+  .app-shell:has(.app-main > .feed > .create-post) .app-body {
+    display: block;
+    width: 100%;
+    height: calc(100dvh - 112px);
+    padding: 0;
+    overflow: auto;
+  }
+
+  .app-shell:has(.app-main > .feed > .create-post) .sidebar,
+  .app-shell:has(.app-main > .feed > .create-post) .app-right-rail {
+    display: none !important;
+  }
+
+  .app-shell:has(.app-main > .feed > .create-post) .navbar-quick-actions {
+    display: none !important;
+  }
+
+  .app-shell:has(.app-main > .feed > .create-post) .navbar-actions > :not(.avatar-action):not(.mobile-search-btn) {
+    display: none !important;
+  }
+
+  .app-shell:has(.app-main > .feed > .create-post) .navbar-actions .mobile-search-btn {
+    display: flex !important;
+  }
+
+  .app-shell:has(.app-main > .feed > .create-post) .bottom-nav {
+    display: flex !important;
+    border-color: #273449;
+    background: #1f2937;
+  }
+
+  .app-shell:has(.app-main > .feed > .create-post) .bottom-nav a {
+    color: #9ca3af;
+  }
+
+  .app-shell:has(.app-main > .feed > .create-post) .bottom-nav a.active {
+    color: #60a5fa;
+  }
+
+  .app-shell:has(.app-main > .feed > .create-post) .feed {
+    padding-bottom: 20px;
+  }
+}
