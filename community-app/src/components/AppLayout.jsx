@@ -18,7 +18,7 @@ function AppLayoutContent() {
   const isMessengerRoute = pathname.startsWith('/messenger');
 
   return (
-    <div className="app-shell">
+    <div className="app-shell community-preview-shell">
       <Navbar onMenu={() => setMobileNavOpen(true)} />
       <div className={`app-body${isMessengerRoute ? ' msgr-layout' : ''}`}>
         {!isMessengerRoute && <Sidebar mobileOpen={mobileNavOpen} onClose={() => setMobileNavOpen(false)} />}
@@ -89,6 +89,7 @@ function AppLayoutContent() {
         )}
       </div>
       {!isMessengerRoute && <BottomNav onMenu={() => setMobileNavOpen(true)} />}
+      <div className="community-watermark" aria-hidden="true" />
     </div>
   );
 }

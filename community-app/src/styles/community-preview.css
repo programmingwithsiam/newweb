@@ -1,0 +1,125 @@
+.community-watermark {
+  position: fixed;
+  z-index: 17;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  pointer-events: none;
+  user-select: none;
+}
+
+.community-watermark::before {
+  content: "OUR COMMUNITY IS COMING SOON\A COMMUNITY PREVIEW";
+  color: rgba(255, 255, 255, .28);
+  font: 800 clamp(18px, 4.6vw, 64px)/1.35 "Bricolage Grotesque", Inter, sans-serif;
+  letter-spacing: .1em;
+  line-height: 1.35;
+  text-align: center;
+  white-space: pre;
+  transform: rotate(-18deg);
+  -webkit-text-stroke: 1px rgba(255, 255, 255, .4);
+}
+
+.community-preview-shell .navbar {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.community-preview-shell .navbar-quick-actions {
+  flex: 0 1 auto;
+  gap: 4px;
+  max-width: none;
+  margin: 0 auto;
+}
+
+.community-preview-shell .preview-quick-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: auto;
+  min-width: 86px;
+  height: 40px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.community-preview-shell .preview-quick-action.active {
+  color: var(--primary);
+  background: var(--surface-2);
+  box-shadow: none;
+}
+
+.community-preview-shell .preview-quick-action span {
+  font-size: .82rem;
+  white-space: nowrap;
+}
+
+.community-preview-shell .preview-quick-action:hover {
+  color: var(--text);
+  background: var(--surface-2);
+}
+
+.bottom-nav a,
+.bottom-nav button {
+  flex-direction: column;
+  gap: 2px;
+  font-size: 10px;
+}
+
+.bottom-nav a span,
+.bottom-nav button span {
+  line-height: 1;
+}
+
+@media (max-width: 1199px) {
+  .community-preview-shell .preview-quick-action {
+    min-width: 40px;
+    padding: 8px;
+  }
+
+  .community-preview-shell .preview-quick-action span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 768px) {
+  .community-preview-shell .navbar-quick-actions {
+    display: none;
+  }
+
+  .bottom-nav a,
+  .bottom-nav button {
+    min-width: 52px;
+    height: 48px;
+    padding: 5px 2px;
+  }
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) .community-watermark::before {
+    color: rgba(0, 0, 0, .24);
+    -webkit-text-stroke-color: rgba(0, 0, 0, .36);
+  }
+}
+
+:root[data-theme="light"] .community-watermark::before {
+  color: rgba(0, 0, 0, .24);
+  -webkit-text-stroke-color: rgba(0, 0, 0, .36);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .community-preview-shell .preview-quick-action,
+  .community-preview-shell .preview-quick-action svg {
+    transition: none;
+    animation: none;
+  }
+}

@@ -3,7 +3,6 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Bell,
   Ellipsis,
-  Gamepad2,
   Grid2x2,
   Home,
   Menu,
@@ -11,8 +10,7 @@ import {
   PlaySquare,
   Search as SearchIcon,
   SquarePen,
-  Store,
-  Users,
+  UserRound,
   X,
 } from 'lucide-react';
 import {
@@ -114,7 +112,13 @@ export default function Navbar({ onMenu }) {
     () => chatRows.reduce((sum, chat) => sum + (Number(chat.unread?.[user?.uid] ?? chat.unreadCount ?? 0) > 0 ? 1 : 0), 0),
     [chatRows, user?.uid]
   );
-  const activeView = pathname === '/' ? 'home' : new URLSearchParams(search).get('view');
+  const activeView = pathname === '/'
+    ? 'home'
+    : pathname.startsWith('/profile/')
+      ? 'profile'
+      : pathname.startsWith('/messenger')
+        ? 'messages'
+        : new URLSearchParams(search).get('view');
   const isMessengerRoute = pathname.startsWith('/messenger');
 
   useEffect(() => {
@@ -384,11 +388,10 @@ export default function Navbar({ onMenu }) {
         </form>
 
         <nav className="navbar-quick-actions" aria-label="Community navigation">
-          <button className={`quick-action${activeView === 'home' ? ' active' : ''}`} type="button" aria-label="Home" aria-current={activeView === 'home' ? 'page' : undefined} onClick={() => navigate('/')}><Home {...iconProps} /></button>
-          <button className={`quick-action${activeView === 'reels' ? ' active' : ''}`} type="button" aria-label="Reels" aria-current={activeView === 'reels' ? 'page' : undefined} onClick={() => navigate('/search?view=reels')}><PlaySquare {...iconProps} /></button>
-          <button className={`quick-action${activeView === 'marketplace' ? ' active' : ''}`} type="button" aria-label="Marketplace" aria-current={activeView === 'marketplace' ? 'page' : undefined} onClick={() => navigate('/search?view=marketplace')}><Store {...iconProps} /></button>
-          <button className={`quick-action${activeView === 'groups' ? ' active' : ''}`} type="button" aria-label="Groups" aria-current={activeView === 'groups' ? 'page' : undefined} onClick={() => navigate('/search?view=groups')}><Users {...iconProps} /></button>
-          <button className={`quick-action${activeView === 'gaming' ? ' active' : ''}`} type="button" aria-label="Games" aria-current={activeView === 'gaming' ? 'page' : undefined} onClick={() => navigate('/search?view=gaming')}><Gamepad2 {...iconProps} /></button>
+          <button className={`quick-action preview-quick-action${activeView === 'home' ? ' active' : ''}`} type="button" aria-label="Home" aria-current={activeView === 'home' ? 'page' : undefined} onClick={() => navigate('/')}><Home {...iconProps} /><span>Home</span></button>
+          <button className={`quick-action preview-quick-action${activeView === 'reels' ? ' active' : ''}`} type="button" aria-label="Reels" aria-current={activeView === 'reels' ? 'page' : undefined} onClick={() => navigate('/search?view=reels')}><PlaySquare {...iconProps} /><span>Reels</span></button>
+          <button className={`quick-action preview-quick-action${activeView === 'messages' ? ' active' : ''}`} type="button" aria-label="Messages" aria-current={activeView === 'messages' ? 'page' : undefined} onClick={() => navigate(user ? '/messenger' : '/login')}><MessageSquareText {...iconProps} /><span>Messages</span></button>
+          <button className={`quick-action preview-quick-action${activeView === 'profile' ? ' active' : ''}`} type="button" aria-label="Profile" aria-current={activeView === 'profile' ? 'page' : undefined} onClick={() => navigate(profile?.uid || user?.uid ? `/profile/${profile?.uid || user.uid}` : '/login')}><UserRound {...iconProps} /><span>Profile</span></button>
         </nav>
 
         <div className="navbar-actions">
@@ -649,8 +652,8 @@ export default function Navbar({ onMenu }) {
             )}
           </div>
 
-          <button className="icon-btn ghost-btn" type="button" aria-label="Notifications"><Bell {...iconProps} /></button>
-          <button className="avatar-action" type="button" aria-label="Profile" onClick={() => navigate('/profile')}>
+          <button className="icon-btn ghost-btn" type="button" aria-label="Notifications" onClick={() => navigate('/notifications')}><Bell {...iconProps} /></button>
+          <button className="avatar-action" type="button" aria-label="Profile" onClick={() => navigate(profile?.uid || user?.uid ? `/profile/${profile?.uid || user.uid}` : '/login')}>
             <img className="navbar-avatar" src={profile?.photoURL || '/community/default-avatar.png'} alt="Profile" />
           </button>
           <button className="mobile-search-btn icon-btn" type="button" onClick={() => setMobileSearchOpen(true)} title="Search" aria-label="Open search"><SearchIcon {...iconProps} /></button>
