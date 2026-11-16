@@ -19,3 +19,13 @@ test('Vercel deployment enforces a CSP with reporting and no inline event handle
   assert.doesNotMatch(courseHtml, /<script>\s*var \$/i);
   assert.match(courseHtml, /course-payment\.js/i);
 });
+
+test('Content Security Policy permits Firebase modules and their auth frames', () => {
+  const csp = headerMap['Content-Security-Policy'] || '';
+
+  assert.match(csp, /script-src[^;]*https:\/\/www\.gstatic\.com/i);
+  assert.match(csp, /script-src[^;]*https:\/\/www\.google\.com/i);
+  assert.match(csp, /connect-src[^;]*https:\/\/www\.google\.com/i);
+  assert.match(csp, /frame-src[^;]*https:\/\/mylatestweb-fd3d7\.firebaseapp\.com/i);
+  assert.match(csp, /frame-src[^;]*https:\/\/www\.google\.com/i);
+});
