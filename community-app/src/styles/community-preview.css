@@ -63,6 +63,16 @@
   background: var(--surface-2);
 }
 
+.community-preview-shell:has(.app-main > .feed > .create-post)
+  .navbar-quick-actions .preview-quick-action[aria-label="Reels"] {
+  display: inline-flex !important;
+}
+
+.community-preview-shell:has(.app-main > .feed > .create-post)
+  .bottom-nav a[href*="view=reels"] {
+  display: flex !important;
+}
+
 .bottom-nav a,
 .bottom-nav button {
   flex-direction: column;
