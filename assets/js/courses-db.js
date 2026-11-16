@@ -25,7 +25,7 @@ import { db, isFirebaseConfigured, auth, storage } from './firebase-init.js';
 let fs = null;
 async function loadFirestore() {
   if (!fs) {
-    fs = await import('https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js');
+    fs = await import('https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js');
   }
   return fs;
 }
@@ -160,8 +160,10 @@ function sortByOrder(items) {
 }
 
 const CACHE_TTL_MS = 5 * 60 * 1000;
-const COURSE_CACHE_KEY = 'siam_course_catalog_cache_v2';
-const LIVE_CACHE_KEY = 'siam_live_archive_cache_v1';
+const COURSE_CACHE_KEY = 'siam_course_catalog_cache_v3';
+const LIVE_CACHE_KEY = 'siam_live_archive_cache_v2';
+const LEGACY_COURSE_CACHE_KEY = 'siam_course_catalog_cache_v2';
+const LEGACY_LIVE_CACHE_KEY = 'siam_live_archive_cache_v1';
 const REMOVED_COURSE_IDS = new Set(['python-for-beginners-bangla']);
 const REMOVED_COURSE_TITLES = new Set(['python for beginners (bangla)']);
 
@@ -224,6 +226,7 @@ export async function fetchCourseEnrollment(uid, courseId) {
 /* ---------- READ: public course metadata plus authorized lesson videos ---------- */
 export async function fetchAllCourses({ includeLessons = true } = {}) {
   if (!isFirebaseConfigured || !db) return [];
+  clearSessionCache(LEGACY_COURSE_CACHE_KEY);
   if (!includeLessons) {
     const cached = readSessionCache(COURSE_CACHE_KEY);
     if (cached) return cached.filter(course => !isRemovedCourse(course));
@@ -236,10 +239,22 @@ export async function fetchAllCourses({ includeLessons = true } = {}) {
     return [];
   }
   const currentUser = auth?.currentUser || null;
-  const isAdminUser = currentUser?.email?.toLowerCase() === 'mdsiamahmmedloselovestroy@gmail.com';
+  const isAdminUser = currentUser?.emailVerified === true &&
+    currentUser?.email?.toLowerCase() === 'mdsiamahmmedloselovestroy@gmail.com';
   const isVerifiedUser = currentUser?.emailVerified === true;
+  let blocked = false;
+  if (currentUser && !isAdminUser) {
+    try {
+      const profileSnap = await getDoc(doc(db, 'users', currentUser.uid));
+      blocked = profileSnap.exists() && profileSnap.data().blocked === true;
+    } catch (error) {
+      blocked = true;
+      console.warn('Course access status unavailable:', error.code || error.message);
+    }
+  }
   let emailAccess = false;
   let courseAccessIds = [];
+  let hasCourseIdRestriction = false;
   if (isVerifiedUser && currentUser.email) {
     try {
       const { doc, getDoc } = await loadFirestore();
@@ -247,6 +262,7 @@ export async function fetchAllCourses({ includeLessons = true } = {}) {
       if (accessSnap.exists()) {
         const accessData = accessSnap.data();
         emailAccess = accessData.access === 'granted';
+        hasCourseIdRestriction = Object.prototype.hasOwnProperty.call(accessData, 'courseIds');
         courseAccessIds = Array.isArray(accessData.courseIds) ? accessData.courseIds : [];
       }
     } catch (error) {
@@ -257,11 +273,24 @@ export async function fetchAllCourses({ includeLessons = true } = {}) {
     .map(doc => ({ id: doc.id, ...doc.data() }))
     .filter(course => !isRemovedCourse(course))).map(async (course) => {
     const enrollment = currentUser ? await fetchCourseEnrollment(currentUser.uid, course.id).catch(() => null) : null;
-    const legacyAccess = isVerifiedUser && emailAccess && (!courseAccessIds.length || courseAccessIds.includes(course.id));
-    const hasAccess = isAdminUser || enrollment?.status === 'approved' || (legacyAccess && enrollment?.status !== 'revoked');
+    const legacyAccess = isVerifiedUser && emailAccess &&
+      (!hasCourseIdRestriction || (Array.isArray(courseAccessIds) && courseAccessIds.includes(course.id)));
+    const hasAccess = isAdminUser || (!blocked &&
+      (enrollment?.status === 'approved' || (legacyAccess && enrollment?.status !== 'revoked')));
     const accessStatus = isAdminUser || hasAccess ? 'approved' : enrollment?.status || 'not_enrolled';
-    // Course-level video URLs are legacy fields and must never be sent to learners without access.
-    if (!hasAccess) delete course.videoUrl;
+    const legacyVideoUrl = course.videoUrl || course.youtubeUrl || '';
+    delete course.videoUrl;
+    delete course.youtubeUrl;
+    delete course.youtubeVideoId;
+    delete course.videoId;
+    if (hasAccess && includeLessons) {
+      const privateVideoSnap = await getDoc(doc(db, 'courseVideos', course.id));
+      if (privateVideoSnap.exists() && typeof privateVideoSnap.data().videoUrl === 'string') {
+        course.videoUrl = privateVideoSnap.data().videoUrl;
+      } else if (legacyVideoUrl) {
+        course.videoUrl = legacyVideoUrl;
+      }
+    }
     course.accessStatus = accessStatus;
     course.accessSource = enrollment?.accessSource || (legacyAccess ? 'legacy' : '');
     course.accessDenied = !hasAccess;
@@ -362,14 +391,19 @@ export async function fetchAllCourses({ includeLessons = true } = {}) {
 /* ---------- ADMIN WRITES (rejected server-side by firestore.rules unless role=='admin') ---------- */
 
 export async function createCourse(courseData) {
-  const { collection, addDoc, serverTimestamp } = await loadFirestore();
-  const result = await addDoc(collection(db, 'courses'), {
+  const videoUrl = String(courseData.videoUrl || '').trim();
+  if (videoUrl && !isValidLessonVideoUrl(videoUrl)) {
+    throw new Error('A valid YouTube URL or MP4 video URL is required.');
+  }
+  const { collection, doc, serverTimestamp, writeBatch } = await loadFirestore();
+  const courseRef = doc(collection(db, 'courses'));
+  const batch = writeBatch(db);
+  const publicData = {
     title: courseData.title || 'Untitled course',
     description: courseData.description || '',
     category: courseData.category || 'General',
     language: courseData.language || '',
     thumbnail: courseData.thumbnail || '',
-    videoUrl: courseData.videoUrl || '',
     price: Math.max(0, Number(courseData.price) || 0),
     discountPrice: Math.max(0, Number(courseData.discountPrice) || 0),
     instructor: courseData.instructor || 'CodeWithSiam',
@@ -377,14 +411,40 @@ export async function createCourse(courseData) {
     showOnIndex: courseData.showOnIndex === true,
     order: Number(courseData.order) || 0,
     createdAt: serverTimestamp(),
-  });
+  };
+  batch.set(courseRef, publicData);
+  if (videoUrl) batch.set(doc(db, 'courseVideos', courseRef.id), { videoUrl });
+  await batch.commit();
   clearSessionCache(COURSE_CACHE_KEY);
-  return result;
+  return courseRef;
 }
 
 export async function updateCourse(courseId, courseData) {
-  const { doc, updateDoc } = await loadFirestore();
-  const result = await updateDoc(doc(db, 'courses', courseId), courseData);
+  const privateFields = ['videoUrl', 'youtubeUrl', 'youtubeVideoId', 'videoId'];
+  const hasVideoUpdate = privateFields.some(field => Object.prototype.hasOwnProperty.call(courseData, field));
+  const videoUrl = String(courseData.videoUrl || courseData.youtubeUrl || '').trim()
+    || (/^[\w-]{11}$/.test(String(courseData.youtubeVideoId || courseData.videoId || '').trim())
+      ? `https://www.youtube.com/watch?v=${String(courseData.youtubeVideoId || courseData.videoId).trim()}`
+      : '');
+  if (hasVideoUpdate && videoUrl && !isValidLessonVideoUrl(videoUrl)) {
+    throw new Error('A valid YouTube URL or MP4 video URL is required.');
+  }
+  const { deleteField, doc, writeBatch } = await loadFirestore();
+  const batch = writeBatch(db);
+  const publicData = { ...courseData };
+  privateFields.forEach(field => delete publicData[field]);
+  if (Object.keys(publicData).length || hasVideoUpdate) {
+    batch.update(doc(db, 'courses', courseId), {
+      ...publicData,
+      ...(hasVideoUpdate ? Object.fromEntries(privateFields.map(field => [field, deleteField()])) : {}),
+    });
+  }
+  if (hasVideoUpdate) {
+    const videoRef = doc(db, 'courseVideos', courseId);
+    if (videoUrl) batch.set(videoRef, { videoUrl }, { merge: true });
+    else batch.delete(videoRef);
+  }
+  const result = await batch.commit();
   clearSessionCache(COURSE_CACHE_KEY);
   return result;
 }
@@ -398,16 +458,32 @@ export async function findUserByEmail(email) {
 }
 
 export async function updateUserAccess(uid, data) {
-  const { doc, updateDoc } = await loadFirestore();
-  return updateDoc(doc(db, 'users', uid), data);
+  if (!uid || typeof data?.blocked !== 'boolean' || Object.keys(data).some(key => key !== 'blocked')) {
+    throw new Error('A valid blocked status is required.');
+  }
+  const { doc, writeBatch } = await loadFirestore();
+  const batch = writeBatch(db);
+  batch.update(doc(db, 'users', uid), data);
+  batch.set(doc(db, 'courseAccess', uid), { blocked: data.blocked }, { merge: true });
+  return batch.commit();
 }
 
 export async function grantEmailAccess(email, courseId = '') {
   const normalizedEmail = String(email || '').trim().toLowerCase();
   if (!normalizedEmail) throw new Error('Gmail address is required.');
-  const { doc, getDoc, setDoc, serverTimestamp, arrayUnion } = await loadFirestore();
+  const { doc, getDoc, writeBatch, serverTimestamp, arrayUnion } = await loadFirestore();
   const accessRef = doc(db, 'authorized_users', normalizedEmail);
   const existing = await getDoc(accessRef);
+  const user = await findUserByEmail(normalizedEmail);
+  if (user?.blocked === true) throw new Error('The student is blocked; access was not granted.');
+  const accessStateRef = user ? doc(db, 'courseAccess', user.id) : null;
+  const accessStateSnap = accessStateRef ? await getDoc(accessStateRef) : null;
+  if (accessStateSnap?.data()?.blocked === true) {
+    throw new Error('The student is blocked; access was not granted.');
+  }
+  const enrollmentSnap = user && courseId
+    ? await getDoc(doc(db, 'enrollments', enrollmentKey(user.id, courseId)))
+    : null;
   const payload = {
     email: normalizedEmail,
     access: 'granted',
@@ -418,18 +494,59 @@ export async function grantEmailAccess(email, courseId = '') {
       ? arrayUnion(courseId)
       : [courseId];
   }
-  return setDoc(accessRef, payload, { merge: true });
+  const batch = writeBatch(db);
+  batch.set(accessRef, payload, { merge: true });
+  if (user) {
+    batch.set(accessStateRef, {
+      blocked: false,
+      allCourses: !Array.isArray(payload.courseIds) &&
+        !(existing.exists() && Array.isArray(existing.data().courseIds)),
+    }, { merge: true });
+    if (courseId) {
+      batch.set(doc(db, 'courseAccess', user.id, 'courses', courseId), {
+        status: enrollmentSnap?.data()?.status === 'revoked' ? 'revoked' : 'approved',
+      }, { merge: true });
+    }
+  }
+  await batch.commit();
+  return true;
 }
 
 export async function revokeEmailAccess(email) {
   const normalizedEmail = String(email || '').trim().toLowerCase();
   if (!normalizedEmail) throw new Error('Gmail address is required.');
-  const { doc, setDoc, serverTimestamp } = await loadFirestore();
-  return setDoc(doc(db, 'authorized_users', normalizedEmail), {
+  const { collection, doc, getDoc, getDocs, query, serverTimestamp, setDoc, where, writeBatch } = await loadFirestore();
+  const accessRef = doc(db, 'authorized_users', normalizedEmail);
+  const accessSnap = await getDoc(accessRef);
+  const user = await findUserByEmail(normalizedEmail);
+  const batch = writeBatch(db);
+  batch.set(accessRef, {
     email: normalizedEmail,
     access: 'revoked',
     updatedAt: serverTimestamp(),
   }, { merge: true });
+  if (user) {
+    const [accessStateSnap, enrollmentsSnap] = await Promise.all([
+      getDoc(doc(db, 'courseAccess', user.id)),
+      getDocs(query(collection(db, 'enrollments'), where('userId', '==', user.id))),
+    ]);
+    const approvedCourseIds = new Set(enrollmentsSnap.docs
+      .filter(item => item.data().status === 'approved')
+      .map(item => item.data().courseId));
+    const courseIds = Array.isArray(accessSnap.data()?.courseIds)
+      ? accessSnap.data().courseIds
+      : (await getDocs(collection(db, 'courses'))).docs.map(item => item.id);
+    batch.set(doc(db, 'courseAccess', user.id), {
+      blocked: user.blocked === true || accessStateSnap.data()?.blocked === true,
+      allCourses: false,
+    }, { merge: true });
+    courseIds.forEach(courseId => {
+      batch.set(doc(db, 'courseAccess', user.id, 'courses', courseId), {
+        status: approvedCourseIds.has(courseId) ? 'approved' : 'revoked',
+      }, { merge: true });
+    });
+  }
+  return batch.commit();
 }
 
 export async function createPaymentSubmission(paymentData) {
@@ -474,25 +591,58 @@ export async function createFreeCourseEnrollment(uid, courseId) {
   const { doc, getDoc, setDoc, serverTimestamp } = await loadFirestore();
   const enrollmentRef = doc(db, 'enrollments', enrollmentKey(uid, courseId));
   const existing = await getDoc(enrollmentRef);
-  if (existing.exists()) return { id: existing.id, ...existing.data() };
-  await setDoc(enrollmentRef, {
-    userId: uid,
-    courseId,
-    status: 'approved',
-    paymentMethod: 'free',
-    transactionId: '',
-    requestedAt: serverTimestamp(),
-    approvedAt: serverTimestamp(),
-    approvedBy: 'free-course',
-    accessSource: 'free'
-  });
-  return { id: enrollmentRef.id, userId: uid, courseId, status: 'approved', accessSource: 'free' };
+  if (!existing.exists()) {
+    await setDoc(enrollmentRef, {
+      userId: uid,
+      courseId,
+      status: 'approved',
+      paymentMethod: 'free',
+      transactionId: '',
+      requestedAt: serverTimestamp(),
+      approvedAt: serverTimestamp(),
+      approvedBy: 'free-course',
+      accessSource: 'free'
+    });
+  }
+  const enrollment = existing.exists() ? existing.data() : { userId: uid, courseId, status: 'approved', accessSource: 'free' };
+  if (enrollment.status === 'approved') await ensureCourseStorageEntitlement(uid, courseId);
+  return { id: enrollmentRef.id, ...enrollment };
+}
+
+async function ensureCourseStorageEntitlement(uid, courseId) {
+  const currentUser = auth?.currentUser;
+  if (!currentUser || currentUser.uid !== uid || currentUser.emailVerified !== true) {
+    throw new Error('A verified signed-in account is required for course access.');
+  }
+  const { doc, getDoc, setDoc } = await loadFirestore();
+  const profileRef = doc(db, 'users', uid);
+  const enrollmentRef = doc(db, 'enrollments', enrollmentKey(uid, courseId));
+  const accessRef = doc(db, 'courseAccess', uid);
+  const courseAccessRef = doc(db, 'courseAccess', uid, 'courses', courseId);
+  const [profileSnap, enrollmentSnap, accessSnap, courseAccessSnap] = await Promise.all([
+    getDoc(profileRef),
+    getDoc(enrollmentRef),
+    getDoc(accessRef),
+    getDoc(courseAccessRef),
+  ]);
+  if (profileSnap.data()?.blocked === true) throw new Error('This account is blocked from course access.');
+  if (!enrollmentSnap.exists() || enrollmentSnap.data().status !== 'approved') {
+    throw new Error('An approved enrollment is required for course access.');
+  }
+  if (accessSnap.data()?.blocked === true) throw new Error('This account is blocked from course access.');
+  if (!accessSnap.exists()) await setDoc(accessRef, { blocked: false });
+  if (!courseAccessSnap.exists()) await setDoc(courseAccessRef, { status: 'approved' });
+  else if (courseAccessSnap.data().status !== 'approved') {
+    throw new Error('Course access needs admin approval.');
+  }
 }
 
 export async function setCourseEnrollmentAccess({ uid, courseId, status, accessSource = 'manual', paymentMethod = '', transactionId = '' }) {
   if (!uid || !courseId || !['approved', 'revoked'].includes(status)) throw new Error('A student, course, and valid access state are required.');
-  const { doc, setDoc, serverTimestamp } = await loadFirestore();
-  return setDoc(doc(db, 'enrollments', enrollmentKey(uid, courseId)), {
+  const { doc, getDoc, serverTimestamp, writeBatch } = await loadFirestore();
+  const profileSnap = await getDoc(doc(db, 'users', uid));
+  const batch = writeBatch(db);
+  batch.set(doc(db, 'enrollments', enrollmentKey(uid, courseId)), {
     userId: uid,
     courseId,
     status,
@@ -503,12 +653,15 @@ export async function setCourseEnrollmentAccess({ uid, courseId, status, accessS
     approvedBy: status === 'approved' ? auth?.currentUser?.uid || '' : '',
     updatedAt: serverTimestamp(),
   }, { merge: true });
+  batch.set(doc(db, 'courseAccess', uid), { blocked: profileSnap.data()?.blocked === true }, { merge: true });
+  batch.set(doc(db, 'courseAccess', uid, 'courses', courseId), { status }, { merge: true });
+  return batch.commit();
 }
 
 export async function uploadPaymentScreenshot(file, userId, paymentId, onProgress) {
   if (!storage || !file || !userId || !paymentId) throw new Error('Payment screenshot upload is unavailable.');
   if (!file.type.startsWith('image/')) throw new Error('Please choose an image screenshot.');
-  const storageModule = await import('https://www.gstatic.com/firebasejs/10.13.0/firebase-storage.js');
+  const storageModule = await import('https://www.gstatic.com/firebasejs/10.14.1/firebase-storage.js');
   const { ref, uploadBytesResumable, getDownloadURL } = storageModule;
   const fileRef = ref(storage, `payment-proofs/${userId}/${paymentId}`);
   return new Promise((resolve, reject) => {
@@ -549,15 +702,13 @@ export async function fetchAllEnrollments() {
 
 export async function fetchAdminDashboardStats() {
   const { collection, getDocs } = await loadFirestore();
-  const [usersSnap, paymentsSnap, postsSnap] = await Promise.all([
+  const [usersSnap, paymentsSnap] = await Promise.all([
     getDocs(collection(db, 'users')),
     getDocs(collection(db, 'payments')),
-    getDocs(collection(db, 'communityPosts')),
   ]);
   return {
     students: usersSnap.size,
     pendingPayments: paymentsSnap.docs.filter(item => item.data().status === 'pending').length,
-    communityPosts: postsSnap.size,
   };
 }
 
@@ -597,62 +748,119 @@ export async function deletePayment(paymentId) {
   return deleteDoc(doc(db, 'payments', paymentId));
 }
 
-export async function fetchLiveSettings() {
-  const cached = readSessionCache(`${LIVE_CACHE_KEY}_settings`);
-  if (cached) return cached;
-  const { doc, getDoc } = await loadFirestore();
-  const snap = await getDoc(doc(db, 'settings', 'liveStream'));
-  const settings = snap.exists() ? snap.data() : {};
+export async function fetchLiveSettings({ includePrivate = false } = {}) {
+  clearSessionCache(LEGACY_LIVE_CACHE_KEY, `${LEGACY_LIVE_CACHE_KEY}_settings`);
+  let settings = readSessionCache(`${LIVE_CACHE_KEY}_settings`);
+  if (!settings) {
+    const { doc, getDoc } = await loadFirestore();
+    const snap = await getDoc(doc(db, 'settings', 'liveStream'));
+    settings = snap.exists() ? snap.data() : {};
+  }
+  settings = { ...settings };
+  ['url', 'videoUrl', 'youtubeUrl', 'youtubeVideoId', 'videoId'].forEach(field => delete settings[field]);
   writeSessionCache(`${LIVE_CACHE_KEY}_settings`, settings);
-  return settings;
+  if (!includePrivate) return settings;
+  const { doc, getDoc } = await loadFirestore();
+  const secretSnap = await getDoc(doc(db, 'liveStreamSecrets', 'current'));
+  return { ...settings, url: secretSnap.exists() ? secretSnap.data().url || '' : '' };
 }
 
 export async function updateLiveSettings(data) {
-  const { doc, setDoc, serverTimestamp } = await loadFirestore();
-  const result = await setDoc(doc(db, 'settings', 'liveStream'), { ...data, updatedAt: serverTimestamp() }, { merge: true });
+  const hasUrl = Object.prototype.hasOwnProperty.call(data, 'url');
+  const url = String(data.url || '').trim();
+  const videoId = url ? extractYoutubeId(url) : null;
+  if (hasUrl && url && !videoId) throw new Error('A valid YouTube Live URL is required.');
+  const { deleteField, doc, serverTimestamp, writeBatch } = await loadFirestore();
+  const publicData = { ...data };
+  ['url', 'videoUrl', 'youtubeUrl', 'youtubeVideoId', 'videoId'].forEach(field => delete publicData[field]);
+  const batch = writeBatch(db);
+  batch.set(doc(db, 'settings', 'liveStream'), {
+    ...publicData,
+    url: deleteField(),
+    videoUrl: deleteField(),
+    youtubeUrl: deleteField(),
+    youtubeVideoId: deleteField(),
+    videoId: deleteField(),
+    updatedAt: serverTimestamp(),
+  }, { merge: true });
+  if (hasUrl) {
+    const secretRef = doc(db, 'liveStreamSecrets', 'current');
+    if (videoId) batch.set(secretRef, { url: `https://www.youtube.com/watch?v=${videoId}` }, { merge: true });
+    else batch.delete(secretRef);
+  }
+  const result = await batch.commit();
   clearSessionCache(`${LIVE_CACHE_KEY}_settings`);
   return result;
 }
 
-export async function fetchLiveSessions() {
+export async function fetchLiveSessions({ includeReplayUrls = false } = {}) {
   if (!isFirebaseConfigured || !db) return [];
-  const cached = readSessionCache(LIVE_CACHE_KEY);
-  if (cached) return cached;
-  const { collection, getDocs, limit, orderBy, query } = await loadFirestore();
-  const snapshot = await getDocs(query(collection(db, 'liveSessions'), orderBy('endedAt', 'desc'), limit(50)));
-  const sessions = snapshot.docs.map(item => ({ id: item.id, ...item.data() }));
+  clearSessionCache(LEGACY_LIVE_CACHE_KEY);
+  let sessions = readSessionCache(LIVE_CACHE_KEY);
+  if (!sessions) {
+    const { collection, getDocs, limit, orderBy, query } = await loadFirestore();
+    const snapshot = await getDocs(query(collection(db, 'liveSessions'), orderBy('endedAt', 'desc'), limit(50)));
+    sessions = snapshot.docs.map(item => {
+      const data = item.data();
+      delete data.videoUrl;
+      delete data.youtubeUrl;
+      delete data.youtubeVideoId;
+      delete data.videoId;
+      return { id: item.id, ...data };
+    });
+    writeSessionCache(LIVE_CACHE_KEY, sessions);
+  }
+  sessions = sessions.map(session => {
+    const publicSession = { ...session };
+    ['url', 'videoUrl', 'youtubeUrl', 'youtubeVideoId', 'videoId'].forEach(field => delete publicSession[field]);
+    return publicSession;
+  });
   writeSessionCache(LIVE_CACHE_KEY, sessions);
-  return sessions;
+  if (!includeReplayUrls) return sessions;
+  const { doc, getDoc } = await loadFirestore();
+  return Promise.all(sessions.map(async session => {
+    const secretSnap = await getDoc(doc(db, 'liveSessionVideos', session.id));
+    return secretSnap.exists() ? { ...session, ...secretSnap.data() } : session;
+  }));
 }
 
 export async function createLiveSession(sessionData) {
-  const { addDoc, collection, serverTimestamp } = await loadFirestore();
+  const { collection, doc, serverTimestamp, writeBatch } = await loadFirestore();
   const videoId = extractYoutubeId(sessionData.videoUrl || '');
   if (!videoId) throw new Error('A valid YouTube replay URL is required.');
   if (!String(sessionData.title || '').trim()) throw new Error('Live topic is required.');
-  const result = await addDoc(collection(db, 'liveSessions'), {
+  const sessionRef = doc(collection(db, 'liveSessions'));
+  const batch = writeBatch(db);
+  batch.set(sessionRef, {
     title: String(sessionData.title).trim(),
     category: String(sessionData.category || 'Live learning').trim(),
     thumbnail: String(sessionData.thumbnail || '').trim(),
     description: String(sessionData.description || '').trim(),
-    videoUrl: `https://www.youtube.com/watch?v=${videoId}`,
-    youtubeVideoId: videoId,
     endedAt: serverTimestamp(),
   });
+  batch.set(doc(db, 'liveSessionVideos', sessionRef.id), {
+    url: `https://www.youtube.com/watch?v=${videoId}`,
+    youtubeVideoId: videoId,
+  });
+  await batch.commit();
   clearSessionCache(LIVE_CACHE_KEY);
-  return result;
+  clearSessionCache(`${LIVE_CACHE_KEY}_settings`);
+  return sessionRef;
 }
 
 export async function deleteLiveSession(sessionId) {
-  const { doc, deleteDoc } = await loadFirestore();
+  const { doc, writeBatch } = await loadFirestore();
   if (!sessionId) throw new Error('Replay id is required.');
-  const result = await deleteDoc(doc(db, 'liveSessions', sessionId));
+  const batch = writeBatch(db);
+  batch.delete(doc(db, 'liveSessions', sessionId));
+  batch.delete(doc(db, 'liveSessionVideos', sessionId));
+  const result = await batch.commit();
   clearSessionCache(LIVE_CACHE_KEY);
   return result;
 }
 
 export async function deleteCourse(courseId) {
-  const { doc, deleteDoc, collection, getDocs } = await loadFirestore();
+  const { doc, deleteDoc, collection, getDocs, writeBatch } = await loadFirestore();
   // Clean up nested modules/lessons first (client-side cascade; fine at this scale).
   const modulesSnap = await getDocs(collection(db, 'courses', courseId, 'modules'));
   for (const moduleDoc of modulesSnap.docs) {
@@ -664,7 +872,12 @@ export async function deleteCourse(courseId) {
     }
     await deleteDoc(doc(db, 'courses', courseId, 'modules', moduleDoc.id));
   }
-  return deleteDoc(doc(db, 'courses', courseId));
+  const batch = writeBatch(db);
+  batch.delete(doc(db, 'courses', courseId));
+  batch.delete(doc(db, 'courseVideos', courseId));
+  const result = await batch.commit();
+  clearSessionCache(COURSE_CACHE_KEY);
+  return result;
 }
 
 export async function createModule(courseId, moduleData) {
@@ -781,7 +994,7 @@ export async function uploadLessonVideo(file, courseId, moduleId, onProgress) {
   const { storage } = await import('./firebase-init.js');
   if (!storage) throw new Error('Firebase Storage is not available');
 
-  const storageModule = await import('https://www.gstatic.com/firebasejs/10.13.0/firebase-storage.js');
+  const storageModule = await import('https://www.gstatic.com/firebasejs/10.14.1/firebase-storage.js');
   const { ref, uploadBytesResumable, getDownloadURL } = storageModule;
 
   const storagePath = `lessons/${courseId}/${moduleId}/${Date.now()}-${file.name}`;

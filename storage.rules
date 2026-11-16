@@ -3,7 +3,7 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
     function isAdmin() {
-      return request.auth != null &&
+      return isVerifiedUser() &&
         request.auth.token.email == 'mdsiamahmmedloselovestroy@gmail.com';
     }
 
@@ -12,27 +12,16 @@ service firebase.storage {
     }
 
     function canAccessCourse(courseId) {
+      let accessPath = /databases/(default)/documents/courseAccess/$(request.auth.uid);
+      let coursePath = /databases/(default)/documents/courseAccess/$(request.auth.uid)/courses/$(courseId);
       return isAdmin() || (isVerifiedUser() &&
-        (!firestore.exists(/databases/(default)/documents/enrollments/$(request.auth.uid)_$(courseId)) ||
-          firestore.get(/databases/(default)/documents/enrollments/$(request.auth.uid)_$(courseId)).data.status != 'revoked') &&
-        (firestore.exists(/databases/(default)/documents/enrollments/$(request.auth.uid)_$(courseId)) &&
-          firestore.get(/databases/(default)/documents/enrollments/$(request.auth.uid)_$(courseId)).data.status == 'approved' ||
-          (firestore.exists(/databases/(default)/documents/authorized_users/$(request.auth.token.email)) &&
-            firestore.get(/databases/(default)/documents/authorized_users/$(request.auth.token.email)).data.access == 'granted')));
-    }
-
-    match /community_images/{uid}/{fileName} {
-      allow read: if true;
-      allow write: if isVerifiedUser() && request.auth.uid == uid &&
-        request.resource.contentType.matches('image/.*') && request.resource.size <= 5242880;
-      allow delete: if isVerifiedUser() && request.auth.uid == uid;
-    }
-
-    match /profile-pictures/{uid}/{fileName} {
-      allow read: if true;
-      allow write: if isVerifiedUser() && request.auth.uid == uid &&
-        request.resource.contentType.matches('image/(jpeg|png|webp)') && request.resource.size <= 5242880;
-      allow delete: if isVerifiedUser() && request.auth.uid == uid;
+        firestore.exists(accessPath) &&
+        firestore.get(accessPath).data.get('blocked', false) == false &&
+        ((firestore.get(accessPath).data.get('allCourses', false) == true &&
+          (!firestore.exists(coursePath) ||
+            firestore.get(coursePath).data.status != 'revoked')) ||
+         (firestore.exists(coursePath) &&
+          firestore.get(coursePath).data.status == 'approved')));
     }
 
     match /payment-proofs/{uid}/{paymentId} {

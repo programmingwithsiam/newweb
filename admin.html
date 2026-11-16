@@ -2627,16 +2627,12 @@
             <a class="dashboard-nav-item" href="#liveSection"><i class="fa-solid fa-tower-broadcast"></i> Live</a>
             <a class="dashboard-nav-item" href="#studentsSection"><i class="fa-solid fa-users"></i> Students</a>
             <a class="dashboard-nav-item" href="#paymentsSection"><i class="fa-solid fa-receipt"></i> Payments</a>
-            <a class="dashboard-nav-item dashboard-nav-route" href="/community/"><i class="fa-solid fa-comments"></i>
-              Community</a>
-            <a class="dashboard-nav-item dashboard-nav-route" href="/community/messenger"><i
-                class="fa-solid fa-message"></i> Chat</a>
             <a class="dashboard-nav-item" href="#activitySection"><i class="fa-solid fa-clock-rotate-left"></i> Activity
               Log</a>
             <a class="dashboard-nav-item" href="#settingsSection"><i class="fa-solid fa-sliders"></i> Settings</a>
           </div>
           <div class="dashboard-profile"><span class="dashboard-avatar"><img id="dashboardProfileAvatar" class="hidden"
-                src="" alt=""><i id="dashboardProfileFallback" class="fa-solid fa-user"></i></span><span
+                alt=""><i id="dashboardProfileFallback" class="fa-solid fa-user"></i></span><span
               id="dashboardProfileName">Admin</span></div>
         </nav>
 
@@ -2721,11 +2717,6 @@
             <div class="stat-number" id="statPendingPayments">0</div>
           </div>
 
-          <div class="stat-card">
-            <div class="stat-label">Community Posts</div>
-            <div class="stat-number" id="statCommunityPosts">0</div>
-          </div>
-
         </div>
 
 
@@ -2736,7 +2727,7 @@
           </div>
           <p class="section-subtitle">Enter a Google Gmail address to allow or remove access to all course videos.</p>
           <div class="access-account-preview" id="accessAccountPreview" aria-live="polite">
-            <span class="access-account-icon"><img id="accessAccountAvatar" class="hidden" src="" alt=""><i
+            <span class="access-account-icon"><img id="accessAccountAvatar" class="hidden" alt=""><i
                 id="accessAccountFallback" class="fa-brands fa-google"></i></span>
             <div class="access-account-copy">
               <strong id="accessAccountEmail">No student selected</strong>
@@ -2884,7 +2875,7 @@
             <div class="full">
               <small class="panel-note">Preview (best result: 16:9 image, like a YouTube course thumbnail)</small>
               <div class="thumbnail-preview" id="newCourseThumbnailPreview" aria-live="polite">
-                <img id="newCourseThumbnailPreviewImage" src="" alt="Thumbnail preview">
+                <img id="newCourseThumbnailPreviewImage" alt="Thumbnail preview">
               </div>
             </div>
 
@@ -3596,9 +3587,17 @@
     function updateThumbnailPreview(value) {
       const url = String(value || '').trim();
       if (!thumbnailPreview || !thumbnailPreviewImage) return;
-      thumbnailPreviewImage.src = url;
-      thumbnailPreview.classList.toggle('show', Boolean(url));
-      thumbnailPreviewImage.onerror = () => thumbnailPreview.classList.remove('show');
+      if (url) {
+        thumbnailPreviewImage.src = url;
+        thumbnailPreview.classList.add('show');
+        thumbnailPreviewImage.onerror = () => {
+          thumbnailPreviewImage.removeAttribute('src');
+          thumbnailPreview.classList.remove('show');
+        };
+      } else {
+        thumbnailPreviewImage.removeAttribute('src');
+        thumbnailPreview.classList.remove('show');
+      }
     }
 
     async function compressThumbnailFile(file) {
@@ -4056,11 +4055,14 @@
     }
     function updateLivePreview() {
       const id = extractYoutubeId(liveUrlInput?.value);
-      if (livePreview) livePreview.src = id ? `https://www.youtube.com/embed/${id}?rel=0&enablejsapi=1` : '';
+      if (livePreview) {
+        if (id) livePreview.src = `https://www.youtube.com/embed/${id}?rel=0&enablejsapi=1`;
+        else livePreview.removeAttribute('src');
+      }
       livePreviewWrap?.classList.toggle('has-preview', Boolean(id));
     }
     async function loadLiveSettings() {
-      const settings = await fetchLiveSettings();
+      const settings = await fetchLiveSettings({ includePrivate: true });
       if (liveTopicInput) liveTopicInput.value = settings.title || '';
       if (liveCategoryInput) liveCategoryInput.value = settings.category || '';
       if (liveThumbnailInput) liveThumbnailInput.value = settings.thumbnail || '';
@@ -4334,7 +4336,6 @@
     function updateAdminStats(stats) {
       document.getElementById('statStudents').textContent = stats.students ?? '—';
       document.getElementById('statPendingPayments').textContent = stats.pendingPayments ?? '—';
-      document.getElementById('statCommunityPosts').textContent = stats.communityPosts ?? '—';
     }
 
     function getLessonVideoUrl(lesson) {
@@ -5395,7 +5396,6 @@
 
           <div class="yt-preview" id="lf-preview">
             <iframe
-              src=""
               title="YouTube preview"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
               allowfullscreen
@@ -5526,7 +5526,7 @@
 
         if (!value) {
           preview.classList.remove('show');
-          previewIframe.src = '';
+          previewIframe.removeAttribute('src');
           validLabel.classList.remove('show');
           errorLabel.classList.remove('show');
           return;
@@ -5535,7 +5535,7 @@
         const valid = isValidYoutubeUrl(value);
         if (!valid) {
           preview.classList.remove('show');
-          previewIframe.src = '';
+          previewIframe.removeAttribute('src');
           validLabel.classList.remove('show');
           errorLabel.classList.add('show');
           return;
@@ -5544,7 +5544,7 @@
         const embed = getYoutubeEmbedUrl(value);
         if (!embed) {
           preview.classList.remove('show');
-          previewIframe.src = '';
+          previewIframe.removeAttribute('src');
           validLabel.classList.remove('show');
           errorLabel.classList.add('show');
           return;

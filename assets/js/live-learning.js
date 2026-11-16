@@ -70,9 +70,14 @@ function renderSession() {
   description.textContent = session.description || 'Watch this CodeWithSiam live session again.';
   category.textContent = session.category || 'Live learning';
   if (thumbnail) {
-    thumbnail.src = session.thumbnail || '';
     thumbnail.alt = `${session.title || 'Live session'} thumbnail`;
-    thumbnail.classList.toggle('hidden', !session.thumbnail);
+    if (session.thumbnail) {
+      thumbnail.src = session.thumbnail;
+      thumbnail.classList.remove('hidden');
+    } else {
+      thumbnail.removeAttribute('src');
+      thumbnail.classList.add('hidden');
+    }
   }
   date.textContent = session.isCurrent ? 'Streaming now' : formatDate(session.endedAt);
   state.textContent = selectedIndex === 0 && session.isCurrent ? 'LIVE NOW' : 'LIVE ARCHIVE';
@@ -105,7 +110,7 @@ async function initComments(user = auth?.currentUser, sessionId = '') {
     list.innerHTML = '<p class="chat-empty">Comments are temporarily unavailable.</p>';
     return;
   }
-  const { collection, addDoc, arrayRemove, arrayUnion, deleteDoc, doc, getDoc, limit, onSnapshot, query, serverTimestamp, setDoc, updateDoc, where } = await import('https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js');
+  const { collection, addDoc, arrayRemove, arrayUnion, deleteDoc, doc, getDoc, limit, onSnapshot, query, serverTimestamp, setDoc, updateDoc, where } = await import('https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js');
   const profile = user ? (await getDoc(doc(db, 'users', user.uid)).catch(() => null))?.data() || {} : {};
   const identity = { uid: user?.uid || '', name: profile.name || user?.displayName || user?.email?.split('@')[0] || 'Member', photoURL: profile.photoURL || user?.photoURL || '', admin: user?.email?.toLowerCase() === 'mdsiamahmmedloselovestroy@gmail.com' };
   let comments = [];
@@ -211,7 +216,10 @@ async function loadLiveRoom(user) {
   workspace.classList.add('hidden');
   loading.classList.remove('hidden');
   try {
-  const [settings, archived] = await Promise.all([fetchLiveSettings(), fetchLiveSessions()]);
+  const [settings, archived] = await Promise.all([
+    fetchLiveSettings({ includePrivate: true }),
+    fetchLiveSessions({ includeReplayUrls: true }),
+  ]);
   const currentId = settings.enabled === true ? extractYoutubeId(settings.url || '') : null;
   const current = currentId ? [{ title: settings.title || 'CodeWithSiam is live', category: settings.category || 'Live learning', thumbnail: settings.thumbnail || '', description: settings.description || 'Join the live session and learn by building along.', videoUrl: settings.url, youtubeVideoId: currentId, isCurrent: true }] : [];
   sessions = [...current, ...archived];

@@ -6,12 +6,6 @@ Vercel serves the root HTML pages and static assets. `vercel.json` owns
 production headers, clean route rewrites, and compatibility redirects.
 `serve.json` configures equivalent local aliases for `npm run dev`.
 
-The community application served at `/community/` is the static build under
-`community/`. Its prior source application has been removed from this
-production-focused repository; the live HTML and hashed assets are the source
-of truth here. Restore editable source from Git history before implementing a
-community feature.
-
 ## Authentication and registration
 
 - `assets/js/firebase-init.js` initializes the browser Firebase app, Auth, and
@@ -44,42 +38,32 @@ operations.
   queue can approve it and grant course access.
 - `assets/js/script.js` owns the homepage lesson-player controls and mobile
   fullscreen behavior.
-- `assets/js/course-learning.js` contains a previous lesson-player controller
-  and is not loaded by the current HTML entry points. Preserve it until its
-  consumers and the pending worktree changes are reviewed before removal.
 - `firestore.rules` controls course metadata, preview/locked lesson reads,
   enrollment writes, and owner-only progress.
-- `storage.rules` controls payment proof, profile/community media, and
-  protected lesson files.
+- `storage.rules` controls payment proof and protected lesson files.
 
 Course access changes must be enforced by the data flow and Firebase rules,
 not only by hiding client UI.
 
-## Live and community
+## Live learning
 
 `live.html` and `assets/js/live-learning.js` own the live room, replay player,
 and chat integration. The admin dashboard manages live settings and sessions;
 Firestore rules constrain chat reads and writes.
 
-`community/index.html` and `community/assets/` are the deployed community app.
-Its hashed chunks contain route views and use `/community` as their base path.
-`community/assets/community-home.css` provides the dark Facebook-inspired
-community layout. The bundled home, story, and composer views use the existing
-authentication and story services for publishing and viewing community content.
-`database.rules.json` governs the related Realtime Database data.
+## Community preview
 
-The standalone profile page is `user-profile.html` with
-`assets/js/user-profile.js`. Stories use `stories.html`, `assets/js/stories.js`,
-and `assets/js/story-manager.js`. Story reactions are stored per user on the
-story document, with Firestore rules limiting each verified user to changing
-their own reaction. Firestore rules define access to profiles, posts, comments,
-chat, presence, notifications, and stories.
+`community/index.html` serves the new Community preview at `/community/`.
+Its isolated stylesheet and client scripts live in `community/`; the mock
+adapter and messenger UI are kept separate from feed rendering and supporting
+interactions. Posts, stories, reactions, follows, and messages are demo-only
+in-memory data and reset on reload. The preview does not use Firebase or write
+community data.
 
 ## Shared code and supporting files
 
-`assets/css/` contains the active portfolio, course, profile, story, and
-community styles. `assets/js/` contains browser auth, database, player,
-profile, story, and UI modules. Root `package.json` provides the static
+`assets/css/` contains the active portfolio and course styles. `assets/js/`
+contains browser auth, database, player, and UI modules. Root `package.json` provides the static
 development server and syntax check. Firebase CLI configuration is in
 `firebase.json` and `firestore.indexes.json`; old reports are intentionally
 not retained in the production tree.

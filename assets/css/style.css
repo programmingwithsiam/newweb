@@ -494,14 +494,6 @@ body::after {
   display: none !important;
 }
 
-.community-page-frame {
-  display: block;
-  width: 100%;
-  min-height: 760px;
-  height: calc(100vh - 120px);
-  border: 0;
-}
-
 body::before {
   background:
     radial-gradient(ellipse 55% 42% at 5% 0%, rgba(201, 243, 91, 0.1), transparent 58%),

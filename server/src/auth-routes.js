@@ -217,7 +217,7 @@ const verifyRegistrationHandler = async (req, res) => {
 
     if (!policyAccepted) {
         logStage(requestId, 'registration_policy_rejected', { code: 'POLICY_REQUIRED' });
-        return sendError(res, 400, 'You must accept the community terms and policy before completing your account.', 'POLICY_REQUIRED');
+        return sendError(res, 400, 'You must accept the Terms of Service and Privacy Policy before completing your account.', 'POLICY_REQUIRED');
     }
 
     logStage(requestId, 'registration_verification_validation_passed');
@@ -258,7 +258,7 @@ const verifyRegistrationHandler = async (req, res) => {
         }
         if (pending.status !== 'verifying' || pending.policyAccepted !== true) {
             logStage(requestId, 'registration_missing_policy_check', { status: pending.status });
-            return sendError(res, 400, 'You must accept the community terms and policy before creating your account.', 'POLICY_REQUIRED');
+            return sendError(res, 400, 'You must accept the Terms of Service and Privacy Policy before creating your account.', 'POLICY_REQUIRED');
         }
 
         let createdUser;

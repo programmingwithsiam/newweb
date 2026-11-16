@@ -14,7 +14,7 @@
 // Import all modules
 import { initParticles, initHeader, initTypedText, initRevealOnScroll, initTiltCards, initMobileMenu, initSkillBars, initHero3dParallax, activateSection } from './ui-effects.js?v=20261003-project-3d-1';
 import { initStatCounters } from './animations.js';
-import { initCourseDeck, initLiveNotification, initLiveHub, setCurrentSignedInUid, loadCourses, syncCourseRoute, getCurrentCourse, getCourseProgress, getCourseRoute, pushCourseRoute, getCourseStateLabel, getCourseCardMeta, renderPublicCoursePreview, renderPublishedCourseCatalog, renderLanguageExplorer, bindCourseFilters, renderUpcomingCourses, updateHeroMetrics, updateProgressBar } from './page-renderers.js?v=20260914-hide-claude-index-1';
+import { initCourseDeck, initLiveNotification, initLiveHub, setCurrentSignedInUid, loadCourses, syncCourseRoute, getCurrentCourse, getCurrentLesson, getCompletedLessons, getCourseLessonTotal, getCourseProgress, pushCourseRoute, getCourseStateLabel, getCourseCardMeta, renderPublicCoursePreview, renderPublishedCourseCatalog, renderLanguageExplorer, renderUpcomingCourses, updateHeroMetrics, updateProgressBar } from './page-renderers.js?v=20261116-course-audit-fixes-1';
 import { getLessonVideoSource } from './courses-db.js';
 
 /* =========================================================
@@ -498,20 +498,7 @@ async function initGitHubProjects() {
   }
 }
 
-function getCoursePercent(course) {
-  const total = course?.lessons?.length || 0;
-  const completed = getCompletedLessons(course).size;
-  return total ? Math.round((completed / total) * 100) : 0;
-}
-
-// getCourseRoute and pushCourseRoute are now imported from page-renderers.js
-
-// getCourseStateLabel and getCourseCardMeta are now imported from page-renderers.js
-
-// renderPublishedCourseCatalog, renderLanguageExplorer, and bindCourseFilters are now imported from page-renderers.js
-// The initialization will be handled after DOM loads
-
-// renderPublicCoursePreview is now imported from page-renderers.js
+// Course catalog initialization, filters, and rendering are managed by page-renderers.js.
 
 function saveCourseProgress(progress) {
   localStorage.setItem(COURSE_PROGRESS_KEY, JSON.stringify(progress));
@@ -530,48 +517,6 @@ function saveCourseProgress(progress) {
   }
 }
 
-
-function getCourseLessonTotal(course) {
-  if (!course) return 0;
-  if (Number.isFinite(Number(course.totalLessonCount)) && Number(course.totalLessonCount) > 0) {
-    return Number(course.totalLessonCount);
-  }
-  const moduleTotal = Array.isArray(course.modules)
-    ? course.modules.reduce((sum, module) => {
-      if (Array.isArray(module.lessonCatalog)) return sum + module.lessonCatalog.length;
-      if (Array.isArray(module.lessons)) return sum + module.lessons.length;
-      return sum;
-    }, 0)
-    : 0;
-  if (moduleTotal) return moduleTotal;
-  return Array.isArray(course.lessons) ? course.lessons.length : 0;
-}
-
-function normalizeCourse(course) {
-  const lessons = Array.isArray(course.lessons) ? course.lessons : [];
-  const modules = Array.isArray(course.modules) && course.modules.length
-    ? course.modules
-    : [{
-      id: `${course.id}-module-1`,
-      title: course.moduleTitle || 'Course Module',
-      lessons: lessons.map(lesson => ({ id: lesson.id, title: lesson.title, duration: lesson.duration || '0 min' }))
-    }];
-
-  return {
-    ...course,
-    lessons,
-    modules,
-    totalLessonCount: getCourseLessonTotal({ ...course, lessons, modules }),
-    description: course.description || 'A premium course designed to help you build real-world skills.',
-    status: course.status || 'published',
-    category: course.category || 'Python',
-    moduleTitle: course.moduleTitle || 'Course Module',
-    createdAt: course.createdAt || Date.now()
-  };
-}
-
-// loadCourses, getCurrentCourse, getCurrentLesson, getCompletedLessons, 
-// updateProgressBar, updateHeroMetrics are now imported from page-renderers.js
 
 function renderModuleList(course) {
   const container = document.getElementById('moduleList');
@@ -1124,86 +1069,6 @@ function attachCourseEvents(course) {
 // syncCourseRoute is now imported from page-renderers.js (see line 17)
 window.addEventListener('popstate', syncCourseRoute);
 
-async function initCoursePlatform() {
-  const platform = document.getElementById('coursePlatform');
-  const loading = document.getElementById('courseLoadingState');
-  const empty = document.getElementById('courseEmptyState');
-  const gate = document.getElementById('courseSignInGate');
-  const continueBtn = document.getElementById('continueLearningCourseBtn');
-  const continueBtn2 = document.getElementById('continueLearningBtn');
-  if (!platform) return;
-
-  loading?.classList.remove('hidden');
-  platform.classList.add('hidden');
-  empty?.classList.add('hidden');
-  gate?.classList.add('hidden');
-
-  try {
-    await loadCourses();
-  } catch (error) {
-    loading?.classList.add('hidden');
-    if (empty) {
-      empty.classList.remove('hidden');
-      empty.innerHTML = '<h3>Courses unavailable right now</h3><p>We could not reach the course database. Please refresh, or check back shortly.</p>';
-    }
-    return;
-  }
-
-  updateHeroMetrics();
-  renderPublishedCourseCatalog();
-  renderUpcomingCourses();
-
-  if (window.location.pathname.split('/').filter(Boolean)[0] === 'courses') {
-    syncCourseRoute();
-  }
-
-  const course = getCurrentCourse();
-  if (!course) {
-    loading?.classList.add('hidden');
-    if (empty) {
-      empty.innerHTML = '<h3>No published courses yet</h3><p>Upload your first course from the admin page to launch a premium learning experience.</p>';
-      empty.classList.remove('hidden');
-    }
-    return;
-  }
-
-  if (!currentSignedInUid) {
-    loading?.classList.add('hidden');
-    platform?.classList.add('hidden');
-    return;
-  }
-
-  if (!coursePlatformInitialized) {
-    attachCourseEvents(course);
-    coursePlatformInitialized = true;
-  }
-
-  if (!activeCourse) {
-    loading?.classList.add('hidden');
-    platform.classList.add('hidden');
-    return;
-  }
-
-  const progress = getCourseProgress();
-  if (progress?.[course.id]?.lastLessonId) {
-    selectedLessonId = progress[course.id].lastLessonId;
-  }
-
-  renderCourseDetail(course);
-  updateProgressBar(course);
-  loading?.classList.add('hidden');
-  platform.classList.remove('hidden');
-
-  if (continueBtn) {
-    continueBtn.textContent = progress?.[course.id]?.lastLessonId ? 'Continue Learning' : 'Start Learning';
-  }
-  if (continueBtn2) {
-    continueBtn2.textContent = progress?.[course.id]?.lastLessonId ? 'Continue Learning' : 'Start Learning';
-  }
-}
-
-// initCourseDeck is now imported from page-renderers.js
-
 /**
  * Called by auth-app.js whenever Firebase's auth state changes
  * (sign-in, sign-out, or on initial page load). Keeps script.js's
@@ -1227,6 +1092,7 @@ window.handleAuthStateChange = async function handleAuthStateChange(user) {
       localStorage.setItem(COURSE_PROGRESS_KEY, JSON.stringify(merged));
       currentCourseProgress = merged;
       renderPublishedCourseCatalog();
+      renderLanguageExplorer();
       syncCourseRoute();
       const course = getCurrentCourse();
       if (course && activeCourse) {
@@ -1244,6 +1110,7 @@ window.handleAuthStateChange = async function handleAuthStateChange(user) {
       await loadCourses();
       updateHeroMetrics();
       renderPublishedCourseCatalog();
+      renderLanguageExplorer();
       renderUpcomingCourses();
     } catch (error) {
       console.error('Failed to load public course catalog:', error);
@@ -1254,7 +1121,7 @@ window.handleAuthStateChange = async function handleAuthStateChange(user) {
       document.getElementById('coursePlatform')?.classList.remove('hidden');
     }
     document.getElementById('courseSignInGate')?.classList.add('hidden');
-    document.getElementById('courseYoutubeFrame')?.setAttribute('src', '');
+    document.getElementById('courseYoutubeFrame')?.removeAttribute('src');
     document.getElementById('courseVideo')?.removeAttribute('src');
   }
 

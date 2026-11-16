@@ -42,7 +42,7 @@ export function initParticles() {
 }
 
 /* ---------- Hash-based portfolio pages ---------- */
-const portfolioPages = new Set(['home', 'about', 'projects', 'learn', 'community', 'contact']);
+const portfolioPages = new Set(['home', 'about', 'projects', 'learn', 'contact']);
 
 function normalizePage(page) {
   if (page === 'course') return 'learn';
@@ -70,10 +70,6 @@ function renderPortfolioPage(page, { scrollToTop = true } = {}) {
 
 export function activateSection(sectionId) {
   const route = String(sectionId || '').replace(/^#/, '');
-  if (route === 'community') {
-    window.location.assign('/community/index.html');
-    return;
-  }
   const target = normalizePage(route);
   if (!target) {
     const anchor = document.getElementById(route);
@@ -93,10 +89,6 @@ function bindSingleSectionNavigation() {
   let initialized = false;
   const updatePage = () => {
     const route = decodeURIComponent(window.location.hash.slice(1));
-    if (route === 'community') {
-      window.location.replace('/community/index.html');
-      return;
-    }
     if (!route) {
       if (initialized) return;
       window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}#home`);

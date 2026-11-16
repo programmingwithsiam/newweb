@@ -38,7 +38,7 @@ const otpDigits = [...document.querySelectorAll('.otp-digit')];
 const resendOtpBtn = document.getElementById('resendOtpBtn');
 const resendCountdown = document.getElementById('resendCountdown');
 const otpEmailLabel = document.getElementById('otpEmailLabel');
-const communityTermsCheckbox = document.getElementById('communityTermsCheckbox');
+const accountPolicyCheckbox = document.getElementById('accountPolicyCheckbox');
 const passwordSettingsView = document.getElementById('passwordSettingsView');
 const passwordSettingsForm = document.getElementById('passwordSettingsForm');
 const currentPasswordField = document.getElementById('currentPasswordField');
@@ -150,7 +150,7 @@ function switchTab(showRegister) {
   signInForm?.classList.toggle('hidden', showRegister);
   registerForm?.classList.toggle('hidden', !showRegister);
   modalCard?.classList.toggle('active', showRegister);
-  authModeCaption.textContent = showRegister ? 'Create your account to join the community' : 'Log in to continue';
+  authModeCaption.textContent = showRegister ? 'Create your CodeWithSiam account' : 'Log in to continue';
   authWelcomeCopy.textContent = showRegister
     ? 'A great place to learn, build, and share starts here.'
     : 'Sign in to continue learning, building, and sharing.';
@@ -325,7 +325,7 @@ function showOtpView({ name = '', email, password = '' }, message = 'If registra
   pendingRegistration = { name, email, password };
   otpEmailLabel.textContent = email;
   otpDigits.forEach((input) => { input.value = ''; });
-  communityTermsCheckbox.checked = false;
+  accountPolicyCheckbox.checked = false;
   authFormsView?.classList.add('hidden');
   passwordSettingsView?.classList.add('hidden');
   otpView?.classList.remove('hidden');
@@ -359,8 +359,8 @@ function otpValue() {
 
 async function verifyOtp() {
   if (!pendingRegistration || otpValue().length !== 6) return;
-  if (!communityTermsCheckbox || !communityTermsCheckbox.checked) {
-    setStatus('Please accept the community terms and policy before completing your account.', 'info');
+  if (!accountPolicyCheckbox || !accountPolicyCheckbox.checked) {
+    setStatus('Please accept the Terms of Service and Privacy Policy before completing your account.', 'info');
     return;
   }
   const button = document.getElementById('verifyOtpBtn');

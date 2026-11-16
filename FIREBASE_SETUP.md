@@ -44,23 +44,59 @@ Still in **Authentication → Settings → Authorized domains**:
 
 ## 6. Add the security rules
 
+### Migrate existing course and live video URLs first
+
+The current rules keep course-level video URLs, live stream URLs, and archived
+replay URLs in private documents. Before publishing those rules to a project
+with existing data, make a Firestore backup and run the migration with
+Application Default Credentials for the intended project:
+
+```sh
+gcloud auth application-default login
+FIREBASE_PROJECT_ID=your-project-id npm run migrate:protected-videos
+```
+
+The first command is a dry run and makes no changes. Review its counts and any
+orphaned legacy grants. The apply mode stops if any grant cannot be mapped to
+a Firebase Auth UID. Resolve those cases manually before retrying. Only after
+separately approving the migration, run:
+
+```sh
+FIREBASE_PROJECT_ID=your-project-id npm run migrate:protected-videos -- --apply
+```
+
+The script moves course-level URLs to `courseVideos/{courseId}`, replay URLs
+to `liveSessionVideos/{sessionId}`, and the active stream URL to
+`liveStreamSecrets/current`. It also builds `courseAccess/{uid}` entitlement
+mirrors needed by Storage Rules. It does not migrate lesson-level preview URLs;
+those remain governed by the lesson preview rules. Back up first, pause
+concurrent admin edits while applying, and verify public catalog/archive
+metadata plus enrolled-user video access before deploying rules. This project
+does not run this migration or modify production data automatically.
+
 1. Go to **Firestore Database → Rules**.
 2. Delete the default contents and paste in the entire contents of `firestore.rules` from this project.
 3. Click **Publish**.
+4. Go to **Storage → Rules**, replace the contents with `storage.rules`, and publish those rules too.
+
+After migration and Emulator validation, both rule sets can also be deployed
+together with `firebase deploy --only firestore:rules,storage`.
 
 These rules already enforce:
-- Anyone can read the public course catalog metadata.
-- Only the verified administrator email configured in `firestore.rules` can create/edit/delete courses, modules, or lessons.
-- Only the admin or a Google account with `authorized_users/{email}.access == 'granted'` can read lessons.
-- Users marked `blocked: true` cannot read lessons.
+- Anyone can read course and live archive metadata that contains no protected video URL.
+- Only the verified administrator email configured in `firestore.rules` can create/edit/delete course and live data.
+- Verified, unblocked students with approved enrollment or matching legacy grants can read protected course videos.
+- Verified, unblocked users can read live stream and replay URLs; anonymous and unverified users cannot.
+- Users marked `blocked: true` cannot read lessons or protected course/live videos.
 - Learning progress under `progress/{uid}/...` is private — only that user can read/write it.
 
 ## 7. Add course videos through YouTube
 
-1. Upload or publish the lesson video on YouTube.
-2. In `admin.html`, paste the YouTube watch URL into the lesson's existing video field.
-3. Firestore stores the canonical YouTube URL and video ID; the course player embeds YouTube.
-4. Do not enable Firebase Storage or add a billing account for course videos. The Spark/no-cost setup is sufficient for this flow.
+1. Upload or publish the video on YouTube.
+2. In `admin.html`, paste its watch URL into the existing course or lesson video field.
+3. Course-level URLs are stored separately from public course metadata; lesson URLs remain in their lesson documents and are readable only for previews or authorized students.
+4. The course player embeds YouTube after access has been verified.
+5. Do not enable Firebase Storage or add a billing account for course videos. The Spark/no-cost setup is sufficient for this flow.
 
 ## 8. Sign in as the administrator
 
@@ -82,6 +118,15 @@ Redeploy after adding/changing environment variables — Vercel only picks them 
 
 ## 10. Test everything
 
+Run the local checks and Firebase Emulator rules tests before changing deployed
+rules. The Emulator CLI requires JDK 21 or newer:
+
+```sh
+npm run check
+node --test tests/*.test.js
+npm run test:rules
+```
+
 Use this checklist after deploying:
 
 - [ ] Open the site without signing in — portfolio loads normally.
@@ -89,15 +134,8 @@ Use this checklist after deploying:
 - [ ] Click **Sign In → Continue with Google** — real Google account picker appears.
 - [ ] Sign out, then create an account with email/password.
 
-## 11. Enable Story music search (optional)
-
-The Story music picker uses the official YouTube Data API for in-site search.
-Create a browser API key in Google Cloud, restrict it to the YouTube Data API
-and your deployed domains, then expose it before loading `/community/` as
-`window.YOUTUBE_API_KEY`. Direct YouTube links work without this key. The site
-never downloads or re-uploads YouTube media.
 - [ ] Try opening `/admin.html` while signed in as a non-admin — see "Access Denied", redirected home.
-- [ ] Promote yourself to admin (Step 7), open `/admin.html` — dashboard loads.
+- [ ] Promote yourself to admin (Step 8), open `/admin.html` — dashboard loads.
 - [ ] Create a course, add a module, add a lesson with a YouTube URL — preview embed appears.
 - [ ] Open the site in an incognito window / different browser — the course you created is visible there too (this confirms it's in Firestore, not localStorage).
 - [ ] Mark a lesson complete while signed in, refresh — progress persists.

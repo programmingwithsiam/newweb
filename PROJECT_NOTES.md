@@ -2,11 +2,10 @@
 
 ## Folder map
 
-- Root HTML files are the portfolio, course, live, admin, profile, story, and
-  error-page entry points. Legacy page URLs redirect through `vercel.json`.
+- Root HTML files are the portfolio, course, live, admin, and error-page entry
+  points. Legacy page URLs redirect through `vercel.json`.
 - `assets/css/`, `assets/js/`, and `assets/images/` hold shared browser styles,
   modules, and media.
-- `community/` is the deployable community application served at `/community`.
 - `server/` contains the separate Express email-code registration API.
 - `docs/ARCHITECTURE.md` documents runtime modules and data flows.
 - `database.rules.json`, `firestore.rules`, and `storage.rules` define Firebase
@@ -23,12 +22,10 @@
 
 ## Maintenance rules
 
-- Preserve every existing public URL and keep `vercel.json` rewrites aligned
-  with the destination files.
+- Keep active public URLs and `vercel.json` rewrites aligned with destination
+  files.
 - Keep the public pages as plain HTML/CSS/JavaScript modules; do not introduce
   a framework or build step for the root site.
-- The community build is the only community application copy kept in this
-  tree. Recover the source from Git history before changing the app.
 - Enforce Firebase access in `firestore.rules` and `storage.rules`; hiding a
   client-side control is not authorization.
 - Do not commit `.env` files, Firebase Admin credentials, API keys, SMTP
@@ -41,12 +38,10 @@
 ## Known limitations and items to review
 
 - `npm run check` syntax-checks first-party browser modules, API handlers, and
-  Express modules; it does not test browser behavior, Firebase rules,
-  accessibility, or community builds.
-- Firebase, YouTube, and community media services require working external
-  project configuration and network access.
-- Community images are served by an external storage service; local previews
-  can show network errors when that service cannot be resolved.
+  Express modules; it does not test browser behavior, Firebase rules, or
+  accessibility.
+- Firebase and YouTube services require working external project configuration
+  and network access.
 - Portfolio project accuracy figures are displayed as claims, but this
   repository does not include reproducible evaluation data for them.
 - `serve.json` supplies the root `npm run dev` server's local route rewrites.

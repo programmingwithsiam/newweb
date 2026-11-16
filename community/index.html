@@ -1,44 +1,107 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <title>CodeWithSiam Community</title>
-    <meta name="description" content="Join the CodeWithSiam community to share projects, connect with learners, and follow programming discussions." />
-    <meta name="robots" content="index, follow, max-image-preview:large" />
-    <link rel="canonical" href="https://codewithsiam.vercel.app/community/" />
-    <meta property="og:type" content="website" />
-    <meta property="og:title" content="CodeWithSiam Community" />
-    <meta property="og:description" content="Join the CodeWithSiam community to share projects, connect with learners, and follow programming discussions." />
-    <meta property="og:url" content="https://codewithsiam.vercel.app/community/" />
-    <meta property="og:image" content="https://codewithsiam.vercel.app/assets/images/profile-siam.jpeg" />
-    <meta property="og:image:alt" content="CodeWithSiam community" />
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="CodeWithSiam Community" />
-    <meta name="twitter:description" content="Join the CodeWithSiam community to share projects, connect with learners, and follow programming discussions." />
-    <meta name="twitter:image" content="https://codewithsiam.vercel.app/assets/images/profile-siam.jpeg" />
-    <script type="application/ld+json">
-      {
-        "@context": "https://schema.org",
-        "@type": "WebPage",
-        "name": "CodeWithSiam Community",
-        "description": "Join the CodeWithSiam community to share projects, connect with learners, and follow programming discussions.",
-        "url": "https://codewithsiam.vercel.app/community/",
-        "isPartOf": {
-          "@type": "WebSite",
-          "name": "CodeWithSiam",
-          "url": "https://codewithsiam.vercel.app/"
-        }
-      }
-    </script>
-    <meta name="theme-color" content="#111827" />
-    <link rel="icon" href="/favicon.ico" sizes="any" />
-    <script type="module" crossorigin src="/community/assets/index-Cphsf56u.js"></script>
-    <link rel="stylesheet" crossorigin href="/community/assets/index-DOYQwWr4.css">
-    <link rel="stylesheet" href="/community/assets/community-home.css?v=20261108-community-core-8">
-  </head>
-  <body>
-    <h1 class="community-page-title">CodeWithSiam Community</h1>
-    <div id="root"></div>
-  </body>
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="description" content="Join the CodeWithSiam learning community.">
+  <meta name="theme-color" content="#18191a">
+  <link rel="icon" href="/favicon.ico">
+  <link rel="canonical" href="https://codewithsiam.vercel.app/community/">
+  <title>Community | CodeWithSiam</title>
+  <link rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;800&family=Inter:wght@400;500;600&display=swap">
+  <link rel="stylesheet" href="/community/community.css">
+</head>
+
+<body>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <radialGradient id="gy" cx=".5" cy=".28" r=".85">
+        <stop offset="0" stop-color="#fff29a" />
+        <stop offset=".55" stop-color="#fdcb3b" />
+        <stop offset="1" stop-color="#f2a31b" />
+      </radialGradient>
+      <linearGradient id="gb" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#19b0ff" />
+        <stop offset="1" stop-color="#0a64e0" />
+      </linearGradient>
+      <linearGradient id="gr" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#ff6b88" />
+        <stop offset="1" stop-color="#e6204f" />
+      </linearGradient>
+      <linearGradient id="ga" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#f0453a" />
+        <stop offset="1" stop-color="#f5a026" />
+      </linearGradient>
+    </defs>
+  </svg>
+  <nav class="bar"><a class="brand" href="/" aria-label="CodeWithSiam home"><span class="logo"
+        aria-hidden="true">S</span><span class="bt">CodeWith<span>Siam</span></span></a>
+    <div class="sbox" role="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="11" cy="11" r="7" />
+        <path d="m21 21-4.3-4.3" />
+      </svg><input id="sq" type="search" placeholder="Search CodeWithSiam" aria-label="Search people, posts and reels"
+        autocomplete="off">
+      <div class="sres" id="sres" role="listbox"></div>
+    </div>
+    <div class="tabs" role="tablist"><button role="tab" id="tHome" aria-selected="true">Home</button><button role="tab"
+        id="tReels" aria-selected="false">Reels</button><button role="tab" id="tProf"
+        aria-selected="false">Profile</button></div>
+    <button class="btn g cwm-navbtn" id="cwmOpen" aria-label="Open messages"><svg viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+      </svg><span class="cwm-nb" id="cwmBadge" hidden></span></button>
+    <button class="btn g" id="theme" aria-label="Open settings" title="Settings"><span aria-hidden="true">⚙</span><span
+        class="stx"> Settings</span></button>
+  </nav>
+  <div class="layout">
+    <nav class="lside" id="lside" aria-label="Shortcuts"></nav>
+    <main id="main"></main>
+    <aside>
+      <div class="card">
+        <h3>Top contributors</h3>
+        <div id="lb"></div>
+      </div>
+      <div class="card">
+        <h3>Add video links</h3>
+        <p style="margin:0;color:var(--muted);font-size:14px">Paste a YouTube, Facebook or Instagram link, or upload a
+          video file, in a post or reel. Tap a name to open a profile.</p>
+      </div>
+    </aside>
+  </div>
+  <div class="ov" id="ovM">
+    <div class="modal" id="modal"></div>
+  </div>
+  <div class="ov" id="ovS">
+    <div class="sv" id="sv"></div>
+  </div>
+  <div class="toast" id="toast" role="status"></div>
+
+  <div id="cwmRoot" role="dialog" aria-label="Community Messenger"></div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <script src="/community/community.js" defer></script>
+  <script src="/community/mock-adapter.js" defer></script>
+  <script src="/community/messenger.js" defer></script>
+  <script src="/community/community-extras.js" defer></script>
+</body>
+
 </html>

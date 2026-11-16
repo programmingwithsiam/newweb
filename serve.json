@@ -14,10 +14,7 @@
     { "source": "/live", "destination": "/live.html" },
     { "source": "/privacy", "destination": "/privacy.html" },
     { "source": "/terms", "destination": "/terms.html" },
-    { "source": "/community.html", "destination": "/community/index.html" },
     { "source": "/community", "destination": "/community/index.html" },
-    { "source": "/community/*", "destination": "/community/index.html" },
-    { "source": "/community-app", "destination": "/community/index.html" },
-    { "source": "/community-app/*", "destination": "/community/index.html" }
+    { "source": "/community/", "destination": "/community/index.html" }
   ]
 }

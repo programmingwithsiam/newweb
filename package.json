@@ -5,13 +5,13 @@
   "scripts": {
     "dev": "npx --yes serve .",
     "start": "npx --yes serve .",
-    "check": "node --check \"api/[...path].js\" && node --check api/csp-reports.js && node --check assets/js/animations.js && node --check assets/js/auth-api.js && node --check assets/js/auth-app.js && node --check assets/js/auth.js && node --check assets/js/course-enrollment.js && node --check assets/js/course-learning.js && node --check assets/js/course-payment.js && node --check assets/js/courses-db.js && node --check assets/js/firebase-init.js && node --check assets/js/live-learning.js && node --check assets/js/page-renderers.js && node --check assets/js/script.js && node --check assets/js/stories.js && node --check assets/js/story-manager.js && node --check assets/js/ui-effects.js && node --check assets/js/user-profile.js && node --check server/src/auth-routes.js && node --check server/src/env.js && node --check server/src/firebase.js && node --check server/src/index.js && node --check server/src/mailer.js"
+    "check": "node --check \"api/[...path].js\" && node --check api/csp-reports.js && node --check assets/js/animations.js && node --check assets/js/auth-api.js && node --check assets/js/auth-app.js && node --check assets/js/auth.js && node --check assets/js/course-enrollment.js && node --check assets/js/course-payment.js && node --check assets/js/courses-db.js && node --check assets/js/firebase-init.js && node --check assets/js/live-learning.js && node --check assets/js/page-renderers.js && node --check assets/js/script.js && node --check assets/js/ui-effects.js && node --check community/community.js && node --check community/mock-adapter.js && node --check community/messenger.js && node --check community/community-extras.js && node --check server/src/auth-routes.js && node --check server/src/env.js && node --check server/src/firebase.js && node --check server/src/index.js && node --check server/src/mailer.js && node --check scripts/migrate-protected-video-data.mjs && node --check tests/firebase-rules.test.mjs",
+    "test:rules": "firebase emulators:exec --project demo-codewithsiam --only firestore,storage \"node --test tests/firebase-rules.test.mjs\"",
+    "migrate:protected-videos": "node scripts/migrate-protected-video-data.mjs"
   },
-
   "engines": {
     "node": ">=20"
   },
-
   "dependencies": {
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
@@ -21,8 +21,17 @@
     "helmet": "^8.1.0",
     "nodemailer": "^10.0.13"
   },
-
   "devDependencies": {
-    "playwright": "^1.62.1"
+    "@firebase/rules-unit-testing": "4.0.1",
+    "firebase": "11.10.0",
+    "firebase-tools": "15.36.0"
+  },
+  "overrides": {
+    "@firebase/database": "1.0.20",
+    "@firebase/database-compat": "2.0.11",
+    "@grpc/grpc-js": "1.13.6",
+    "firebase-tools": {
+      "uuid": "11.1.1"
+    }
   }
 }

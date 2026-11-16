@@ -5,6 +5,8 @@
    live streaming hub, and related features.
    ========================================================= */
 
+import { observeAuthState } from './auth.js';
+
 // State management
 const COURSE_PROGRESS_KEY = 'siam_portfolio_course_progress';
 let cachedCourses = [];
@@ -21,13 +23,7 @@ let collapsedModules = new Set();
 let currentSignedInUid = null;
 let lessonPlayerVisible = false;
 
-// Export state getters
-export function getCurrentSignedInUid() { return currentSignedInUid; }
 export function setCurrentSignedInUid(uid) { currentSignedInUid = uid; }
-export function getActiveCourse() { return activeCourse; }
-export function setActiveCourse(course) { activeCourse = course; }
-export function getLessonPlayerVisible() { return lessonPlayerVisible; }
-export function setLessonPlayerVisible(visible) { lessonPlayerVisible = visible; }
 
 /* ---------- Progress Management ---------- */
 export function getCourseProgress() {
@@ -90,7 +86,7 @@ export function getCourseThumbnail(course, videoUrl = course?.videoUrl) {
   return course?.thumbnail || getYoutubeThumbnailUrl(videoUrl) || '/assets/images/py.webp';
 }
 
-function getCourseLessonTotal(course) {
+export function getCourseLessonTotal(course) {
   if (!course) return 0;
   if (Number.isFinite(Number(course.totalLessonCount)) && Number(course.totalLessonCount) > 0) {
     return Number(course.totalLessonCount);
@@ -142,8 +138,6 @@ export async function loadCourses() {
     cachedCourses = (fallbackCourses.length ? fallbackCourses : getDefaultCourses()).map(normalizeCourse);
   }
 }
-
-export function getCachedCourses() { return cachedCourses; }
 
 export function getCoursePercent(course) {
   const total = getCourseLessonTotal(course);
@@ -365,8 +359,10 @@ export function renderPublicCoursePreview(course) {
       overviewThumbnail.classList.add('hidden');
     };
   }
-  document.getElementById('courseOverviewTitle').textContent = course.title;
-  document.getElementById('courseOverviewDescription').textContent = course.description;
+  const overviewTitle = document.getElementById('courseOverviewTitle');
+  if (overviewTitle) overviewTitle.textContent = course.title;
+  const overviewDescription = document.getElementById('courseOverviewDescription');
+  if (overviewDescription) overviewDescription.textContent = course.description;
   document.getElementById('courseOverviewInstructor').textContent = course.instructor || 'CodeWithSiam';
   document.getElementById('courseOverviewPrice').textContent = Number(course.price) > 0 ? `৳${Number(course.price).toLocaleString('en-BD')}` : 'Free';
   const bkash = course.payment?.bkash || '01644171751';
@@ -457,14 +453,13 @@ export function initLiveHub() {
   const archive = document.getElementById('liveArchiveList');
   const count = document.getElementById('liveArchiveCount');
   if (!current || !archive) return;
-  const load = () => import('./courses-db.js').then(async ({ fetchLiveSettings, fetchLiveSessions, extractYoutubeId }) => {
+  const load = () => import('./courses-db.js').then(async ({ fetchLiveSettings, fetchLiveSessions }) => {
     const [settings, sessions] = await Promise.all([fetchLiveSettings().catch(() => ({})), fetchLiveSessions().catch(() => [])]);
-    const liveId = extractYoutubeId(settings.url || '');
-    if (settings.enabled === true && liveId) {
+    if (settings.enabled === true) {
       current.innerHTML = `<div class="live-hub-empty"><i class="fa-solid fa-lock"></i><strong>Live room is available</strong><span>Sign in to watch and join the conversation.</span><a class="btn btn-primary" href="live.html">Enter Live room</a></div>`;
     }
     count.textContent = `${sessions.length} session${sessions.length === 1 ? '' : 's'}`;
-    archive.innerHTML = sessions.length ? sessions.map(session => `<article class="live-archive-card"><div class="live-archive-thumb"><img src="https://i.ytimg.com/vi/${escapeHtml(session.youtubeVideoId || extractYoutubeId(session.videoUrl || ''))}/hqdefault.jpg" alt="${escapeHtml(session.title || 'Live session')}" loading="lazy"><span><i class="fa-solid fa-lock"></i> Members</span></div><div class="live-archive-copy"><time>${formatLiveDate(session.endedAt)}</time><h4>${escapeHtml(session.title || 'Live session')}</h4><p>${escapeHtml(session.description || 'Sign in to watch this CodeWithSiam live replay.')}</p><a href="live.html">Enter Live room <i class="fa-solid fa-arrow-right"></i></a></div></article>`).join('') : '<p class="live-hub-empty">Your completed live sessions will be saved here.</p>';
+    archive.innerHTML = sessions.length ? sessions.map(session => `<article class="live-archive-card"><div class="live-archive-thumb"><img src="${escapeHtml(session.thumbnail || '/assets/images/py.webp')}" alt="${escapeHtml(session.title || 'Live session')}" loading="lazy"><span><i class="fa-solid fa-lock"></i> Members</span></div><div class="live-archive-copy"><time>${formatLiveDate(session.endedAt)}</time><h4>${escapeHtml(session.title || 'Live session')}</h4><p>${escapeHtml(session.description || 'Sign in to watch this CodeWithSiam live replay.')}</p><a href="live.html">Enter Live room <i class="fa-solid fa-arrow-right"></i></a></div></article>`).join('') : '<p class="live-hub-empty">Your completed live sessions will be saved here.</p>';
   }).catch(() => { archive.innerHTML = '<p class="live-hub-empty">The live archive is unavailable right now.</p>'; });
   if (!('IntersectionObserver' in window)) load();
   else {
@@ -483,26 +478,33 @@ export function initLiveNotification() {
   const frame = document.getElementById('liveNotificationFrame');
   const openLink = document.getElementById('liveNotificationOpen');
   if (!button || !panel || !frame || !openLink) return;
-  import('./courses-db.js').then(async ({ fetchLiveSettings, extractYoutubeId }) => {
-    const settings = await fetchLiveSettings().catch(() => ({}));
-    const videoId = extractYoutubeId(settings.url || '');
-    if (settings.enabled !== true || !videoId) return;
-    button.classList.remove('hidden');
-    frame.dataset.src = `https://www.youtube.com/embed/${videoId}?controls=1&rel=0&playsinline=1`;
-    if (settings.chatEnabled === false) document.querySelector('.site-live-chat')?.classList.add('hidden');
-    openLink.href = settings.url;
-    button.addEventListener('click', () => {
-      const open = panel.classList.toggle('hidden') === false;
-      button.setAttribute('aria-expanded', String(open));
-      if (!open) return;
-      if (!frame.src && frame.dataset.src) frame.src = frame.dataset.src;
-      if (settings.chatEnabled !== false) initSiteLiveChat();
+  import('./courses-db.js').then(({ fetchLiveSettings, extractYoutubeId }) => {
+    observeAuthState(async user => {
+      if (!user?.emailVerified) return;
+      try {
+        const settings = await fetchLiveSettings({ includePrivate: true });
+        const videoId = extractYoutubeId(settings.url || '');
+        if (settings.enabled !== true || !videoId) return;
+        button.classList.remove('hidden');
+        frame.dataset.src = `https://www.youtube.com/embed/${videoId}?controls=1&rel=0&playsinline=1`;
+        if (settings.chatEnabled === false) document.querySelector('.site-live-chat')?.classList.add('hidden');
+        openLink.href = settings.url;
+        button.addEventListener('click', () => {
+          const open = panel.classList.toggle('hidden') === false;
+          button.setAttribute('aria-expanded', String(open));
+          if (!open) return;
+          if (!frame.src && frame.dataset.src) frame.src = frame.dataset.src;
+          if (settings.chatEnabled !== false) initSiteLiveChat();
+        });
+        document.getElementById('closeLiveNotification')?.addEventListener('click', () => {
+          panel.classList.add('hidden');
+          button.setAttribute('aria-expanded', 'false');
+        });
+      } catch (error) {
+        console.error('Live notification unavailable:', error);
+      }
     });
-    document.getElementById('closeLiveNotification')?.addEventListener('click', () => {
-      panel.classList.add('hidden');
-      button.setAttribute('aria-expanded', 'false');
-    });
-  }).catch(() => { });
+  }).catch(error => console.error('Live notification unavailable:', error));
 }
 
 export async function initSiteLiveChat() {
@@ -529,7 +531,7 @@ export async function initSiteLiveChat() {
       nameInput.value = currentUser.displayName || currentUser.email?.split('@')[0] || 'Member';
       nameInput.disabled = true;
     }
-    const { collection, addDoc, deleteDoc, doc, limit, onSnapshot, orderBy, query, serverTimestamp, updateDoc } = await import('https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js');
+    const { collection, addDoc, deleteDoc, doc, limit, onSnapshot, orderBy, query, serverTimestamp, updateDoc } = await import('https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js');
     const chatQuery = query(collection(db, 'liveChatMessages'), orderBy('createdAt', 'desc'), limit(50));
     let replyTo = null;
     const replyState = document.getElementById('liveChatReplyState');
@@ -665,6 +667,7 @@ export async function initCoursePlatform() {
 
   updateHeroMetrics();
   renderPublishedCourseCatalog();
+  renderLanguageExplorer();
   renderUpcomingCourses();
 
   if (window.location.pathname.split('/').filter(Boolean)[0] === 'courses') {

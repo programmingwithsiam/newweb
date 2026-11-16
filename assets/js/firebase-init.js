@@ -67,16 +67,16 @@ let storage = null;
 if (isFirebaseConfigured) {
   try {
     const { initializeApp } = await import(
-      'https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js'
+      'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js'
     );
     const { getAuth, GoogleAuthProvider } = await import(
-      'https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js'
+      'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js'
     );
     const { getFirestore } = await import(
-      'https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js'
+      'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js'
     );
     const { getStorage } = await import(
-      'https://www.gstatic.com/firebasejs/10.13.0/firebase-storage.js'
+      'https://www.gstatic.com/firebasejs/10.14.1/firebase-storage.js'
     );
     app = initializeApp(firebaseConfig);
     auth = getAuth(app);

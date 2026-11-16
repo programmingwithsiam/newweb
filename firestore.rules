@@ -7,12 +7,13 @@ rules_version = '2';
 // or deploy with the Firebase CLI: `firebase deploy --only firestore:rules`
 //
 // Model:
-//  - courses/{courseId}                          -> public read, admin write
+//  - courses/{courseId}                          -> public metadata, admin write
+//  - courseVideos/{courseId}                     -> enrolled/admin video URLs
 //  - courses/{courseId}/modules/{moduleId}        -> public read, admin write
 //  - .../modules/{moduleId}/lessons/{lessonId}    -> public read, admin write
+//  - liveSessions/{sessionId}                    -> public replay metadata
+//  - liveSessionVideos/{sessionId}                -> verified-user/admin replay URLs
 //  - users/{uid}                                  -> private; owner/admin only
-//  - publicProfiles/{uid}                         -> allowlisted public profile
-//  - publicDirectory/{uid}                        -> minimal public chat directory
 //  - progress/{uid}/courses/{courseId}            -> owner-only read/write
 // =============================================================
 
@@ -29,6 +30,12 @@ service cloud.firestore {
 
     function isOwner(uid) {
       return isVerifiedUser() && request.auth.uid == uid;
+    }
+
+    function isBlockedUser() {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('blocked', false) == true;
     }
 
     function isAdmin() {
@@ -57,13 +64,15 @@ service cloud.firestore {
 
     function canAccessCourse(courseId) {
       return isAdmin() ||
-        (isVerifiedUser() && enrollmentStatus(courseId) != 'revoked' &&
+        (isVerifiedUser() && !isBlockedUser() && enrollmentStatus(courseId) != 'revoked' &&
           (enrollmentStatus(courseId) == 'approved' || hasLegacyCourseAccess(courseId)));
     }
 
     // ---------------- Courses (public catalog) ----------------
     match /courses/{courseId} {
-      allow read: if true;
+      allow read: if isAdmin() ||
+        !resource.data.keys().hasAny(['videoUrl', 'youtubeUrl', 'youtubeVideoId', 'videoId']) ||
+        canAccessCourse(courseId);
       allow write: if isAdmin();
 
       match /modules/{moduleId} {
@@ -75,14 +84,47 @@ service cloud.firestore {
           // Keep preview reads as document gets so a query over locked lessons
           // cannot expose or infer the rest of the course content.
           allow get: if isAdmin() ||
-            (('isFreePreview' in resource.data) && resource.data.isFreePreview == true) ||
-            (('freePreview' in resource.data) && resource.data.freePreview == true) ||
-            (('order' in resource.data) && resource.data.order <= 1 &&
-              get(/databases/$(database)/documents/courses/$(courseId)/modules/$(moduleId)).data.order == 0) ||
+            (!isBlockedUser() &&
+              ((('isFreePreview' in resource.data) && resource.data.isFreePreview == true) ||
+               (('freePreview' in resource.data) && resource.data.freePreview == true) ||
+               (('order' in resource.data) && resource.data.order <= 1 &&
+                get(/databases/$(database)/documents/courses/$(courseId)/modules/$(moduleId)).data.order == 0))) ||
             canAccessCourse(courseId);
           allow list: if isAdmin() || canAccessCourse(courseId);
           allow write: if isAdmin();
         }
+      }
+    }
+
+    match /courseVideos/{courseId} {
+      allow get: if canAccessCourse(courseId);
+      allow list: if false;
+      allow write: if isAdmin();
+    }
+
+    // Storage Rules use this mirrored entitlement document so they can check
+    // blocking and course access within Storage's two-document Firestore limit.
+    match /courseAccess/{uid} {
+      allow get: if isAdmin() || isOwner(uid);
+      allow list: if isAdmin();
+      allow create: if isAdmin() ||
+        (isOwner(uid) && !isBlockedUser() &&
+          request.resource.data.keys().hasOnly(['blocked']) &&
+          request.resource.data.blocked == false);
+      allow update, delete: if isAdmin();
+
+      match /courses/{courseId} {
+        allow get: if isAdmin() || isOwner(uid);
+        allow list: if isAdmin();
+        allow create: if isAdmin() ||
+          (isOwner(uid) && !isBlockedUser() &&
+            exists(/databases/$(database)/documents/courseAccess/$(uid)) &&
+            get(/databases/$(database)/documents/courseAccess/$(uid)).data.get('blocked', false) == false &&
+            exists(/databases/$(database)/documents/enrollments/$(uid + '_' + courseId)) &&
+            get(/databases/$(database)/documents/enrollments/$(uid + '_' + courseId)).data.status == 'approved' &&
+            request.resource.data.keys().hasOnly(['status']) &&
+            request.resource.data.status == 'approved');
+        allow update, delete: if isAdmin();
       }
     }
 
@@ -106,303 +148,23 @@ service cloud.firestore {
       allow update, delete: if isAdmin();
     }
 
-    // ---------------- Private and public user profiles ----------------
+    // ---------------- Private user profiles ----------------
     match /users/{uid} {
       allow get, list: if isAdmin() || (isSignedIn() && request.auth.uid == uid);
       allow create: if isSignedIn() &&
         request.auth.uid == uid &&
         request.resource.data.uid == uid &&
+        request.resource.data.get('blocked', false) == false &&
         !('policyAcceptedAt' in request.resource.data);
       allow update: if (isSignedIn() &&
           request.auth.uid == uid &&
           request.resource.data.uid == uid &&
+          request.resource.data.get('blocked', false) == resource.data.get('blocked', false) &&
           request.resource.data.get('policyAcceptedAt', null) == resource.data.get('policyAcceptedAt', null)) ||
         (isAdmin() && request.resource.data.get('uid', uid) == uid &&
           request.resource.data.get('policyAcceptedAt', null) == resource.data.get('policyAcceptedAt', null));
-      allow delete: if isAdmin() || (isSignedIn() && request.auth.uid == uid);
+      allow delete: if isAdmin();
     }
-
-    match /publicProfiles/{uid} {
-      function hasValidPublicProfile() {
-        return request.resource.data.keys().hasOnly([
-            'uid', 'name', 'displayName', 'photoURL', 'profilePicture', 'coverPhoto', 'coverURL',
-            'username', 'searchName', 'bio', 'location', 'website', 'learningRole', 'skills',
-            'followers', 'following', 'totalProjects', 'createdAt', 'online', 'lastSeen',
-            'lastActive', 'updatedAt'
-          ]) &&
-          request.resource.data.uid == uid &&
-          (!('name' in request.resource.data) ||
-            (request.resource.data.name is string && request.resource.data.name.size() <= 120)) &&
-          (!('displayName' in request.resource.data) ||
-            (request.resource.data.displayName is string && request.resource.data.displayName.size() <= 120)) &&
-          (!('photoURL' in request.resource.data) ||
-            (request.resource.data.photoURL is string && request.resource.data.photoURL.size() <= 2000)) &&
-          (!('profilePicture' in request.resource.data) ||
-            (request.resource.data.profilePicture is string && request.resource.data.profilePicture.size() <= 2000)) &&
-          (!('coverPhoto' in request.resource.data) || request.resource.data.coverPhoto is string) &&
-          (!('coverURL' in request.resource.data) || request.resource.data.coverURL is string) &&
-          (!('username' in request.resource.data) ||
-            (request.resource.data.username is string && request.resource.data.username.size() <= 30)) &&
-          (!('searchName' in request.resource.data) ||
-            (request.resource.data.searchName is string && request.resource.data.searchName.size() <= 120)) &&
-          (!('bio' in request.resource.data) ||
-            request.resource.data.bio is string) &&
-          (!('location' in request.resource.data) ||
-            request.resource.data.location is string) &&
-          (!('website' in request.resource.data) ||
-            request.resource.data.website is string) &&
-          (!('learningRole' in request.resource.data) ||
-            request.resource.data.learningRole is string) &&
-          (!('skills' in request.resource.data) || request.resource.data.skills is list) &&
-          (!('followers' in request.resource.data) || request.resource.data.followers is list) &&
-          (!('following' in request.resource.data) || request.resource.data.following is list) &&
-          (!('online' in request.resource.data) || request.resource.data.online is bool);
-      }
-
-      function validFollowerChange() {
-        let previousFollowers = resource.data.get('followers', []);
-        let updatedFollowers = request.resource.data.get('followers', []);
-        return isVerifiedUser() &&
-          request.auth.uid != uid &&
-          request.resource.data.uid == resource.data.uid &&
-          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['followers', 'updatedAt']) &&
-          previousFollowers is list &&
-          updatedFollowers is list &&
-          request.resource.data.updatedAt == request.time &&
-          ((updatedFollowers.size() == previousFollowers.size() + 1 &&
-              updatedFollowers.hasAll(previousFollowers) &&
-              request.auth.uid in updatedFollowers &&
-              !(request.auth.uid in previousFollowers)) ||
-            (previousFollowers.size() == updatedFollowers.size() + 1 &&
-              previousFollowers.hasAll(updatedFollowers) &&
-              request.auth.uid in previousFollowers &&
-              !(request.auth.uid in updatedFollowers)));
-      }
-
-      allow get, list: if isVerifiedUser();
-      allow create: if isOwner(uid) && hasValidPublicProfile();
-      allow update: if (isOwner(uid) && hasValidPublicProfile()) || validFollowerChange();
-      allow delete: if isOwner(uid) || isAdmin();
-    }
-
-    match /publicDirectory/{uid} {
-      function hasValidDirectoryProfile() {
-        return request.resource.data.keys().hasOnly([
-            'uid', 'displayName', 'photoURL', 'username', 'searchName',
-            'online', 'lastSeen', 'lastActive', 'updatedAt'
-          ]) &&
-          request.resource.data.uid == uid &&
-          request.resource.data.displayName is string &&
-          request.resource.data.displayName.size() <= 120 &&
-          request.resource.data.photoURL is string &&
-          request.resource.data.photoURL.size() <= 2000 &&
-          request.resource.data.username is string &&
-          request.resource.data.username.size() <= 30 &&
-          request.resource.data.searchName is string &&
-          request.resource.data.searchName.size() <= 120 &&
-          request.resource.data.online is bool;
-      }
-
-      allow get, list: if isVerifiedUser();
-      allow create, update: if isOwner(uid) && hasValidDirectoryProfile();
-      allow delete: if isOwner(uid) || isAdmin();
-    }
-
-    match /chats/{chatId} {
-      function isMember() {
-        return isSignedIn() &&
-          resource.data.members is list &&
-          request.auth.uid in resource.data.members;
-      }
-
-      function otherMember() {
-        return resource.data.members[0] == request.auth.uid
-          ? resource.data.members[1]
-          : resource.data.members[0];
-      }
-
-      function ratePath(uid) {
-        return /databases/$(database)/documents/chatRateLimits/$(uid);
-      }
-
-      function hasValidSendRate() {
-        return existsAfter(ratePath(request.auth.uid)) &&
-          getAfter(ratePath(request.auth.uid)).data.lastSentAt == request.time &&
-          getAfter(ratePath(request.auth.uid)).data.chatId == chatId &&
-          (!exists(ratePath(request.auth.uid)) ||
-            get(ratePath(request.auth.uid)).data.lastSentAt <= request.time - duration.value(1, 's'));
-      }
-
-      function validMessageMetadataUpdate() {
-        let messagePath = /databases/$(database)/documents/chats/$(chatId)/messages/$(request.resource.data.lastMessageId);
-        let message = getAfter(messagePath).data;
-        return existsAfter(messagePath) &&
-          message.senderId == request.auth.uid &&
-          message.createdAt == request.time &&
-          ((message.get('type', 'text') == 'image' &&
-            request.resource.data.lastMessage ==
-              (message.caption == '' ? '📷 Photo' : '📷 ' + message.caption)) ||
-           (message.get('type', 'text') == 'text' &&
-            message.text == request.resource.data.lastMessage));
-      }
-
-      function validReadUpdate() {
-        return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['unread', 'readAt']) &&
-          request.resource.data.unread is map &&
-          request.resource.data.readAt is map &&
-          request.resource.data.unread.get(request.auth.uid, 0) == 0 &&
-          request.resource.data.readAt.get(request.auth.uid, null) == request.time &&
-          request.resource.data.unread.get(otherMember(), 0) == resource.data.unread.get(otherMember(), 0) &&
-          request.resource.data.readAt.get(otherMember(), null) ==
-            resource.data.get('readAt', {}).get(otherMember(), null);
-      }
-
-      function validSendUpdate() {
-        return request.resource.data.diff(resource.data).affectedKeys()
-            .hasOnly(['lastMessage', 'lastMessageAt', 'lastMessageId', 'unread']) &&
-          request.resource.data.lastMessage is string &&
-          request.resource.data.lastMessage.size() <= 2050 &&
-          request.resource.data.lastMessageAt == request.time &&
-          request.resource.data.lastMessageId is string &&
-          request.resource.data.unread is map &&
-          request.resource.data.unread.get(request.auth.uid, 0) == 0 &&
-          request.resource.data.unread.get(otherMember(), 0) ==
-            resource.data.unread.get(otherMember(), 0) + 1 &&
-          request.resource.data.get('readAt', {}).get(request.auth.uid, null) ==
-            resource.data.get('readAt', {}).get(request.auth.uid, null) &&
-          request.resource.data.get('readAt', {}).get(otherMember(), null) ==
-            resource.data.get('readAt', {}).get(otherMember(), null) &&
-          hasValidSendRate() &&
-          validMessageMetadataUpdate();
-      }
-
-      allow get: if isSignedIn() &&
-        (resource == null ||
-          (resource.data.members is list && request.auth.uid in resource.data.members));
-      allow list: if isMember();
-      allow create: if isSignedIn() &&
-        request.resource.data.keys().hasOnly(['id', 'members', 'unread', 'lastMessage', 'lastMessageAt', 'createdAt']) &&
-        request.resource.data.members is list &&
-        request.resource.data.members.size() == 2 &&
-        request.resource.data.members[0] != request.resource.data.members[1] &&
-        request.auth.uid in request.resource.data.members &&
-        request.resource.data.unread is map &&
-        request.resource.data.lastMessage is string &&
-        request.resource.data.lastMessage == '' &&
-        request.resource.data.createdAt == request.time &&
-        request.resource.data.lastMessageAt == request.time;
-      allow update: if isMember() &&
-        request.resource.data.members == resource.data.members &&
-        (validReadUpdate() || validSendUpdate());
-      allow delete: if false;
-
-      match /messages/{messageId} {
-        function parentChat() {
-          return get(/databases/$(database)/documents/chats/$(chatId)).data;
-        }
-
-        allow read: if isSignedIn() &&
-          parentChat().members is list &&
-          request.auth.uid in parentChat().members;
-        allow create: if isSignedIn() &&
-          parentChat().members is list &&
-          request.auth.uid in parentChat().members &&
-          request.resource.data.senderId == request.auth.uid &&
-          request.resource.data.createdAt == request.time &&
-          request.resource.data.status == 'sent' &&
-          ((request.resource.data.get('type', '') == 'text' &&
-            request.resource.data.keys().hasOnly(['senderId', 'type', 'text', 'createdAt', 'status', 'replyTo']) &&
-            request.resource.data.keys().hasAll(['senderId', 'type', 'text', 'createdAt', 'status']) &&
-            request.resource.data.text is string &&
-            request.resource.data.text.size() > 0 &&
-            request.resource.data.text.size() <= 2000) ||
-           (request.resource.data.get('type', '') == 'image' &&
-            request.resource.data.keys().hasOnly(['senderId', 'type', 'imageUrl', 'width', 'height', 'caption', 'createdAt', 'status', 'replyTo']) &&
-            request.resource.data.keys().hasAll(['senderId', 'type', 'imageUrl', 'width', 'height', 'caption', 'createdAt', 'status']) &&
-            request.resource.data.imageUrl is string &&
-            request.resource.data.imageUrl.matches('^https://res\\.cloudinary\\.com/fyelzeqn/.*$') &&
-            request.resource.data.width is int &&
-            request.resource.data.width > 0 &&
-            request.resource.data.height is int &&
-            request.resource.data.height > 0 &&
-            request.resource.data.caption is string &&
-            request.resource.data.caption.size() <= 2000)) &&
-          hasValidSendRate();
-        allow update: if isSignedIn() &&
-          parentChat().members is list &&
-          request.auth.uid in parentChat().members &&
-          resource.data.senderId == request.auth.uid &&
-          request.resource.data.diff(resource.data).affectedKeys()
-            .hasOnly(['deletedForEveryone', 'deletedFor', 'text', 'imageData', 'imageUrl', 'caption', 'status']) &&
-          (!('status' in request.resource.data) ||
-            request.resource.data.status in ['sent', 'deleted']) &&
-          (!('deletedForEveryone' in request.resource.data) ||
-            request.resource.data.deletedForEveryone is bool) &&
-          (!('deletedFor' in request.resource.data) ||
-            (request.resource.data.deletedFor is list &&
-              request.auth.uid in request.resource.data.deletedFor)) &&
-          (!('text' in request.resource.data) ||
-            (request.resource.data.text is string && request.resource.data.text.size() <= 2000)) &&
-          (!('imageData' in request.resource.data) ||
-            (request.resource.data.imageData is string && request.resource.data.imageData == '')) &&
-          (!('caption' in request.resource.data) ||
-            (request.resource.data.caption is string && request.resource.data.caption.size() <= 2000)) &&
-          (!('imageUrl' in request.resource.data) ||
-            request.resource.data.imageUrl == '' ||
-            (request.resource.data.imageUrl is string &&
-              request.resource.data.imageUrl.matches('^https://res\\.cloudinary\\.com/fyelzeqn/.*$')));
-        allow delete: if isSignedIn() &&
-          parentChat().members is list &&
-          request.auth.uid in parentChat().members &&
-          resource.data.senderId == request.auth.uid;
-      }
-
-      match /typing/{uid} {
-        function parentChat() {
-          return get(/databases/$(database)/documents/chats/$(chatId)).data;
-        }
-
-        allow read: if isSignedIn() &&
-          parentChat().members is list &&
-          request.auth.uid in parentChat().members;
-        allow create, update: if isSignedIn() &&
-          parentChat().members is list &&
-          request.auth.uid in parentChat().members &&
-          request.auth.uid == uid &&
-          request.resource.data.keys().hasOnly(['isTyping', 'updatedAt']) &&
-          request.resource.data.isTyping is bool &&
-          request.resource.data.updatedAt == request.time;
-        allow delete: if isSignedIn() &&
-          parentChat().members is list &&
-          request.auth.uid in parentChat().members &&
-          request.auth.uid == uid;
-      }
-    }
-
-    match /chatRateLimits/{uid} {
-      function hasChatMembership(chatId) {
-        let chatPath = /databases/$(database)/documents/chats/$(chatId);
-        return exists(chatPath) &&
-          request.auth.uid in get(chatPath).data.members;
-      }
-
-      function sendIntervalElapsed() {
-        return !exists(/databases/$(database)/documents/chatRateLimits/$(uid)) ||
-          get(/databases/$(database)/documents/chatRateLimits/$(uid)).data.lastSentAt
-            <= request.time - duration.value(1, 's');
-      }
-
-      allow read: if isSignedIn() && request.auth.uid == uid;
-      allow create, update: if isSignedIn() &&
-        request.auth.uid == uid &&
-        request.resource.data.keys().hasOnly(['chatId', 'lastSentAt']) &&
-        request.resource.data.chatId is string &&
-        request.resource.data.lastSentAt == request.time &&
-        hasChatMembership(request.resource.data.chatId) &&
-        sendIntervalElapsed();
-      allow delete: if false;
-    }
-
     match /authorized_users/{email} {
       allow read: if isAdmin() ||
         (isVerifiedUser() && email == request.auth.token.email);
@@ -444,57 +206,30 @@ service cloud.firestore {
 
     match /settings/{settingId} {
       allow read: if isAdmin() ||
-        (settingId == 'liveStream' && resource.data.enabled == true);
+        (settingId == 'liveStream' && resource.data.enabled == true &&
+          !resource.data.keys().hasAny(['url', 'videoUrl', 'youtubeUrl', 'youtubeVideoId', 'videoId']));
       allow write: if isAdmin();
     }
 
     match /liveSessions/{sessionId} {
-      allow read: if true;
+      allow read: if isAdmin() ||
+        !resource.data.keys().hasAny(['url', 'videoUrl', 'youtubeUrl', 'youtubeVideoId', 'videoId']);
+      allow create, update: if isAdmin() &&
+        !request.resource.data.keys().hasAny(['url', 'videoUrl', 'youtubeUrl', 'youtubeVideoId', 'videoId']);
+      allow delete: if isAdmin();
+    }
+
+    match /liveSessionVideos/{sessionId} {
+      allow get: if isAdmin() || (isVerifiedUser() && !isBlockedUser());
+      allow list: if false;
       allow write: if isAdmin();
     }
 
-    match /communityPosts/{postId} {
-      allow read: if true;
-      allow create: if isVerifiedUser() &&
-        request.resource.data.keys().hasOnly(['text', 'imageData', 'authorUid', 'authorName', 'avatarUrl', 'authorIsAdmin', 'reactions', 'createdAt']) &&
-        request.resource.data.text is string && request.resource.data.text.size() <= 1000 &&
-        request.resource.data.imageData is string && request.resource.data.imageData.size() <= 700000 &&
-        request.resource.data.authorUid == request.auth.uid &&
-        request.resource.data.authorName is string && request.resource.data.authorName.size() > 0 && request.resource.data.authorName.size() <= 80 &&
-        request.resource.data.avatarUrl is string && request.resource.data.avatarUrl.size() <= 1000 &&
-        request.resource.data.authorIsAdmin is bool &&
-        request.resource.data.reactions is map &&
-        request.resource.data.createdAt == request.time;
-      allow update: if isAdmin() ||
-        (isVerifiedUser() &&
-          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactions']) &&
-          request.resource.data.reactions is map &&
-          (!('reactions' in resource.data) ||
-            request.resource.data.reactions.diff(resource.data.reactions).affectedKeys().hasOnly([request.auth.uid])) &&
-          (!request.resource.data.reactions.keys().hasAll([request.auth.uid]) ||
-            request.resource.data.reactions[request.auth.uid] is map) &&
-          (!request.resource.data.reactions.keys().hasAll([request.auth.uid]) ||
-            request.resource.data.reactions[request.auth.uid].userId == request.auth.uid) &&
-          (!request.resource.data.reactions.keys().hasAll([request.auth.uid]) ||
-            request.resource.data.reactions[request.auth.uid].postId == postId) &&
-          (!request.resource.data.reactions.keys().hasAll([request.auth.uid]) ||
-            request.resource.data.reactions[request.auth.uid].reactionType in ['like', 'love', 'haha', 'wow', 'celebrate', 'fire', 'helpful']));
-      allow delete: if isAdmin() || (isVerifiedUser() && resource.data.authorUid == request.auth.uid);
-
-      match /comments/{commentId} {
-        allow read: if true;
-        allow create: if isVerifiedUser() && request.resource.data.authorUid == request.auth.uid &&
-          request.resource.data.keys().hasOnly(['text', 'authorName', 'avatarUrl', 'authorUid', 'parentId', 'parentName', 'createdAt']) &&
-          request.resource.data.text is string && request.resource.data.text.size() > 0 && request.resource.data.text.size() <= 500 &&
-          request.resource.data.authorName is string && request.resource.data.authorName.size() > 0 && request.resource.data.authorName.size() <= 80 &&
-          request.resource.data.avatarUrl is string && request.resource.data.avatarUrl.size() <= 1000 &&
-          request.resource.data.authorUid is string && request.resource.data.authorUid.size() > 0 &&
-          request.resource.data.parentId is string && request.resource.data.parentName is string &&
-          request.resource.data.createdAt == request.time;
-        allow update, delete: if isAdmin() || (isVerifiedUser() && resource.data.authorUid == request.auth.uid);
-      }
+    match /liveStreamSecrets/{secretId} {
+      allow get: if isAdmin() || (isVerifiedUser() && !isBlockedUser());
+      allow list: if false;
+      allow write: if isAdmin();
     }
-
     // Public messages for the website-owned live chat. Keep the payload small
     // and predictable; moderation can remove documents from the console.
     match /liveChatMessages/{messageId} {
@@ -524,58 +259,6 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    match /presence/{uid} {
-      allow read: if true;
-      allow create, update: if isOwner(uid) && request.resource.data.keys().hasOnly(['online', 'lastSeen', 'typing']) &&
-        request.resource.data.online is bool && request.resource.data.lastSeen == request.time;
-    }
-
-    match /stories/{storyId} {
-      allow read: if true;
-      allow create: if isVerifiedUser() &&
-        request.resource.data.keys().hasOnly(['authorUid', 'authorName', 'avatarUrl', 'type', 'content', 'mediaUrl', 'imageData', 'category', 'createdAt', 'expiresAt', 'viewers', 'music']) &&
-        request.resource.data.authorUid == request.auth.uid &&
-        request.resource.data.authorName is string && request.resource.data.authorName.size() > 0 && request.resource.data.authorName.size() <= 80 &&
-        request.resource.data.avatarUrl is string && request.resource.data.avatarUrl.size() <= 1000 &&
-        request.resource.data.type is string && request.resource.data.type in ['text', 'image'] &&
-        request.resource.data.content is string && request.resource.data.content.size() > 0 && request.resource.data.content.size() <= 1000 &&
-        request.resource.data.mediaUrl is string &&
-        request.resource.data.category is string &&
-        request.resource.data.createdAt == request.time &&
-        request.resource.data.expiresAt > request.time &&
-        request.resource.data.viewers is list &&
-        (!('music' in request.resource.data) || (request.resource.data.music is map && request.resource.data.music.videoId is string && request.resource.data.music.videoId.size() > 0 && request.resource.data.music.videoId.size() <= 20));
-      allow update: if isVerifiedUser() &&
-        ((request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewers']) &&
-          request.resource.data.viewers is list) ||
-         (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactions']) &&
-          request.resource.data.reactions is map &&
-          ((!('reactions' in resource.data) &&
-            request.resource.data.reactions.keys().hasOnly([request.auth.uid])) ||
-           (('reactions' in resource.data) &&
-            request.resource.data.reactions.diff(resource.data.reactions).affectedKeys().hasOnly([request.auth.uid]))) &&
-          (!request.resource.data.reactions.keys().hasAny([request.auth.uid]) ||
-            request.resource.data.reactions[request.auth.uid] in ['like', 'love', 'care', 'haha', 'wow', 'sad', 'angry'])) ||
-         (resource.data.authorUid == request.auth.uid &&
-          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['type', 'content', 'mediaUrl', 'imageData', 'category', 'music']) &&
-          request.resource.data.type in ['text', 'image'] &&
-          request.resource.data.content is string && request.resource.data.content.size() > 0 && request.resource.data.content.size() <= 1000 &&
-          request.resource.data.mediaUrl is string && request.resource.data.category is string &&
-          request.resource.data.expiresAt == resource.data.expiresAt));
-      allow delete: if isVerifiedUser() && resource.data.authorUid == request.auth.uid;
-    }
-
-    match /notifications/{uid}/items/{notificationId} {
-      allow read, delete: if isOwner(uid);
-      allow create: if isVerifiedUser() && request.resource.data.actorUid == request.auth.uid &&
-        request.resource.data.type is string && request.resource.data.type.size() > 0 &&
-        request.resource.data.message is string && request.resource.data.message.size() > 0 &&
-        request.resource.data.targetId is string && request.resource.data.targetId.size() > 0 &&
-        request.resource.data.createdAt == request.time;
-      allow update: if isOwner(uid) &&
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['readAt']) &&
-        request.resource.data.readAt == request.time;
-    }
 
     // ---------------- Learning progress (private to each user) ----------------
     match /progress/{uid}/courses/{courseId} {
