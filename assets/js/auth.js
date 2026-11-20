@@ -56,7 +56,7 @@ function friendlyAuthError(error) {
     'auth/operation-not-allowed': 'This sign-in method is disabled in Firebase Authentication. Enable Email/Password or Google in the Firebase Console.',
     'auth/provider-already-linked': 'This sign-in method is already linked to your account.',
   };
-  if (!code && /^(Please sign in first\.|Please sign in with an email account first\.|Please sign in before requesting a verification email\.|Enter your current password\.|Password must be at least 8 characters\.)$/.test(error?.message || '')) {
+  if (!code && /^Please sign in first\.$/.test(error?.message || '')) {
     return error.message;
   }
   return map[code] || 'Something went wrong. Please try again.';
@@ -102,7 +102,7 @@ async function ensureUserProfile(user) {
   const publicSnap = await getDoc(publicRef);
   const existingPublic = publicSnap.exists() ? publicSnap.data() : {};
   const name = String(user.displayName || existingPublic.name || privateProfile.name || 'Student').trim().slice(0, 120);
-  await setDoc(publicRef, {
+  const publicProfileUpdate = {
     uid: user.uid,
     name,
     displayName: name,
@@ -117,14 +117,21 @@ async function ensureUserProfile(user) {
     website: existingPublic.website ?? privateProfile.website ?? '',
     learningRole: existingPublic.learningRole ?? privateProfile.learningRole ?? '',
     skills: Array.isArray(existingPublic.skills) ? existingPublic.skills : Array.isArray(privateProfile.skills) ? privateProfile.skills : [],
-    followers: Array.isArray(existingPublic.followers) ? existingPublic.followers : Array.isArray(privateProfile.followers) ? privateProfile.followers : [],
-    following: Array.isArray(existingPublic.following) ? existingPublic.following : Array.isArray(privateProfile.following) ? privateProfile.following : [],
-    totalProjects: existingPublic.totalProjects ?? privateProfile.totalProjects ?? 0,
-    createdAt: existingPublic.createdAt || privateProfile.createdAt || serverTimestamp(),
     online: true,
     lastSeen: serverTimestamp(),
     updatedAt: serverTimestamp(),
-  }, { merge: true });
+  };
+  if (!publicSnap.exists()) {
+    Object.assign(publicProfileUpdate, {
+      followers: [],
+      following: [],
+      followersCount: 0,
+      followingCount: 0,
+      totalProjects: 0,
+      createdAt: serverTimestamp(),
+    });
+  }
+  await setDoc(publicRef, publicProfileUpdate, { merge: true });
   await setDoc(doc(db, 'publicDirectory', user.uid), {
     uid: user.uid,
     displayName: name,
@@ -176,11 +183,11 @@ export async function signInWithEmail(email, password) {
     const result = await signInWithEmailAndPassword(auth, email.trim().toLowerCase(), password);
     if (!result.user.emailVerified) {
       await signOut(auth);
-      throw new Error('Please verify your email with the 6-digit code sent during registration.');
+      throw new Error('This email/password account is not verified. Continue with Google or contact support.');
     }
     return result.user;
   } catch (error) {
-    if (error instanceof Error && error.message.startsWith('Please verify your email')) throw error;
+    if (error instanceof Error && error.message.startsWith('This email/password account is not verified')) throw error;
     throw new Error(friendlyAuthError(error));
   }
 }
@@ -192,27 +199,6 @@ export async function linkGoogleToCurrentUser() {
     const result = await linkWithPopup(auth.currentUser, new GoogleAuthProvider());
     await ensureUserProfile(result.user);
     return result.user;
-  } catch (error) {
-    throw new Error(friendlyAuthError(error));
-  }
-}
-
-export async function setAccountPassword(currentPassword, newPassword) {
-  const user = auth?.currentUser;
-  if (!isFirebaseConfigured || !user?.email) throw new Error('Please sign in with an email account first.');
-  if (newPassword.length < 8) throw new Error('Password must be at least 8 characters.');
-  const { EmailAuthProvider, linkWithCredential, reauthenticateWithCredential, updatePassword } = await loadAuthModule();
-  try {
-    const hasPasswordProvider = user.providerData.some((provider) => provider.providerId === 'password');
-    if (hasPasswordProvider) {
-      if (!currentPassword) throw new Error('Enter your current password.');
-      const credential = EmailAuthProvider.credential(user.email, currentPassword);
-      await reauthenticateWithCredential(user, credential);
-      await updatePassword(user, newPassword);
-    } else {
-      const credential = EmailAuthProvider.credential(user.email, newPassword);
-      await linkWithCredential(user, credential);
-    }
   } catch (error) {
     throw new Error(friendlyAuthError(error));
   }
@@ -282,7 +268,7 @@ export function getCurrentUser() {
 
 export function redirectToAuthPrompt(message = 'Please sign in to continue.') {
   const current = new URL(window.location.href);
-  const target = new URL('index.html', current);
+  const target = new URL('/index.html', current.origin);
   target.searchParams.set('auth', '1');
   target.searchParams.set('authMessage', message);
   target.searchParams.set('returnTo', `${current.pathname}${current.search}${current.hash}`);

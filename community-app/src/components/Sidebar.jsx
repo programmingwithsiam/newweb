@@ -3,6 +3,7 @@ import { NavLink } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useChats } from '../context/ChatsContext';
 import { Bell, Bookmark, BookOpen, Clock3, Gamepad2, Home, MessageCircle, PlusCircle, Search, Settings, ShieldCheck, Store, User, Users, UserRound, Video, X } from 'lucide-react';
+import { redirectToAuthPrompt } from '../../../assets/js/auth.js';
 
 const links = [
   { to: '/', label: 'Home', icon: Home },
@@ -43,7 +44,13 @@ export default function Sidebar({ mobileOpen = false, onClose }) {
           <strong>Menu</strong>
           <button className="icon-btn" type="button" onClick={onClose} aria-label="Close menu"><X {...iconProps} /></button>
         </div>
-        <NavLink to={profile ? `/profile/${profile.uid}` : '/login'} onClick={onClose} aria-label="Your profile" className={({ isActive }) => `sidebar-link sidebar-profile${isActive ? ' active' : ''}`}>
+        <NavLink to={profile?.uid || user?.uid ? `/profile/${profile?.uid || user.uid}` : '/'} onClick={(event) => {
+          onClose?.();
+          if (!user) {
+            event.preventDefault();
+            redirectToAuthPrompt('Continue with Google to view your Community profile.');
+          }
+        }} aria-label="Your profile" className={({ isActive }) => `sidebar-link sidebar-profile${isActive ? ' active' : ''}`}>
           {profile?.photoURL ? <img className="sidebar-profile-avatar" src={profile.photoURL} alt="" /> : <User className="sidebar-icon" {...iconProps} />}
           <span>{profile?.fullName || 'Your profile'}</span>
         </NavLink>

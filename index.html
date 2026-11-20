@@ -56,7 +56,7 @@
     rel="stylesheet" />
 
   <!-- Styles -->
-  <link rel="stylesheet" href="/assets/css/style.css?v=20261112-video-volume-1" />
+  <link rel="stylesheet" href="/assets/css/style.css?v=20261120-auth-cleanup-1" />
   <link rel="stylesheet" href="/assets/css/scroll-and-ui.css" />
   <link rel="stylesheet" href="/assets/css/inspired-ui.css?v=20261111-mobile-photo-center" />
   <!-- Font Awesome -->
@@ -132,7 +132,7 @@
 
 <body>
   <div class="bg-grain" aria-hidden="true"></div>
-  <!-- AUTH MODAL (sign-in / create account / reset password) -->
+  <!-- AUTH MODAL (sign-in / reset password) -->
   <div id="authModal" class="auth-modal hidden" role="dialog" aria-modal="true" aria-labelledby="authModalTitle">
     <div class="auth-modal-card" id="authModalCard">
       <button type="button" class="auth-modal-close" id="authModalClose"
@@ -145,14 +145,15 @@
       <div class="auth-content" id="authContent">
         <div class="auth-content-head">
           <h2 id="authModalTitle">My Community</h2>
-          <p class="auth-modal-tagline" id="authModeCaption">Log in to continue</p>
+          <p class="auth-modal-tagline" id="authModeCaption">Sign in with Google or use an existing account</p>
         </div>
         <div id="authFormsView">
           <button type="button" class="social-btn google" id="googleLoginBtn">
             <i class="fa-brands fa-google" aria-hidden="true"></i>
             Continue with Google
           </button>
-          <div class="divider"><span>OR CONTINUE WITH EMAIL</span></div>
+          <p class="auth-mode-switch">New accounts are created with Google.</p>
+          <div class="divider"><span>EXISTING ACCOUNTS</span></div>
           <form id="signInForm" class="auth-panel" novalidate>
             <div class="lock-field">
               <label for="signInEmail">Email</label>
@@ -173,100 +174,8 @@
               <button type="button" class="text-link" id="forgotPasswordBtn">Forgot password?</button>
             </div>
             <button type="submit" class="btn btn-primary btn-full" id="signInSubmitBtn">Sign In</button>
-            <button type="button" class="text-link hidden" id="loginResendOtpBtn">Resend verification code</button>
-            <p class="auth-mode-switch">Don't have an account? <button type="button" class="text-link"
-                id="switchToRegister">Sign Up</button></p>
-          </form>
-          <form id="registerForm" class="auth-panel hidden" novalidate>
-            <div class="lock-field">
-              <label for="registerNameInput">Full Name</label>
-              <input type="text" id="registerNameInput" autocomplete="name" required maxlength="80"
-                aria-describedby="registerNameError" />
-              <small class="auth-field-error" id="registerNameError"></small>
-            </div>
-            <div class="lock-field">
-              <label for="registerEmailInput">Email</label>
-              <input type="email" id="registerEmailInput" autocomplete="email" required
-                aria-describedby="registerEmailError" />
-              <small class="auth-field-error" id="registerEmailError"></small>
-            </div>
-            <div class="lock-field">
-              <label for="registerPasswordInput">Password</label>
-              <div class="auth-password-wrap">
-                <input type="password" id="registerPasswordInput" autocomplete="new-password" minlength="8" required
-                  aria-describedby="registerPasswordError" />
-                <button class="auth-password-toggle" type="button" data-password-target="registerPasswordInput"
-                  aria-label="Show password"><i class="fa-regular fa-eye" aria-hidden="true"></i></button>
-              </div>
-              <small class="auth-field-error" id="registerPasswordError"></small>
-            </div>
-            <div class="lock-field">
-              <label for="registerConfirmPasswordInput">Confirm Password</label>
-              <div class="auth-password-wrap">
-                <input type="password" id="registerConfirmPasswordInput" autocomplete="new-password" minlength="8"
-                  required aria-describedby="registerConfirmPasswordError" />
-                <button class="auth-password-toggle" type="button" data-password-target="registerConfirmPasswordInput"
-                  aria-label="Show password"><i class="fa-regular fa-eye" aria-hidden="true"></i></button>
-              </div>
-              <small class="auth-field-error" id="registerConfirmPasswordError"></small>
-            </div>
-            <button type="submit" class="btn btn-primary btn-full" id="registerSubmitBtn">Create Account</button>
-            <p class="auth-mode-switch">Already have an account? <button type="button" class="text-link"
-                id="switchToLogin">Login</button></p>
           </form>
         </div>
-        <section class="auth-otp-view hidden" id="authOtpView" aria-labelledby="otpTitle">
-          <div class="auth-otp-icon"><i class="fa-regular fa-envelope" aria-hidden="true"></i></div>
-          <h2 id="otpTitle">Enter Verification Code</h2>
-          <p class="auth-otp-copy">If this address can be registered, a 6-digit code will arrive at <strong
-              id="otpEmailLabel"></strong>. It expires in 5 minutes.</p>
-          <label class="auth-policy-row" for="communityTermsCheckbox">
-            <input id="communityTermsCheckbox" type="checkbox" />
-            <span>I agree to the <a href="/terms" target="_blank" rel="noopener noreferrer" id="communityTermsLink">Terms of Service</a> and <a href="/privacy" target="_blank" rel="noopener noreferrer">Privacy Policy</a>.</span>
-          </label>
-          <form id="otpForm">
-            <div class="otp-inputs" role="group" aria-label="Six-digit verification code">
-              <input class="otp-digit" id="otpDigit0" type="text" inputmode="numeric" autocomplete="one-time-code"
-                maxlength="1" aria-label="Digit 1" />
-              <input class="otp-digit" id="otpDigit1" type="text" inputmode="numeric" maxlength="1"
-                aria-label="Digit 2" />
-              <input class="otp-digit" id="otpDigit2" type="text" inputmode="numeric" maxlength="1"
-                aria-label="Digit 3" />
-              <input class="otp-digit" id="otpDigit3" type="text" inputmode="numeric" maxlength="1"
-                aria-label="Digit 4" />
-              <input class="otp-digit" id="otpDigit4" type="text" inputmode="numeric" maxlength="1"
-                aria-label="Digit 5" />
-              <input class="otp-digit" id="otpDigit5" type="text" inputmode="numeric" maxlength="1"
-                aria-label="Digit 6" />
-            </div>
-            <button type="submit" class="btn btn-primary btn-full" id="verifyOtpBtn">Verify Email</button>
-          </form>
-          <div class="auth-otp-links">
-            <button type="button" class="text-link" id="changeOtpEmailBtn">Back to Sign Up</button>
-            <button type="button" class="text-link" id="resendOtpBtn" disabled>Resend code in <span
-                id="resendCountdown">60</span>s</button>
-          </div>
-          <button type="button" class="text-link" id="otpSignInBtn">Already have an account? Sign in</button>
-        </section>
-        <section id="passwordSettingsView" class="auth-panel hidden" aria-labelledby="passwordSettingsTitle">
-          <h3 id="passwordSettingsTitle">Password settings</h3>
-          <form id="passwordSettingsForm" novalidate>
-            <div class="lock-field hidden" id="currentPasswordField">
-              <label for="currentAccountPassword">Current Password</label>
-              <input type="password" id="currentAccountPassword" autocomplete="current-password" />
-            </div>
-            <div class="lock-field">
-              <label for="newAccountPassword">New Password</label>
-              <input type="password" id="newAccountPassword" autocomplete="new-password" minlength="8" required />
-            </div>
-            <div class="lock-field">
-              <label for="confirmAccountPassword">Confirm New Password</label>
-              <input type="password" id="confirmAccountPassword" autocomplete="new-password" minlength="8" required />
-            </div>
-            <button type="submit" class="btn btn-primary btn-full" id="saveAccountPasswordBtn">Save Password</button>
-            <button type="button" class="text-link" id="backToAuthFormsBtn">Back</button>
-          </form>
-        </section>
         <p class="auth-status" id="authModalStatus" role="status" aria-live="polite"></p>
         <p class="lock-hint auth-help-hint">Need help? <a
             href="https://wa.me/8801644171751?text=Hi%20Siam!%20I%20need%20help%20signing%20in." target="_blank"
@@ -301,7 +210,6 @@
           <div class="user-dropdown hidden" id="userDropdown">
             <p class="user-dropdown-email" id="userDropdownEmail"></p>
             <a href="#learn">Course Dashboard</a>
-            <button type="button" id="accountPasswordBtn">Password settings</button>
             <button type="button" id="linkGoogleAccountBtn" class="hidden">Link Google account</button>
             <a href="/admin" id="adminNavLink">Admin Panel</a>
             <button type="button" id="userLogoutBtn" class="animated-logout-btn"><span class="logout-icon"
@@ -1522,7 +1430,7 @@
   <!-- /siteRoot -->
 
   <script type="module" src="/assets/js/script.js?v=20261112-video-volume-1"></script>
-  <script type="module" src="/assets/js/auth-app.js?v=20261111-policy-flow-1"></script>
+  <script type="module" src="/assets/js/auth-app.js?v=20261120-google-only-auth-1"></script>
 </body>
 
 </html>

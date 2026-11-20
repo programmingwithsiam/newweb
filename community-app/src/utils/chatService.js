@@ -140,22 +140,22 @@ export async function findOrCreateDirectChat(uid, peerUid, knownChats = []) {
   if (!uid || !peerUid || uid === peerUid) throw new Error('INVALID_CHAT_TARGET');
 
   const knownChat = knownChats.find((chat) => isDirectConversation(chat, uid, peerUid));
-  if (knownChat) return knownChat;
-
   const chatId = [uid, peerUid].sort().join('_');
   const conversationRef = ref(db, `conversations/${chatId}`);
-  const snapshot = await get(conversationRef);
-  let conversation;
+  const snapshot = knownChat ? null : await get(conversationRef);
+  let conversation = knownChat || null;
 
-  if (snapshot.exists()) {
+  if (!conversation && snapshot.exists()) {
     conversation = normalizeConversation(chatId, snapshot.val());
     if (!isDirectConversation(conversation, uid, peerUid)) throw new Error('CHAT_ACCESS_DENIED');
-  } else {
+  } else if (!conversation) {
     const members = [uid, peerUid];
     conversation = {
       id: chatId,
       type: 'private',
       members,
+      peerUid,
+      peerUidByUid: { [uid]: peerUid, [peerUid]: uid },
       lastMessage: '',
       lastMessageAt: null,
       lastMessageOrder: null,
@@ -165,12 +165,33 @@ export async function findOrCreateDirectChat(uid, peerUid, knownChats = []) {
     await writeWithLog(`conversations/${chatId}`, set(conversationRef, {
       type: 'private',
       members: { [uid]: true, [peerUid]: true },
+      peerUid,
+      peerUidByUid: { [uid]: peerUid, [peerUid]: uid },
       lastMessage: '',
       lastMessageAt: serverTimestamp(),
       lastMessageOrder: serverTimestamp(),
       unreadByUid: { [uid]: 0, [peerUid]: 0 },
       createdAt: serverTimestamp(),
     }));
+  }
+
+  if (conversation.type && conversation.type !== 'private') throw new Error('CHAT_ACCESS_DENIED');
+  if (conversation.peerUid && conversation.peerUid !== peerUid) throw new Error('CHAT_ACCESS_DENIED');
+  if (!conversation.peerUid) {
+    await writeWithLog(`conversations/${chatId}/peerUid`, set(ref(db, `conversations/${chatId}/peerUid`), peerUid));
+    conversation.peerUid = peerUid;
+  }
+  if (!conversation.type) {
+    await writeWithLog(`conversations/${chatId}/type`, set(ref(db, `conversations/${chatId}/type`), 'private'));
+    conversation.type = 'private';
+  }
+  const peerMap = conversation.peerUidByUid || {};
+  if (peerMap[uid] && peerMap[uid] !== peerUid) throw new Error('CHAT_ACCESS_DENIED');
+  if (!peerMap[uid]) {
+    await writeWithLog(`conversations/${chatId}/peerUidByUid/${uid}`, set(
+      ref(db, `conversations/${chatId}/peerUidByUid/${uid}`),
+      peerUid
+    ));
   }
 
   const summaries = {};
@@ -226,6 +247,8 @@ export async function sendChatMessage({
       id: chatId,
       type: 'private',
       members,
+      peerUid,
+      peerUidByUid: { [currentUser.uid]: peerUid, [peerUid]: currentUser.uid },
       lastMessage: '',
       lastMessageAt: null,
       lastMessageOrder: null,
@@ -235,6 +258,8 @@ export async function sendChatMessage({
     await writeWithLog(`conversations/${chatId}`, set(conversationRef, {
       type: 'private',
       members: { [currentUser.uid]: true, [peerUid]: true },
+      peerUid,
+      peerUidByUid: { [currentUser.uid]: peerUid, [peerUid]: currentUser.uid },
       lastMessage: '',
       lastMessageAt: serverTimestamp(),
       lastMessageOrder: serverTimestamp(),
@@ -244,6 +269,26 @@ export async function sendChatMessage({
   }
   if (!conversation.members.includes(currentUser.uid) || !conversation.members.includes(peerUid)) {
     throw new Error('CHAT_ACCESS_DENIED');
+  }
+  if (conversation.members.length === 2) {
+    if (conversation.type && conversation.type !== 'private') throw new Error('CHAT_ACCESS_DENIED');
+    if (conversation.peerUid && conversation.peerUid !== peerUid) throw new Error('CHAT_ACCESS_DENIED');
+    if (!conversation.peerUid) {
+      await writeWithLog(`conversations/${chatId}/peerUid`, set(ref(db, `conversations/${chatId}/peerUid`), peerUid));
+      conversation.peerUid = peerUid;
+    }
+    if (!conversation.type) {
+      await writeWithLog(`conversations/${chatId}/type`, set(ref(db, `conversations/${chatId}/type`), 'private'));
+      conversation.type = 'private';
+    }
+    const peerMap = conversation.peerUidByUid || {};
+    if (peerMap[currentUser.uid] && peerMap[currentUser.uid] !== peerUid) throw new Error('CHAT_ACCESS_DENIED');
+    if (!peerMap[currentUser.uid]) {
+      await writeWithLog(`conversations/${chatId}/peerUidByUid/${currentUser.uid}`, set(
+        ref(db, `conversations/${chatId}/peerUidByUid/${currentUser.uid}`),
+        peerUid
+      ));
+    }
   }
 
   const message = image
@@ -281,6 +326,12 @@ export async function sendChatMessage({
     } catch (error) {
       logWriteFailure(messagePath, error);
       throw error;
+    }
+    if (!messageAlreadyStored) {
+      await writeWithLog(`messageSendRates/${currentUser.uid}`, set(
+        ref(db, `messageSendRates/${currentUser.uid}`),
+        { lastSentAt: serverTimestamp(), messageId }
+      ));
     }
     if (storedSnapshot.exists()) {
       const stored = storedSnapshot.val() || {};
@@ -351,4 +402,17 @@ export async function sendChatMessage({
   });
 
   return { messageId, summaryUpdated: true };
+}
+
+export async function syncBlockedChats(uid, targetUid, blocked) {
+  const snapshot = await get(ref(db, `userConversations/${uid}`));
+  const updates = {};
+  Object.entries(snapshot.val() || {}).forEach(([chatId, summary]) => {
+    const members = normalizeMembers(summary?.members);
+    if (!members.includes(uid) || !members.includes(targetUid)) return;
+    updates[`conversations/${chatId}/blockedByUid/${targetUid}/${uid}`] = blocked ? true : null;
+  });
+  if (Object.keys(updates).length) {
+    await writeWithLog(Object.keys(updates), update(ref(db), updates));
+  }
 }

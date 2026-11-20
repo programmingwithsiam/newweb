@@ -6,22 +6,25 @@
     "node": ">=20"
   },
   "scripts": {
-    "dev": "npx --yes serve -s .",
-    "start": "npx --yes serve -s .",
-    "check": "node --check \"api/[...path].js\" && node --check assets/js/animations.js && node --check assets/js/auth-api.js && node --check assets/js/auth-app.js && node --check assets/js/auth.js && node --check assets/js/course-enrollment.js && node --check assets/js/course-learning.js && node --check assets/js/courses-db.js && node --check assets/js/firebase-init.js && node --check assets/js/live-learning.js && node --check assets/js/page-renderers.js && node --check assets/js/script.js && node --check assets/js/stories.js && node --check assets/js/story-manager.js && node --check assets/js/ui-effects.js && node --check assets/js/user-profile.js && node --check server/src/auth-routes.js && node --check server/src/env.js && node --check server/src/firebase.js && node --check server/src/index.js && node --check server/src/mailer.js"
+    "dev": "npx --yes serve .",
+    "start": "npx --yes serve .",
+    "check": "node --check \"api/[...path].js\" && node --check api/sign-upload.js && node --check api/verify-media.js && node --check api/delete-media.js && node --check api/delete-account.js && node --check api/create-comment.js && node --check api/toggle-reaction.js && node --check api/delete-comment.js && node --check api/toggle-follow.js && node --check api/delete-post.js && node --check api/create-notification.js && node --check api/admin-delete-post.js && node --check server/community-media.cjs && node --check assets/js/animations.js && node --check assets/js/auth-app.js && node --check assets/js/auth.js && node --check assets/js/course-enrollment.js && node --check assets/js/course-learning.js && node --check assets/js/courses-db.js && node --check assets/js/firebase-init.js && node --check assets/js/live-learning.js && node --check assets/js/page-renderers.js && node --check assets/js/script.js && node --check assets/js/stories.js && node --check assets/js/story-manager.js && node --check assets/js/ui-effects.js && node --check assets/js/user-profile.js && node --check community-app/src/community-production.js && node --check server/src/env.js && node --check server/src/index.js",
+    "test:community-api": "node --test tests/community-api-local.test.mjs tests/community-social-api.test.mjs",
+    "test:community-rtdb-rules": "firebase emulators:exec --only database --project demo-community-rtdb \"node --test tests/realtime-database.rules.test.mjs\"",
+    "test:community-rules": "firebase emulators:exec --only firestore --project demo-community-rules \"node --test tests/firestore.rules.test.mjs\"",
+    "test:storage-rules": "firebase emulators:exec --only storage --project demo-community-storage \"node --test tests/storage.rules.test.mjs\""
   },
-
   "dependencies": {
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^5.1.0",
-    "express-rate-limit": "^7.5.0",
     "firebase-admin": "^14.5.0",
-    "helmet": "^8.1.0",
-    "nodemailer": "^10.0.13"
+    "helmet": "^8.1.0"
   },
-
   "devDependencies": {
+    "@firebase/rules-unit-testing": "^3.0.4",
+    "firebase": "^10.14.1",
+    "firebase-tools": "^15.36.0",
     "playwright": "^1.62.1"
   }
 }

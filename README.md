@@ -7,7 +7,7 @@ practical Python, web development, AI, and project-based learning.
 
 - **Frontend:** Static HTML/CSS/JS (no build step, no framework)
 - **Hosting:** Vercel (static files + serverless functions)
-- **Auth:** Firebase Authentication (Google OAuth + Email/Password)
+- **Auth:** Firebase Authentication (Google sign-in for new accounts; existing email/password accounts remain supported)
 - **Database:** Firebase Firestore (courses, modules, lessons, per-user progress)
 - **Video:** YouTube (unlisted videos recommended) — no paid video hosting
 - **Optional services:** Django and PHP adapters are retained for free local experimentation; the production site remains Firebase-backed
@@ -60,9 +60,9 @@ and `/terms` clean URLs are also configured for local development.
 
 ## Checks
 
-`npm run check` syntax-checks first-party browser modules, API handlers, and
-the Express registration service. Run `node --test tests/*.test.js` for the
-available route tests. These checks do not replace browser
+`npm run check` syntax-checks first-party browser modules, Community API
+handlers, and the Express backend. Run `npm run test:community-api` and
+`npm run test:community-rules` for Community auth/API and rules tests. These checks do not replace browser
 or Firebase integration testing. Root dependencies are used when Vercel
 bundles the serverless API; `server/package.json` supports running the API
 independently.

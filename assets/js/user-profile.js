@@ -1,4 +1,4 @@
-import { auth, db } from './firebase-init.js';
+import { auth, db, getAppCheckToken } from './firebase-init.js';
 import { observeAuthState, redirectToAuthPrompt } from './auth.js?v=20261001-auth-flow-1';
 import { fetchAllCourses, fetchUserPayments } from './courses-db.js?v=20261111-remove-python-bangla-1';
 
@@ -6,6 +6,9 @@ let currentUser = null;
 let viewingUserId = null;
 let userProfileData = null;
 let authObserverStarted = false;
+const communityApiOrigin = ['localhost', '127.0.0.1'].includes(window.location.hostname)
+  ? `http://${window.location.hostname}:3001`
+  : window.location.origin;
 
 const profileContent = document.getElementById('profileContent');
 const profileLoading = document.getElementById('profileLoading');
@@ -64,10 +67,12 @@ async function getUserProfile(userId) {
       website: privateProfile.website || '',
       learningRole: privateProfile.learningRole || '',
       skills: Array.isArray(privateProfile.skills) ? privateProfile.skills : [],
-      followers: Array.isArray(privateProfile.followers) ? privateProfile.followers : [],
-      following: Array.isArray(privateProfile.following) ? privateProfile.following : [],
+      followers: [],
+      following: [],
+      followersCount: 0,
+      followingCount: 0,
       totalProjects: privateProfile.totalProjects || 0,
-      createdAt: privateProfile.createdAt || new Date(),
+      createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     };
     await setDoc(publicRef, publicProfile, { merge: true });
@@ -131,6 +136,8 @@ async function isUserFollowing(followerUid, followeeUid) {
   if (!followerUid || !followeeUid) return false;
   const { doc, getDoc } = await import('https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js');
   try {
+    const followSnap = await getDoc(doc(db, 'follows', `${followerUid}_${followeeUid}`));
+    if (followSnap.exists()) return true;
     const userRef = doc(db, 'publicProfiles', followerUid);
     const userSnap = await getDoc(userRef);
     if (userSnap.exists()) {
@@ -144,46 +151,44 @@ async function isUserFollowing(followerUid, followeeUid) {
   }
 }
 
-async function followUser(followerUid, followeeUid) {
-  if (!followerUid || !followeeUid) return false;
-  const { doc, updateDoc, arrayUnion, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js');
-  try {
-    // Add to follower's following list
-    await updateDoc(doc(db, 'publicProfiles', followerUid), {
-      following: arrayUnion(followeeUid),
-      updatedAt: serverTimestamp()
-    });
-    // Add to followee's followers list
-    await updateDoc(doc(db, 'publicProfiles', followeeUid), {
-      followers: arrayUnion(followerUid),
-      updatedAt: serverTimestamp()
-    });
-    return true;
-  } catch (error) {
-    console.error('Error following user:', error);
-    return false;
+async function setCommunityFollow(followingUid, following) {
+  if (!currentUser || currentUser.uid === followingUid) {
+    throw new Error('Sign in to follow another Community member.');
   }
+  const headers = {
+    Authorization: `Bearer ${await currentUser.getIdToken()}`,
+    'Content-Type': 'application/json',
+  };
+  try {
+    headers['X-Firebase-AppCheck'] = await getAppCheckToken();
+  } catch (error) {
+    console.error('App Check token could not be obtained for the profile follow action:', error);
+  }
+  const response = await fetch(new URL('/api/toggle-follow', communityApiOrigin), {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ followingUid, following }),
+  });
+  let result;
+  try {
+    result = await response.json();
+  } catch {
+    throw new Error(`Community API returned an invalid response (${response.status}).`);
+  }
+  if (!response.ok) throw new Error(result.error || 'Follow status could not be updated.');
+  return result;
+}
+
+async function followUser(followerUid, followeeUid) {
+  if (currentUser?.uid !== followerUid) throw new Error('Sign in to follow another Community member.');
+  await setCommunityFollow(followeeUid, true);
+  return true;
 }
 
 async function unfollowUser(followerUid, followeeUid) {
-  if (!followerUid || !followeeUid) return false;
-  const { doc, updateDoc, arrayRemove, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js');
-  try {
-    // Remove from follower's following list
-    await updateDoc(doc(db, 'publicProfiles', followerUid), {
-      following: arrayRemove(followeeUid),
-      updatedAt: serverTimestamp()
-    });
-    // Remove from followee's followers list
-    await updateDoc(doc(db, 'publicProfiles', followeeUid), {
-      followers: arrayRemove(followerUid),
-      updatedAt: serverTimestamp()
-    });
-    return true;
-  } catch (error) {
-    console.error('Error unfollowing user:', error);
-    return false;
-  }
+  if (currentUser?.uid !== followerUid) throw new Error('Sign in to unfollow this Community member.');
+  await setCommunityFollow(followeeUid, false);
+  return true;
 }
 
 async function renderUserProfile() {

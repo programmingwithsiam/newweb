@@ -13,10 +13,10 @@ service firebase.storage {
 
     function canAccessCourse(courseId) {
       return isAdmin() || (isVerifiedUser() &&
-        (!firestore.exists(/databases/(default)/documents/enrollments/$(request.auth.uid)_$(courseId)) ||
-          firestore.get(/databases/(default)/documents/enrollments/$(request.auth.uid)_$(courseId)).data.status != 'revoked') &&
-        (firestore.exists(/databases/(default)/documents/enrollments/$(request.auth.uid)_$(courseId)) &&
-          firestore.get(/databases/(default)/documents/enrollments/$(request.auth.uid)_$(courseId)).data.status == 'approved' ||
+        (!firestore.exists(/databases/(default)/documents/enrollments/$(request.auth.uid + '_' + courseId)) ||
+          firestore.get(/databases/(default)/documents/enrollments/$(request.auth.uid + '_' + courseId)).data.status != 'revoked') &&
+        (firestore.exists(/databases/(default)/documents/enrollments/$(request.auth.uid + '_' + courseId)) &&
+          firestore.get(/databases/(default)/documents/enrollments/$(request.auth.uid + '_' + courseId)).data.status == 'approved' ||
           (firestore.exists(/databases/(default)/documents/authorized_users/$(request.auth.token.email)) &&
             firestore.get(/databases/(default)/documents/authorized_users/$(request.auth.token.email)).data.access == 'granted')));
     }
@@ -24,7 +24,8 @@ service firebase.storage {
     match /community_images/{uid}/{fileName} {
       allow read: if true;
       allow write: if isVerifiedUser() && request.auth.uid == uid &&
-        request.resource.contentType.matches('image/.*') && request.resource.size <= 5242880;
+        request.resource.contentType.matches('image/(jpeg|png|webp)') &&
+        request.resource.size <= 5242880;
       allow delete: if isVerifiedUser() && request.auth.uid == uid;
     }
 

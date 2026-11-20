@@ -1,73 +1,51 @@
-# CodeWithSiam Auth API
+# CodeWithSiam Community API
 
-Small Express API for email-code registration. Firebase Auth accounts are created disabled and unverified at registration start, then enabled only after a valid email code. The user's password is sent directly to Firebase Admin over HTTPS and is never written to the pending-registration database record or logs.
-
-Pending codes and rate-limit metadata are stored in Firebase Realtime Database under `authRegistrationPending/{sha256(normalizedEmail)}`. The code is HMAC-SHA256 hashed, expires after ten minutes, and accepts at most five incorrect attempts. Firebase Admin bypasses Realtime Database rules; client SDK access is explicitly denied by `community-app/database.rules.json`.
+Express API for authenticated Community media operations and social interactions. Sign-in is shared with the website's existing Firebase Authentication session; new accounts use the existing Google sign-in. There is no separate Community registration or OTP/email-verification service.
 
 ## Configure
 
-Requires Node.js 20 or newer.
+Requires Node.js 20 or newer. Copy `server/.env.example` to `server/.env` for local development. Never commit `.env` files or service-account credentials.
 
-Use the existing local `server/.env` and service account file. Do not commit either file. Required variable names are listed in `.env.example`. Use the generic SMTP variables (`SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`) or the legacy Gmail aliases. If `FIREBASE_DATABASE_URL` is unset, the API uses this project's existing Realtime Database endpoint. `OTP_HASH_SECRET` is optional; when unset, the service-account private key is used as the HMAC secret. Set `ALLOWED_ORIGINS` to the exact frontend origin(s), comma-separated, when deploying.
+The backend requires:
 
-Install the dependencies once:
+- `FIREBASE_SERVICE_ACCOUNT`: service-account JSON or a path to a private JSON file.
+- `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, and `CLOUDINARY_API_SECRET`: server-side media credentials.
+- Firebase App Check tokens are required by default in production; the frontend must send them. Set `REQUIRE_APP_CHECK=true` in other environments that enforce App Check.
+- `ALLOWED_ORIGINS`: exact browser origins allowed to call the API.
+- `PORT`: optional; defaults to `3001` locally and is assigned by the hosting platform.
+
+Firebase Admin verifies Firebase ID tokens for protected Community endpoints. Browser code must never receive the service-account or Cloudinary API secret.
+Post/comment creation and media uploads use per-account limits; reaction and follow changes are also rate-limited server-side.
+
+Install dependencies and run locally:
 
 ```sh
 cd server
 npm install
+npm run dev
 ```
 
-Run the API from the repository root:
-
-```sh
-npm --prefix server run dev
-```
-
-The API listens on `http://localhost:3001` by default. Start the static frontend separately with the repository's `npm run dev` command on port 5173.
-
-## Deploy to Render
-
-1. In Render, create a **Web Service** connected to this repository. Set **Root Directory** to `server`, **Build Command** to `npm install`, **Start Command** to `npm start`, and choose Node 20 or newer.
-2. Set `ALLOWED_ORIGINS` to the exact browser origins, for example `https://codewithsiam.vercel.app,http://localhost:3000,http://localhost:5173` (no trailing slash). Remove local origins from the Render production value.
-3. Add `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`, and `FIREBASE_DATABASE_URL` as Render environment variables. Add `OTP_HASH_SECRET` as a long random secret if you do not want the service-account private key to be the OTP HMAC key. The legacy Gmail names (`GMAIL_USER`, `GMAIL_APP_PASSWORD`) still work for compatibility.
-4. In the service's **Environment → Secret Files**, add a file named `serviceAccountKey.json` and paste the service-account JSON there. Do not put the JSON in Git, a normal environment variable, or `render.yaml`. Render mounts secret files at `/etc/secrets/<filename>`.
-5. Set `FIREBASE_SERVICE_ACCOUNT` to `/etc/secrets/serviceAccountKey.json`. The server accepts absolute paths and reads this path at startup.
-6. The current frontend API URL is `https://codewithsiam-api.onrender.com`. Verify `https://codewithsiam-api.onrender.com/health` returns `{"status":"ok"}` after deploy. Render Free services can sleep when idle and take time to wake. **Render Free blocks outbound SMTP ports 25, 465, and 587**, so Gmail SMTP email delivery requires a Render plan that permits outbound SMTP.
-7. The frontend calls `/api/auth/send-otp`, `/api/auth/verify-otp`, and `/api/auth/resend-otp`. Legacy `/api/auth/register/*` and `/api/auth/*-email-otp` routes remain available for compatibility. Localhost uses `http://localhost:3001`.
-
-## Test with curl
-
-Health check:
+The API listens on `http://localhost:3001` by default. Start the frontend separately. Verify it is running with:
 
 ```sh
 curl -i http://localhost:3001/health
 ```
 
-Start registration (use a real inbox you control):
+## Production environment checklist
 
-```sh
-curl -i http://localhost:3001/api/auth/register/start \
-  -H 'Origin: http://localhost:5173' \
-  -H 'Content-Type: application/json' \
-  --data '{"name":"Test Learner","email":"you@example.com","password":"ChangeMe123!"}'
-```
+### Vercel frontend/API functions
 
-Read the code from that inbox, then verify it (the API never returns the code):
+- Set the existing Firebase web configuration in the frontend as required by the Firebase setup.
+- Configure `FIREBASE_SERVICE_ACCOUNT` as a server-only secret for Firebase Admin functions.
+- Configure `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, and `CLOUDINARY_API_SECRET` as server-only secrets.
+- Keep Firebase App Check enabled and configure the production provider/domain; production requires App Check unless explicitly disabled.
+- Do not configure OTP hashing secrets or SMTP credentials; the project does not send OTP email.
 
-```sh
-curl -i http://localhost:3001/api/auth/verify-email-otp \
-  -H 'Origin: http://localhost:5173' \
-  -H 'Content-Type: application/json' \
-  --data '{"email":"you@example.com","otp":"123456"}'
-```
+### Separate Express backend (if used)
 
-Resend after the 60-second cooldown:
+- Set `FIREBASE_SERVICE_ACCOUNT` through the host's secret store or a protected secret file.
+- Set the three `CLOUDINARY_*` variables and `ALLOWED_ORIGINS` for production.
+- If `ALLOWED_ORIGINS` is unset, production allows only `https://codewithsiam.vercel.app`; loopback origins are rejected in production even if configured.
+- Do not configure OTP, SMTP, or Gmail app-password variables.
 
-```sh
-curl -i http://localhost:3001/api/auth/resend-email-otp \
-  -H 'Origin: http://localhost:5173' \
-  -H 'Content-Type: application/json' \
-  --data '{"email":"you@example.com"}'
-```
-
-Replace the sample email/code/password with test values. Never use a real account password in shell history. Logs include request IDs, stage names, counts, and provider error codes only; they never include codes, passwords, tokens, emails, or environment values.
+The frontend's Vercel API functions are the production route for Community operations. If hosting the Express API separately, update the frontend API base URL to that service and verify its `/health` endpoint. Do not deploy this project as part of this configuration change.

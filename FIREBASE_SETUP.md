@@ -1,7 +1,7 @@
 # Firebase Setup Guide — CodeWithSiam
 
-This walks you through everything needed to turn on real Google/email
-sign-in, the Firestore course database, and admin access. Total cost: **$0**
+This walks you through everything needed to turn on Google sign-in, existing
+account sign-in, the Firestore course database, and admin access. Total cost: **$0**
 on Firebase's free "Spark" plan for a portfolio-scale site.
 
 ---
@@ -25,8 +25,8 @@ on Firebase's free "Spark" plan for a portfolio-scale site.
 
 1. In the Firebase console, go to **Build → Authentication → Get started**.
 2. Under **Sign-in method**, enable:
-   - **Google** — toggle on, choose a support email, save.
-   - **Email/Password** — toggle on, save.
+   - **Google** — toggle on, choose a support email, save. New accounts use Google.
+   - **Email/Password** — keep enabled only to support existing accounts and Firebase password reset. The website no longer offers email/password registration.
 
 ## 4. Add authorized domains
 
@@ -87,7 +87,7 @@ Use this checklist after deploying:
 - [ ] Open the site without signing in — portfolio loads normally.
 - [ ] Click **Courses** — catalog is visible.
 - [ ] Click **Sign In → Continue with Google** — real Google account picker appears.
-- [ ] Sign out, then create an account with email/password.
+- [ ] Sign out, then sign in with a different Google account to verify a new profile is created.
 
 ## 11. Enable Story music search (optional)
 
@@ -108,7 +108,7 @@ never downloads or re-uploads YouTube media.
 
 | Feature | Cost |
 |---|---|
-| Firebase Authentication (Google + Email/Password) | Free, no cap for this scale |
+| Firebase Authentication (Google; legacy Email/Password sign-in if needed) | Free, no cap for this scale |
 | Firestore (Spark plan) | Free up to 50K reads / 20K writes / 20K deletes per day — far more than a portfolio needs |
 | YouTube video hosting/bandwidth | Free (YouTube hosts and streams it, not you) |
 | Vercel Hosting + serverless functions | Free on Hobby plan for personal projects |

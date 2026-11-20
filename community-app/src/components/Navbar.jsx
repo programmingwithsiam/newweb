@@ -29,6 +29,7 @@ import { useChats } from '../context/ChatsContext';
 import { messengerStrings } from '../messenger-strings';
 import { db } from '../firebase/config';
 import { findOrCreateDirectChat, normalizeDisplayName, normalizeTimestamp } from '../utils/chatService';
+import { redirectToAuthPrompt } from '../../../assets/js/auth.js';
 import ChatWindow from './ChatWindow';
 import '../styles/chat-dropdown.css';
 
@@ -390,8 +391,8 @@ export default function Navbar({ onMenu }) {
         <nav className="navbar-quick-actions" aria-label="Community navigation">
           <button className={`quick-action preview-quick-action${activeView === 'home' ? ' active' : ''}`} type="button" aria-label="Home" aria-current={activeView === 'home' ? 'page' : undefined} onClick={() => navigate('/')}><Home {...iconProps} /><span>Home</span></button>
           <button className={`quick-action preview-quick-action${activeView === 'reels' ? ' active' : ''}`} type="button" aria-label="Reels" aria-current={activeView === 'reels' ? 'page' : undefined} onClick={() => navigate('/search?view=reels')}><PlaySquare {...iconProps} /><span>Reels</span></button>
-          <button className={`quick-action preview-quick-action${activeView === 'messages' ? ' active' : ''}`} type="button" aria-label="Messages" aria-current={activeView === 'messages' ? 'page' : undefined} onClick={() => navigate(user ? '/messenger' : '/login')}><MessageSquareText {...iconProps} /><span>Messages</span></button>
-          <button className={`quick-action preview-quick-action${activeView === 'profile' ? ' active' : ''}`} type="button" aria-label="Profile" aria-current={activeView === 'profile' ? 'page' : undefined} onClick={() => navigate(profile?.uid || user?.uid ? `/profile/${profile?.uid || user.uid}` : '/login')}><UserRound {...iconProps} /><span>Profile</span></button>
+          <button className={`quick-action preview-quick-action${activeView === 'messages' ? ' active' : ''}`} type="button" aria-label="Messages" aria-current={activeView === 'messages' ? 'page' : undefined} onClick={() => user ? navigate('/messenger') : redirectToAuthPrompt('Continue with Google to use Community messages.')}><MessageSquareText {...iconProps} /><span>Messages</span></button>
+          <button className={`quick-action preview-quick-action${activeView === 'profile' ? ' active' : ''}`} type="button" aria-label="Profile" aria-current={activeView === 'profile' ? 'page' : undefined} onClick={() => user ? navigate(`/profile/${profile?.uid || user.uid}`) : redirectToAuthPrompt('Continue with Google to view your Community profile.')}><UserRound {...iconProps} /><span>Profile</span></button>
         </nav>
 
         <div className="navbar-actions">
@@ -653,7 +654,7 @@ export default function Navbar({ onMenu }) {
           </div>
 
           <button className="icon-btn ghost-btn" type="button" aria-label="Notifications" onClick={() => navigate('/notifications')}><Bell {...iconProps} /></button>
-          <button className="avatar-action" type="button" aria-label="Profile" onClick={() => navigate(profile?.uid || user?.uid ? `/profile/${profile?.uid || user.uid}` : '/login')}>
+          <button className="avatar-action" type="button" aria-label="Profile" onClick={() => user ? navigate(`/profile/${profile?.uid || user.uid}`) : redirectToAuthPrompt('Continue with Google to view your Community profile.')}>
             <img className="navbar-avatar" src={profile?.photoURL || '/community/default-avatar.png'} alt="Profile" />
           </button>
           <button className="mobile-search-btn icon-btn" type="button" onClick={() => setMobileSearchOpen(true)} title="Search" aria-label="Open search"><SearchIcon {...iconProps} /></button>

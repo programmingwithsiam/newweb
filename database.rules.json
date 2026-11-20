@@ -1,0 +1,461 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "users": {
+      ".indexOn": [
+        "usernameLower",
+        "nameLower"
+      ],
+      "$uid": {
+        ".read": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && auth.uid === $uid",
+        ".write": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && auth.uid === $uid",
+        ".validate": "newData.hasChildren(['fullName','username','usernameLower'])",
+        "followersCount": {
+          ".write": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && auth.uid === $uid",
+          ".validate": "newData.isNumber() && newData.val() >= 0 && (!data.exists() ? newData.val() === 0 || newData.val() === 1 : (newData.val() === data.val() + 1 || newData.val() === data.val() - 1))"
+        },
+        "followingCount": {
+          ".write": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && auth.uid === $uid",
+          ".validate": "newData.isNumber() && newData.val() >= 0 && (!data.exists() ? newData.val() === 0 || newData.val() === 1 : (newData.val() === data.val() + 1 || newData.val() === data.val() - 1))"
+        },
+        "friendsCount": {
+          ".write": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && auth.uid === $uid",
+          ".validate": "newData.isNumber() && newData.val() >= 0 && (!data.exists() ? newData.val() === 0 || newData.val() === 1 : (newData.val() === data.val() + 1 || newData.val() === data.val() - 1))"
+        },
+        "notifPrefs": {
+          ".write": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && auth.uid === $uid"
+        }
+      }
+    },
+    "privateUsers": {
+      "$uid": {
+        ".read": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && auth.uid === $uid",
+        ".write": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && auth.uid === $uid",
+        "email": {
+          ".validate": "newData.isString() && newData.val().length <= 320"
+        }
+      }
+    },
+    "usernames": {
+      ".read": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com')",
+      "$usernameKey": {
+        ".write": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && newData.val() === auth.uid && (!data.exists() || data.val() === auth.uid)"
+      }
+    },
+    "posts": {
+      "$postId": {
+        ".read": "data.child('privacy').val() === 'public' || (auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && (data.child('uid').val() === auth.uid || root.child('friends').child(auth.uid).child(data.child('uid').val()).exists()))",
+        ".write": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && (!data.exists() ? newData.child('uid').val() === auth.uid : data.child('uid').val() === auth.uid)",
+        ".validate": "newData.hasChildren(['uid','privacy','createdAt'])",
+        "reactionsCount": {
+          ".write": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com')",
+          ".validate": "newData.isNumber() && newData.val() >= 0 && (!data.exists() ? newData.val() === 0 || newData.val() === 1 : (newData.val() === data.val() + 1 || newData.val() === data.val() - 1))"
+        },
+        "commentCount": {
+          ".write": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com')",
+          ".validate": "newData.isNumber() && newData.val() >= 0 && (!data.exists() ? newData.val() === 0 || newData.val() === 1 : (newData.val() === data.val() + 1 || newData.val() === data.val() - 1))"
+        }
+      }
+    },
+    "publicPostsIndex": {
+      ".read": true,
+      ".indexOn": [
+        "createdAt",
+        "uid"
+      ],
+      "$postId": {
+        ".write": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && ((newData.exists() && newData.child('uid').val() === auth.uid && root.child('posts').child($postId).child('privacy').val() === 'public') || (!newData.exists() && data.child('uid').val() === auth.uid))"
+      }
+    },
+    "userPosts": {
+      "$uid": {
+        ".read": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && (auth.uid === $uid || root.child('friends').child(auth.uid).child($uid).exists())",
+        ".write": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && auth.uid === $uid"
+      }
+    },
+    "reactions": {
+      "$postId": {
+        ".read": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com')",
+        "$uid": {
+          ".write": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && auth.uid === $uid"
+        }
+      }
+    },
+    "comments": {
+      "$postId": {
+        ".read": "root.child('posts').child($postId).child('privacy').val() === 'public'",
+        "$commentId": {
+          ".write": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && (!data.exists() ? newData.child('uid').val() === auth.uid : data.child('uid').val() === auth.uid)"
+        }
+      }
+    },
+    "commentReactions": {
+      "$commentId": {
+        ".read": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com')",
+        "$uid": {
+          ".write": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && auth.uid === $uid"
+        }
+      }
+    },
+    "friendRequests": {
+      "$toUid": {
+        ".read": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && auth.uid === $toUid",
+        "$fromUid": {
+          ".read": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && (auth.uid === $toUid || auth.uid === $fromUid)",
+          ".write": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && (auth.uid === $fromUid || auth.uid === $toUid)",
+          ".validate": "!newData.exists() || (newData.child('status').exists() && $fromUid !== $toUid)"
+        }
+      }
+    },
+    "friends": {
+      "$uid": {
+        ".read": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && (auth.uid === $uid || root.child('users').child($uid).child('isPrivate').val() != true || root.child('friends').child(auth.uid).child($uid).exists())",
+        "$friendUid": {
+          ".read": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && (auth.uid === $uid || auth.uid === $friendUid)",
+          ".write": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && (auth.uid === $uid || auth.uid === $friendUid) && (!newData.exists() || root.child('friendRequests').child(auth.uid).child(auth.uid === $uid ? $friendUid : $uid).exists())"
+        }
+      }
+    },
+    "followers": {
+      "$uid": {
+        ".read": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && auth.uid === $uid",
+        "$followerUid": {
+          ".read": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && (auth.uid === $uid || auth.uid === $followerUid)",
+          ".write": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && auth.uid === $followerUid"
+        }
+      }
+    },
+    "following": {
+      "$uid": {
+        ".read": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && auth.uid === $uid",
+        "$followingUid": {
+          ".read": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && (auth.uid === $uid || auth.uid === $followingUid)",
+          ".write": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && auth.uid === $uid"
+        }
+      }
+    },
+    "blockedUsers": {
+      "$uid": {
+        ".read": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && auth.uid === $uid",
+        "$blockedUid": {
+          ".write": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && auth.uid === $uid",
+          ".validate": "newData.hasChildren(['createdAt']) && newData.child('createdAt').val() === now",
+          "createdAt": {
+            ".validate": "newData.val() === now"
+          },
+          "$other": {
+            ".validate": false
+          }
+        }
+      }
+    },
+    "conversations": {
+      "$convId": {
+        ".read": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && data.child('members').child(auth.uid).exists()",
+        ".write": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && !data.exists() && newData.child('members').child(auth.uid).val() === true && ((newData.child('type').val() === 'private' && newData.child('peerUid').isString() && newData.child('peerUid').val() !== auth.uid && newData.child('members').hasChild(newData.child('peerUid').val()) && newData.child('peerUidByUid').hasChild(auth.uid) && newData.child('peerUidByUid').hasChild(newData.child('peerUid').val()) && newData.child('peerUidByUid').child(auth.uid).val() === newData.child('peerUid').val() && newData.child('peerUidByUid').child(newData.child('peerUid').val()).val() === auth.uid && $convId === (auth.uid < newData.child('peerUid').val() ? auth.uid + '_' + newData.child('peerUid').val() : newData.child('peerUid').val() + '_' + auth.uid) && !newData.child('admins').exists() && !newData.child('name').exists() && !root.child('blockedUsers').child(auth.uid).child(newData.child('peerUid').val()).exists() && !root.child('blockedUsers').child(newData.child('peerUid').val()).child(auth.uid).exists()) || (newData.child('type').val() === 'group' && newData.child('initialPeerUid').isString() && newData.child('initialPeerUid').val() !== auth.uid && newData.child('members').hasChild(newData.child('initialPeerUid').val()) && newData.child('admins').child(auth.uid).val() === true))",
+        ".validate": "data.exists() || (newData.child('members').child(auth.uid).val() === true && ((newData.child('type').val() === 'private' && newData.child('peerUid').isString() && newData.child('peerUid').val() !== auth.uid && newData.child('members').hasChild(newData.child('peerUid').val()) && newData.child('peerUidByUid').hasChild(auth.uid) && newData.child('peerUidByUid').hasChild(newData.child('peerUid').val()) && newData.child('peerUidByUid').child(auth.uid).val() === newData.child('peerUid').val() && newData.child('peerUidByUid').child(newData.child('peerUid').val()).val() === auth.uid && $convId === (auth.uid < newData.child('peerUid').val() ? auth.uid + '_' + newData.child('peerUid').val() : newData.child('peerUid').val() + '_' + auth.uid) && !newData.child('admins').exists() && !newData.child('name').exists()) || (newData.child('type').val() === 'group' && newData.child('initialPeerUid').isString() && newData.child('initialPeerUid').val() !== auth.uid && newData.child('members').hasChild(newData.child('initialPeerUid').val()) && newData.child('admins').child(auth.uid).val() === true)))",
+        "members": {
+          "$memberUid": {
+            ".write": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && ((auth.uid === $memberUid && !newData.exists()) || (data.parent().parent().child('type').val() === 'group' && root.child('conversations').child($convId).child('admins').child(auth.uid).val() === true && !data.exists() && newData.val() === true))",
+            ".validate": "newData.val() === true && (newData.parent().parent().child('type').val() !== 'private' || $memberUid === auth.uid || $memberUid === newData.parent().parent().child('peerUid').val())"
+          }
+        },
+        "type": {
+          ".write": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && data.parent().child('members').child(auth.uid).val() === true && !data.exists() && newData.val() === 'private' && data.parent().child('members').hasChild(data.parent().child('peerUid').val()) && data.parent().child('peerUid').val() !== auth.uid && !data.parent().child('admins').exists() && !data.parent().child('name').exists()",
+          ".validate": "newData.val() === 'private' || newData.val() === 'group'"
+        },
+        "peerUid": {
+          ".write": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && data.parent().child('members').child(auth.uid).val() === true && data.parent().child('members').child(newData.val()).val() === true && newData.val() !== auth.uid && (data.parent().child('type').val() === 'private' || (!data.parent().child('type').exists() && !data.parent().child('admins').exists() && !data.parent().child('name').exists() && $convId === (auth.uid < newData.val() ? auth.uid + '_' + newData.val() : newData.val() + '_' + auth.uid)))",
+          ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 128"
+        },
+        "peerUidByUid": {
+          "$uid": {
+            ".write": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && auth.uid === $uid && data.parent().parent().child('type').val() === 'private' && data.parent().parent().child('members').child(auth.uid).val() === true && data.parent().parent().child('members').child(newData.val()).val() === true && newData.val() !== auth.uid",
+            ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 128 && (($uid === auth.uid && newData.val() === newData.parent().parent().child('peerUid').val()) || ($uid === newData.parent().parent().child('peerUid').val() && newData.val() === auth.uid))"
+          }
+        },
+        "admins": {
+          "$adminUid": {
+            ".validate": "$adminUid === auth.uid && newData.val() === true"
+          }
+        },
+        "name": {
+          ".validate": "newData.isString() && newData.val().length <= 40"
+        },
+        "initialPeerUid": {
+          ".validate": "newData.isString() && newData.val() !== auth.uid && newData.parent().child('members').hasChild(newData.val())"
+        },
+        "blockedByUid": {
+          "$blockedUid": {
+            "$blockerUid": {
+              ".write": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && auth.uid === $blockerUid && data.parent().parent().parent().child('members').child(auth.uid).val() === true && data.parent().parent().parent().child('members').child($blockedUid).val() === true && ((newData.val() === true && root.child('blockedUsers').child(auth.uid).child($blockedUid).exists()) || (!newData.exists() && !root.child('blockedUsers').child(auth.uid).child($blockedUid).exists()))",
+              ".validate": "newData.val() === true"
+            }
+          }
+        },
+        "lastMessage": {
+          ".write": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && data.parent().child('members').child(auth.uid).exists()",
+          ".validate": "newData.isString() && newData.val().length <= 2010"
+        },
+        "lastMessageAt": {
+          ".write": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && data.parent().child('members').child(auth.uid).exists()",
+          ".validate": "newData.isNumber()"
+        },
+        "lastMessageOrder": {
+          ".write": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && data.parent().child('members').child(auth.uid).exists()",
+          ".validate": "newData.isNumber()"
+        },
+        "lastMessageId": {
+          ".write": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && data.parent().child('members').child(auth.uid).exists()",
+          ".validate": "newData.isString() && newData.val().length <= 128"
+        },
+        "lastMessageSenderUid": {
+          ".write": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && data.parent().child('members').child(auth.uid).exists()",
+          ".validate": "newData.val() === auth.uid || (newData.val() === '' && newData.parent().child('lastMessage').val() === '')"
+        },
+        "lastMessageSenderName": {
+          ".write": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && data.parent().child('members').child(auth.uid).exists()",
+          ".validate": "newData.isString() && newData.val().length <= 120"
+        },
+        "lastMessageSenderPhotoURL": {
+          ".write": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && data.parent().child('members').child(auth.uid).exists()",
+          ".validate": "newData.isString() && newData.val().length <= 2048"
+        },
+        "unreadByUid": {
+          ".write": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && data.parent().child('members').child(auth.uid).exists()",
+          "$uid": {
+            ".write": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && data.parent().parent().child('members').child(auth.uid).exists()"
+          }
+        },
+        "readAt": {
+          "$uid": {
+            ".write": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && auth.uid === $uid && data.parent().parent().child('members').child(auth.uid).exists()"
+          }
+        }
+      }
+    },
+    "userConversations": {
+      "$uid": {
+        ".read": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && auth.uid === $uid",
+        ".indexOn": [
+          "lastMessageAt",
+          "lastMessageOrder"
+        ],
+        "$convId": {
+          "members": {
+            ".write": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && root.child('conversations').child($convId).child('members').child(auth.uid).exists() && root.child('conversations').child($convId).child('members').child($uid).exists()",
+            "$memberUid": {
+              ".validate": "newData.val() === true && root.child('conversations').child($convId).child('members').child($memberUid).val() === true"
+            }
+          },
+          "lastMessage": {
+            ".write": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && root.child('conversations').child($convId).child('members').child(auth.uid).exists() && root.child('conversations').child($convId).child('members').child($uid).exists()",
+            ".validate": "newData.isString() && newData.val().length <= 2010"
+          },
+          "lastMessageAt": {
+            ".write": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && root.child('conversations').child($convId).child('members').child(auth.uid).exists() && root.child('conversations').child($convId).child('members').child($uid).exists()",
+            ".validate": "newData.isNumber()"
+          },
+          "lastMessageOrder": {
+            ".write": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && root.child('conversations').child($convId).child('members').child(auth.uid).exists() && root.child('conversations').child($convId).child('members').child($uid).exists()",
+            ".validate": "newData.isNumber()"
+          },
+          "lastMessageId": {
+            ".write": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && root.child('conversations').child($convId).child('members').child(auth.uid).exists() && root.child('conversations').child($convId).child('members').child($uid).exists()",
+            ".validate": "newData.isString() && newData.val().length <= 128"
+          },
+          "lastMessageSenderUid": {
+            ".write": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && root.child('conversations').child($convId).child('members').child(auth.uid).exists() && root.child('conversations').child($convId).child('members').child($uid).exists()",
+            ".validate": "newData.val() === auth.uid || newData.val() === root.child('conversations').child($convId).child('lastMessageSenderUid').val() || (newData.val() === '' && newData.parent().child('lastMessage').val() === '')"
+          },
+          "lastMessageSenderName": {
+            ".write": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && root.child('conversations').child($convId).child('members').child(auth.uid).exists() && root.child('conversations').child($convId).child('members').child($uid).exists()",
+            ".validate": "newData.isString() && newData.val().length <= 120"
+          },
+          "lastMessageSenderPhotoURL": {
+            ".write": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && root.child('conversations').child($convId).child('members').child(auth.uid).exists() && root.child('conversations').child($convId).child('members').child($uid).exists()",
+            ".validate": "newData.isString() && newData.val().length <= 2048"
+          },
+          "unreadCount": {
+            ".write": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && root.child('conversations').child($convId).child('members').child(auth.uid).exists() && root.child('conversations').child($convId).child('members').child($uid).exists()",
+            ".validate": "newData.isNumber() && newData.val() >= 0"
+          },
+          "unreadByUid": {
+            ".write": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && root.child('conversations').child($convId).child('members').child(auth.uid).exists() && root.child('conversations').child($convId).child('members').child($uid).exists()"
+          },
+          "readAt": {
+            "$readerUid": {
+              ".write": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && auth.uid === $readerUid && root.child('conversations').child($convId).child('members').child(auth.uid).exists() && root.child('conversations').child($convId).child('members').child($uid).exists()"
+            }
+          }
+        }
+      }
+    },
+    "messageSendRates": {
+      "$uid": {
+        ".read": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && auth.uid === $uid",
+        ".write": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && auth.uid === $uid && (!data.exists() || data.child('lastSentAt').val() <= now - 1000 || newData.child('messageId').val() === data.child('messageId').val())",
+        ".validate": "newData.hasChildren(['lastSentAt', 'messageId']) && newData.child('lastSentAt').val() === now && newData.child('messageId').isString() && newData.child('messageId').val().length <= 128",
+        "$other": {
+          ".validate": "$other === 'lastSentAt' || $other === 'messageId'"
+        }
+      }
+    },
+    "messages": {
+      "$convId": {
+        ".read": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && root.child('conversations').child($convId).child('members').child(auth.uid).exists()",
+        ".indexOn": [
+          "createdAt",
+          "createdAtOrder"
+        ],
+        "$msgId": {
+          ".write": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && root.child('conversations').child($convId).child('members').child(auth.uid).exists() && !data.exists() && newData.child('senderId').val() === auth.uid && newData.child('createdAt').val() === now && newData.child('createdAtOrder').val() === now && root.child('messageSendRates').child(auth.uid).child('messageId').val() === $msgId && root.child('messageSendRates').child(auth.uid).child('lastSentAt').val() >= now - 30000 && !root.child('conversations').child($convId).child('blockedByUid').child(auth.uid).exists() && (root.child('conversations').child($convId).child('type').val() !== 'private' || (!root.child('blockedUsers').child(auth.uid).child(root.child('conversations').child($convId).child('peerUidByUid').child(auth.uid).val()).exists() && !root.child('blockedUsers').child(root.child('conversations').child($convId).child('peerUidByUid').child(auth.uid).val()).child(auth.uid).exists()))",
+          ".validate": "newData.child('senderId').isString() && (data.exists() ? newData.child('senderId').val() === data.child('senderId').val() : newData.child('senderId').val() === auth.uid) && newData.child('createdAt').val() === (data.exists() ? data.child('createdAt').val() : now) && newData.child('createdAtOrder').val() === (data.exists() ? data.child('createdAtOrder').val() : now) && (newData.child('type').val() === 'text' || newData.child('type').val() === 'image') && newData.child('senderName').isString() && newData.child('senderName').val().length <= 120 && newData.child('senderPhotoURL').isString() && newData.child('senderPhotoURL').val().length <= 2048 && (!newData.child('text').exists() || (newData.child('text').isString() && newData.child('text').val().length <= 2000)) && (!newData.child('caption').exists() || (newData.child('caption').isString() && newData.child('caption').val().length <= 2000)) && (newData.child('type').val() !== 'image' || newData.child('deletedForEveryone').val() === true || (newData.child('imageUrl').isString() && newData.child('imageUrl').val().beginsWith('https://res.cloudinary.com/fyelzeqn/') && newData.child('width').isNumber() && newData.child('height').isNumber() && newData.child('width').val() > 0 && newData.child('width').val() <= 10000 && newData.child('height').val() > 0 && newData.child('height').val() <= 10000)) && (!newData.child('imageUrl').exists() || (newData.child('imageUrl').isString() && newData.child('imageUrl').val().length <= 2048 && (newData.child('imageUrl').val() === '' || newData.child('imageUrl').val().beginsWith('https://res.cloudinary.com/fyelzeqn/') || (data.exists() && newData.child('imageUrl').val() === data.child('imageUrl').val())))) && (!newData.child('width').exists() || (newData.child('width').isNumber() && newData.child('width').val() > 0 && newData.child('width').val() <= 10000)) && (!newData.child('height').exists() || (newData.child('height').isNumber() && newData.child('height').val() > 0 && newData.child('height').val() <= 10000)) && (!newData.child('imageData').exists() || (newData.child('imageData').isString() && (newData.child('imageData').val() === '' || (data.exists() && newData.child('imageData').val() === data.child('imageData').val())))) && (!newData.child('deletedFor').exists() || (data.exists() && newData.child('deletedFor').val() === data.child('deletedFor').val())) && (!newData.child('editedAt').exists() || (data.exists() && newData.child('editedAt').val() === data.child('editedAt').val())) && (!newData.child('updatedAt').exists() || (data.exists() && newData.child('updatedAt').val() === data.child('updatedAt').val())) && (!newData.child('status').exists() || newData.child('status').val() === 'sent' || (newData.child('status').val() === 'deleted' && newData.child('deletedForEveryone').val() === true))",
+          "text": {
+            ".write": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && root.child('conversations').child($convId).child('members').child(auth.uid).exists() && data.parent().child('senderId').val() === auth.uid && data.parent().child('deletedForEveryone').val() !== true && newData.isString() && newData.val().length <= 2000"
+          },
+          "edited": {
+            ".write": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && root.child('conversations').child($convId).child('members').child(auth.uid).exists() && data.parent().child('senderId').val() === auth.uid && data.parent().child('deletedForEveryone').val() !== true && newData.val() === true",
+            ".validate": "newData.val() === true"
+          },
+          "deletedForEveryone": {
+            ".write": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && root.child('conversations').child($convId).child('members').child(auth.uid).exists() && data.parent().child('senderId').val() === auth.uid && data.parent().child('deletedForEveryone').val() !== true && newData.val() === true",
+            ".validate": "newData.val() === true"
+          },
+          "status": {
+            ".write": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && root.child('conversations').child($convId).child('members').child(auth.uid).exists() && data.parent().child('senderId').val() === auth.uid && data.parent().child('deletedForEveryone').val() !== true && newData.parent().child('deletedForEveryone').val() === true",
+            ".validate": "newData.val() === 'sent' || newData.val() === 'deleted'"
+          },
+          "caption": {
+            ".write": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && root.child('conversations').child($convId).child('members').child(auth.uid).exists() && data.parent().child('senderId').val() === auth.uid && data.parent().child('deletedForEveryone').val() !== true && newData.parent().child('deletedForEveryone').val() === true"
+          },
+          "imageUrl": {
+            ".write": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && root.child('conversations').child($convId).child('members').child(auth.uid).exists() && data.parent().child('senderId').val() === auth.uid && data.parent().child('deletedForEveryone').val() !== true && newData.parent().child('deletedForEveryone').val() === true"
+          },
+          "imageData": {
+            ".write": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && root.child('conversations').child($convId).child('members').child(auth.uid).exists() && data.parent().child('senderId').val() === auth.uid && data.parent().child('deletedForEveryone').val() !== true && newData.parent().child('deletedForEveryone').val() === true",
+            ".validate": "!newData.exists() || (newData.isString() && (newData.val() === '' || (data.exists() && newData.val() === data.val())))"
+          },
+          "replyTo": {
+            ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 128) || (newData.child('id').isString() && newData.child('id').val().length <= 128 && newData.child('senderId').isString() && newData.child('senderId').val().length <= 128 && newData.child('text').isString() && newData.child('text').val().length <= 2000)",
+            "$other": {
+              ".validate": "$other === 'id' || $other === 'senderId' || $other === 'text'"
+            }
+          },
+          "seenBy": {
+            "$uid": {
+              ".write": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && auth.uid === $uid && root.child('conversations').child($convId).child('members').child(auth.uid).exists() && root.child('messages').child($convId).child($msgId).exists()",
+              ".validate": "newData.val() === true && root.child('conversations').child($convId).child('members').child($uid).val() === true"
+            }
+          },
+          "$other": {
+            ".validate": "$other === 'senderId' || $other === 'senderName' || $other === 'senderPhotoURL' || $other === 'type' || $other === 'text' || $other === 'imageUrl' || $other === 'imageData' || $other === 'width' || $other === 'height' || $other === 'caption' || $other === 'createdAt' || $other === 'createdAtOrder' || $other === 'status' || $other === 'replyTo' || $other === 'seenBy' || $other === 'deletedForEveryone' || $other === 'deletedFor' || $other === 'edited' || $other === 'editedAt' || $other === 'updatedAt'"
+          }
+        }
+      }
+    },
+    "messageReactions": {
+      "$convId": {
+        "$msgId": {
+          ".read": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && root.child('conversations').child($convId).child('members').child(auth.uid).exists()",
+          "$uid": {
+            ".write": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && auth.uid === $uid && root.child('conversations').child($convId).child('members').child(auth.uid).exists()",
+            ".validate": "newData.val() === '👍' || newData.val() === '❤️' || newData.val() === '😂' || newData.val() === '🎉' || newData.val() === '😮' || newData.val() === '😢' || newData.val() === '😎' || newData.val() === '🙏'"
+          }
+        }
+      }
+    },
+    "hiddenMessages": {
+      "$uid": {
+        ".read": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && auth.uid === $uid",
+        "$convId": {
+          "$msgId": {
+            ".write": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && auth.uid === $uid && root.child('conversations').child($convId).child('members').child(auth.uid).exists()",
+            ".validate": "newData.isBoolean() && newData.val() === true"
+          }
+        }
+      }
+    },
+    "groupMembers": {
+      "$convId": {
+        ".read": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && root.child('conversations').child($convId).child('members').child(auth.uid).exists()",
+        "$uid": {
+          ".write": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && auth.uid === $uid && !newData.exists() && root.child('conversations').child($convId).child('members').child(auth.uid).exists()"
+        }
+      }
+    },
+    "typing": {
+      "$convId": {
+        ".read": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && root.child('conversations').child($convId).child('members').child(auth.uid).exists()",
+        "$uid": {
+          ".write": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && auth.uid === $uid && root.child('conversations').child($convId).child('members').child(auth.uid).exists()"
+        }
+      }
+    },
+    "presence": {
+      ".read": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com')",
+      "$uid": {
+        ".write": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && auth.uid === $uid"
+      }
+    },
+    "notifications": {
+      "$uid": {
+        ".read": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && auth.uid === $uid",
+        ".indexOn": [
+          "createdAt",
+          "read"
+        ],
+        "$notifId": {
+          ".write": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && auth.uid === $uid"
+        }
+      }
+    },
+    "messageNotifications": {
+      "$uid": {
+        ".read": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && auth.uid === $uid",
+        ".indexOn": [
+          "createdAt",
+          "read"
+        ],
+        "$notifId": {
+          ".write": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && !data.exists() && newData.child('fromUid').val() === auth.uid && newData.child('convId').isString() && newData.child('messageId').isString() && root.child('conversations').child(newData.child('convId').val()).child('members').child(auth.uid).val() === true && root.child('conversations').child(newData.child('convId').val()).child('members').child($uid).val() === true && root.child('messages').child(newData.child('convId').val()).child(newData.child('messageId').val()).child('senderId').val() === auth.uid",
+          ".validate": "newData.child('fromUid').isString() && newData.child('convId').isString() && newData.child('convId').val().length <= 128 && newData.child('messageId').isString() && newData.child('messageId').val().length <= 128 && newData.child('createdAt').isNumber() && newData.child('read').isBoolean() && newData.child('type').val() === 'message'",
+          "read": {
+            ".write": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && ((auth.uid === $uid && data.parent().exists() && newData.val() === true) || (!data.parent().exists() && newData.parent().child('fromUid').val() === auth.uid && newData.val() === false))",
+            ".validate": "newData.isBoolean()"
+          },
+          "$other": {
+            ".validate": "$other === 'fromUid' || $other === 'convId' || $other === 'messageId' || $other === 'createdAt' || $other === 'read' || $other === 'type'"
+          }
+        }
+      }
+    },
+    "chatReports": {
+      "$reporterUid": {
+        ".read": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && auth.uid === $reporterUid",
+        "$reportId": {
+          ".write": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && auth.uid === $reporterUid && !data.exists() && newData.hasChildren(['reporterUid', 'conversationId', 'messageId', 'targetUid', 'reason', 'createdAt']) && newData.child('reporterUid').val() === auth.uid && newData.child('targetUid').val() !== auth.uid && newData.child('createdAt').val() === now && root.child('conversations').child(newData.child('conversationId').val()).child('members').child(auth.uid).exists() && root.child('conversations').child(newData.child('conversationId').val()).child('members').child(newData.child('targetUid').val()).exists() && root.child('messages').child(newData.child('conversationId').val()).child(newData.child('messageId').val()).child('senderId').val() === newData.child('targetUid').val()",
+          ".validate": "newData.child('reporterUid').isString() && newData.child('conversationId').isString() && newData.child('conversationId').val().length <= 128 && newData.child('messageId').isString() && newData.child('messageId').val().length <= 128 && newData.child('targetUid').isString() && (newData.child('reason').val() === 'spam' || newData.child('reason').val() === 'harassment' || newData.child('reason').val() === 'scam' || newData.child('reason').val() === 'other') && newData.child('createdAt').isNumber()",
+          "$other": {
+            ".validate": "$other === 'reporterUid' || $other === 'conversationId' || $other === 'messageId' || $other === 'targetUid' || $other === 'reason' || $other === 'createdAt'"
+          }
+        }
+      }
+    },
+    "reports": {
+      "$reportId": {
+        ".read": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && data.child('reporterId').val() === auth.uid",
+        ".write": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && !data.exists() && newData.child('reporterId').val() === auth.uid"
+      }
+    },
+    "hashtags": {
+      "$tag": {
+        ".read": true,
+        "$postId": {
+          ".write": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && root.child('posts').child($postId).child('uid').val() === auth.uid"
+        }
+      }
+    }
+  }
+}

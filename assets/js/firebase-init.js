@@ -27,6 +27,7 @@
 const firebaseConfig = {
   apiKey: 'AIzaSyC_SzEe95tFFvPrVUWXwpTedeCKhMQOvrE',
   authDomain: 'mylatestweb-fd3d7.firebaseapp.com',
+  databaseURL: 'https://mylatestweb-fd3d7-default-rtdb.asia-southeast1.firebasedatabase.app',
   projectId: 'mylatestweb-fd3d7',
   storageBucket: 'mylatestweb-fd3d7.appspot.com',
   messagingSenderId: '1079484393919',
@@ -63,6 +64,7 @@ let app = null;
 let auth = null;
 let db = null;
 let storage = null;
+let appCheckTokenService = null;
 
 if (isFirebaseConfigured) {
   try {
@@ -96,3 +98,19 @@ if (isFirebaseConfigured) {
 }
 
 export { app, auth, db, storage };
+
+export async function getAppCheckToken() {
+  if (!app) throw new Error('Firebase is not configured.');
+  if (!appCheckTokenService) {
+    appCheckTokenService = import('https://www.gstatic.com/firebasejs/10.13.0/firebase-app-check.js')
+      .then(({ getToken, initializeAppCheck, ReCaptchaV3Provider }) => ({
+        getToken,
+        instance: initializeAppCheck(app, {
+          provider: new ReCaptchaV3Provider('6LfEirQtAAAAAD2bQLLMveIf4pvufTyOcrQ570hO'),
+          isTokenAutoRefreshEnabled: true,
+        }),
+      }));
+  }
+  const { getToken, instance } = await appCheckTokenService;
+  return (await getToken(instance, false)).token;
+}

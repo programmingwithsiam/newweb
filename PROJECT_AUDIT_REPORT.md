@@ -18,7 +18,7 @@ This project is a static portfolio + learning platform with Firebase-backed auth
 ### Files intentionally not deleted
 - Any file that is required for site functionality, Firebase, courses, admin access, videos, or SEO.
 - Optional backend adapters and docs are kept because they are genuine project assets and not redundant runtime duplicates.
-- The `community-app/` source app is preserved because it is the real source for the community frontend and is distinct from the built static site output.
+- The Community interface is built from `community-app/index.html` and `community-app/src/community-production.js` into `community/`; the remaining React app under `community-app/src/` is legacy and is not part of this route.
 
 ## 2) Files identified as safe to remove
 These files were checked against HTML references, JSImport usage, and runtime paths before removal.
@@ -51,7 +51,6 @@ The following are preserved because they are either functional support files or 
 - `python-backend/`
 - `php-backend/`
 - `blog/`
-- `community-app/`
 - `stories.html`
 
 These support product understanding, onboarding, or future optional integrations and do not duplicate active app behavior.

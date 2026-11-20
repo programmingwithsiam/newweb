@@ -1,14 +1,12 @@
 {
   "cleanUrls": false,
   "rewrites": [
+    { "source": "/", "destination": "/index.html" },
     { "source": "/admin", "destination": "/admin.html" },
     { "source": "/admin/", "destination": "/admin.html" },
     { "source": "/admin.html", "destination": "/admin.html" },
     { "source": "/community", "destination": "/community/index.html" },
     { "source": "/community/", "destination": "/community/index.html" },
-    { "source": "/community/login", "destination": "/community/index.html" },
-    { "source": "/community/signup", "destination": "/community/index.html" },
-    { "source": "/community/forgot-password", "destination": "/community/index.html" },
     { "source": "/community/profile/*", "destination": "/community/index.html" },
     { "source": "/community/messenger/*", "destination": "/community/index.html" },
     { "source": "/community/search", "destination": "/community/index.html" },

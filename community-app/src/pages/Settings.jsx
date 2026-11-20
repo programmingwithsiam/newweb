@@ -24,7 +24,7 @@ function BlockedUserRow({ uid, onUnblock }) {
 }
 
 export default function Settings() {
-  const { user, profile, logout, linkGoogleAccount, changeAccountPassword } = useAuth();
+  const { user, profile, logout, linkGoogleAccount } = useAuth();
   const { showToast } = useToast();
   const { theme, setTheme } = useTheme();
   const navigate = useNavigate();
@@ -34,9 +34,6 @@ export default function Settings() {
   const [blocked, setBlocked] = useState({});
   const [notifPrefs, setNotifPrefs] = useState({ messages: true, reactions: true, comments: true, friendRequests: true });
   const [authMethods, setAuthMethods] = useState(() => user.providerData.map((provider) => provider.providerId));
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
 
   useEffect(() => {
     setFullName(profile?.fullName || '');
@@ -90,7 +87,7 @@ export default function Settings() {
 
   async function doLogout() {
     await logout();
-    navigate('/login');
+    navigate('/');
   }
 
   async function linkGoogle() {
@@ -102,24 +99,6 @@ export default function Settings() {
       showToast(error.code === 'auth/credential-already-in-use'
         ? 'That Google account is already linked to another user.'
         : 'Could not link Google. Sign in with this account’s existing method and try again.', 'error');
-    }
-  }
-
-  async function saveAccountPassword(event) {
-    event.preventDefault();
-    if (newPassword.length < 8) return showToast('Password must be at least 8 characters.', 'error');
-    if (newPassword !== confirmPassword) return showToast('Password confirmation does not match.', 'error');
-    try {
-      await changeAccountPassword(currentPassword, newPassword);
-      setCurrentPassword('');
-      setNewPassword('');
-      setConfirmPassword('');
-      setAuthMethods((methods) => methods.includes('password') ? methods : [...methods, 'password']);
-      showToast('Password updated.', 'success');
-    } catch (error) {
-      showToast(error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential'
-        ? 'Incorrect current password.'
-        : 'Could not update password. Please try again.', 'error');
     }
   }
 
@@ -184,19 +163,6 @@ export default function Settings() {
         {!authMethods.includes('google.com') && (
           <button className="btn btn-ghost" type="button" onClick={linkGoogle}>Link Google account</button>
         )}
-        <form onSubmit={saveAccountPassword}>
-          {authMethods.includes('password') && (
-            <>
-              <label htmlFor="current-password">Current password</label>
-              <input id="current-password" type="password" autoComplete="current-password" value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} />
-            </>
-          )}
-          <label htmlFor="new-password">{authMethods.includes('password') ? 'New password' : 'Set email password'}</label>
-          <input id="new-password" type="password" minLength={8} autoComplete="new-password" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} required />
-          <label htmlFor="confirm-password">Confirm password</label>
-          <input id="confirm-password" type="password" minLength={8} autoComplete="new-password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} required />
-          <button className="btn btn-ghost" type="submit">{authMethods.includes('password') ? 'Change password' : 'Set password'}</button>
-        </form>
         <button className="btn btn-danger" onClick={doLogout}>Log out</button>
       </section>
     </div>

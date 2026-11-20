@@ -1,54 +1,12 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import {
   onAuthStateChanged,
-  signInWithEmailAndPassword,
-  signInWithPopup,
-  signInWithRedirect,
-  getRedirectResult,
   signOut,
-  sendPasswordResetEmail,
-  EmailAuthProvider,
-  linkWithCredential,
   linkWithPopup,
-  reauthenticateWithCredential,
-  updatePassword
 } from 'firebase/auth';
 import { ref, set, get, onDisconnect, onValue, serverTimestamp, update, runTransaction } from 'firebase/database';
 import { auth, db, googleProvider } from '../firebase/config';
-import { usernameToKey, validateUsername } from '../utils/helpers';
-
-function authApiBaseUrl() {
-  if (import.meta.env.VITE_AUTH_API_URL) return import.meta.env.VITE_AUTH_API_URL.replace(/\/$/, '');
-  if (typeof window !== 'undefined' && window.CODEWITHSIAM_AUTH_API) return window.CODEWITHSIAM_AUTH_API.replace(/\/$/, '');
-  if (typeof window !== 'undefined' && ['localhost', '127.0.0.1'].includes(window.location.hostname)) return 'http://localhost:3001';
-  return '';
-}
-
-async function registrationRequest(path, payload) {
-  const baseUrl = authApiBaseUrl();
-  if (!baseUrl) throw new Error('Email verification service is not configured.');
-  const endpoint = {
-    start: '/api/auth/send-otp',
-    verify: '/api/auth/verify-otp',
-    resend: '/api/auth/resend-otp'
-  }[path];
-  if (!endpoint) throw new Error('Invalid registration request.');
-  let response;
-  try {
-    response = await fetch(`${baseUrl}${endpoint}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-  } catch {
-    throw new Error('Cannot reach the verification service. Please try again later.');
-  }
-  const result = await response.json().catch(() => null);
-  if (!response.ok || result?.success === false) {
-    throw new Error(result?.message || result?.error || 'The verification request failed. Please try again.');
-  }
-  return result || {};
-}
+import { usernameToKey } from '../utils/helpers';
 
 const AuthContext = createContext(null);
 
@@ -117,7 +75,6 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [authError, setAuthError] = useState('');
   const [authPrompt, setAuthPrompt] = useState('');
 
   // Track auth state and mirror the user's own profile doc in real time.
@@ -136,21 +93,6 @@ export function AuthProvider({ children }) {
     });
     return () => {
       unsub();
-    };
-  }, []);
-
-  useEffect(() => {
-    let active = true;
-    getRedirectResult(auth)
-      .then((result) => {
-        if (active && result?.user) return createProfileIfMissing(result.user);
-        return undefined;
-      })
-      .catch((error) => {
-        if (active) setAuthError(error?.code || 'auth/unknown');
-      });
-    return () => {
-      active = false;
     };
   }, []);
 
@@ -239,86 +181,11 @@ export function AuthProvider({ children }) {
     await syncRealtimeUserProfile(fbUser);
   }
 
-  async function signup({ email, password, fullName, username }) {
-    if (password.length < 8) throw new Error('Password must be at least 8 characters.');
-    if (username && !validateUsername(username)) {
-      throw new Error('Username must be 3-20 characters: letters, numbers, "_" or "." only.');
-    }
-    const normalizedEmail = email.trim().toLowerCase();
-    const displayName = fullName?.trim() || normalizedEmail.split('@')[0];
-    await registrationRequest('start', { name: displayName, email: normalizedEmail, password });
-    return { email: normalizedEmail };
-  }
-
-  async function verifySignupCode(email, otp, password = '') {
-    return registrationRequest('verify', { email: email.trim().toLowerCase(), otp: otp.trim(), password });
-  }
-
-  async function resendSignupCode(email) {
-    return registrationRequest('resend', { email: email.trim().toLowerCase() });
-  }
-
-  async function login(email, password) {
-    const cred = await signInWithEmailAndPassword(auth, email.trim().toLowerCase(), password);
-    if (!cred.user.emailVerified && !cred.user.providerData.some((provider) => provider.providerId === 'google.com')) {
-      await signOut(auth);
-      throw new Error('Please verify your email with the 6-digit code sent during registration.');
-    }
-    await createProfileIfMissing(cred.user);
-    return cred.user;
-  }
-
-  function isMobileBrowser() {
-    return typeof window !== 'undefined' && (
-      window.matchMedia?.('(max-width: 768px)').matches ||
-      /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)
-    );
-  }
-
-  async function loginWithGoogle() {
-    if (isMobileBrowser()) {
-      await signInWithRedirect(auth, googleProvider);
-      return null;
-    }
-
-    let cred;
-    try {
-      cred = await signInWithPopup(auth, googleProvider);
-    } catch (error) {
-      if (error?.code === 'auth/popup-blocked' || error?.code === 'auth/operation-not-supported-in-this-environment') {
-        await signInWithRedirect(auth, googleProvider);
-        return null;
-      }
-      throw error;
-    }
-    await createProfileIfMissing(cred.user);
-    return cred.user;
-  }
-
-  async function resetPassword(email) {
-    return sendPasswordResetEmail(auth, email.trim().toLowerCase());
-  }
-
   async function linkGoogleAccount() {
     if (!auth.currentUser) throw new Error('Please sign in first.');
     const credential = await linkWithPopup(auth.currentUser, googleProvider);
     await createProfileIfMissing(credential.user);
     return credential.user;
-  }
-
-  async function changeAccountPassword(currentPassword, newPassword) {
-    const currentUser = auth.currentUser;
-    if (!currentUser?.email) throw new Error('Please sign in with an email account first.');
-    if (newPassword.length < 8) throw new Error('Password must be at least 8 characters.');
-    const hasPasswordProvider = currentUser.providerData.some((provider) => provider.providerId === 'password');
-    if (hasPasswordProvider) {
-      if (!currentPassword) throw new Error('Enter your current password.');
-      const credential = EmailAuthProvider.credential(currentUser.email, currentPassword);
-      await reauthenticateWithCredential(currentUser, credential);
-      await updatePassword(currentUser, newPassword);
-    } else {
-      await linkWithCredential(currentUser, EmailAuthProvider.credential(currentUser.email, newPassword));
-    }
   }
 
   async function logout() {
@@ -332,19 +199,10 @@ export function AuthProvider({ children }) {
     user,
     profile,
     loading,
-    authError,
-    clearAuthError: () => setAuthError(''),
     authPrompt,
     requestSignIn: (message = 'Please sign in to continue.') => setAuthPrompt(message),
     dismissAuthPrompt: () => setAuthPrompt(''),
-    signup,
-    verifySignupCode,
-    resendSignupCode,
-    login,
-    loginWithGoogle,
-    resetPassword,
     linkGoogleAccount,
-    changeAccountPassword,
     logout
   };
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

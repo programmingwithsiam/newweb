@@ -5,7 +5,7 @@ import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { notify } from '../utils/notify';
-import { findOrCreateDirectChat } from '../utils/chatService';
+import { findOrCreateDirectChat, syncBlockedChats } from '../utils/chatService';
 import ConfirmDialog from './ConfirmDialog';
 
 export default function FriendButton({ targetUid }) {
@@ -94,11 +94,18 @@ export default function FriendButton({ targetUid }) {
   }
 
   async function toggleBlock() {
-    if (isBlocked) {
-      await remove(ref(db, `blockedUsers/${user.uid}/${targetUid}`));
-    } else {
-      await set(ref(db, `blockedUsers/${user.uid}/${targetUid}`), { createdAt: serverTimestamp() });
-      showToast('User blocked', 'success');
+    const shouldBlock = !isBlocked;
+    try {
+      if (shouldBlock) {
+        await set(ref(db, `blockedUsers/${user.uid}/${targetUid}`), { createdAt: serverTimestamp() });
+      } else {
+        await remove(ref(db, `blockedUsers/${user.uid}/${targetUid}`));
+      }
+      await syncBlockedChats(user.uid, targetUid, shouldBlock);
+      if (shouldBlock) showToast('User blocked', 'success');
+    } catch (blockError) {
+      showToast(`Could not update the block: ${blockError?.message || 'Unknown error'}`, 'error');
+      return;
     }
     setConfirmBlock(false);
   }

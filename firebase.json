@@ -1,10 +1,21 @@
 {
   "database": {
-    "rules": "community-app/database.rules.json"
+    "rules": "database.rules.json"
   },
   "firestore": {
     "rules": "firestore.rules",
     "indexes": "firestore.indexes.json"
+  },
+  "emulators": {
+    "firestore": {
+      "port": 8080
+    },
+    "storage": {
+      "port": 9199
+    },
+    "ui": {
+      "enabled": false
+    }
   },
   "storage": {
     "rules": "storage.rules"

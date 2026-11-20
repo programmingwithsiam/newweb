@@ -484,7 +484,7 @@ export default function Messenger() {
               </div>
               <h2>{activePeerName}</h2>
               <p>{activePeer.online ? messengerStrings.activeNow : messengerStrings.offline}</p>
-              <span className="msgr-encryption-badge"><LockKeyhole size={13} /> End-to-end encrypted</span>
+              <span className="msgr-encryption-badge"><LockKeyhole size={13} /> Not end-to-end encrypted</span>
             </div>
 
             <div className="msgr-info-actions" aria-label={messengerStrings.contactActions}>

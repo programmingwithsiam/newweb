@@ -19,7 +19,7 @@ import {
 } from 'firebase/database';
 import { db } from '../firebase/config';
 import { useToast } from '../context/ToastContext';
-import { ArrowDown, ArrowLeft, Check, CheckCheck, ChevronDown, Code2, Copy, Ellipsis, ImagePlus, Info, LoaderCircle, Pencil, Phone, Reply, RotateCcw, SendHorizontal, Smile, ThumbsUp, Trash2, Video, X } from 'lucide-react';
+import { ArrowDown, ArrowLeft, Check, CheckCheck, ChevronDown, Code2, Copy, Ellipsis, Flag, ImagePlus, Info, LoaderCircle, Pencil, Phone, Reply, RotateCcw, SendHorizontal, Smile, ThumbsUp, Trash2, Video, X } from 'lucide-react';
 import { messengerStrings } from '../messenger-strings';
 import {
   normalizeChatMessage,
@@ -155,6 +155,7 @@ export default function ChatWindow({ chat, chatId, currentUser, usersMap, onBack
   const [editingMessage, setEditingMessage] = useState(null);
   const [reactionPickerId, setReactionPickerId] = useState(null);
   const [localReactions, setLocalReactions] = useState({});
+  const [hiddenMessageIds, setHiddenMessageIds] = useState({});
   const [codeMode, setCodeMode] = useState(false);
   const [typing, setTyping] = useState(false);
   const [showEmoji, setShowEmoji] = useState(false);
@@ -222,10 +223,11 @@ export default function ChatWindow({ chat, chatId, currentUser, usersMap, onBack
       timestampValue(first.createdAt) - timestampValue(second.createdAt)
     );
   }, [deliveryStates, latestMessages, olderMessages, optimisticMessages]);
-  const lastOwnMessageId = [...messages].reverse()
+  const visibleMessages = messages.filter((message) => !hiddenMessageIds[message.id]);
+  const lastOwnMessageId = [...visibleMessages].reverse()
     .find((message) => message.senderId === currentUser?.uid)?.id;
   const peerMessage = peerUid
-    ? [...messages].reverse().find((message) => message.senderId === peerUid)
+    ? [...visibleMessages].reverse().find((message) => message.senderId === peerUid)
     : null;
   const embeddedPeer = peerUid ? chat?.memberProfiles?.[peerUid] || {} : {};
   const peerDisplayName = normalizeDisplayName(
@@ -256,6 +258,23 @@ export default function ChatWindow({ chat, chatId, currentUser, usersMap, onBack
       window.removeEventListener('blur', updateVisibility);
     };
   }, []);
+
+  useEffect(() => {
+    if (!chatId || !currentUser) {
+      setHiddenMessageIds({});
+      return undefined;
+    }
+    const hiddenRef = ref(db, `hiddenMessages/${currentUser.uid}/${chatId}`);
+    return onValue(hiddenRef, (snapshot) => {
+      setHiddenMessageIds(snapshot.val() || {});
+    }, (hiddenError) => {
+      console.error('Hidden chat messages failed to load:', {
+        code: hiddenError?.code || 'unknown',
+        message: hiddenError?.message || String(hiddenError),
+      });
+      showToast('Could not load your hidden messages.', 'error');
+    });
+  }, [chatId, currentUser, showToast]);
 
   useEffect(() => () => {
     uploadAbortRef.current?.abort();
@@ -919,9 +938,9 @@ export default function ChatWindow({ chat, chatId, currentUser, usersMap, onBack
     if (!chatId || !currentUser) return;
     const message = messages.find((item) => item.id === messageId);
     if (mode === 'everyone' && message?.senderId !== currentUser.uid) return;
-    const messageRef = ref(db, `messages/${chatId}/${messageId}`);
     try {
       if (mode === 'everyone') {
+        const messageRef = ref(db, `messages/${chatId}/${messageId}`);
         await update(messageRef, {
           deletedForEveryone: true,
           text: messengerStrings.messageDeleted,
@@ -931,8 +950,7 @@ export default function ChatWindow({ chat, chatId, currentUser, usersMap, onBack
           status: 'deleted',
         });
       } else {
-        const deletedFor = [...new Set([...(message?.deletedFor || []), currentUser.uid])];
-        await update(messageRef, { deletedFor });
+        await set(ref(db, `hiddenMessages/${currentUser.uid}/${chatId}/${messageId}`), true);
       }
       console.info(`[msgr] message update ok messages/${chatId}/${messageId}`);
       setMenuOpenId(null);
@@ -961,6 +979,30 @@ export default function ChatWindow({ chat, chatId, currentUser, usersMap, onBack
         message: copyError?.message || String(copyError),
       });
       showToast(messengerStrings.copyFailed, 'error');
+    }
+  }
+
+  async function handleReport(message) {
+    if (!currentUser || !chatId || !message || message.senderId === currentUser.uid) return;
+    if (!window.confirm('Report this message to Community moderators?')) return;
+    try {
+      const reportRef = push(ref(db, `chatReports/${currentUser.uid}`));
+      await set(reportRef, {
+        reporterUid: currentUser.uid,
+        conversationId: chatId,
+        messageId: message.id,
+        targetUid: message.senderId,
+        reason: 'other',
+        createdAt: serverTimestamp(),
+      });
+      setMenuOpenId(null);
+      showToast('Message reported.', 'success');
+    } catch (reportError) {
+      console.error('Chat message report failed:', {
+        code: reportError?.code || 'unknown',
+        message: reportError?.message || String(reportError),
+      });
+      showToast('Could not report this message.', 'error');
     }
   }
 
@@ -1059,10 +1101,10 @@ export default function ChatWindow({ chat, chatId, currentUser, usersMap, onBack
               {historyLoading ? <><LoaderCircle size={15} className="msgr-spin" /> {messengerStrings.loading}</> : messengerStrings.loadOlderMessages}
             </button>
           )}
-          {!messages.length && !latestMessages.length ? (
+          {!visibleMessages.length ? (
             <div className="cwschat empty-message-state">{messengerStrings.startConversation}</div>
           ) : (
-            messages.map((message, index) => {
+            visibleMessages.map((message, index) => {
               const isMine = message.senderId === currentUser?.uid;
               const previous = index > 0 ? messages[index - 1] : null;
               const next = index + 1 < messages.length ? messages[index + 1] : null;
@@ -1160,6 +1202,7 @@ export default function ChatWindow({ chat, chatId, currentUser, usersMap, onBack
                                   <button type="button" onClick={() => { setReplyTo({ id: message.id, text: message.text || message.caption || messengerStrings.photo, senderId: message.senderId }); setMenuOpenId(null); }}><Reply size={15} />Reply</button>
                                   <button type="button" onClick={() => { handleCopy(message.text || message.caption || ''); setMenuOpenId(null); }}><Copy size={15} />Copy</button>
                                   {isMine && Boolean(message.text) && <button type="button" onClick={() => startMessageEdit(message)}><Pencil size={15} />Edit</button>}
+                                  {!isMine && <button type="button" onClick={() => handleReport(message)}><Flag size={15} />Report</button>}
                                   {isMine && <button type="button" className="danger-action" onClick={() => handleDelete(message.id, 'everyone')}><RotateCcw size={15} />Unsend</button>}
                                   <button type="button" className="danger-action" onClick={() => handleDelete(message.id, 'me')}><Trash2 size={15} />Delete for me</button>
                                 </div>

@@ -7,11 +7,8 @@ import ProtectedRoute from './components/ProtectedRoute';
 import AppLayout from './components/AppLayout';
 import AuthPrompt from './components/AuthPrompt';
 
-import Login from './pages/Login';
 import LoadingSpinner from './components/LoadingSpinner';
 
-const Signup = lazy(() => import('./pages/Signup'));
-const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
 const Home = lazy(() => import('./pages/Home'));
 const Profile = lazy(() => import('./pages/Profile'));
 const Messenger = lazy(() => import('./pages/Messenger'));
@@ -34,10 +31,6 @@ export default function App() {
           <AuthProvider>
             <BrowserRouter basename="/community">
               <Routes>
-                <Route path="/login" element={<Login />} />
-                <Route path="/signup" element={<LazyPage><Signup /></LazyPage>} />
-                <Route path="/forgot-password" element={<LazyPage><ForgotPassword /></LazyPage>} />
-
                 <Route element={<AppLayout />}>
                   <Route path="/" element={<LazyPage><Home /></LazyPage>} />
                   <Route path="/index.html" element={<LazyPage><Home /></LazyPage>} />

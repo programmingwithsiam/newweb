@@ -6030,12 +6030,6 @@ footer p {
   color: #ff7a90;
 }
 
-.otp-help {
-  font-size: 0.8rem;
-  color: var(--text-dim);
-  margin-top: 10px;
-}
-
 .divider {
   display: flex;
   align-items: center;
@@ -6449,150 +6443,12 @@ footer p {
   font-size: .76rem !important;
 }
 
-.auth-otp-view {
-  padding-top: 8px;
-  text-align: center;
-}
-
-.auth-otp-icon {
-  display: grid;
-  width: 48px;
-  height: 48px;
-  margin: 0 auto 13px;
-  place-items: center;
-  border: 1px solid rgba(255, 255, 255, .12);
-  border-radius: 15px;
-  color: var(--cyan);
-  background: rgba(255, 255, 255, .045);
-  font-size: 1.2rem;
-}
-
-.auth-otp-view h2 {
-  margin: 0 0 8px;
-  font-size: 1.4rem;
-}
-
-.auth-otp-copy {
-  margin: 0 auto 23px !important;
-  line-height: 1.55;
-}
-
-.auth-otp-copy strong {
-  display: block;
-  overflow-wrap: anywhere;
-  color: var(--text);
-  font-weight: 600;
-}
-
-.auth-policy-row {
-  display: flex;
-  align-items: flex-start;
-  gap: 9px;
-  margin: 0 0 18px;
-  color: var(--text-dim);
-  font-size: .82rem;
-  line-height: 1.55;
-  text-align: left;
-}
-
-.auth-policy-row input {
-  flex: 0 0 auto;
-  width: 16px;
-  height: 16px;
-  margin-top: 2px;
-  accent-color: var(--accent);
-}
-
-.auth-policy-row a {
-  color: var(--accent-soft);
-  text-underline-offset: 3px;
-}
-
-.otp-inputs {
-  display: flex;
-  justify-content: center;
-  gap: 8px;
-  margin: 0 0 22px;
-}
-
-.otp-digit {
-  width: 42px;
-  height: 50px;
-  padding: 0;
-  border: 1px solid rgba(255, 255, 255, .15);
-  border-radius: 10px;
-  outline: 0;
-  color: var(--text);
-  background: rgba(255, 255, 255, .045);
-  font-family: var(--font-mono);
-  font-size: 1.25rem;
-  font-weight: 700;
-  text-align: center;
-  transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
-}
-
-.otp-digit:focus {
-  border-color: var(--cyan);
-  background: rgba(255, 255, 255, .08);
-  box-shadow: 0 0 0 3px var(--cyan-dim);
-}
-
-.otp-digit.digit-pop {
-  animation: otp-pop .22s ease-out;
-}
-
-.auth-otp-links {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  margin-top: 17px;
-  font-size: .79rem;
-}
-
-.auth-otp-links button {
-  font-size: inherit;
-}
-
-.auth-otp-links button:disabled {
-  color: var(--text-dim);
-  opacity: .75;
-}
-
-.auth-otp-view .auth-status {
-  text-align: left;
-}
-
-.auth-otp-view.otp-shake {
-  animation: otp-shake .36s ease-in-out;
-}
-
 .auth-modal-card .auth-status {
   margin: 12px 0 0;
 }
 
 .auth-modal-card .auth-status.show {
   opacity: 1;
-}
-
-@keyframes otp-pop {
-  50% {
-    transform: scale(1.1);
-    border-color: var(--cyan);
-  }
-}
-
-@keyframes otp-shake {
-  25% {
-    transform: translateX(-6px);
-  }
-
-  50% {
-    transform: translateX(6px);
-  }
-
-  75% {
-    transform: translateX(-3px);
-  }
 }
 
 @keyframes auth-spin {
@@ -6701,18 +6557,6 @@ footer p {
     padding-inline: 18px;
   }
 
-  .otp-inputs {
-    gap: 6px;
-  }
-
-  .otp-digit {
-    width: min(12vw, 40px);
-    height: 46px;
-  }
-
-  .auth-otp-links {
-    font-size: .72rem;
-  }
 }
 
 /* ---------- header sign-in / user chip ---------- */

@@ -1,5 +1,6 @@
 import { getActiveStories, addStoryView, renderStoryViewer, createStory, uploadStoryImage, setStoryReaction, watchStoryReactions } from './story-manager.js?v=20261108-story-reactions-1';
 import { auth } from './firebase-init.js';
+import { redirectToAuthPrompt } from './auth.js';
 
 const content = document.getElementById('storyContent');
 const progress = document.getElementById('storyProgress');
@@ -74,11 +75,12 @@ function showReactionStatus(message, isError = false, signIn = false) {
 
   storyReactionStatus.append(document.createTextNode(message));
   if (signIn) {
-    const link = document.createElement('a');
-    const returnTo = `${location.pathname}${location.search}`;
-    link.href = `/community/login?returnTo=${encodeURIComponent(returnTo)}`;
-    link.textContent = 'Sign in';
-    storyReactionStatus.append(document.createTextNode(' '), link);
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'text-link';
+    button.textContent = 'Continue with Google';
+    button.addEventListener('click', () => redirectToAuthPrompt('Continue with Google to react to Community stories.'));
+    storyReactionStatus.append(document.createTextNode(' '), button);
   }
 }
 
@@ -287,10 +289,12 @@ function setupStoryCreator() {
     setStatus('');
 
     if (!auth?.currentUser) {
-      const signInLink = document.createElement('a');
-      signInLink.href = `/community/login?returnTo=${encodeURIComponent('/stories.html?mode=create')}`;
-      signInLink.textContent = 'Sign in';
-      createStoryStatus.replaceChildren(document.createTextNode('Sign in to post a story. '), signInLink);
+      const signInButton = document.createElement('button');
+      signInButton.type = 'button';
+      signInButton.className = 'text-link';
+      signInButton.textContent = 'Continue with Google';
+      signInButton.addEventListener('click', () => redirectToAuthPrompt('Continue with Google to post a Community story.'));
+      createStoryStatus.replaceChildren(document.createTextNode('Sign in to post a story. '), signInButton);
       return;
     }
 

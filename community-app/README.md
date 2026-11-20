@@ -1,4 +1,60 @@
-# My Community
+# CodeWithSiam Community
+
+The screenshot-matching Community page is built from `index.html`; the Vite
+build writes it to `../community`. `src/community-production.js` connects its
+feed, profiles, posts, post reactions, comments, follows, and saved posts to
+the site's shared Firebase account and Firestore-backed Community APIs. The
+original React app described below is legacy source and is not included in
+this route.
+
+The profile page includes editable profile and cover images, a bio, location,
+website, learning focus, and skills/interests. Images are validated and
+resized client-side, uploaded through the existing Cloudinary image preset,
+and their URLs plus About details are saved to the signed-in user's Firestore
+profile documents.
+
+## Production setup
+
+1. Enable Google sign-in in Firebase Authentication and add the production
+   domain and any local development domain to Authorized domains. Community
+   uses the same Firebase Auth session and login prompt as course enrollment.
+2. Deploy the root Firestore rules and indexes before enabling Community:
+   `firebase deploy --only firestore:rules,firestore:indexes`.
+3. Configure the Vercel server environment with `FIREBASE_SERVICE_ACCOUNT`,
+   `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, and `CLOUDINARY_API_SECRET`.
+   Keep the service-account JSON and Cloudinary secret server-side.
+4. If `REQUIRE_APP_CHECK=true`, register the site's reCAPTCHA v3 key with
+   Firebase App Check and verify that both production and local origins are
+   accepted. The client sends an App Check token to the Community APIs.
+5. The media APIs currently allow `https://codewithsiam.vercel.app`. Update
+   `PRODUCTION_ORIGIN` in `server/community-media.cjs` if production uses a
+   different domain.
+6. Community's inline scripts are pinned by SHA-256 hashes in `vercel.json`;
+   refresh those hashes whenever an inline script in `index.html` changes.
+
+Build the route with `npm --prefix community-app run build`.
+
+For local development, run the API and frontend in separate terminals:
+
+```bash
+npm --prefix server run dev
+npm --prefix community-app run dev
+```
+
+On localhost, Community API requests go to the local Express server on port
+3001. On deployed sites, they use the same-origin Vercel functions. Set
+`FIREBASE_SERVICE_ACCOUNT` and the three `CLOUDINARY_*` variables in
+`server/.env` for media uploads. The service-account setting may be a path to a
+JSON file or the JSON itself. Firestore rules still need to be deployed for
+post/profile writes; local API startup does not deploy Firebase rules.
+
+Post creation/deletion, text editing, likes/unlikes, top-level comments,
+comment replies/reactions, comment deletion, profile editing, follows/unfollows,
+saved posts, and Messenger conversations use the shared Firebase account and
+backend/rules protections. Stories and reels are not connected to production
+storage.
+
+## Legacy React source (not deployed)
 
 A social media web app built with **React + Vite** and Firebase
 Authentication and Realtime Database. Community posts and Messenger
@@ -27,8 +83,8 @@ my-community/
                                ReactionBar, CommentSection, FriendButton,
                                ConversationList, ChatWindow, GroupInfoPanel,
                                NewGroupModal, UserSearchPicker, ConfirmDialog, ...
-    pages/                     Login, Signup, ForgotPassword, Home, Profile,
-                               Messenger, Notifications, Search, Hashtag,
+    pages/                     Home, Profile, Messenger, Notifications,
+                               Search, Hashtag,
                                Settings, PostPage, CreatePostPage
     config/cloudinary.js       Public Cloudinary cloud name + unsigned preset
     utils/                     helpers.js (formatting, hashtags, video-embed
@@ -104,7 +160,13 @@ userConversations/{uid}/{convId}     unreadCount, unreadByUid, readAt,
 messages/{convId}/{msgId}       senderId, senderName, type, text|imageUrl,
                                  createdAt (server milliseconds),
                                  createdAtOrder (numeric ordering key),
-                                 seenBy:{uid:true}
+                                 seenBy:{uid:true}, replyTo, edited,
+                                 deletedForEveryone
+messageSendRates/{uid}          lastSentAt, messageId
+messageReactions/{convId}/{msgId}/{uid} emoji
+hiddenMessages/{uid}/{convId}/{msgId}   true (hide for this user only)
+chatReports/{reporterUid}/{id}  conversationId, messageId, targetUid,
+                                 reason, createdAt
 groupMembers/{convId}/{uid}     { role:'admin'|'member', joinedAt }
                                  NOTE: this project stores group metadata
                                  directly on the conversations/{convId}
@@ -139,14 +201,12 @@ hashtags/{tag}/{postId}         true   (index for hashtag pages; tag is
   `userConversations` holds the *personal* view (unread count) so a badge
   can be shown without scanning every message, `messages` holds the actual
   message log, `typing` and `presence` are ephemeral and cheap to write.
-  The client keeps one bounded conversation-list subscription and attaches
-  bounded message child listeners only while a chat is open and the tab is
-  focused. New messages use server timestamps plus a numeric ordering key so
-  legacy ISO/seconds timestamps do not exclude fresh messages from the latest
-  page. Read receipts are written only by the reader and only while the chat
-  is visible and focused. Existing public profiles gain `name`/`nameLower`
-  on their next successful login; the update preserves their other profile
-  fields and never copies email into the public profile.
+  The legacy Community page uses a live Realtime Database adapter: it listens
+  to the latest 30 conversation summaries and up to 100 messages per listed
+  conversation. New messages use server timestamps plus a numeric ordering
+  key. Read receipts are written by the signed-in reader when a conversation
+  is open. Message images are uploaded to Cloudinary before their URLs are
+  saved to Realtime Database.
 
 ---
 
@@ -227,6 +287,17 @@ Run Firebase CLI commands from the repository root. You can also run
 - [x] Only the comment author can edit/delete their own comment.
 - [x] Messages are readable/writable only by members of that conversation
       (`conversations/{id}/members/{auth.uid}` must exist).
+- [x] Message creation requires a verified Firebase account, a matching
+      per-user send reservation, and a one-message-per-second limit; message
+      text and attachment metadata are bounded by RTDB rules.
+- [x] Only the sender can edit or unsend a message; recipient read receipts
+      and per-user hidden-message state are scoped to that recipient.
+- [x] Direct and group message writes check block state; direct-chat creation
+      uses a canonical two-member UID mapping, and only group admins can add
+      members.
+- [x] Message notifications are tied to an existing message from the sender
+      in a conversation shared with the recipient.
+- [x] Chat reports are append-only and private to their reporter.
 - [x] Group role changes (promote/demote/remove) require the actor to
       already be an admin in `groupMembers`, except for the bootstrap case
       of a brand-new group and a member removing themselves (leaving).
@@ -273,6 +344,20 @@ Run Firebase CLI commands from the repository root. You can also run
    does a substring match. Fine at hobby/small-community scale; a large
    deployment should add a dedicated search service (e.g. Algolia,
    Typesense) fed by the same data.
+5. **Chat uploads are not verified server-side.** RTDB rules validate the
+   Cloudinary host and image dimensions, but cannot inspect uploaded bytes,
+   MIME type, or asset ownership. An unsigned client can bypass browser
+   validation; use a trusted upload service or a tightly restricted
+   Cloudinary preset before relying on attachment validation.
+6. **Group blocks are synchronized by connected clients.** Direct-chat
+   sends check both users' block records immediately, but group-block state
+   can be stale for conversations that are not synchronized by the
+   blocker's client. Group size is also not capped by RTDB rules.
+7. **Chat is not end-to-end encrypted.** Firebase/Cloudinary service
+   infrastructure can process stored message data and attachments; the UI
+   must not imply that only conversation participants can decrypt them.
+8. **Chat reports have no moderator workflow.** Reports are visible only to
+   their reporter; there is no privileged review API or moderator interface.
 
 ---
 
