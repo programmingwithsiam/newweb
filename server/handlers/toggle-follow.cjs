@@ -7,7 +7,7 @@ const {
   parseJsonBody,
   setCors,
   FieldValue,
-} = require('../server/community-media.cjs');
+} = require('../community-media.cjs');
 
 function profileCount(profile, field, legacyField) {
   const count = profile[field];

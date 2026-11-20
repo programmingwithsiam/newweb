@@ -1,4 +1,4 @@
-import { fetchAllCourses, saveUserCourseProgress, createPaymentSubmission, createFreeCourseEnrollment, uploadPaymentScreenshot, updatePaymentScreenshot, fetchUserPayments, getLessonVideoSource } from './courses-db.js?v=20261111-remove-python-bangla-1';
+import { fetchAllCourses, saveUserCourseProgress, createPaymentSubmission, createFreeCourseEnrollmentRequest, uploadPaymentScreenshot, updatePaymentScreenshot, fetchUserPayments, getLessonVideoSource } from './courses-db.js?v=20261120-free-enrollment-request-1';
 import { observeAuthState, redirectToAuthPrompt } from './auth.js?v=20261001-auth-flow-1';
 
 const progressKey = 'siam_portfolio_course_progress';
@@ -1463,16 +1463,16 @@ function renderCheckout(finalPrice, originalPrice, hasAccess) {
   $('checkoutStudentName').value = $('checkoutStudentName').value || user?.displayName || '';
   $('checkoutStudentEmail').value = $('checkoutStudentEmail').value || user?.email || '';
   renderPaymentOptions();
-  $('checkoutContinuePayment').textContent = isFree ? 'Enroll free' : 'Continue';
+  $('checkoutContinuePayment').textContent = isFree ? 'Request free access' : 'Continue';
   $('checkoutPaymentOptions').closest('label')?.classList.toggle('hidden', isFree);
-  $('checkoutOrderNote').textContent = isFree ? 'No payment required · Instant enrollment' : 'One-time payment · Manual verification';
+  $('checkoutOrderNote').textContent = isFree ? 'No payment required · Admin approval required' : 'One-time payment · Manual verification';
   $('checkoutTransactionId').required = !isFree;
   $('checkoutTransactionId').closest('label').classList.toggle('hidden', isFree);
   $('checkoutPaymentDetails').classList.toggle('hidden', isFree);
   $('checkoutPaymentHelp').classList.toggle('hidden', isFree);
   $('checkoutUpload').classList.toggle('hidden', isFree);
   $('checkoutPaymentConfirm').closest('label').classList.toggle('hidden', isFree);
-  $('checkoutPayBtn').textContent = isFree ? 'Enroll free' : 'Confirm enrollment';
+  $('checkoutPayBtn').textContent = isFree ? 'Request free access' : 'Confirm enrollment';
 }
 function getCheckoutCountry() {
   const select = $('checkoutCountry');
@@ -1515,13 +1515,14 @@ function bindCheckout() {
       || !user
       || name.value.trim().length < 2
       || !validCheckoutEmail(email.value)
-      || (!isFree() && (!validPhone || !transaction.value.trim() || !confirmation.checked));
+      || !validPhone
+      || (!isFree() && (!transaction.value.trim() || !confirmation.checked));
   };
   const validateStudentDetails = () => {
     const selected = getCheckoutCountry();
     const validName = name.value.trim().length >= 2;
     const validEmail = validCheckoutEmail(email.value);
-    const validPhone = isFree() || validCheckoutPhone(phone.value, selected.code);
+    const validPhone = validCheckoutPhone(phone.value, selected.code);
     $('checkoutNameError').textContent = validName ? '' : 'Please enter your full name.';
     $('checkoutEmailError').textContent = validEmail ? '' : 'Please enter a valid email address.';
     $('checkoutPhoneError').textContent = validPhone ? '' : `Please enter a valid ${selected.country} phone number.`;
@@ -1543,22 +1544,33 @@ function bindCheckout() {
   };
   const submitEnrollment = async () => {
     updatePayButton();
-    if (pay.disabled) return;
+    if (pay.dataset.processing === 'true') return;
     if (!user) {
       showAccessGate();
       return;
     }
+    if (!validateStudentDetails()) return;
     pay.dataset.processing = 'true';
     pay.disabled = true;
-    pay.textContent = isFree() ? 'Enrolling...' : 'Submitting request...';
+    pay.textContent = isFree() ? 'Sending request...' : 'Submitting request...';
     try {
       if (isFree()) {
-        const enrollment = await createFreeCourseEnrollment(user.uid, course.id);
-        course.accessStatus = 'approved';
-        course.accessSource = 'free';
-        $('checkoutRequestId').textContent = enrollment.id;
-        $('checkoutSuccessTitle').textContent = "You're enrolled!";
-        $('checkoutSuccessText').textContent = 'Free enrollment is complete. Return to the course to start learning.';
+        const request = await createFreeCourseEnrollmentRequest(user.uid, course.id, {
+          studentName: name.value.trim(),
+          studentEmail: email.value.trim(),
+          courseTitle: course.title,
+          phone: phone.value.trim()
+            ? normalizeCheckoutPhone(phone.value, getCheckoutCountry().code)
+            : '',
+        });
+        course.accessStatus = request.status || 'pending';
+        $('checkoutRequestId').textContent = request.id;
+        $('checkoutSuccessTitle').textContent = request.status === 'approved'
+          ? "You're already enrolled!"
+          : 'Free enrollment request received!';
+        $('checkoutSuccessText').textContent = request.status === 'approved'
+          ? 'Return to the course to start learning.'
+          : 'Your request is waiting for admin approval. Course access will be enabled after review.';
         $('checkoutWhatsappBtn').classList.add('hidden');
         setCheckoutStep(4);
         return;
@@ -1601,7 +1613,7 @@ function bindCheckout() {
       $('checkoutStatus').textContent = error.message || 'Payment could not be submitted.';
       if (isFree()) $('checkoutFreeStatus').textContent = error.message || 'Free enrollment could not be completed.';
       pay.dataset.processing = '';
-      pay.textContent = isFree() ? 'Enroll free' : 'Confirm enrollment';
+      pay.textContent = isFree() ? 'Request free access' : 'Confirm enrollment';
       updatePayButton();
     }
   };

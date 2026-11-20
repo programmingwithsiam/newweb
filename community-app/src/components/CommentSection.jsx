@@ -6,6 +6,7 @@ import { timeAgo } from '../utils/helpers';
 import { notify } from '../utils/notify';
 import ReactionBar from './ReactionBar';
 import ConfirmDialog from './ConfirmDialog';
+import { useToast } from '../context/ToastContext';
 
 function CommentItem({ postId, postOwnerUid, comment, id, onReply }) {
   const { user, profile } = useAuth();
@@ -77,9 +78,11 @@ function CommentItem({ postId, postOwnerUid, comment, id, onReply }) {
 
 export default function CommentSection({ postId, postOwnerUid }) {
   const { user, profile, requestSignIn } = useAuth();
+  const { showToast } = useToast();
   const [comments, setComments] = useState({});
   const [text, setText] = useState('');
   const [replyTo, setReplyTo] = useState(null); // { id, name }
+  const [posting, setPosting] = useState(false);
 
   useEffect(() => {
     const r = ref(db, `comments/${postId}`);
@@ -93,25 +96,32 @@ export default function CommentSection({ postId, postOwnerUid }) {
       requestSignIn('Sign in to comment on a community post.');
       return;
     }
-    if (!text.trim()) return;
-    const newRef = push(ref(db, `comments/${postId}`));
-    await update(newRef, {
-      uid: user.uid,
-      authorName: profile?.fullName || 'User',
-      authorPhoto: profile?.photoURL || '',
-      text: text.trim(),
-      parentId: replyTo?.id || null,
-      createdAt: serverTimestamp()
-    });
-    await runTransaction(ref(db, `posts/${postId}/commentCount`), (c) => (c || 0) + 1);
-    if (postOwnerUid && postOwnerUid !== user.uid) {
-      notify(postOwnerUid, { type: 'comment', fromUid: user.uid, postId });
+    if (!text.trim() || posting) return;
+    setPosting(true);
+    try {
+      const newRef = push(ref(db, `comments/${postId}`));
+      await update(newRef, {
+        uid: user.uid,
+        authorName: profile?.fullName || 'User',
+        authorPhoto: profile?.photoURL || '',
+        text: text.trim(),
+        parentId: replyTo?.id || null,
+        createdAt: serverTimestamp()
+      });
+      await runTransaction(ref(db, `posts/${postId}/commentCount`), (c) => (c || 0) + 1);
+      if (postOwnerUid && postOwnerUid !== user.uid) {
+        notify(postOwnerUid, { type: 'comment', fromUid: user.uid, postId });
+      }
+      if (replyTo && replyTo.parentUid && replyTo.parentUid !== user.uid) {
+        notify(replyTo.parentUid, { type: 'reply', fromUid: user.uid, postId });
+      }
+      setText('');
+      setReplyTo(null);
+    } catch (error) {
+      showToast(error?.message || 'Comment could not be posted.', 'error');
+    } finally {
+      setPosting(false);
     }
-    if (replyTo && replyTo.parentUid && replyTo.parentUid !== user.uid) {
-      notify(replyTo.parentUid, { type: 'reply', fromUid: user.uid, postId });
-    }
-    setText('');
-    setReplyTo(null);
   }
 
   const top = Object.entries(comments).filter(([, c]) => !c.parentId);
@@ -142,8 +152,11 @@ export default function CommentSection({ postId, postOwnerUid }) {
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder="Write a comment..."
+          maxLength={500}
         />
-        <button className="btn btn-primary btn-sm" type="submit">Post</button>
+        <button className="btn btn-primary btn-sm" type="submit" disabled={posting || !text.trim()}>
+          {posting ? 'Posting...' : 'Post'}
+        </button>
       </form>
     </div>
   );

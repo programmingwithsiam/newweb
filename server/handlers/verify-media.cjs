@@ -8,7 +8,7 @@ const {
   mediaAssetId,
   parseJsonBody,
   setCors,
-} = require('../server/community-media.cjs');
+} = require('../community-media.cjs');
 
 module.exports = async function handler(request, response) {
   if (request.method === 'OPTIONS') {

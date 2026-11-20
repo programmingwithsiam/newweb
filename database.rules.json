@@ -84,9 +84,10 @@
     },
     "comments": {
       "$postId": {
-        ".read": "root.child('posts').child($postId).child('privacy').val() === 'public'",
+        ".read": "root.child('posts').child($postId).child('privacy').val() === 'public' || (auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && (root.child('posts').child($postId).child('uid').val() === auth.uid || root.child('friends').child(auth.uid).child(root.child('posts').child($postId).child('uid').val()).exists()))",
         "$commentId": {
-          ".write": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && (!data.exists() ? newData.child('uid').val() === auth.uid : data.child('uid').val() === auth.uid)"
+          ".write": "auth != null && (auth.token.email_verified === true || auth.token.firebase.sign_in_provider === 'google.com') && (root.child('posts').child($postId).child('privacy').val() === 'public' || root.child('posts').child($postId).child('uid').val() === auth.uid || root.child('friends').child(auth.uid).child(root.child('posts').child($postId).child('uid').val()).exists()) && (!data.exists() ? newData.child('uid').val() === auth.uid : data.child('uid').val() === auth.uid)",
+          ".validate": "!newData.exists() || (newData.child('uid').isString() && newData.child('uid').val() === auth.uid && newData.child('text').isString() && newData.child('text').val().length > 0 && newData.child('text').val().length <= 500)"
         }
       }
     },

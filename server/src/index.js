@@ -9,15 +9,18 @@ import helmet from 'helmet';
 
 const require = createRequire(import.meta.url);
 const communityApiHandlers = new Map([
-    ['/api/sign-upload', require('../../api/sign-upload.js')],
-    ['/api/verify-media', require('../../api/verify-media.js')],
-    ['/api/delete-media', require('../../api/delete-media.js')],
-    ['/api/create-comment', require('../../api/create-comment.js')],
-    ['/api/toggle-comment-reaction', require('../../api/toggle-comment-reaction.js')],
-    ['/api/toggle-reaction', require('../../api/toggle-reaction.js')],
-    ['/api/delete-comment', require('../../api/delete-comment.js')],
-    ['/api/toggle-follow', require('../../api/toggle-follow.js')],
-    ['/api/delete-post', require('../../api/delete-post.js')],
+    ['/api/sign-upload', require('../handlers/sign-upload.cjs')],
+    ['/api/verify-media', require('../handlers/verify-media.cjs')],
+    ['/api/delete-media', require('../handlers/delete-media.cjs')],
+    ['/api/create-comment', require('../handlers/create-comment.cjs')],
+    ['/api/toggle-comment-reaction', require('../handlers/toggle-comment-reaction.cjs')],
+    ['/api/toggle-reaction', require('../handlers/toggle-reaction.cjs')],
+    ['/api/delete-comment', require('../handlers/delete-comment.cjs')],
+    ['/api/toggle-follow', require('../handlers/toggle-follow.cjs')],
+    ['/api/delete-post', require('../handlers/delete-post.cjs')],
+    ['/api/delete-account', require('../handlers/delete-account.cjs')],
+    ['/api/create-notification', require('../handlers/create-notification.cjs')],
+    ['/api/admin-delete-post', require('../handlers/admin-delete-post.cjs')],
 ]);
 const app = express();
 const port = Number(process.env.PORT) || 3001;

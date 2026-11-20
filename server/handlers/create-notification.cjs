@@ -7,7 +7,7 @@ const {
   parseJsonBody,
   setCors,
   FieldValue,
-} = require('../server/community-media.cjs');
+} = require('../community-media.cjs');
 
 const isDocumentId = (value) => typeof value === 'string' && value.length > 0 &&
   value.length <= 500 && !value.includes('/');

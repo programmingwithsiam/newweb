@@ -498,3 +498,54 @@ test('blocks and bans prevent new community writes', async () => {
   await assertFails(batch.commit());
   await assertFails(createPost(userDb('bob'), 'bob'));
 });
+
+test('free course access requires a pending admin-review request', async () => {
+  await environment.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), 'courses', 'free-course'), {
+      title: 'Free course',
+      price: 0,
+      discountPrice: 0,
+      status: 'published',
+    });
+  });
+
+  const alice = userDb('alice');
+  await assertSucceeds(setDoc(doc(alice, 'payments', 'free-request'), {
+    userId: 'alice',
+    studentName: 'Alice',
+    studentEmail: 'alice@example.com',
+    courseId: 'free-course',
+    courseTitle: 'Free course',
+    amount: 0,
+    paidAmount: 0,
+    paidCurrency: 'BDT',
+    method: 'free',
+    transactionId: '',
+    phone: '+8801712345678',
+    paymentDate: '',
+    screenshotUrl: '',
+    status: 'pending',
+    submittedAt: serverTimestamp(),
+  }));
+  await assertSucceeds(setDoc(doc(alice, 'enrollments', 'alice_free-course'), {
+    userId: 'alice',
+    courseId: 'free-course',
+    status: 'pending',
+    paymentMethod: 'free',
+    transactionId: '',
+    paymentId: 'free-request',
+    requestedAt: serverTimestamp(),
+    accessSource: 'payment',
+  }));
+  await assertFails(setDoc(doc(alice, 'enrollments', 'alice_direct-free-access'), {
+    userId: 'alice',
+    courseId: 'free-course',
+    status: 'approved',
+    paymentMethod: 'free',
+    transactionId: '',
+    requestedAt: serverTimestamp(),
+    approvedAt: serverTimestamp(),
+    approvedBy: 'free-course',
+    accessSource: 'free',
+  }));
+});

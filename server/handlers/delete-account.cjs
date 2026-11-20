@@ -1,11 +1,13 @@
 const {
   authenticate,
   assertAllowedKeys,
+  deleteOwnedDocuments,
+  deleteUserMedia,
   fail,
   json,
   parseJsonBody,
   setCors,
-} = require('../server/community-media.cjs');
+} = require('../community-media.cjs');
 
 module.exports = async function handler(request, response) {
   if (request.method === 'OPTIONS') {
@@ -20,20 +22,13 @@ module.exports = async function handler(request, response) {
   }
   try {
     const body = parseJsonBody(request);
-    assertAllowedKeys(body, ['postId']);
-    const { uid, db } = await authenticate(request);
-    const postId = typeof body.postId === 'string' ? body.postId : '';
-    if (!/^[A-Za-z0-9_-]{1,150}$/.test(postId)) {
-      return json(response, 400, { error: 'Post ID is invalid.' });
-    }
-
-    const postRef = db.doc(`posts/${postId}`);
-    const post = await postRef.get();
-    if (!post.exists) return json(response, 404, { error: 'Post not found.' });
-    if (post.data().authorUid !== uid) {
-      return json(response, 403, { error: 'You can delete only your own posts.' });
-    }
-    await db.recursiveDelete(postRef);
+    assertAllowedKeys(body, ['confirm']);
+    if (body.confirm !== 'DELETE') return json(response, 400, { error: 'Explicit account deletion confirmation is required.' });
+    const { uid, db } = await authenticate(request, { requireRecentAuth: true });
+    await deleteOwnedDocuments(db, uid);
+    await deleteUserMedia(uid);
+    const { auth } = require('../community-media.cjs').firebaseAdmin();
+    await auth.deleteUser(uid);
     return json(response, 200, { deleted: true });
   } catch (error) {
     return fail(response, error);

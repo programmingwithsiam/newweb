@@ -128,11 +128,11 @@ test('social APIs keep reactions and follows idempotent and enforce comment owne
   process.env.NODE_ENV = 'test';
 
   const handlerPaths = [
-    '../api/toggle-reaction.js',
-    '../api/toggle-follow.js',
-    '../api/toggle-comment-reaction.js',
-    '../api/delete-comment.js',
-    '../api/delete-post.js',
+    '../server/handlers/toggle-reaction.cjs',
+    '../server/handlers/toggle-follow.cjs',
+    '../server/handlers/toggle-comment-reaction.cjs',
+    '../server/handlers/delete-comment.cjs',
+    '../server/handlers/delete-post.cjs',
   ];
   const handlers = handlerPaths.map((path) => {
     const resolved = require.resolve(path);

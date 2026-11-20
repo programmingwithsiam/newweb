@@ -7,7 +7,7 @@ const {
   parseJsonBody,
   setCors,
   FieldValue,
-} = require('../server/community-media.cjs');
+} = require('../community-media.cjs');
 
 const REACTION_TYPES = new Set(['like', 'love', 'care', 'haha', 'wow', 'sad', 'angry']);
 

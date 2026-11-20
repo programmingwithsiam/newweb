@@ -327,12 +327,6 @@ export async function sendChatMessage({
       logWriteFailure(messagePath, error);
       throw error;
     }
-    if (!messageAlreadyStored) {
-      await writeWithLog(`messageSendRates/${currentUser.uid}`, set(
-        ref(db, `messageSendRates/${currentUser.uid}`),
-        { lastSentAt: serverTimestamp(), messageId }
-      ));
-    }
     if (storedSnapshot.exists()) {
       const stored = storedSnapshot.val() || {};
       const matches = stored.senderId === currentUser.uid &&
@@ -344,6 +338,12 @@ export async function sendChatMessage({
       messageAlreadyStored = true;
       console.info(`[msgr] send ok ${messagePath} already-stored`);
     }
+  }
+  if (!messageAlreadyStored) {
+    await writeWithLog(`messageSendRates/${currentUser.uid}`, set(
+      ref(db, `messageSendRates/${currentUser.uid}`),
+      { lastSentAt: serverTimestamp(), messageId }
+    ));
   }
   const lastMessage = image ? (caption ? `📷 ${caption}` : '📷 Photo') : normalizedText;
   const primaryUpdates = {

@@ -526,26 +526,32 @@ export async function createPaymentSubmission(paymentData) {
   return payment;
 }
 
-export async function createFreeCourseEnrollment(uid, courseId) {
+export async function createFreeCourseEnrollmentRequest(uid, courseId, student = {}) {
   if (!auth?.currentUser || auth.currentUser.uid !== uid) {
     throw new Error('You must be signed in to enroll.');
   }
-  const { doc, getDoc, setDoc, serverTimestamp } = await loadFirestore();
+  const { doc, getDoc } = await loadFirestore();
   const enrollmentRef = doc(db, 'enrollments', enrollmentKey(uid, courseId));
   const existing = await getDoc(enrollmentRef);
-  if (existing.exists()) return { id: existing.id, ...existing.data() };
-  await setDoc(enrollmentRef, {
+  if (existing.exists()) {
+    const data = existing.data();
+    if (data.status === 'pending' || data.status === 'approved') {
+      return { id: data.paymentId || existing.id, ...data };
+    }
+  }
+  return createPaymentSubmission({
     userId: uid,
     courseId,
-    status: 'approved',
-    paymentMethod: 'free',
+    courseTitle: student.courseTitle || '',
+    studentName: student.studentName || auth.currentUser.displayName || '',
+    studentEmail: student.studentEmail || auth.currentUser.email || '',
+    amount: 0,
+    paidAmount: 0,
+    paidCurrency: 'BDT',
+    method: 'free',
     transactionId: '',
-    requestedAt: serverTimestamp(),
-    approvedAt: serverTimestamp(),
-    approvedBy: 'free-course',
-    accessSource: 'free'
+    phone: student.phone || '',
   });
-  return { id: enrollmentRef.id, userId: uid, courseId, status: 'approved', accessSource: 'free' };
 }
 
 export async function setCourseEnrollmentAccess({ uid, courseId, status, accessSource = 'manual', paymentMethod = '', transactionId = '' }) {

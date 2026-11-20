@@ -88,6 +88,49 @@ test('senders can edit and unsend their own messages but recipients cannot', asy
   await assertFails(update(messageRef, { text: 'Restored after deletion' }));
 });
 
+test('public and friend posts allow valid comments but reject invalid or outsider writes', async () => {
+  await environment.withSecurityRulesDisabled(async (context) => {
+    const database = context.database();
+    await set(ref(database, 'posts/public-post'), {
+      uid: 'author',
+      privacy: 'public',
+      createdAt: 1000,
+    });
+    await set(ref(database, 'posts/friend-post'), {
+      uid: 'author',
+      privacy: 'friends',
+      createdAt: 1000,
+    });
+    await set(ref(database, 'friends/friend-user/author'), true);
+  });
+
+  const commenter = userDatabase('friend-user');
+  await assertSucceeds(set(ref(commenter, 'comments/friend-post/comment-1'), {
+    uid: 'friend-user',
+    authorName: 'Friend',
+    authorPhoto: '',
+    text: 'This comment is valid.',
+    parentId: null,
+    createdAt: serverTimestamp(),
+  }));
+  await assertFails(set(ref(commenter, 'comments/friend-post/invalid-comment'), {
+    uid: 'friend-user',
+    authorName: 'Friend',
+    authorPhoto: '',
+    text: '',
+    createdAt: serverTimestamp(),
+  }));
+
+  const outsider = userDatabase('outsider');
+  await assertFails(set(ref(outsider, 'comments/friend-post/comment-2'), {
+    uid: 'outsider',
+    authorName: 'Outsider',
+    authorPhoto: '',
+    text: 'Blocked comment.',
+    createdAt: serverTimestamp(),
+  }));
+});
+
 test('conversation members can create valid live messages', async () => {
   const sender = userDatabase('sender');
   await set(ref(sender, 'messageSendRates/sender'), {

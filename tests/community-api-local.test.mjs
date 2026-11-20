@@ -120,7 +120,7 @@ test('signed upload endpoint keeps the dynamic-folder public ID unchanged', asyn
     return 'test-signature';
   };
 
-  const handlerPath = require.resolve('../api/sign-upload.js');
+  const handlerPath = require.resolve('../server/handlers/sign-upload.cjs');
   delete require.cache[handlerPath];
   const handler = require(handlerPath);
   const response = {
@@ -187,7 +187,7 @@ test('verification deletes uploaded media that fails server-side size validation
     destroyed = args;
   };
 
-  const handlerPath = require.resolve('../api/verify-media.js');
+  const handlerPath = require.resolve('../server/handlers/verify-media.cjs');
   delete require.cache[handlerPath];
   const handler = require(handlerPath);
   const response = {
